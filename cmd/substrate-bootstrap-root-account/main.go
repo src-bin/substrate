@@ -59,6 +59,15 @@ func main() {
 		)
 	}
 
+	// Tag the master account.
+	if err := awsorgs.Tag(svc, aws.StringValue(org.MasterAccountId), map[string]string{
+		"Manager":                 "Substrate",
+		"SubstrateSpecialAccount": "master",
+		"SubstrateVersion":        "1970.01",
+	}); err != nil {
+		log.Fatal(err)
+	}
+
 	// The master account isn't the organization, though.  It's just an account.
 	// To affect the entire organization, we need its root.
 	root := awsorgs.Root(svc)
@@ -89,8 +98,6 @@ func main() {
 		log.Fatal(err)
 	}
 	//log.Printf("%+v", awsorgs.ListPolicies(svc, awsorgs.TAG_POLICY))
-
-	// Tag the master account.
 
 	// Create the audit, deploy, network, and ops accounts.
 
