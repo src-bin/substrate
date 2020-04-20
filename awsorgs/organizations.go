@@ -18,13 +18,19 @@ func CreateOrganization(svc *organizations.Organizations) (*organizations.Organi
 		FeatureSet: aws.String(ALL), // we want service control policies
 	}
 	out, err := svc.CreateOrganization(in)
-	return out.Organization, err
+	if err != nil {
+		return nil, err
+	}
+	return out.Organization, nil
 }
 
 func DescribeOrganization(svc *organizations.Organizations) (*organizations.Organization, error) {
 	in := &organizations.DescribeOrganizationInput{}
 	out, err := svc.DescribeOrganization(in)
-	return out.Organization, err
+	if err != nil {
+		return nil, err
+	}
+	return out.Organization, nil
 }
 
 func Root(svc *organizations.Organizations) *organizations.Root {

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -10,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/version"
 )
 
 func main() {
@@ -63,7 +65,7 @@ func main() {
 	if err := awsorgs.Tag(svc, aws.StringValue(org.MasterAccountId), map[string]string{
 		"Manager":                 "Substrate",
 		"SubstrateSpecialAccount": "master",
-		"SubstrateVersion":        "1970.01",
+		"SubstrateVersion":        version.Version,
 	}); err != nil {
 		log.Fatal(err)
 	}
@@ -100,6 +102,22 @@ func main() {
 	//log.Printf("%+v", awsorgs.ListPolicies(svc, awsorgs.TAG_POLICY))
 
 	// Create the audit, deploy, network, and ops accounts.
+	for _, name := range []string{"audit", "deploy", "network", "ops"} {
+		account, err := awsorgs.CreateSpecialAccount(
+			svc,
+			name,
+			strings.Replace(
+				aws.StringValue(org.MasterAccountEmail),
+				"@",
+				fmt.Sprintf("+%s@", name),
+				1,
+			),
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("%+v", account)
+	}
 
 	// At the very, very end, when we're exceedingly confident in the
 	// capabilities of the other accounts, detach the FullAWSAccess policy

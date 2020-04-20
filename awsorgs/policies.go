@@ -113,7 +113,10 @@ func createPolicy(svc *organizations.Organizations, name string, policyType Poli
 		Type:        aws.String(string(policyType)),
 	}
 	out, err := svc.CreatePolicy(in)
-	return out.Policy, err
+	if err != nil {
+		return nil, err
+	}
+	return out.Policy, nil
 }
 
 func enablePolicyType(svc *organizations.Organizations, rootId string, policyType PolicyType) error {
@@ -133,5 +136,8 @@ func updatePolicy(svc *organizations.Organizations, policyId, name, content stri
 		PolicyId:    aws.String(policyId),
 	}
 	out, err := svc.UpdatePolicy(in)
-	return out.Policy, err
+	if err != nil {
+		return nil, err
+	}
+	return out.Policy, nil
 }
