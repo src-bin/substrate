@@ -35,6 +35,7 @@ func EnsurePolicy(
 	policyType PolicyType,
 	content string,
 ) error {
+
 	err := enablePolicyType(svc, aws.StringValue(root.Id), policyType)
 	if awsutil.ErrorCodeIs(err, PolicyTypeAlreadyEnabledException) {
 		err = nil

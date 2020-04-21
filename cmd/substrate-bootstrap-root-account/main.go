@@ -103,7 +103,7 @@ func main() {
 
 	// Create the audit, deploy, network, and ops accounts.
 	for _, name := range []string{"audit", "deploy", "network", "ops"} {
-		account, err := awsorgs.CreateSpecialAccount(
+		account, err := awsorgs.EnsureSpecialAccount(
 			svc,
 			name,
 			strings.Replace(
