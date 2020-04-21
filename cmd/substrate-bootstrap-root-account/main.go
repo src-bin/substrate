@@ -101,7 +101,7 @@ func main() {
 	}
 	//log.Printf("%+v", awsorgs.ListPolicies(svc, awsorgs.TAG_POLICY))
 
-	// Create the audit, deploy, network, and ops accounts.
+	// Ensure the audit, deploy, network, and ops accounts exist.
 	for _, name := range []string{"audit", "deploy", "network", "ops"} {
 		account, err := awsorgs.EnsureSpecialAccount(
 			svc,
@@ -122,5 +122,8 @@ func main() {
 	// At the very, very end, when we're exceedingly confident in the
 	// capabilities of the other accounts, detach the FullAWSAccess policy
 	// from the master account.
+	//
+	// It's not clear to me that this is EVER a state we'll reach.  It's very
+	// tough to give away one's ultimate get-out-of-jail-free card, after all.
 
 }
