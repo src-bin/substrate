@@ -133,5 +133,9 @@ func main() {
 	//
 	// It's not clear to me that this is EVER a state we'll reach.  It's very
 	// tough to give away one's ultimate get-out-of-jail-free card, after all.
+	//
+	// A safer step would be to attach a policy that allowed re-attaching the
+	// FullAWSAccess policy before detaching it.  That would prevent accidental
+	// use of the master account without being a "one-way door."
 
 }
