@@ -34,25 +34,32 @@ func DescribeOrganization(svc *organizations.Organizations) (*organizations.Orga
 }
 
 func Root(svc *organizations.Organizations) *organizations.Root {
-	roots := listRoots(svc)
-	if len(roots) != 1 {
+	ch := listRoots(svc)
+	root := <-ch
+	if root2 := <-ch; root2 != nil {
 		log.Fatal("ListRoots responded with more than one Root which AWS says is impossible")
 	}
-	return roots[0]
+	return root
 }
 
-func listRoots(svc *organizations.Organizations) (roots []*organizations.Root) {
-	var nextToken *string
-	for {
-		in := &organizations.ListRootsInput{NextToken: nextToken}
-		out, err := svc.ListRoots(in)
-		if err != nil {
-			log.Fatal(err)
+func listRoots(svc *organizations.Organizations) <-chan *organizations.Root {
+	ch := make(chan *organizations.Root)
+	go func(chan<- *organizations.Root) {
+		var nextToken *string
+		for {
+			in := &organizations.ListRootsInput{NextToken: nextToken}
+			out, err := svc.ListRoots(in)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, root := range out.Roots {
+				ch <- root
+			}
+			if nextToken = out.NextToken; nextToken == nil {
+				break
+			}
 		}
-		roots = append(roots, out.Roots...)
-		if nextToken = out.NextToken; nextToken == nil {
-			break
-		}
-	}
-	return
+		close(ch)
+	}(ch)
+	return ch
 }
