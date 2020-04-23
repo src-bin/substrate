@@ -86,7 +86,11 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	}
-	//log.Printf("%+v", awsorgs.ListPolicies(svc, awsorgs.SERVICE_CONTROL_POLICY))
+	/*
+		for policySummary := range awsorgs.ListPolicies(svc, awsorgs.SERVICE_CONTROL_POLICY) {
+			log.Printf("%+v", policySummary)
+		}
+		//*/
 
 	// Ensure tagging policies are enabled and that Substrate's is attached
 	// and up-to-date.
@@ -99,7 +103,11 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	}
-	//log.Printf("%+v", awsorgs.ListPolicies(svc, awsorgs.TAG_POLICY))
+	/*
+		for policySummary := range awsorgs.ListPolicies(svc, awsorgs.TAG_POLICY) {
+			log.Printf("%+v", policySummary)
+		}
+		//*/
 
 	// Ensure the audit, deploy, network, and ops accounts exist.
 	for _, name := range []string{"audit", "deploy", "network", "ops"} {

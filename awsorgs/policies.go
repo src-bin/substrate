@@ -48,7 +48,7 @@ func EnsurePolicy(
 	if awsutil.ErrorCodeIs(err, DuplicatePolicyException) {
 		err = nil
 
-		for _, policySummary := range ListPolicies(svc, policyType) {
+		for policySummary := range ListPolicies(svc, policyType) {
 			if aws.StringValue(policySummary.Name) != name {
 				continue
 			}
@@ -78,23 +78,29 @@ func EnsurePolicy(
 func ListPolicies(
 	svc *organizations.Organizations,
 	policyType PolicyType,
-) (policySummaries []*organizations.PolicySummary) {
-	var nextToken *string
-	for {
-		in := &organizations.ListPoliciesInput{
-			Filter:    aws.String(string(policyType)),
-			NextToken: nextToken,
+) <-chan *organizations.PolicySummary {
+	ch := make(chan *organizations.PolicySummary)
+	go func(chan<- *organizations.PolicySummary) {
+		var nextToken *string
+		for {
+			in := &organizations.ListPoliciesInput{
+				Filter:    aws.String(string(policyType)),
+				NextToken: nextToken,
+			}
+			out, err := svc.ListPolicies(in)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, policySummary := range out.Policies {
+				ch <- policySummary
+			}
+			if nextToken = out.NextToken; nextToken == nil {
+				break
+			}
 		}
-		out, err := svc.ListPolicies(in)
-		if err != nil {
-			log.Fatal(err)
-		}
-		policySummaries = append(policySummaries, out.Policies...)
-		if nextToken = out.NextToken; nextToken == nil {
-			break
-		}
-	}
-	return
+		close(ch)
+	}(ch)
+	return ch
 }
 
 func attachPolicy(svc *organizations.Organizations, policyId, rootId string) error {
