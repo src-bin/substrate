@@ -149,7 +149,7 @@ func ensureAccount(
 }
 
 func findAccount(svc *organizations.Organizations, name string) (*organizations.Account, error) {
-	for _, account := range listAccounts(svc) {
+	for account := range listAccounts(svc) {
 		if aws.StringValue(account.Name) == name {
 			return account, nil
 		}
@@ -157,20 +157,26 @@ func findAccount(svc *organizations.Organizations, name string) (*organizations.
 	return nil, fmt.Errorf("%s account not found", name)
 }
 
-func listAccounts(svc *organizations.Organizations) (accounts []*organizations.Account) {
-	var nextToken *string
-	for {
-		in := &organizations.ListAccountsInput{NextToken: nextToken}
-		out, err := svc.ListAccounts(in)
-		if err != nil {
-			log.Fatal(err)
+func listAccounts(svc *organizations.Organizations) <-chan *organizations.Account {
+	ch := make(chan *organizations.Account)
+	go func(chan<- *organizations.Account) {
+		var nextToken *string
+		for {
+			in := &organizations.ListAccountsInput{NextToken: nextToken}
+			out, err := svc.ListAccounts(in)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, account := range out.Accounts {
+				ch <- account
+			}
+			if nextToken = out.NextToken; nextToken == nil {
+				break
+			}
 		}
-		accounts = append(accounts, out.Accounts...)
-		if nextToken = out.NextToken; nextToken == nil {
-			break
-		}
-	}
-	return
+		close(ch)
+	}(ch)
+	return ch
 }
 
 func nameFor(domain, environment, quality string) string {
