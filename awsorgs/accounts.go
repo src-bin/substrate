@@ -3,6 +3,7 @@ package awsorgs
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,6 +27,15 @@ func DescribeAccount(svc *organizations.Organizations, accountId string) (*organ
 	}
 	//log.Printf("%+v", out)
 	return out.Account, nil
+}
+
+func EmailForAccount(org *organizations.Organization, accountName string) string {
+	return strings.Replace(
+		aws.StringValue(org.MasterAccountEmail),
+		"@",
+		fmt.Sprintf("+%s@", accountName),
+		1,
+	)
 }
 
 func EnsureAccount(

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -110,16 +109,24 @@ func main() {
 		//*/
 
 	// Ensure the audit, deploy, network, and ops accounts exist.
-	for _, name := range []string{"audit", "deploy", "network", "ops"} {
+	account, err := awsorgs.EnsureSpecialAccount(
+		svc,
+		"audit",
+		awsorgs.EmailForAccount(org, "audit"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("%+v", account)
+
+	//
+
+	// Ensure the deploy, network, and ops accounts exist.
+	for _, name := range []string{"deploy", "network", "ops"} {
 		account, err := awsorgs.EnsureSpecialAccount(
 			svc,
 			name,
-			strings.Replace(
-				aws.StringValue(org.MasterAccountEmail),
-				"@",
-				fmt.Sprintf("+%s@", name),
-				1,
-			),
+			awsorgs.EmailForAccount(org, name),
 		)
 		if err != nil {
 			log.Fatal(err)
