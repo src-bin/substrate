@@ -1,14 +1,21 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -19,6 +26,37 @@ func main() {
 	ui.Print("time to bootstrap the AWS organization so we need an access key from your new master AWS account")
 	accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
 	ui.Printf("proceeding with access key ID %s", accessKeyId)
+
+	buf, err := fileutil.ReadFile("substrate.prefix")
+	prefix := strings.TrimSuffix(string(buf), "\n")
+	if err != nil {
+		prefix, err = ui.Prompt("what prefix do you want to use for global names like S3 buckets?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := ioutil.WriteFile("substrate.prefix", []byte(prefix+"\n"), 0666); err != nil {
+			log.Fatal(err)
+		}
+		ui.Printf("\"%s\" written to substrate.prefix, which you should commit to version control", prefix)
+	}
+	ui.Printf("using prefix %s", prefix)
+	// TODO factor the block above and below this comment into a library function
+	buf, err = fileutil.ReadFile("substrate.region")
+	region := strings.TrimSuffix(string(buf), "\n")
+	if err != nil {
+		region, err = ui.Prompt("what region should host your dev/ops EC2 instances, CloudTrail logs, etc?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := ioutil.WriteFile("substrate.region", []byte(region+"\n"), 0666); err != nil {
+			log.Fatal(err)
+		}
+		ui.Printf("\"%s\" written to substrate.region, which you should commit to version control", region)
+	}
+	if !awsutil.IsRegion(region) {
+		log.Fatalf("%s is not an AWS region", region)
+	}
+	ui.Printf("using region %s", region)
 
 	sess := awsutil.NewSessionExplicit(accessKeyId, secretAccessKey)
 
@@ -42,6 +80,9 @@ func main() {
 	}
 	ui.Stopf("organization %s", aws.StringValue(org.Id))
 	//log.Printf("%+v", org)
+
+	// TODO EnableAllFeatures, which is complicated but necessary in case an
+	// organization was created as merely a consolidated billing organization.
 
 	// Ensure this is, indeed, the organization's master account.  This is
 	// almost certainly redundant but I can't be bothered to read the reams
@@ -132,7 +173,40 @@ func main() {
 	ui.Stopf("account %s", aws.StringValue(account.Id))
 	//log.Printf("%+v", account)
 
-	//
+	// Ensure CloudTrail is permanently enabled organization-wide.
+	ui.Spin("configuring CloudTrail for your organization (every account, every region)")
+	bucketName := fmt.Sprint("%s-cloudtrail", prefix)
+	bucket, err := awss3.EnsureBucket(
+		s3.New(sess, &aws.Config{
+			Credentials: stscreds.NewCredentials(sess, "OrganizationAccountAccessRole")},
+		),
+		bucketName,
+		fmt.Sprint(`{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Principal": {"Service": ["cloudtrail.amazonaws.com"]},
+			"Action": "s3:GetBucketAcl",
+			"Resource": "arn:aws:s3:::%s"
+		},
+		{
+			"Effect": "Allow",
+			"Principal": {"Service": ["cloudtrail.amazonaws.com"]},
+			"Action": "s3:PutObject",
+			"Resource": "arn:aws:s3:::%s/AWSLogs/*"
+		}
+	]
+}`, bucketName, bucketName),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := awsorgs.EnableAWSServiceAccess(svc, "cloudtrail.amazonaws.com"); err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("bucket %s", aws.StringValue(bucket.Name))
+	log.Printf("%+v", bucket)
 
 	// Ensure the deploy, network, and ops accounts exist.
 	for _, name := range []string{"deploy", "network", "ops"} {

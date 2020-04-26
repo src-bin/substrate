@@ -38,7 +38,7 @@ func Printf(format string, args ...interface{}) {
 }
 
 func Prompt(args ...interface{}) (string, error) {
-	fmt.Print(args...)
+	fmt.Print(append(args, " ")...)
 	s, err := stdin.ReadString('\n')
 	if err != nil {
 		return "", err

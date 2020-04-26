@@ -33,6 +33,14 @@ func DescribeOrganization(svc *organizations.Organizations) (*organizations.Orga
 	return out.Organization, nil
 }
 
+func EnableAWSServiceAccess(svc *organizations.Organizations, principal string) error {
+	in := &organizations.EnableAWSServiceAccessInput{
+		ServicePrincipal: aws.String(principal),
+	}
+	_, err := svc.EnableAWSServiceAccess(in)
+	return err
+}
+
 func Root(svc *organizations.Organizations) *organizations.Root {
 	ch := listRoots(svc)
 	root := <-ch
