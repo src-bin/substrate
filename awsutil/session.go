@@ -1,15 +1,12 @@
 package awsutil
 
 import (
-	"bufio"
-	"fmt"
 	"log"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/src-bin/substrate/ui"
 )
 
 func NewSession() *session.Session {
@@ -31,16 +28,13 @@ func NewSessionExplicit(accessKeyId, secretAccessKey string) *session.Session {
 }
 
 func ReadAccessKeyFromStdin() (string, string) {
-	fmt.Print("AWS access key ID: ")
-	stdin := bufio.NewReader(os.Stdin)
-	accessKeyId, err := stdin.ReadString('\n')
+	accessKeyId, err := ui.Prompt("AWS access key ID: ")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Print("AWS secret access key: ")
-	secretAccessKey, err := stdin.ReadString('\n')
+	secretAccessKey, err := ui.Prompt("AWS secret access key: ")
 	if err != nil {
 		log.Fatal(err)
 	}
-	return strings.TrimSuffix(accessKeyId, "\n"), strings.TrimSuffix(secretAccessKey, "\n")
+	return accessKeyId, secretAccessKey
 }

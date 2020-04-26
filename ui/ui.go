@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -22,66 +24,49 @@ type instruction struct {
 	s      string
 }
 
-var chInst chan<- instruction
+var (
+	chInst chan<- instruction
+	stdin  *bufio.Reader
+)
 
 func Print(args ...interface{}) {
-	ch := make(chan struct{})
-	chInst <- instruction{
-		ch:     ch,
-		opcode: opPrint,
-		s:      fmt.Sprint(args...),
-	}
-	<-ch
+	op(opPrint, fmt.Sprint(args...))
 }
 
 func Printf(format string, args ...interface{}) {
-	ch := make(chan struct{})
-	chInst <- instruction{
-		ch:     ch,
-		opcode: opPrint,
-		s:      fmt.Sprintf(format, args...),
+	op(opPrint, fmt.Sprintf(format, args...))
+}
+
+func Prompt(args ...interface{}) (string, error) {
+	fmt.Print(args...)
+	s, err := stdin.ReadString('\n')
+	if err != nil {
+		return "", err
 	}
-	<-ch
+	if !terminal.IsTerminal(0) {
+		fmt.Println("(read from non-TTY)")
+	}
+	return strings.TrimSuffix(s, "\n"), nil
+}
+
+func Promptf(format string, args ...interface{}) (string, error) {
+	return Prompt(fmt.Sprintf(format, args...))
 }
 
 func Spin(args ...interface{}) {
-	ch := make(chan struct{})
-	chInst <- instruction{
-		ch:     ch,
-		opcode: opSpin,
-		s:      fmt.Sprint(args...),
-	}
-	<-ch
+	op(opSpin, fmt.Sprint(args...))
 }
 
 func Spinf(format string, args ...interface{}) {
-	ch := make(chan struct{})
-	chInst <- instruction{
-		ch:     ch,
-		opcode: opSpin,
-		s:      fmt.Sprintf(format, args...),
-	}
-	<-ch
+	op(opSpin, fmt.Sprintf(format, args...))
 }
 
 func Stop(args ...interface{}) {
-	ch := make(chan struct{})
-	chInst <- instruction{
-		ch:     ch,
-		opcode: opStop,
-		s:      fmt.Sprint(args...),
-	}
-	<-ch
+	op(opStop, fmt.Sprint(args...))
 }
 
 func Stopf(format string, args ...interface{}) {
-	ch := make(chan struct{})
-	chInst <- instruction{
-		ch:     ch,
-		opcode: opStop,
-		s:      fmt.Sprintf(format, args...),
-	}
-	<-ch
+	op(opStop, fmt.Sprintf(format, args...))
 }
 
 // init starts a goroutine that serializes all ui elements so that the
@@ -92,6 +77,7 @@ func Stopf(format string, args ...interface{}) {
 func init() {
 	ch := make(chan instruction)
 	chInst = ch
+	stdin = bufio.NewReader(os.Stdin)
 	go func(ch <-chan instruction) {
 		dots, s, spinner := "", "", ""
 		tick := time.Tick(time.Second / hz)
@@ -191,4 +177,14 @@ func init() {
 			}
 		}
 	}(ch)
+}
+
+func op(opcode int, s string) {
+	ch := make(chan struct{})
+	chInst <- instruction{
+		ch:     ch,
+		opcode: opcode,
+		s:      s,
+	}
+	<-ch
 }
