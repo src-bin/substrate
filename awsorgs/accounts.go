@@ -118,7 +118,7 @@ func createAccount(
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("%+v", out)
+		//log.Printf("%+v", out)
 		status = out.CreateAccountStatus
 		if state := aws.StringValue(out.CreateAccountStatus.State); state == FAILED {
 			break // return nil, fmt.Errorf("account creation failed for the %s account with reason %s", name, reason)

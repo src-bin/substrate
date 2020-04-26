@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -10,21 +9,23 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
 func main() {
 	log.SetFlags(log.Lshortfile)
 
-	fmt.Println("time to bootstrap the AWS organization so we need an access key from your new AWS master account")
+	ui.Print("time to bootstrap the AWS organization so we need an access key from your new master AWS account")
 	accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
-	fmt.Printf("proceeding with access key ID %s\n", accessKeyId)
+	ui.Printf("proceeding with access key ID %s", accessKeyId)
 
 	sess := awsutil.NewSessionExplicit(accessKeyId, secretAccessKey)
 
 	svc := organizations.New(sess)
 
 	// Ensure this account is (in) an organization.
+	ui.Spin("finding or creating your organization")
 	org, err := awsorgs.DescribeOrganization(svc)
 	if awsutil.ErrorCodeIs(err, awsorgs.AlreadyInOrganizationException) {
 		// Here we presume this is the master account, to be proven later.
@@ -39,12 +40,14 @@ func main() {
 	} else if err != nil {
 		log.Fatal(err)
 	}
+	ui.Stopf("organization %s", aws.StringValue(org.Id))
 	//log.Printf("%+v", org)
 
 	// Ensure this is, indeed, the organization's master account.  This is
 	// almost certainly redundant but I can't be bothered to read the reams
 	// of documentation that it would take to prove this beyond a shadow of a
 	// doubt so here we are wearing a belt and suspenders.
+	ui.Spin("confirming the access key is from the organization's master account")
 	callerIdentity := awssts.GetCallerIdentity(sts.New(sess))
 	//log.Printf("%+v", callerIdentity)
 	org, err = awsorgs.DescribeOrganization(svc)
@@ -54,13 +57,15 @@ func main() {
 	//log.Printf("%+v", org)
 	if aws.StringValue(callerIdentity.Account) != aws.StringValue(org.MasterAccountId) {
 		log.Fatalf(
-			"access key is from account %v instead of the organization's master account, %v",
+			"access key is from account %v instead of your organization's master account, %v",
 			aws.StringValue(callerIdentity.Account),
 			aws.StringValue(org.MasterAccountId),
 		)
 	}
+	ui.Stop("ok")
 
 	// Tag the master account.
+	ui.Spin("tagging the master account")
 	if err := awsorgs.Tag(svc, aws.StringValue(org.MasterAccountId), map[string]string{
 		"Manager":                 "Substrate",
 		"SubstrateSpecialAccount": "master",
@@ -68,6 +73,9 @@ func main() {
 	}); err != nil {
 		log.Fatal(err)
 	}
+	ui.Stop("ok")
+
+	ui.Spin("configuring your organization's service control and tagging policies")
 
 	// The master account isn't the organization, though.  It's just an account.
 	// To affect the entire organization, we need its root.
@@ -108,7 +116,11 @@ func main() {
 		}
 		//*/
 
-	// Ensure the audit, deploy, network, and ops accounts exist.
+	ui.Stop("ok")
+
+	// Ensure the audit account exists.  This one comes first so we can enable
+	// CloudTrail ASAP.
+	ui.Spin("finding or creating the audit account")
 	account, err := awsorgs.EnsureSpecialAccount(
 		svc,
 		"audit",
@@ -117,12 +129,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("%+v", account)
+	ui.Stopf("account %s", aws.StringValue(account.Id))
+	//log.Printf("%+v", account)
 
 	//
 
 	// Ensure the deploy, network, and ops accounts exist.
 	for _, name := range []string{"deploy", "network", "ops"} {
+		ui.Spinf("finding or creating the %s account", name)
 		account, err := awsorgs.EnsureSpecialAccount(
 			svc,
 			name,
@@ -131,6 +145,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		ui.Stopf("account %s", aws.StringValue(account.Id))
 		log.Printf("%+v", account)
 	}
 
