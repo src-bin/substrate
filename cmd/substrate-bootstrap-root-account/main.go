@@ -7,9 +7,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awssts"
@@ -47,6 +49,47 @@ func main() {
 	ui.Printf("using region %s", region)
 
 	sess := awsutil.NewSessionExplicit(accessKeyId, secretAccessKey)
+
+	// Switch to an IAM user so that we can assume roles in other accounts.
+	if strings.HasSuffix(
+		aws.StringValue(awssts.GetCallerIdentity(sts.New(sess)).Arn),
+		":root",
+	) {
+		ui.Spin("switching to an IAM user that can assume roles in other accounts")
+		svc := iam.New(sess)
+		user, err := awsiam.EnsureUserWithPolicy(
+			svc,
+			"SubstrateOrganizationAdministrator",
+			`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}`,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		//log.Printf("%+v", user)
+		if err := awsiam.DeleteAllAccessKeys(
+			svc,
+			"SubstrateOrganizationAdministrator",
+		); err != nil {
+			log.Fatal(err)
+		}
+		accessKey, err := awsiam.CreateAccessKey(svc, aws.StringValue(user.UserName))
+		if awsutil.ErrorCodeIs(err, awsiam.LimitExceeded) {
+			log.Fatal("delete all the access keys for the SubstrateOrganizationAdministrator user and re-run substrate-bootstrap-root-account")
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		//log.Printf("%+v", accessKey)
+		defer awsiam.DeleteAllAccessKeys(
+			svc,
+			"SubstrateOrganizationAdministrator",
+		)
+		sess = awsutil.NewSessionExplicit(
+			aws.StringValue(accessKey.AccessKeyId),
+			aws.StringValue(accessKey.SecretAccessKey),
+		)
+		ui.Stopf("switched to access key %s", aws.StringValue(accessKey.AccessKeyId))
+	}
 
 	svc := organizations.New(sess)
 
