@@ -18,8 +18,12 @@ func NewSession() *session.Session {
 }
 
 func NewSessionExplicit(accessKeyId, secretAccessKey string) *session.Session {
-	sess, err := session.NewSession(&aws.Config{
-		Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, ""),
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, ""),
+			//LogLevel:    aws.LogLevel(aws.LogDebugWithHTTPBody),
+		},
+		SharedConfigState: session.SharedConfigDisable,
 	})
 	if err != nil {
 		log.Fatal(err)

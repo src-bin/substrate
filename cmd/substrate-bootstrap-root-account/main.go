@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -25,7 +26,7 @@ func main() {
 
 	ui.Print("time to bootstrap the AWS organization so we need an access key from your new master AWS account")
 	accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
-	ui.Printf("proceeding with access key ID %s", accessKeyId)
+	ui.Printf("using access key ID %s", accessKeyId)
 
 	prefix, err := ui.PromptFile(
 		"substrate.prefix",
@@ -51,12 +52,14 @@ func main() {
 	sess := awsutil.NewSessionExplicit(accessKeyId, secretAccessKey)
 
 	// Switch to an IAM user so that we can assume roles in other accounts.
-	if strings.HasSuffix(
-		aws.StringValue(awssts.GetCallerIdentity(sts.New(sess)).Arn),
-		":root",
-	) {
+	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if strings.HasSuffix(aws.StringValue(callerIdentity.Arn), ":root") {
 		ui.Spin("switching to an IAM user that can assume roles in other accounts")
 		svc := iam.New(sess)
+
 		user, err := awsiam.EnsureUserWithPolicy(
 			svc,
 			"SubstrateOrganizationAdministrator",
@@ -66,12 +69,14 @@ func main() {
 			log.Fatal(err)
 		}
 		//log.Printf("%+v", user)
+
 		if err := awsiam.DeleteAllAccessKeys(
 			svc,
 			"SubstrateOrganizationAdministrator",
 		); err != nil {
 			log.Fatal(err)
 		}
+
 		accessKey, err := awsiam.CreateAccessKey(svc, aws.StringValue(user.UserName))
 		if awsutil.ErrorCodeIs(err, awsiam.LimitExceeded) {
 			log.Fatal("delete all the access keys for the SubstrateOrganizationAdministrator user and re-run substrate-bootstrap-root-account")
@@ -83,11 +88,26 @@ func main() {
 		defer awsiam.DeleteAllAccessKeys(
 			svc,
 			"SubstrateOrganizationAdministrator",
-		)
+		) // TODO ensure this succeeds even when we exit via log.Fatal
+
 		sess = awsutil.NewSessionExplicit(
 			aws.StringValue(accessKey.AccessKeyId),
 			aws.StringValue(accessKey.SecretAccessKey),
 		)
+
+		// Inconceivably, the new access key probably isn't usable for a
+		// little while so we have to sit and spin before using it.
+		for {
+			_, err := awssts.GetCallerIdentity(sts.New(sess))
+			if err == nil {
+				break
+			}
+			if !awsutil.ErrorCodeIs(err, awssts.InvalidClientTokenId) {
+				log.Fatal(err)
+			}
+			time.Sleep(1e9) // TODO exponential backoff
+		}
+
 		ui.Stopf("switched to access key %s", aws.StringValue(accessKey.AccessKeyId))
 	}
 
@@ -120,7 +140,10 @@ func main() {
 	// of documentation that it would take to prove this beyond a shadow of a
 	// doubt so here we are wearing a belt and suspenders.
 	ui.Spin("confirming the access key is from the organization's master account")
-	callerIdentity := awssts.GetCallerIdentity(sts.New(sess))
+	callerIdentity, err = awssts.GetCallerIdentity(sts.New(sess))
+	if err != nil {
+		log.Fatal(err)
+	}
 	org, err = awsorgs.DescribeOrganization(svc)
 	if err != nil {
 		log.Fatal(err)
