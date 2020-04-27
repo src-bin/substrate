@@ -166,9 +166,14 @@ func main() {
 	bucketName := fmt.Sprint("%s-cloudtrail", prefix)
 	bucket, err := awss3.EnsureBucket(
 		s3.New(sess, &aws.Config{
-			Credentials: stscreds.NewCredentials(sess, "OrganizationAccountAccessRole")},
-		),
+			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
+				"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
+				account.Id,
+			)),
+			Region: aws.String(region),
+		}),
 		bucketName,
+		region,
 		fmt.Sprint(`{
 	"Version": "2012-10-17",
 	"Statement": [
