@@ -3,10 +3,12 @@ package ui
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/src-bin/substrate/fileutil"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -49,8 +51,34 @@ func Prompt(args ...interface{}) (string, error) {
 	return strings.TrimSuffix(s, "\n"), nil
 }
 
+// PromptFile wraps Prompt in ReadFile and ioutil.WriteFile to avoid prompting
+// at all on subsequent invocations.  If pathname exists, its contents
+// (chomped) will be taken as the response to the prompt.  If not, the response
+// to the prompt is written to pathname with a trailing newline and a notice is
+// printed instructing the user to commit that file to version control.
+func PromptFile(pathname string, args ...interface{}) (string, error) {
+	buf, err := fileutil.ReadFile(pathname)
+	s := strings.TrimSuffix(string(buf), "\n")
+	if err != nil {
+		s, err = Prompt(args...)
+		if err != nil {
+			return "", err
+		}
+		if err := ioutil.WriteFile(pathname, []byte(s+"\n"), 0666); err != nil {
+			return "", err
+		}
+		Printf("\"%s\" written to %s, which you should commit to version control", s, pathname)
+	}
+	return s, nil
+}
+
 func Promptf(format string, args ...interface{}) (string, error) {
 	return Prompt(fmt.Sprintf(format, args...))
+}
+
+// PromptfFile is like PromptFile but allows formatting of the prompt.
+func PromptfFile(pathname, format string, args ...interface{}) (string, error) {
+	return PromptFile(pathname, fmt.Sprintf(format, args...))
 }
 
 func Spin(args ...interface{}) {

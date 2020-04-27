@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"strings"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -27,31 +25,21 @@ func main() {
 	accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
 	ui.Printf("proceeding with access key ID %s", accessKeyId)
 
-	buf, err := fileutil.ReadFile("substrate.prefix")
-	prefix := strings.TrimSuffix(string(buf), "\n")
+	prefix, err := ui.PromptFile(
+		"substrate.prefix",
+		"what prefix do you want to use for global names like S3 buckets?",
+	)
 	if err != nil {
-		prefix, err = ui.Prompt("what prefix do you want to use for global names like S3 buckets?")
-		if err != nil {
-			log.Fatal(err)
-		}
-		if err := ioutil.WriteFile("substrate.prefix", []byte(prefix+"\n"), 0666); err != nil {
-			log.Fatal(err)
-		}
-		ui.Printf("\"%s\" written to substrate.prefix, which you should commit to version control", prefix)
+		log.Fatal(err)
 	}
 	ui.Printf("using prefix %s", prefix)
-	// TODO factor the block above and below this comment into a library function
-	buf, err = fileutil.ReadFile("substrate.region")
-	region := strings.TrimSuffix(string(buf), "\n")
+
+	region, err := ui.PromptFile(
+		"substrate.region",
+		"what region should host your dev/ops EC2 instances, CloudTrail logs, etc?",
+	)
 	if err != nil {
-		region, err = ui.Prompt("what region should host your dev/ops EC2 instances, CloudTrail logs, etc?")
-		if err != nil {
-			log.Fatal(err)
-		}
-		if err := ioutil.WriteFile("substrate.region", []byte(region+"\n"), 0666); err != nil {
-			log.Fatal(err)
-		}
-		ui.Printf("\"%s\" written to substrate.region, which you should commit to version control", region)
+		log.Fatal(err)
 	}
 	if !awsutil.IsRegion(region) {
 		log.Fatalf("%s is not an AWS region", region)
@@ -90,12 +78,10 @@ func main() {
 	// doubt so here we are wearing a belt and suspenders.
 	ui.Spin("confirming the access key is from the organization's master account")
 	callerIdentity := awssts.GetCallerIdentity(sts.New(sess))
-	//log.Printf("%+v", callerIdentity)
 	org, err = awsorgs.DescribeOrganization(svc)
 	if err != nil {
 		log.Fatal(err)
 	}
-	//log.Printf("%+v", org)
 	if aws.StringValue(callerIdentity.Account) != aws.StringValue(org.MasterAccountId) {
 		log.Fatalf(
 			"access key is from account %v instead of your organization's master account, %v",
@@ -104,6 +90,8 @@ func main() {
 		)
 	}
 	ui.Stop("ok")
+	log.Printf("%+v", callerIdentity)
+	//log.Printf("%+v", org)
 
 	// Tag the master account.
 	ui.Spin("tagging the master account")

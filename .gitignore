@@ -1,6 +1,7 @@
 *~
 bin
 *.stdin
+substrate.*
 *.swo
 *.swp
 *.swx
