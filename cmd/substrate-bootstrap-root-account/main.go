@@ -17,6 +17,7 @@ import (
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -155,7 +156,7 @@ func main() {
 		)
 	}
 	ui.Stop("ok")
-	log.Printf("%+v", callerIdentity)
+	//log.Printf("%+v", callerIdentity)
 	//log.Printf("%+v", org)
 
 	// Tag the master account.
@@ -224,47 +225,55 @@ func main() {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", aws.StringValue(account.Id))
-	//log.Printf("%+v", account)
+	log.Printf("%+v", account)
 
 	// Ensure CloudTrail is permanently enabled organization-wide.
 	ui.Spin("configuring CloudTrail for your organization (every account, every region)")
-	bucketName := fmt.Sprint("%s-cloudtrail", prefix)
-	bucket, err := awss3.EnsureBucket(
+	bucketName := fmt.Sprintf("%s-cloudtrail", prefix)
+	if err := awss3.EnsureBucket(
 		s3.New(sess, &aws.Config{
 			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
 				"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
-				account.Id,
+				aws.StringValue(account.Id),
 			)),
 			Region: aws.String(region),
 		}),
 		bucketName,
 		region,
-		fmt.Sprint(`{
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Effect": "Allow",
-			"Principal": {"Service": ["cloudtrail.amazonaws.com"]},
-			"Action": "s3:GetBucketAcl",
-			"Resource": "arn:aws:s3:::%s"
+
+		policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Principal: policies.Principal{AWS: []string{aws.StringValue(account.Id)}},
+					Action:    []string{"s3:*"},
+					Resource: []string{
+						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+					},
+				},
+				policies.Statement{
+					Principal: policies.Principal{Service: []string{"cloudtrail.amazonaws.com"}},
+					Action:    []string{"s3:GetBucketAcl", "s3:PutObject"},
+					Resource: []string{
+						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+						fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
+					},
+				},
+				policies.Statement{
+					Principal: policies.Principal{AWS: []string{"*"}},
+					Action:    []string{"s3:GetObject"},
+					Resource:  []string{fmt.Sprintf("arn:aws:s3:::%s/*", bucketName)},
+					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
+				},
+			},
 		},
-		{
-			"Effect": "Allow",
-			"Principal": {"Service": ["cloudtrail.amazonaws.com"]},
-			"Action": "s3:PutObject",
-			"Resource": "arn:aws:s3:::%s/AWSLogs/*"
-		}
-	]
-}`, bucketName, bucketName),
-	)
-	if err != nil {
+	); err != nil {
 		log.Fatal(err)
 	}
 	if err := awsorgs.EnableAWSServiceAccess(svc, "cloudtrail.amazonaws.com"); err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("bucket %s", aws.StringValue(bucket.Name))
-	log.Printf("%+v", bucket)
+	ui.Stopf("bucket %s", bucketName)
 
 	// Ensure the deploy, network, and ops accounts exist.
 	for _, name := range []string{"deploy", "network", "ops"} {

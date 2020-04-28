@@ -12,6 +12,7 @@ type Statement struct {
 	Principal Principal
 	Action    []string
 	Resource  []string
+	Condition Condition `json:",omitempty"`
 }
 
 type Effect string
@@ -36,6 +37,8 @@ type Principal struct {
 	AWS     []string `json:",omitempty"`
 	Service []string `json:",omitempty"`
 }
+
+type Condition map[string]map[string]string
 
 type version struct{}
 
