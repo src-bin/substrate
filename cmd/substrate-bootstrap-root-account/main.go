@@ -78,9 +78,6 @@ func main() {
 		}
 
 		accessKey, err := awsiam.CreateAccessKey(svc, aws.StringValue(user.UserName))
-		if awsutil.ErrorCodeIs(err, awsiam.LimitExceeded) {
-			log.Fatal("delete all the access keys for the SubstrateOrganizationAdministrator user and re-run substrate-bootstrap-root-account")
-		}
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -117,8 +114,9 @@ func main() {
 	ui.Spin("finding or creating your organization")
 	org, err := awsorgs.DescribeOrganization(svc)
 	if awsutil.ErrorCodeIs(err, awsorgs.AlreadyInOrganizationException) {
-		// Here we presume this is the master account, to be proven later.
-	} else if awsutil.ErrorCodeIs(err, awsorgs.AWSOrganizationsNotInUseException) {
+		err = nil // we presume this is the master account, to be proven later
+	}
+	if awsutil.ErrorCodeIs(err, awsorgs.AWSOrganizationsNotInUseException) {
 
 		// Create the organization since it doesn't yet exist.
 		org, err = awsorgs.CreateOrganization(svc)
@@ -126,7 +124,8 @@ func main() {
 			log.Fatal(err)
 		}
 
-	} else if err != nil {
+	}
+	if err != nil {
 		log.Fatal(err)
 	}
 	ui.Stopf("organization %s", aws.StringValue(org.Id))
