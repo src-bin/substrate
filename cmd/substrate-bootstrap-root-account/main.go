@@ -185,7 +185,7 @@ func main() {
 	if err := awsorgs.EnsurePolicy(
 		svc,
 		root,
-		"Substrate",
+		"SubstrateServiceControlPolicy",
 		awsorgs.SERVICE_CONTROL_POLICY,
 		`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}`,
 	); err != nil {
@@ -202,7 +202,7 @@ func main() {
 	if err := awsorgs.EnsurePolicy(
 		svc,
 		root,
-		"Substrate",
+		"SubstrateTaggingPolicy",
 		awsorgs.TAG_POLICY,
 		`{"tags":{}}`,
 	); err != nil {
