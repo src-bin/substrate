@@ -9,19 +9,26 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-func NewSession() *session.Session {
-	sess, err := session.NewSession()
+func NewSession(region string) *session.Session {
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			//LogLevel:    aws.LogLevel(aws.LogDebugWithHTTPBody),
+			Region: aws.String(region),
+		},
+		SharedConfigState: session.SharedConfigDisable,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	return sess
 }
 
-func NewSessionExplicit(accessKeyId, secretAccessKey string) *session.Session {
+func NewSessionExplicit(accessKeyId, secretAccessKey, region string) *session.Session {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, ""),
 			//LogLevel:    aws.LogLevel(aws.LogDebugWithHTTPBody),
+			Region: aws.String(region),
 		},
 		SharedConfigState: session.SharedConfigDisable,
 	})

@@ -8,10 +8,12 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/awscloudtrail"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awss3"
@@ -50,7 +52,7 @@ func main() {
 	}
 	ui.Printf("using region %s", region)
 
-	sess := awsutil.NewSessionExplicit(accessKeyId, secretAccessKey)
+	sess := awsutil.NewSessionExplicit(accessKeyId, secretAccessKey, region)
 
 	// Switch to an IAM user so that we can assume roles in other accounts.
 	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
@@ -91,6 +93,7 @@ func main() {
 		sess = awsutil.NewSessionExplicit(
 			aws.StringValue(accessKey.AccessKeyId),
 			aws.StringValue(accessKey.SecretAccessKey),
+			region,
 		)
 
 		// Inconceivably, the new access key probably isn't usable for a
@@ -225,7 +228,7 @@ func main() {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", aws.StringValue(account.Id))
-	log.Printf("%+v", account)
+	//log.Printf("%+v", account)
 
 	// Ensure CloudTrail is permanently enabled organization-wide.
 	ui.Spin("configuring CloudTrail for your organization (every account, every region)")
@@ -272,7 +275,11 @@ func main() {
 	if err := awsorgs.EnableAWSServiceAccess(svc, "cloudtrail.amazonaws.com"); err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("bucket %s", bucketName)
+	trail, err := awscloudtrail.EnsureTrail(cloudtrail.New(sess), "GlobalMultiRegionOrganizationTrail", bucketName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("bucket %s, trail %s", bucketName, aws.StringValue(trail.Name))
 
 	// Ensure the deploy, network, and ops accounts exist.
 	for _, name := range []string{"deploy", "network", "ops"} {
@@ -286,7 +293,7 @@ func main() {
 			log.Fatal(err)
 		}
 		ui.Stopf("account %s", aws.StringValue(account.Id))
-		log.Printf("%+v", account)
+		//log.Printf("%+v", account)
 	}
 
 	// At the very, very end, when we're exceedingly confident in the
