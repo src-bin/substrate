@@ -240,7 +240,6 @@ func main() {
 		}),
 		bucketName,
 		region,
-
 		policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{

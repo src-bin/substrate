@@ -1,8 +1,6 @@
 package awss3
 
 import (
-	"encoding/json"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/src-bin/substrate/awsutil"
@@ -12,7 +10,7 @@ import (
 
 const (
 	BucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
-	ENABLED                 = "ENABLED"
+	Enabled                 = "Enabled"
 )
 
 func CreateBucket(svc *s3.S3, name, region string) error {
@@ -44,13 +42,13 @@ func EnsureBucket(svc *s3.S3, name, region string, policy policies.Document) err
 		return err
 	}
 
-	buf, err := json.MarshalIndent(policy, "", "\t")
+	policyJSON, err := policy.JSON()
 	if err != nil {
 		return err
 	}
 	if _, err := svc.PutBucketPolicy(&s3.PutBucketPolicyInput{
 		Bucket: aws.String(name),
-		Policy: aws.String(string(buf)),
+		Policy: aws.String(policyJSON),
 	}); err != nil {
 		return err
 	}
@@ -71,7 +69,7 @@ func EnsureBucket(svc *s3.S3, name, region string, policy policies.Document) err
 	if _, err := svc.PutBucketVersioning(&s3.PutBucketVersioningInput{
 		Bucket: aws.String(name),
 		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String(ENABLED),
+			Status: aws.String(Enabled),
 		},
 	}); err != nil {
 		return err
@@ -83,7 +81,7 @@ func EnsureBucket(svc *s3.S3, name, region string, policy policies.Document) err
 			BlockPublicAcls:       aws.Bool(true),
 			BlockPublicPolicy:     aws.Bool(true),
 			IgnorePublicAcls:      aws.Bool(true),
-			RestrictPublicBuckets: aws.Bool(false),
+			RestrictPublicBuckets: aws.Bool(false), // true would prevent cross-account access
 		},
 	}); err != nil {
 		return err

@@ -1,10 +1,18 @@
 package policies
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type Document struct {
 	Version   version
 	Statement []Statement
+}
+
+func (d *Document) JSON() (string, error) {
+	buf, err := json.MarshalIndent(d, "", "\t")
+	return string(buf), err
 }
 
 type Statement struct {
