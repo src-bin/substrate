@@ -7,11 +7,6 @@ import (
 	"github.com/src-bin/substrate/policies"
 )
 
-const (
-	EntityAlreadyExists = "EntityAlreadyExists"
-	LimitExceeded       = "LimitExceeded"
-)
-
 func CreateAccessKey(svc *iam.IAM, username string) (*iam.AccessKey, error) {
 	in := &iam.CreateAccessKeyInput{
 		UserName: aws.String(username),

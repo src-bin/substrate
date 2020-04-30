@@ -52,6 +52,16 @@ func main() {
 	}
 	ui.Printf("using region %s", region)
 
+	// TODO need to launch an editor for this because a line reader isn't going to cut it
+	metadata, err := ui.PromptFile(
+		"substrate.okta.xml",
+		"paste your identity provider metadata XML from Okta\n",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// TODO do some light validation of the XML
+
 	sess := awsutil.NewSessionExplicit(accessKeyId, secretAccessKey, region)
 
 	// Switch to an IAM user so that we can assume roles in other accounts.
@@ -338,6 +348,15 @@ func main() {
 	}
 	ui.Stopf("role %s", aws.StringValue(role.RoleName))
 	//log.Printf("%+v", role)
+
+	// Configure Okta so we can get into the ops account directly, SSH, etc.
+	ui.Spin("configuring Okta as your organization's identity provider")
+	saml, err := awsiam.EnsureSAMLProvider(iam.New(sess), "Okta", metadata)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("provider %s", saml.Arn)
+	//log.Printf("%+v", saml)
 
 	// At the very, very end, when we're exceedingly confident in the
 	// capabilities of the other accounts, detach the FullAWSAccess policy
