@@ -324,12 +324,20 @@ func main() {
 		//log.Printf("%+v", account)
 	}
 
-	// Ensure the ops account can get back into the master account.
-	ui.Spin("finding or creating a role to allow the ops account to administer your organization")
 	opsAccount, err := awsorgs.FindSpecialAccount(svc, "ops")
 	if err != nil {
 		log.Fatal(err)
 	}
+	config := &aws.Config{
+		Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
+			"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
+			aws.StringValue(opsAccount.Id),
+		)),
+		Region: aws.String(region),
+	}
+
+	// Ensure the ops account can get back into the master account.
+	ui.Spin("finding or creating a role to allow the ops account to administer your organization")
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		"OrganizationAdministrator",
@@ -351,12 +359,66 @@ func main() {
 
 	// Configure Okta so we can get into the ops account directly, SSH, etc.
 	ui.Spin("configuring Okta as your organization's identity provider")
-	saml, err := awsiam.EnsureSAMLProvider(iam.New(sess), "Okta", metadata)
+	saml, err := awsiam.EnsureSAMLProvider(iam.New(sess, config), "Okta", metadata)
 	if err != nil {
 		log.Fatal(err)
 	}
 	ui.Stopf("provider %s", saml.Arn)
 	//log.Printf("%+v", saml)
+
+	// Give Okta an entrypoint in the ops account.
+	ui.Spin("finding or creating a role for Okta to use in the ops account")
+	role, err = awsiam.EnsureRoleWithPolicy(
+		iam.New(sess, config),
+		"Okta",
+		&policies.Principal{Federated: []string{saml.Arn}},
+		&policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Action:   []string{"*"},
+					Resource: []string{"*"},
+				},
+			},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", aws.StringValue(role.RoleName))
+	//log.Printf("%+v", role)
+
+	// And give Okta a user that can enumerate the roles it can assume.
+	ui.Spin("finding or creating a user for Okta to use to enumerate roles")
+	user, err := awsiam.EnsureUserWithPolicy(
+		iam.New(sess, config),
+		"Okta",
+		&policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Action:   []string{"iam:ListAccountAliases", "iam:ListRoles"},
+					Resource: []string{"*"},
+				},
+			},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := awsiam.DeleteAllAccessKeys(
+		iam.New(sess, config),
+		"Okta",
+	); err != nil {
+		log.Fatal(err)
+	}
+	accessKey, err := awsiam.CreateAccessKey(iam.New(sess, config), aws.StringValue(user.UserName))
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("user %s, access key %s", aws.StringValue(user.UserName), aws.StringValue(accessKey.AccessKeyId))
+	//log.Printf("%+v", user)
+	//log.Printf("%+v", accessKey)
+
+	awssts.Export(awssts.AssumeRole(sts.New(sess), fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", aws.StringValue(opsAccount.Id))))
 
 	// At the very, very end, when we're exceedingly confident in the
 	// capabilities of the other accounts, detach the FullAWSAccess policy

@@ -115,6 +115,7 @@ func assumeRolePolicyDocument(principal *policies.Principal) *policies.Document 
 	// <https://help.okta.com/en/prod/Content/Topics/DeploymentGuides/AWS/connect-okta-single-aws.htm>.
 	if principal.Federated != nil {
 		for i := 0; i < len(doc.Statement); i++ {
+			doc.Statement[i].Action[0] = "sts:AssumeRoleWithSAML"
 			doc.Statement[i].Condition = policies.Condition{"StringEquals": {"SAML:aud": "https://signin.aws.amazon.com/saml"}}
 		}
 	}
