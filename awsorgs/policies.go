@@ -65,7 +65,7 @@ func EnsurePolicy(
 	}
 	//log.Printf("%+v", policy)
 
-	// TODO tag the policy
+	// TODO tag the policy, which isn't a supported operation; get clever
 
 	err = attachPolicy(svc, aws.StringValue(policy.PolicySummary.Id), aws.StringValue(root.Id))
 	if awsutil.ErrorCodeIs(err, DuplicatePolicyAttachmentException) {
