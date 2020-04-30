@@ -105,6 +105,8 @@ func main() {
 
 		// Inconceivably, the new access key probably isn't usable for a
 		// little while so we have to sit and spin before using it.
+		//
+		// TODO and even with this loop we can sometimes jump the gun.
 		for {
 			_, err := awssts.GetCallerIdentity(sts.New(sess))
 			if err == nil {
