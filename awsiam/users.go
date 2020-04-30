@@ -87,13 +87,14 @@ func EnsureUserWithPolicy(svc *iam.IAM, username string, doc *policies.Document)
 		return nil, err
 	}
 
+	// TODO attach the managed AdministratorAccess policy instead of inlining.
 	docJSON, err := doc.JSON()
 	if err != nil {
 		return nil, err
 	}
 	in := &iam.PutUserPolicyInput{
 		PolicyDocument: aws.String(docJSON),
-		PolicyName:     aws.String("Substrate"),
+		PolicyName:     aws.String("FullAccess"),
 		UserName:       aws.String(username),
 	}
 	if _, err := svc.PutUserPolicy(in); err != nil {

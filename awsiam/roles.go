@@ -72,13 +72,14 @@ func EnsureRoleWithPolicy(
 		return nil, err
 	}
 
+	// TODO attach the managed AdministratorAccess policy instead of inlining.
 	docJSON, err := doc.JSON()
 	if err != nil {
 		return nil, err
 	}
 	in := &iam.PutRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
-		PolicyName:     aws.String("Substrate"),
+		PolicyName:     aws.String("FullAccess"),
 		RoleName:       aws.String(rolename),
 	}
 	if _, err := svc.PutRolePolicy(in); err != nil {

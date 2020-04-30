@@ -65,7 +65,7 @@ func main() {
 
 		user, err := awsiam.EnsureUserWithPolicy(
 			svc,
-			"SubstrateOrganizationAdministrator",
+			"OrganizationAdministrator",
 			&policies.Document{
 				Statement: []policies.Statement{
 					policies.Statement{
@@ -82,7 +82,7 @@ func main() {
 
 		if err := awsiam.DeleteAllAccessKeys(
 			svc,
-			"SubstrateOrganizationAdministrator",
+			"OrganizationAdministrator",
 		); err != nil {
 			log.Fatal(err)
 		}
@@ -94,7 +94,7 @@ func main() {
 		//log.Printf("%+v", accessKey)
 		defer awsiam.DeleteAllAccessKeys(
 			svc,
-			"SubstrateOrganizationAdministrator",
+			"OrganizationAdministrator",
 		) // TODO ensure this succeeds even when we exit via log.Fatal
 
 		sess = awsutil.NewSessionExplicit(
@@ -320,7 +320,7 @@ func main() {
 	}
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
-		"SubstrateOrganizationAdministrator",
+		"OrganizationAdministrator",
 		&policies.Principal{AWS: []string{aws.StringValue(opsAccount.Id)}},
 		&policies.Document{
 			Statement: []policies.Statement{
