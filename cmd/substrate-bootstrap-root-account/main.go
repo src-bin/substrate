@@ -29,7 +29,7 @@ func main() {
 
 	ui.Print("time to bootstrap the AWS organization so we need an access key from your new master AWS account")
 	accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
-	ui.Printf("using access key ID %s", accessKeyId)
+	ui.Printf("using access key %s", accessKeyId)
 
 	prefix, err := ui.PromptFile(
 		"substrate.prefix",
