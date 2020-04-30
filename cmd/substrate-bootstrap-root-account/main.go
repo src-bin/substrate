@@ -312,6 +312,31 @@ func main() {
 		//log.Printf("%+v", account)
 	}
 
+	// Ensure the ops account can get back into the master account.
+	ui.Spin("finding or creating a role in the ops account that can administer your organization")
+	opsAccount, err := awsorgs.FindSpecialAccount(svc, "ops")
+	if err != nil {
+		log.Fatal(err)
+	}
+	role, err := awsiam.EnsureRoleWithPolicy(
+		iam.New(sess),
+		"SubstrateOrganizationAdministrator",
+		&policies.Principal{AWS: []string{aws.StringValue(opsAccount.Id)}},
+		&policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Action:   []string{"*"},
+					Resource: []string{"*"},
+				},
+			},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", aws.StringValue(role.RoleName))
+	//log.Printf("%+v", role)
+
 	// At the very, very end, when we're exceedingly confident in the
 	// capabilities of the other accounts, detach the FullAWSAccess policy
 	// from the master account.

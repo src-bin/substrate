@@ -5,23 +5,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
-	"github.com/src-bin/substrate/ui"
 )
 
 func CreateRole(svc *iam.IAM, rolename string, principal *policies.Principal) (*iam.Role, error) {
-	doc := &policies.Document{
-		Statement: []policies.Statement{
-			policies.Statement{
-				Principal: principal,
-				Action:    []string{"sts:AssumeRole"},
-			},
-		},
-	}
-	docJSON, err := doc.JSON()
+	docJSON, err := assumeRolePolicyDocument(principal).JSON()
 	if err != nil {
 		return nil, err
 	}
-	ui.Print(docJSON)
 	in := &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
 		RoleName:                 aws.String(rolename),
@@ -49,15 +39,23 @@ func EnsureRole(
 		return nil, err
 	}
 
-	in := &iam.TagRoleInput{
+	if _, err := svc.TagRole(&iam.TagRoleInput{
 		RoleName: aws.String(rolename),
 		Tags:     tagsFor(rolename),
-	}
-	if _, err := svc.TagRole(in); err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
-	// TODO UpdateAssumeRolePolicy
+	docJSON, err := assumeRolePolicyDocument(principal).JSON()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := svc.UpdateAssumeRolePolicy(&iam.UpdateAssumeRolePolicyInput{
+		PolicyDocument: aws.String(docJSON),
+		RoleName:       aws.String(rolename),
+	}); err != nil {
+		return nil, err
+	}
 
 	return role, nil
 }
@@ -100,4 +98,15 @@ func GetRole(svc *iam.IAM, rolename string) (*iam.Role, error) {
 	}
 	//log.Printf("%+v", out)
 	return out.Role, nil
+}
+
+func assumeRolePolicyDocument(principal *policies.Principal) *policies.Document {
+	return &policies.Document{
+		Statement: []policies.Statement{
+			policies.Statement{
+				Principal: principal,
+				Action:    []string{"sts:AssumeRole"},
+			},
+		},
+	}
 }
