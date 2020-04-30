@@ -101,7 +101,7 @@ func GetRole(svc *iam.IAM, rolename string) (*iam.Role, error) {
 }
 
 func assumeRolePolicyDocument(principal *policies.Principal) *policies.Document {
-	return &policies.Document{
+	doc := &policies.Document{
 		Statement: []policies.Statement{
 			policies.Statement{
 				Principal: principal,
@@ -109,4 +109,14 @@ func assumeRolePolicyDocument(principal *policies.Principal) *policies.Document 
 			},
 		},
 	}
+
+	// Infer from the type of principal whether we additionally need a condition on this statement per
+	// <https://help.okta.com/en/prod/Content/Topics/DeploymentGuides/AWS/connect-okta-single-aws.htm>.
+	if principal.Federated != nil {
+		for i := 0; i < len(doc.Statement); i++ {
+			doc.Statement[i].Condition = policies.Condition{"StringEquals": {"SAML:aud": "https://signin.aws.amazon.com/saml"}}
+		}
+	}
+
+	return doc
 }

@@ -42,8 +42,9 @@ func (e Effect) MarshalJSON() ([]byte, error) {
 }
 
 type Principal struct {
-	AWS     []string `json:",omitempty"`
-	Service []string `json:",omitempty"`
+	AWS       []string `json:",omitempty"`
+	Federated []string `json:",omitempty"`
+	Service   []string `json:",omitempty"`
 }
 
 type Condition map[string]map[string]string
