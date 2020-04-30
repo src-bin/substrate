@@ -66,7 +66,14 @@ func main() {
 		user, err := awsiam.EnsureUserWithPolicy(
 			svc,
 			"SubstrateOrganizationAdministrator",
-			`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}`,
+			&policies.Document{
+				Statement: []policies.Statement{
+					policies.Statement{
+						Action:   []string{"*"},
+						Resource: []string{"*"},
+					},
+				},
+			},
 		)
 		if err != nil {
 			log.Fatal(err)
@@ -187,7 +194,14 @@ func main() {
 		root,
 		"SubstrateServiceControlPolicy",
 		awsorgs.SERVICE_CONTROL_POLICY,
-		`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}`,
+		&policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Action:   []string{"*"},
+					Resource: []string{"*"},
+				},
+			},
+		},
 	); err != nil {
 		log.Fatal(err)
 	}
@@ -199,15 +213,17 @@ func main() {
 
 	// Ensure tagging policies are enabled and that Substrate's is attached
 	// and up-to-date.
-	if err := awsorgs.EnsurePolicy(
-		svc,
-		root,
-		"SubstrateTaggingPolicy",
-		awsorgs.TAG_POLICY,
-		`{"tags":{}}`,
-	); err != nil {
-		log.Fatal(err)
-	}
+	/*
+		if err := awsorgs.EnsurePolicy(
+			svc,
+			root,
+			"SubstrateTaggingPolicy",
+			awsorgs.TAG_POLICY,
+			`{"tags":{}}`,
+		); err != nil {
+			log.Fatal(err)
+		}
+	*/
 	/*
 		for policySummary := range awsorgs.ListPolicies(svc, awsorgs.TAG_POLICY) {
 			log.Printf("%+v", policySummary)
@@ -219,7 +235,7 @@ func main() {
 	// Ensure the audit account exists.  This one comes first so we can enable
 	// CloudTrail ASAP.
 	ui.Spin("finding or creating the audit account")
-	account, err := awsorgs.EnsureSpecialAccount(
+	auditAccount, err := awsorgs.EnsureSpecialAccount(
 		svc,
 		"audit",
 		awsorgs.EmailForAccount(org, "audit"),
@@ -227,8 +243,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("account %s", aws.StringValue(account.Id))
-	//log.Printf("%+v", account)
+	ui.Stopf("account %s", aws.StringValue(auditAccount.Id))
+	//log.Printf("%+v", auditAccount)
 
 	// Ensure CloudTrail is permanently enabled organization-wide.
 	ui.Spin("configuring CloudTrail for your organization (every account, every region)")
@@ -237,16 +253,16 @@ func main() {
 		s3.New(sess, &aws.Config{
 			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
 				"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
-				aws.StringValue(account.Id),
+				aws.StringValue(auditAccount.Id),
 			)),
 			Region: aws.String(region),
 		}),
 		bucketName,
 		region,
-		policies.Document{
+		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
-					Principal: policies.Principal{AWS: []string{aws.StringValue(account.Id)}},
+					Principal: &policies.Principal{AWS: []string{aws.StringValue(auditAccount.Id)}},
 					Action:    []string{"s3:*"},
 					Resource: []string{
 						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
@@ -254,7 +270,7 @@ func main() {
 					},
 				},
 				policies.Statement{
-					Principal: policies.Principal{Service: []string{"cloudtrail.amazonaws.com"}},
+					Principal: &policies.Principal{Service: []string{"cloudtrail.amazonaws.com"}},
 					Action:    []string{"s3:GetBucketAcl", "s3:PutObject"},
 					Resource: []string{
 						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
@@ -262,7 +278,7 @@ func main() {
 					},
 				},
 				policies.Statement{
-					Principal: policies.Principal{AWS: []string{"*"}},
+					Principal: &policies.Principal{AWS: []string{"*"}},
 					Action:    []string{"s3:GetObject"},
 					Resource:  []string{fmt.Sprintf("arn:aws:s3:::%s/*", bucketName)},
 					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},

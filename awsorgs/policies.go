@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/policies"
 )
 
 type PolicyType string
@@ -33,7 +34,7 @@ func EnsurePolicy(
 	root *organizations.Root,
 	name string,
 	policyType PolicyType,
-	content string,
+	doc *policies.Document,
 ) error {
 
 	err := enablePolicyType(svc, aws.StringValue(root.Id), policyType)
@@ -44,7 +45,7 @@ func EnsurePolicy(
 		return err
 	}
 
-	policy, err := createPolicy(svc, name, policyType, content)
+	policy, err := createPolicy(svc, name, policyType, doc)
 	if awsutil.ErrorCodeIs(err, DuplicatePolicyException) {
 		err = nil
 
@@ -53,7 +54,7 @@ func EnsurePolicy(
 				continue
 			}
 
-			policy, err = updatePolicy(svc, aws.StringValue(policySummary.Id), name, content)
+			policy, err = updatePolicy(svc, aws.StringValue(policySummary.Id), name, doc)
 			if err != nil {
 				return err
 			}
@@ -112,9 +113,18 @@ func attachPolicy(svc *organizations.Organizations, policyId, rootId string) err
 	return err
 }
 
-func createPolicy(svc *organizations.Organizations, name string, policyType PolicyType, content string) (*organizations.Policy, error) {
+func createPolicy(
+	svc *organizations.Organizations,
+	name string,
+	policyType PolicyType,
+	doc *policies.Document,
+) (*organizations.Policy, error) {
+	docJSON, err := doc.JSON()
+	if err != nil {
+		return nil, err
+	}
 	in := &organizations.CreatePolicyInput{
-		Content:     aws.String(content),
+		Content:     aws.String(docJSON),
 		Description: aws.String(""),
 		Name:        aws.String(name),
 		Type:        aws.String(string(policyType)),
@@ -135,9 +145,17 @@ func enablePolicyType(svc *organizations.Organizations, rootId string, policyTyp
 	return err
 }
 
-func updatePolicy(svc *organizations.Organizations, policyId, name, content string) (*organizations.Policy, error) {
+func updatePolicy(
+	svc *organizations.Organizations,
+	policyId, name string,
+	doc *policies.Document,
+) (*organizations.Policy, error) {
+	docJSON, err := doc.JSON()
+	if err != nil {
+		return nil, err
+	}
 	in := &organizations.UpdatePolicyInput{
-		Content:     aws.String(content),
+		Content:     aws.String(docJSON),
 		Description: aws.String(""),
 		Name:        aws.String(name),
 		PolicyId:    aws.String(policyId),

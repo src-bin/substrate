@@ -25,7 +25,7 @@ func CreateBucket(svc *s3.S3, name, region string) error {
 	return err
 }
 
-func EnsureBucket(svc *s3.S3, name, region string, policy policies.Document) error {
+func EnsureBucket(svc *s3.S3, name, region string, doc *policies.Document) error {
 
 	err := CreateBucket(svc, name, region)
 	if awsutil.ErrorCodeIs(err, BucketAlreadyOwnedByYou) {
@@ -42,13 +42,13 @@ func EnsureBucket(svc *s3.S3, name, region string, policy policies.Document) err
 		return err
 	}
 
-	policyJSON, err := policy.JSON()
+	docJSON, err := doc.JSON()
 	if err != nil {
 		return err
 	}
 	if _, err := svc.PutBucketPolicy(&s3.PutBucketPolicyInput{
 		Bucket: aws.String(name),
-		Policy: aws.String(policyJSON),
+		Policy: aws.String(docJSON),
 	}); err != nil {
 		return err
 	}

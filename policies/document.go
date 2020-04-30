@@ -17,9 +17,9 @@ func (d *Document) JSON() (string, error) {
 
 type Statement struct {
 	Effect    Effect
-	Principal Principal
+	Principal *Principal `json:",omitempty"`
 	Action    []string
-	Resource  []string
+	Resource  []string  `json:",omitempty"` // omitempty for AssumeRolePolicyDocument
 	Condition Condition `json:",omitempty"`
 }
 

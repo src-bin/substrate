@@ -4,7 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/policies"
 )
 
 const (
@@ -80,15 +80,19 @@ func EnsureUser(svc *iam.IAM, username string) (*iam.User, error) {
 	return user, nil
 }
 
-func EnsureUserWithPolicy(svc *iam.IAM, username, policy string) (*iam.User, error) {
+func EnsureUserWithPolicy(svc *iam.IAM, username string, doc *policies.Document) (*iam.User, error) {
 
 	user, err := EnsureUser(svc, username)
 	if err != nil {
 		return nil, err
 	}
 
+	docJSON, err := doc.JSON()
+	if err != nil {
+		return nil, err
+	}
 	in := &iam.PutUserPolicyInput{
-		PolicyDocument: aws.String(policy),
+		PolicyDocument: aws.String(docJSON),
 		PolicyName:     aws.String("Substrate"),
 		UserName:       aws.String(username),
 	}
@@ -120,11 +124,4 @@ func ListAccessKeys(svc *iam.IAM, username string) ([]*iam.AccessKeyMetadata, er
 		return nil, err
 	}
 	return out.AccessKeyMetadata, err
-}
-
-func tagsFor(username string) []*iam.Tag {
-	return []*iam.Tag{
-		&iam.Tag{Key: aws.String("Manager"), Value: aws.String("Substrate")},
-		&iam.Tag{Key: aws.String("SubstrateVersion"), Value: aws.String(version.Version)},
-	}
 }
