@@ -313,7 +313,7 @@ func main() {
 	}
 
 	// Ensure the ops account can get back into the master account.
-	ui.Spin("finding or creating a role in the ops account that can administer your organization")
+	ui.Spin("finding or creating a role to allow the ops account to administer your organization")
 	opsAccount, err := awsorgs.FindSpecialAccount(svc, "ops")
 	if err != nil {
 		log.Fatal(err)
