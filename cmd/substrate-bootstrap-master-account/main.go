@@ -404,19 +404,32 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := awsiam.DeleteAllAccessKeys(
-		iam.New(sess, config),
-		"Okta",
-	); err != nil {
-		log.Fatal(err)
-	}
-	accessKey, err := awsiam.CreateAccessKey(iam.New(sess, config), aws.StringValue(user.UserName))
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Stopf("user %s, access key %s", aws.StringValue(user.UserName), aws.StringValue(accessKey.AccessKeyId))
+	ui.Stopf("user %s", aws.StringValue(user.UserName))
 	//log.Printf("%+v", user)
-	//log.Printf("%+v", accessKey)
+	if yesno, err := ui.Confirm("do you need to configure Okta's AWS integration? (yes or no)"); err != nil {
+		log.Fatal(err)
+	} else if yesno == "yes" {
+		ui.Spin("deleting existing access keys and creating a new one")
+		if err := awsiam.DeleteAllAccessKeys(
+			iam.New(sess, config),
+			"Okta",
+		); err != nil {
+			log.Fatal(err)
+		}
+		accessKey, err := awsiam.CreateAccessKey(iam.New(sess, config), aws.StringValue(user.UserName))
+		if err != nil {
+			log.Fatal(err)
+		}
+		ui.Stop("ok")
+		//log.Printf("%+v", accessKey)
+		ui.Printf("Okta needs this SAML provider ARN: %s", saml.Arn)
+		ui.Printf(".. and this access key ID: %s", aws.StringValue(accessKey.AccessKeyId))
+		ui.Printf("...and this secret access key: %s", aws.StringValue(accessKey.SecretAccessKey))
+		_, err = ui.Prompt("press ENTER after you've updated your Okta configuration")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	awssts.Export(awssts.AssumeRole(sts.New(sess), fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", aws.StringValue(opsAccount.Id))))
 

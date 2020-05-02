@@ -31,6 +31,28 @@ var (
 	stdin  *bufio.Reader
 )
 
+// TODO perhaps convert *string into string before handing off to fmt, which could save lots of aws.StringValue calls
+
+func Confirm(args ...interface{}) (string, error) {
+	for {
+		yesno, err := Prompt(args...)
+		if err != nil {
+			return "", err
+		}
+		if strings.ToLower(yesno) == "yes" {
+			return "yes", nil
+		}
+		if strings.ToLower(yesno) == "no" {
+			return "no", nil
+		}
+		Print(`please respond "yes" or "no"`)
+	}
+}
+
+func Confirmf(format string, args ...interface{}) (string, error) {
+	return Confirm(fmt.Sprintf(format, args...))
+}
+
 func Print(args ...interface{}) {
 	op(opPrint, fmt.Sprint(args...))
 }
