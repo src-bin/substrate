@@ -31,8 +31,6 @@ var (
 	stdin  *bufio.Reader
 )
 
-// TODO perhaps convert *string into string before handing off to fmt, which could save lots of aws.StringValue calls
-
 func Confirm(args ...interface{}) (string, error) {
 	for {
 		yesno, err := Prompt(args...)
@@ -54,14 +52,17 @@ func Confirmf(format string, args ...interface{}) (string, error) {
 }
 
 func Print(args ...interface{}) {
+	dereference(args)
 	op(opPrint, fmt.Sprint(args...))
 }
 
 func Printf(format string, args ...interface{}) {
+	dereference(args)
 	op(opPrint, fmt.Sprintf(format, args...))
 }
 
 func Prompt(args ...interface{}) (string, error) {
+	dereference(args)
 	fmt.Print(append(args, " ")...)
 	s, err := stdin.ReadString('\n')
 	if err != nil {
@@ -104,18 +105,22 @@ func PromptfFile(pathname, format string, args ...interface{}) (string, error) {
 }
 
 func Spin(args ...interface{}) {
+	dereference(args)
 	op(opSpin, fmt.Sprint(args...))
 }
 
 func Spinf(format string, args ...interface{}) {
+	dereference(args)
 	op(opSpin, fmt.Sprintf(format, args...))
 }
 
 func Stop(args ...interface{}) {
+	dereference(args)
 	op(opStop, fmt.Sprint(args...))
 }
 
 func Stopf(format string, args ...interface{}) {
+	dereference(args)
 	op(opStop, fmt.Sprintf(format, args...))
 }
 
@@ -227,6 +232,14 @@ func init() {
 			}
 		}
 	}(ch)
+}
+
+func dereference(args []interface{}) {
+	for i, arg := range args {
+		if p, ok := arg.(*string); ok {
+			args[i] = *p
+		}
+	}
 }
 
 func op(opcode int, s string) {

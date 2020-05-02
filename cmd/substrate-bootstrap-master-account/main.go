@@ -128,7 +128,7 @@ func main() {
 			time.Sleep(1e9) // TODO exponential backoff
 		}
 
-		ui.Stopf("switched to access key %s", aws.StringValue(accessKey.AccessKeyId))
+		ui.Stopf("switched to access key %s", accessKey.AccessKeyId)
 	}
 
 	svc := organizations.New(sess)
@@ -151,7 +151,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("organization %s", aws.StringValue(org.Id))
+	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
 	// TODO EnableAllFeatures, which is complicated but necessary in case an
@@ -255,7 +255,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("account %s", aws.StringValue(auditAccount.Id))
+	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
 	// Ensure CloudTrail is permanently enabled organization-wide.
@@ -307,7 +307,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("bucket %s, trail %s", bucketName, aws.StringValue(trail.Name))
+	ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 
 	// Ensure the deploy, network, and ops accounts exist.
 	for _, name := range []string{"deploy", "network", "ops"} {
@@ -320,7 +320,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		ui.Stopf("account %s", aws.StringValue(account.Id))
+		ui.Stopf("account %s", account.Id)
 		//log.Printf("%+v", account)
 	}
 
@@ -354,7 +354,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("role %s", aws.StringValue(role.RoleName))
+	ui.Stopf("role %s", role.RoleName)
 	//log.Printf("%+v", role)
 
 	// Configure Okta so we can get into the ops account directly, SSH, etc.
@@ -384,7 +384,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("role %s", aws.StringValue(role.RoleName))
+	ui.Stopf("role %s", role.RoleName)
 	//log.Printf("%+v", role)
 
 	// And give Okta a user that can enumerate the roles it can assume.
@@ -404,7 +404,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("user %s", aws.StringValue(user.UserName))
+	ui.Stopf("user %s", user.UserName)
 	//log.Printf("%+v", user)
 	if yesno, err := ui.Confirm("do you need to configure Okta's AWS integration? (yes or no)"); err != nil {
 		log.Fatal(err)
@@ -423,8 +423,8 @@ func main() {
 		ui.Stop("ok")
 		//log.Printf("%+v", accessKey)
 		ui.Printf("Okta needs this SAML provider ARN: %s", saml.Arn)
-		ui.Printf(".. and this access key ID: %s", aws.StringValue(accessKey.AccessKeyId))
-		ui.Printf("...and this secret access key: %s", aws.StringValue(accessKey.SecretAccessKey))
+		ui.Printf(".. and this access key ID: %s", accessKey.AccessKeyId)
+		ui.Printf("...and this secret access key: %s", accessKey.SecretAccessKey)
 		_, err = ui.Prompt("press ENTER after you've updated your Okta configuration")
 		if err != nil {
 			log.Fatal(err)
