@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -80,8 +81,8 @@ func Prompt(args ...interface{}) (string, error) {
 // to the prompt is written to pathname with a trailing newline and a notice is
 // printed instructing the user to commit that file to version control.
 func PromptFile(pathname string, args ...interface{}) (string, error) {
-	buf, err := fileutil.ReadFile(pathname)
-	s := strings.TrimSuffix(string(buf), "\n")
+	b, err := fileutil.ReadFile(pathname)
+	s := strings.TrimSuffix(string(b), "\n")
 	if err != nil {
 		s, err = Prompt(args...)
 		if err != nil {
@@ -124,12 +125,21 @@ func Stopf(format string, args ...interface{}) {
 	op(opStop, fmt.Sprintf(format, args...))
 }
 
+func dereference(args []interface{}) {
+	for i, arg := range args {
+		if p, ok := arg.(*string); ok {
+			args[i] = *p
+		}
+	}
+}
+
 // init starts a goroutine that serializes all ui elements so that the
 // terminal's output makes sense.
 //
 // Yes, I know init functions are unsavory and, yes, I know that the package
 // variables they imply are probably worse.  This is useful, though.
 func init() {
+	log.SetFlags(log.Lshortfile)
 	ch := make(chan instruction)
 	chInst = ch
 	stdin = bufio.NewReader(os.Stdin)
@@ -232,14 +242,6 @@ func init() {
 			}
 		}
 	}(ch)
-}
-
-func dereference(args []interface{}) {
-	for i, arg := range args {
-		if p, ok := arg.(*string); ok {
-			args[i] = *p
-		}
-	}
 }
 
 func op(opcode int, s string) {

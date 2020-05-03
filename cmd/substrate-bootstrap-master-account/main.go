@@ -25,7 +25,6 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.Lshortfile)
 
 	ui.Print("time to bootstrap the AWS organization so we need an access key from your new master AWS account")
 	accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
@@ -42,7 +41,7 @@ func main() {
 
 	region, err := ui.PromptFile(
 		"substrate.region",
-		"what region should host your dev/ops EC2 instances, CloudTrail logs, etc?",
+		"what region should host the S3 bucket that stores your CloudTrail logs?",
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -431,6 +430,7 @@ func main() {
 		}
 	}
 
+	ui.Print("until we get you an EC2 instance profile, here's your way into the ops account (good for one hour)")
 	awssts.Export(awssts.AssumeRole(sts.New(sess), fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", aws.StringValue(opsAccount.Id))))
 
 	// At the very, very end, when we're exceedingly confident in the

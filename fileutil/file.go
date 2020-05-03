@@ -11,9 +11,9 @@ func ReadFile(pathname string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buf, err := ioutil.ReadAll(f)
+	b, err := ioutil.ReadAll(f)
 	if err := f.Close(); err != nil {
 		return nil, err
 	}
-	return buf, err
+	return b, err
 }

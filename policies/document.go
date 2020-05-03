@@ -11,8 +11,8 @@ type Document struct {
 }
 
 func (d *Document) JSON() (string, error) {
-	buf, err := json.MarshalIndent(d, "", "\t")
-	return string(buf), err
+	b, err := json.MarshalIndent(d, "", "\t")
+	return string(b), err
 }
 
 type Statement struct {
