@@ -29,6 +29,10 @@ func main() {
 	log.Printf("%+v", account)
 
 	d, err := networks.ReadDocument()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("%+v", d)
 
 	ui.Printf("bootstrapping the network in %d regions", len(awsutil.Regions()))
 	for _, region := range awsutil.Regions() {
@@ -42,7 +46,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		ui.Stopf("%s %s %s", n.VPC, n.IPv4, n.IPv6)
+		ui.Stop(n.IPv4)
 
 		environments := []string{"development", "production"} // TODO
 		qualities := []string{"alpha", "beta", "gamma"}       // TODO

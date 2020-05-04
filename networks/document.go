@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/version"
@@ -18,6 +20,7 @@ const (
 )
 
 type Document struct {
+	Admonition       admonition `json:"#"`
 	Networks         []*Network
 	SubstrateVersion substrateVersion
 }
@@ -117,8 +120,29 @@ func NextIPv4(ipv4 IPv4) (IPv4, error) {
 	return ipv4, nil
 }
 
+func (ipv4 IPv4) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%#v", ipv4.String())), nil
+}
+
 func (ipv4 IPv4) String() string {
 	return fmt.Sprintf("%d.%d.%d.%d/%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3], ipv4[4])
+}
+
+func (ipv4 *IPv4) UnmarshalJSON(b []byte) (err error) {
+	fields := strings.FieldsFunc(
+		strings.Trim(string(b), `"`),
+		func(r rune) bool { return r == '.' || r == '/' },
+	)
+	if len(fields) != len(ipv4) {
+		return fmt.Errorf("malformed IPv4 %s", string(b))
+	}
+	for i := 0; i < len(ipv4); i++ {
+		ipv4[i], err = strconv.Atoi(fields[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type Network struct {
@@ -132,6 +156,14 @@ func (n *Network) String() string {
 	return fmt.Sprintf("%+v", *n) // without dereferencing here, the program OOMs; bizarre
 }
 
+type admonition struct{}
+
+func (admonition) MarshalJSON() ([]byte, error) {
+	return []byte(`"managed by Substrate and synchronized with AWS via Terraform; do not edit by hand"`), nil
+}
+
+func (admonition) UnmarshalJSON([]byte) error { return nil }
+
 type substrateVersion string
 
 func (v substrateVersion) MarshalJSON() ([]byte, error) {
@@ -140,3 +172,5 @@ func (v substrateVersion) MarshalJSON() ([]byte, error) {
 	}
 	return []byte(fmt.Sprintf("%#v", v)), nil
 }
+
+func (substrateVersion) UnmarshalJSON([]byte) error { return nil }
