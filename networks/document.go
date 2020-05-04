@@ -5,10 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"sort"
-	"strconv"
-	"strings"
 
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/version"
@@ -16,7 +15,7 @@ import (
 
 const (
 	Filename             = "substrate.networks.json"
-	IPv4SubnetMaskLength = 18 // 16,384 IP addresses per VPC, 1,092 possible VPCs
+	IPv4SubnetMaskLength = 18 // 16,384 IP addresses per VPC, 1,092 possible VPCs; value must be in range [16,24]
 )
 
 type Document struct {
@@ -44,57 +43,48 @@ func ReadDocument() (*Document, error) {
 	return d, nil
 }
 
+func (d *Document) Allocate(environment, quality string) *Network {
+	return nil
+}
+
+func (d *Document) AllocateSpecial(name string) *Network {
+	return nil
+}
+
 func (d *Document) Len() int { return len(d.Networks) }
+
 func (d *Document) Less(i, j int) bool {
-	iArray, err := d.Networks[i].comparable()
-	if err != nil {
-		panic(err)
-	}
-	jArray, err := d.Networks[j].comparable()
-	if err != nil {
-		panic(err)
-	}
 	for k := 0; k < 5; k++ {
-		if iArray[k] < jArray[k] {
+		if d.Networks[i].IPv4[k] < d.Networks[j].IPv4[k] {
 			return true
 		}
-		if iArray[k] > jArray[k] {
+		if d.Networks[i].IPv4[k] > d.Networks[j].IPv4[k] {
 			return false
 		}
 	}
 	return false
 }
-func (d *Document) Swap(i, j int) {
-	tmp := d.Networks[i]
-	d.Networks[i] = d.Networks[j]
-	d.Networks[j] = tmp
-}
 
-func (d *Document) Next() (*Network, error) {
+func (d *Document) Next(n *Network) (*Network, error) {
 	if len(d.Networks) == 0 {
-		n := &Network{IPv4: fmt.Sprintf("10.0.0.0/%d", IPv4SubnetMaskLength)}
+		n := &Network{IPv4: FirstIPv4()}
 		d.Networks = append(d.Networks, n)
 		return n, nil
 	}
 	sort.Sort(d)
-	c, err := d.Networks[len(d.Networks)-1].comparable()
+	var err error
+	net.IPv4, err = NextIPv4(d.Networks[len(d.Networks)-1].IPv4)
 	if err != nil {
 		return nil, err
 	}
-	c[4] = IPv4SubnetMaskLength
-	c[3] = 0
-	c[2] = c[2] + 64 // TODO parameterize based on IPv4SubnetMaskLength
-	if c[2] == 256 {
-		c[2] = 0
-		c[1] = c[1] + 1
-		if c[1] == 256 {
-			return nil, errors.New("ran out of /18 networks in 10.0.0.0/8; add support for 172.16.0.0/12 and 192.168.0.0/16")
-		}
-	}
-	c[0] = 10
-	n := newNetworkFromComparable(c)
 	d.Networks = append(d.Networks, n)
-	return n, nil
+	return n, d.Write()
+}
+
+func (d *Document) Swap(i, j int) {
+	tmp := d.Networks[i]
+	d.Networks[i] = d.Networks[j]
+	d.Networks[j] = tmp
 }
 
 func (d *Document) Write() error {
@@ -105,33 +95,42 @@ func (d *Document) Write() error {
 	return ioutil.WriteFile(Filename, b, 0666)
 }
 
-type Network struct {
-	Environment, Quality, Special string `json:",omitempty"`
-	IPv4, IPv6                    string
-	Region, VPC                   string
+type IPv4 [5]int
+
+func FirstIPv4() IPv4 {
+	return IPv4{10, 0, 0, 0, IPv4SubnetMaskLength}
 }
 
-func newNetworkFromComparable(c [5]int) *Network {
-	return &Network{IPv4: fmt.Sprintf("%d.%d.%d.%d/%d", c[0], c[1], c[2], c[3], c[4])}
+func NextIPv4(ipv4 IPv4) (IPv4, error) {
+	if ipv4[4] != IPv4SubnetMaskLength {
+		return ipv4, fmt.Errorf("subnet mask %d != IPv4SubnetMaskLength (%d)", ipv4[4], IPv4SubnetMaskLength)
+	}
+	ipv4[3] = 0
+	ipv4[2] = ipv4[2] + (1 << (24 - IPv4SubnetMaskLength)) // this is why IPv4SubnetMaskLength must be in [16, 24]
+	if ipv4[2] == 256 {
+		ipv4[2] = 0
+		ipv4[1] = ipv4[1] + 1
+	}
+	if ipv4[1] == 256 {
+		return ipv4, errors.New("ran out of /18 networks in 10.0.0.0/8; add support for 172.16.0.0/12 and 192.168.0.0/16")
+	}
+	ipv4[0] = 10
+	return ipv4, nil
+}
+
+func (ipv4 IPv4) String() string {
+	return fmt.Sprintf("%d.%d.%d.%d/%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3], ipv4[4])
+}
+
+type Network struct {
+	Environment, Quality, Special string `json:",omitempty"`
+	IPv4                          IPv4
+	IPv6                          string
+	Region, VPC                   string
 }
 
 func (n *Network) String() string {
 	return fmt.Sprintf("%+v", *n) // without dereferencing here, the program OOMs; bizarre
-}
-
-func (n *Network) comparable() (c [5]int, err error) {
-	fields := strings.FieldsFunc(n.IPv4, func(r rune) bool { return r == '.' || r == '/' })
-	if len(fields) != len(c) {
-		err = fmt.Errorf("malformed IPv4 %s", n.IPv4)
-		return
-	}
-	for i := 0; i < len(c); i++ {
-		c[i], err = strconv.Atoi(fields[i])
-		if err != nil {
-			return
-		}
-	}
-	return
 }
 
 type substrateVersion string
