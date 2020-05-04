@@ -10,10 +10,32 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/ui"
 )
 
-func AccessKeyCredentials(accessKeyId, secretAccessKey string) *credentials.Credentials {
-	return credentials.NewStaticCredentials(accessKeyId, secretAccessKey, "")
+type Config struct {
+	AccessKeyId, SecretAccessKey string
+	Region                       string
+}
+
+func (c Config) AWS() aws.Config {
+	var a aws.Config
+
+	if c.AccessKeyId != "" && c.SecretAccessKey != "" {
+		a.Credentials = credentials.NewStaticCredentials(c.AccessKeyId, c.SecretAccessKey, "")
+	}
+	if c.AccessKeyId != "" && c.SecretAccessKey == "" {
+		ui.Print("ignoring access key ID without secret access key")
+	}
+	if c.AccessKeyId == "" && c.SecretAccessKey != "" {
+		ui.Print("ignoring secret access key without access key ID")
+	}
+
+	if c.Region != "" {
+		a.Region = aws.String(c.Region)
+	}
+
+	return a
 }
 
 func AssumeRole(sess *session.Session, accountId, rolename string) *session.Session {
@@ -34,19 +56,13 @@ func AssumeRoleMaster(sess *session.Session, rolename string) *session.Session {
 	return AssumeRole(sess, aws.StringValue(org.MasterAccountId), rolename)
 }
 
-func Config() *aws.Config {
-	return &aws.Config{
-		//LogLevel: aws.LogLevel(aws.LogDebugWithHTTPBody),
-	}
+func NewSession(config Config) *session.Session {
+	return session.Must(session.NewSessionWithOptions(options(config.AWS())))
 }
 
-func NewSession(config *aws.Config) *session.Session {
-	return session.Must(session.NewSessionWithOptions(options(config)))
-}
-
-func options(config *aws.Config) session.Options {
+func options(config aws.Config) session.Options {
 	return session.Options{
-		Config:            *config,
+		Config:            config,
 		SharedConfigState: session.SharedConfigDisable,
 	}
 }

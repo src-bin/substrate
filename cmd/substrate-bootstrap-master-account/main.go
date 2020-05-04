@@ -63,9 +63,11 @@ func main() {
 	}
 	// TODO do some light validation of the XML
 
-	sess := awssessions.NewSession(awssessions.Config().WithCredentials(
-		awssessions.AccessKeyCredentials(accessKeyId, secretAccessKey),
-	).WithRegion(region))
+	sess := awssessions.NewSession(awssessions.Config{
+		AccessKeyId:     accessKeyId,
+		SecretAccessKey: secretAccessKey,
+		Region:          region,
+	})
 
 	// Switch to an IAM user so that we can assume roles in other accounts.
 	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
@@ -110,12 +112,11 @@ func main() {
 			"OrganizationAdministrator",
 		) // TODO ensure this succeeds even when we exit via log.Fatal
 
-		sess = awssessions.NewSession(awssessions.Config().WithCredentials(
-			awssessions.AccessKeyCredentials(
-				aws.StringValue(accessKey.AccessKeyId),
-				aws.StringValue(accessKey.SecretAccessKey),
-			),
-		).WithRegion(region))
+		sess = awssessions.NewSession(awssessions.Config{
+			AccessKeyId:     aws.StringValue(accessKey.AccessKeyId),
+			SecretAccessKey: aws.StringValue(accessKey.SecretAccessKey),
+			Region:          region,
+		})
 
 		// Inconceivably, the new access key probably isn't usable for a
 		// little while so we have to sit and spin before using it.

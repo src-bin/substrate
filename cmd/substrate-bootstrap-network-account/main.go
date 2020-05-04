@@ -3,8 +3,6 @@ package main
 import (
 	"log"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
@@ -18,7 +16,7 @@ func main() {
 	// TODO offer the opportunity to use a subset of regions
 
 	sess := awssessions.AssumeRoleMaster(
-		awssessions.NewSession(awssessions.Config()),
+		awssessions.NewSession(awssessions.Config{}),
 		"OrganizationReader",
 	)
 	account, err := awsorgs.FindSpecialAccount(
@@ -28,7 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//log.Printf("%+v", account)
+	log.Printf("%+v", account)
 
 	d, err := networks.ReadDocument()
 
@@ -74,13 +72,6 @@ func main() {
 
 	// TODO peer everything together
 
-	sess := awssessions.AssumeRole(awssessions.NewSession(
-		awssessions.Config().WithRegion(region)),
-		aws.StringValue(account.Id),
-		"NetworkAdministrator",
-	)
-	svc := ec2.New(sess)
-
-	// TODO apply generated Terraform code
+	// TODO assume the NetworkAdministrator role in each region and apply the generated Terraform code
 
 }

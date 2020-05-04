@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"sort"
 
@@ -73,7 +72,7 @@ func (d *Document) Next(n *Network) (*Network, error) {
 	}
 	sort.Sort(d)
 	var err error
-	net.IPv4, err = NextIPv4(d.Networks[len(d.Networks)-1].IPv4)
+	n.IPv4, err = NextIPv4(d.Networks[len(d.Networks)-1].IPv4)
 	if err != nil {
 		return nil, err
 	}
