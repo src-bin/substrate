@@ -106,9 +106,9 @@ func (d *Document) Write() error {
 }
 
 type Network struct {
-	IPv4, IPv6                    string
-	Region                        string
 	Environment, Quality, Special string `json:",omitempty"`
+	IPv4, IPv6                    string
+	Region, VPC                   string
 }
 
 func newNetworkFromComparable(c [5]int) *Network {

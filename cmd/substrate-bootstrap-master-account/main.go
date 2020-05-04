@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -290,8 +291,11 @@ func main() {
 				},
 				policies.Statement{
 					Principal: &policies.Principal{AWS: []string{"*"}},
-					Action:    []string{"s3:GetObject"},
-					Resource:  []string{fmt.Sprintf("arn:aws:s3:::%s/*", bucketName)},
+					Action:    []string{"s3:GetObject", "s3:ListBucket"},
+					Resource: []string{
+						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+					},
 					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
 				},
 			},
@@ -309,6 +313,7 @@ func main() {
 	ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 
 	// Ensure the deploy, network, and ops accounts exist.
+	var deployAccount, networkAccount, opsAccount *organizations.Account
 	for _, name := range []string{"deploy", "network", "ops"} {
 		ui.Spinf("finding or creating the %s account", name)
 		account, err := awsorgs.EnsureSpecialAccount(
@@ -321,19 +326,16 @@ func main() {
 		}
 		ui.Stopf("account %s", account.Id)
 		//log.Printf("%+v", account)
+		switch name {
+		case "deploy":
+			deployAccount = account
+		case "network":
+			networkAccount = account
+		case "ops":
+			opsAccount = account
+		}
 	}
-
-	opsAccount, err := awsorgs.FindSpecialAccount(svc, "ops")
-	if err != nil {
-		log.Fatal(err)
-	}
-	config := &aws.Config{
-		Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-			"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
-			aws.StringValue(opsAccount.Id),
-		)),
-		Region: aws.String(region),
-	}
+	_ = deployAccount // TODO remove when we do something with the deploy account
 
 	// Ensure the ops account can get back into the master account.
 	ui.Spin("finding or creating a role to allow the ops account to administer your organization")
@@ -356,9 +358,86 @@ func main() {
 	ui.Stopf("role %s", role.RoleName)
 	//log.Printf("%+v", role)
 
+	// Ensure the ops account can find other accounts in the organization without full administrative
+	// privileges.  This should be directly possible via organizations:RegisterDelegatedAdministrator
+	// but that API appears to just not work the way
+	// <https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrated-services-list.html>
+	// implies it does.
+	ui.Spin("finding or creating a role to allow account discovery within your organization")
+	role, err = awsiam.EnsureRoleWithPolicy(
+		iam.New(sess),
+		"OrganizationReader",
+		&policies.Principal{AWS: []string{aws.StringValue(opsAccount.Id)}},
+		&policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Action:   []string{"organizations:ListAccounts"},
+					Resource: []string{"*"},
+				},
+			},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", role.RoleName)
+	//log.Printf("%+v", role)
+
+	// Ensure the ops account can get into the network account.
+	ui.Spin("finding or creating a role to allow the ops account to administer your networks")
+	role, err = awsiam.EnsureRoleWithPolicy(
+		iam.New(sess, &aws.Config{
+			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
+				"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
+				aws.StringValue(networkAccount.Id),
+			)),
+		}),
+		"NetworkAdministrator",
+		&policies.Principal{AWS: []string{aws.StringValue(opsAccount.Id)}},
+		&policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Action:   []string{"*"},
+					Resource: []string{"*"},
+				},
+			},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", role.RoleName)
+	//log.Printf("%+v", role)
+
 	// Configure Okta so we can get into the ops account directly, SSH, etc.
+	okta(sess, opsAccount, metadata)
+
+	ui.Print("until we get you an EC2 instance profile, here's your way into the ops account (good for one hour)")
+	awssts.Export(awssts.AssumeRole(sts.New(sess), fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", aws.StringValue(opsAccount.Id))))
+
+	// At the very, very end, when we're exceedingly confident in the
+	// capabilities of the other accounts, detach the FullAWSAccess policy
+	// from the master account.
+	//
+	// It's not clear to me that this is EVER a state we'll reach.  It's very
+	// tough to give away one's ultimate get-out-of-jail-free card, after all.
+	//
+	// A safer step would be to attach a policy that allowed re-attaching the
+	// FullAWSAccess policy before detaching it.  That would prevent accidental
+	// use of the master account without being a "one-way door."
+
+}
+
+func okta(sess *session.Session, account *organizations.Account, metadata string) {
+	svc := iam.New(sess, &aws.Config{
+		Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
+			"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
+			aws.StringValue(account.Id),
+		)),
+	})
+
 	ui.Spin("configuring Okta as your organization's identity provider")
-	saml, err := awsiam.EnsureSAMLProvider(iam.New(sess, config), "Okta", metadata)
+	saml, err := awsiam.EnsureSAMLProvider(svc, "Okta", metadata)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -367,8 +446,8 @@ func main() {
 
 	// Give Okta an entrypoint in the ops account.
 	ui.Spin("finding or creating a role for Okta to use in the ops account")
-	role, err = awsiam.EnsureRoleWithPolicy(
-		iam.New(sess, config),
+	role, err := awsiam.EnsureRoleWithPolicy(
+		svc,
 		"Okta",
 		&policies.Principal{Federated: []string{saml.Arn}},
 		&policies.Document{
@@ -389,7 +468,7 @@ func main() {
 	// And give Okta a user that can enumerate the roles it can assume.
 	ui.Spin("finding or creating a user for Okta to use to enumerate roles")
 	user, err := awsiam.EnsureUserWithPolicy(
-		iam.New(sess, config),
+		svc,
 		"Okta",
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -409,13 +488,10 @@ func main() {
 		log.Fatal(err)
 	} else if yesno == "yes" {
 		ui.Spin("deleting existing access keys and creating a new one")
-		if err := awsiam.DeleteAllAccessKeys(
-			iam.New(sess, config),
-			"Okta",
-		); err != nil {
+		if err := awsiam.DeleteAllAccessKeys(svc, "Okta"); err != nil {
 			log.Fatal(err)
 		}
-		accessKey, err := awsiam.CreateAccessKey(iam.New(sess, config), aws.StringValue(user.UserName))
+		accessKey, err := awsiam.CreateAccessKey(svc, aws.StringValue(user.UserName))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -429,19 +505,5 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-
-	ui.Print("until we get you an EC2 instance profile, here's your way into the ops account (good for one hour)")
-	awssts.Export(awssts.AssumeRole(sts.New(sess), fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", aws.StringValue(opsAccount.Id))))
-
-	// At the very, very end, when we're exceedingly confident in the
-	// capabilities of the other accounts, detach the FullAWSAccess policy
-	// from the master account.
-	//
-	// It's not clear to me that this is EVER a state we'll reach.  It's very
-	// tough to give away one's ultimate get-out-of-jail-free card, after all.
-	//
-	// A safer step would be to attach a policy that allowed re-attaching the
-	// FullAWSAccess policy before detaching it.  That would prevent accidental
-	// use of the master account without being a "one-way door."
 
 }

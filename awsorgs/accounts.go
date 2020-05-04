@@ -78,6 +78,15 @@ func FindSpecialAccount(svc *organizations.Organizations, name string) (*organiz
 	return findAccount(svc, name)
 }
 
+func RegisterDelegatedAdministrator(svc *organizations.Organizations, accountId, service string) error {
+	in := &organizations.RegisterDelegatedAdministratorInput{
+		AccountId:        aws.String(accountId),
+		ServicePrincipal: aws.String(service),
+	}
+	_, err := svc.RegisterDelegatedAdministrator(in)
+	return err
+}
+
 func Tag(svc *organizations.Organizations, accountId string, tags map[string]string) error {
 	tagStructs := make([]*organizations.Tag, 0, len(tags))
 	for key, value := range tags {
