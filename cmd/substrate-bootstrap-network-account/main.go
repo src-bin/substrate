@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/networks"
@@ -19,7 +18,10 @@ func main() {
 
 	// TODO offer the opportunity to use a subset of regions
 
-	sess := awsutil.NewMasterSession("OrganizationReader")
+	sess := awssessions.AssumeRoleMaster(
+		awssessions.NewSession(awssessions.Config()),
+		"OrganizationReader",
+	)
 
 	account, err := awsorgs.FindSpecialAccount(
 		organizations.New(sess),
@@ -36,13 +38,11 @@ func main() {
 	for _, region := range awsutil.Regions() {
 		ui.Spinf("bootstrapping the ops network in %s", region)
 
-		sess := awsutil.NewSession(region)
-		sess = sess.Copy(&aws.Config{
-			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-				"arn:aws:iam::%s:role/NetworkAdministrator",
-				aws.StringValue(account.Id),
-			)),
-		})
+		sess := awssessions.AssumeRole(awssessions.NewSession(
+			awssessions.Config().WithRegion(region)),
+			aws.StringValue(account.Id),
+			"NetworkAdministrator",
+		)
 
 		callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
 		if err != nil {

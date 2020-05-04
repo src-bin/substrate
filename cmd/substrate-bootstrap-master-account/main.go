@@ -18,6 +18,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awss3"
+	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
@@ -62,7 +63,9 @@ func main() {
 	}
 	// TODO do some light validation of the XML
 
-	sess := awsutil.NewSessionExplicit(accessKeyId, secretAccessKey, region)
+	sess := awssessions.NewSession(awssessions.Config().WithCredentials(
+		awssessions.AccessKeyCredentials(accessKeyId, secretAccessKey),
+	).WithRegion(region))
 
 	// Switch to an IAM user so that we can assume roles in other accounts.
 	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
@@ -107,11 +110,12 @@ func main() {
 			"OrganizationAdministrator",
 		) // TODO ensure this succeeds even when we exit via log.Fatal
 
-		sess = awsutil.NewSessionExplicit(
-			aws.StringValue(accessKey.AccessKeyId),
-			aws.StringValue(accessKey.SecretAccessKey),
-			region,
-		)
+		sess = awssessions.NewSession(awssessions.Config().WithCredentials(
+			awssessions.AccessKeyCredentials(
+				aws.StringValue(accessKey.AccessKeyId),
+				aws.StringValue(accessKey.SecretAccessKey),
+			),
+		).WithRegion(region))
 
 		// Inconceivably, the new access key probably isn't usable for a
 		// little while so we have to sit and spin before using it.
