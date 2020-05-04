@@ -38,13 +38,14 @@ func main() {
 	for _, region := range awsutil.Regions() {
 		ui.Spinf("bootstrapping the ops network in %s", region)
 
-		n, err := d.Next(&networks.Network{
+		n, err := d.Allocate(&networks.Network{
 			Region:  region,
 			Special: "ops",
-		}) // TODO need to search the document for existing matching networks
+		})
 		if err != nil {
 			log.Fatal(err)
 		}
+		//log.Printf("%+v", n)
 
 		ui.Stop(n.IPv4)
 
@@ -59,14 +60,12 @@ func main() {
 
 				// TODO
 
-				n, err := d.Next(&networks.Network{
+				n := d.Find(&networks.Network{
 					Environment: environment,
 					Quality:     quality,
 					Region:      region,
-				}) // TODO need to search the document for existing matching networks
-				if err != nil {
-					log.Fatal(err)
-				}
+				})
+				log.Printf("%+v", n)
 
 				ui.Stop(n)
 			}
@@ -75,6 +74,12 @@ func main() {
 	}
 
 	// TODO peer everything together
+
+	// Write to substrate.networks.json once more so that, even if no changes
+	// were made, formatting changes and SubstrateVersion are changed.
+	if err := d.Write(); err != nil {
+		log.Fatal(err)
+	}
 
 	// TODO assume the NetworkAdministrator role in each region and apply the generated Terraform code
 

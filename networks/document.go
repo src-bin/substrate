@@ -45,11 +45,22 @@ func ReadDocument() (*Document, error) {
 	return d, nil
 }
 
-func (d *Document) Allocate(environment, quality string) *Network {
-	return nil
+func (d *Document) Allocate(n0 *Network) (*Network, error) {
+	if n := d.Find(n0); n != nil {
+		return n, nil
+	}
+	return d.next(n0)
 }
 
-func (d *Document) AllocateSpecial(name string) *Network {
+func (d *Document) Find(n0 *Network) *Network {
+	for _, n := range d.Networks {
+		if n0.Environment == n.Environment &&
+			n0.Quality == n.Quality &&
+			n0.Region == n.Region &&
+			n0.Special == n.Special {
+			return n
+		}
+	}
 	return nil
 }
 
@@ -67,22 +78,6 @@ func (d *Document) Less(i, j int) bool {
 	return false
 }
 
-func (d *Document) Next(n *Network) (*Network, error) {
-	if len(d.Networks) == 0 {
-		n := &Network{IPv4: FirstIPv4()}
-		d.Networks = append(d.Networks, n)
-		return n, nil
-	}
-	sort.Sort(d)
-	var err error
-	n.IPv4, err = NextIPv4(d.Networks[len(d.Networks)-1].IPv4)
-	if err != nil {
-		return nil, err
-	}
-	d.Networks = append(d.Networks, n)
-	return n, d.Write()
-}
-
 func (d *Document) Swap(i, j int) {
 	tmp := d.Networks[i]
 	d.Networks[i] = d.Networks[j]
@@ -95,6 +90,22 @@ func (d *Document) Write() error {
 		return err
 	}
 	return ioutil.WriteFile(Filename, b, 0666)
+}
+
+func (d *Document) next(n *Network) (*Network, error) {
+	if len(d.Networks) == 0 {
+		n.IPv4 = FirstIPv4()
+		d.Networks = append(d.Networks, n)
+		return n, nil
+	}
+	sort.Sort(d)
+	var err error
+	n.IPv4, err = NextIPv4(d.Networks[len(d.Networks)-1].IPv4)
+	if err != nil {
+		return nil, err
+	}
+	d.Networks = append(d.Networks, n)
+	return n, d.Write()
 }
 
 type IPv4 [5]int
@@ -146,10 +157,11 @@ func (ipv4 *IPv4) UnmarshalJSON(b []byte) (err error) {
 }
 
 type Network struct {
+	Region                        string
 	Environment, Quality, Special string `json:",omitempty"`
 	IPv4                          IPv4
-	IPv6                          string
-	Region, VPC                   string
+	IPv6                          string `json:",omitempty"`
+	VPC                           string `json:",omitempty"`
 }
 
 func (n *Network) String() string {
