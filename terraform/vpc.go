@@ -6,6 +6,7 @@ type VPC struct {
 	Label                         string
 	CidrBlock                     string
 	Environment, Quality, Special string
+	Provider                      ProviderAlias
 }
 
 func (vpc VPC) Name() string {
@@ -23,6 +24,7 @@ func (VPC) Template() string {
 	cidr_block = "{{.CidrBlock}}"
 	enable_dns_hostnames = true
 	enable_dns_support = true
+	provider = "{{.Provider}}"
 	tags = {
 {{if .Environment -}}
 		"Environment" = "{{.Environment}}"

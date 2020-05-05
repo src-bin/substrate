@@ -1,6 +1,10 @@
 package terraform
 
-import "github.com/src-bin/substrate/awsutil"
+import (
+	"fmt"
+
+	"github.com/src-bin/substrate/awsutil"
+)
 
 type Provider struct {
 	AccountId, RoleName, SessionName, ExternalId string
@@ -29,4 +33,10 @@ func (Provider) Template() string {
 	}
 	region = "{{.Region}}"
 }`
+}
+
+type ProviderAlias string
+
+func ProviderAliasFor(region string) {
+	return fmt.Sprintf("aws.%s", region)
 }

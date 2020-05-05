@@ -60,6 +60,7 @@ func main() {
 		ops.Push(terraform.VPC{
 			CidrBlock: n.IPv4.String(),
 			Label:     fmt.Sprintf("ops-%s", region),
+			Provider:  terraform.ProviderAliasFor(region),
 		})
 
 		ui.Stop(n.IPv4)
@@ -109,7 +110,7 @@ func main() {
 		}
 	}
 
-	if err := ops.Write(path.Join("network-account", qualities[0], "ops.tf")); err != nil {
+	if err := ops.Write(path.Join("network-account", qualities[0], "ops.tf")); err != nil { // is it a good idea to put these in alpha?
 		log.Fatal(err)
 	}
 
