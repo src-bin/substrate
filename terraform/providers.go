@@ -37,6 +37,6 @@ func (Provider) Template() string {
 
 type ProviderAlias string
 
-func ProviderAliasFor(region string) {
-	return fmt.Sprintf("aws.%s", region)
+func ProviderAliasFor(region string) ProviderAlias {
+	return ProviderAlias(fmt.Sprintf("aws.%s", region))
 }
