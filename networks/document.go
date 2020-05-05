@@ -45,7 +45,7 @@ func ReadDocument() (*Document, error) {
 	return d, nil
 }
 
-func (d *Document) Allocate(n0 *Network) (*Network, error) {
+func (d *Document) Ensure(n0 *Network) (*Network, error) {
 	if n := d.Find(n0); n != nil {
 		return n, nil
 	}
