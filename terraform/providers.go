@@ -25,11 +25,11 @@ func (Provider) Template() string {
 	return `provider "aws" {
 	alias = "{{.Region}}"
 	assume_role {
-		role_arn     = "arn:aws:iam::{{.AccountId}}:role/{{.RoleName}}"
-		session_name = "{{.SessionName}}"
 {{if .ExternalId -}}
 		external_id  = "{{.ExternalId}}"
 {{end -}}
+		role_arn     = "arn:aws:iam::{{.AccountId}}:role/{{.RoleName}}"
+		session_name = "{{.SessionName}}"
 	}
 	region = "{{.Region}}"
 }`

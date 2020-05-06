@@ -4,25 +4,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/version"
 )
 
 const (
-	Filename             = "substrate.networks.json"
+	Filename             = "substrate.Networks.json"
 	IPv4SubnetMaskLength = 18 // 16,384 IP addresses per VPC, 1,092 possible VPCs; value must be in range [16,24]
 )
 
 type Document struct {
-	Admonition       admonition `json:"#"`
+	Admonition       jsonutil.Admonition `json:"#"`
 	Networks         []*Network
-	SubstrateVersion substrateVersion
+	SubstrateVersion jsonutil.SubstrateVersion
 }
 
 func ReadDocument() (*Document, error) {
@@ -35,17 +35,18 @@ func ReadDocument() (*Document, error) {
 		return nil, err
 	}
 	d := &Document{}
-
-	// If d.SubstrateVersion != version.Version, migrate here.
-
-	d.SubstrateVersion = substrateVersion(version.Version)
 	if err := json.Unmarshal(b, d); err != nil {
 		return nil, err
 	}
+
+	// If d.SubstrateVersion != version.Version, migrate here.
+
+	d.SubstrateVersion = jsonutil.SubstrateVersion(version.Version)
 	return d, nil
 }
 
 func (d *Document) Ensure(n0 *Network) (*Network, error) {
+	// TODO validate against valid Environment and Quality pairs
 	if n := d.Find(n0); n != nil {
 		return n, nil
 	}
@@ -85,11 +86,7 @@ func (d *Document) Swap(i, j int) {
 }
 
 func (d *Document) Write() error {
-	b, err := json.MarshalIndent(d, "", "\t")
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(Filename, b, 0666)
+	return jsonutil.Write(d, Filename)
 }
 
 func (d *Document) next(n *Network) (*Network, error) {
@@ -167,22 +164,3 @@ type Network struct {
 func (n *Network) String() string {
 	return fmt.Sprintf("%+v", *n) // without dereferencing here, the program OOMs; bizarre
 }
-
-type admonition struct{}
-
-func (admonition) MarshalJSON() ([]byte, error) {
-	return []byte(`"managed by Substrate and synchronized with AWS via Terraform; do not edit by hand"`), nil
-}
-
-func (admonition) UnmarshalJSON([]byte) error { return nil }
-
-type substrateVersion string
-
-func (v substrateVersion) MarshalJSON() ([]byte, error) {
-	if v == "" {
-		v = substrateVersion(version.Version)
-	}
-	return []byte(fmt.Sprintf("%#v", v)), nil
-}
-
-func (substrateVersion) UnmarshalJSON([]byte) error { return nil }

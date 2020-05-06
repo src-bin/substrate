@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 	"text/template"
+
+	"github.com/src-bin/substrate/ui"
 )
 
 type Block interface {
@@ -23,7 +25,7 @@ func (blocks *Blocks) Push(block Block) {
 	*blocks = append(*blocks, block)
 }
 
-func (blocks *Blocks) Write(pathname string) (err error) {
+func (blocks Blocks) Write(pathname string) (err error) {
 	dirname := path.Dir(pathname)
 	if err = os.MkdirAll(dirname, 0777); err != nil {
 		return
@@ -34,7 +36,7 @@ func (blocks *Blocks) Write(pathname string) (err error) {
 		return
 	}
 	fmt.Fprintln(f, "# managed by Substrate; do not edit by hand")
-	for _, block := range *blocks {
+	for _, block := range blocks {
 		fmt.Fprintln(f, "")
 		var tmpl *template.Template
 		tmpl, err = template.New(fmt.Sprintf("%T", block)).Parse(block.Template())
@@ -57,5 +59,6 @@ Error:
 			log.Print(err)
 		}
 	}
+	ui.Printf("wrote %s", pathname)
 	return
 }
