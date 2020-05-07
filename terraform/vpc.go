@@ -1,6 +1,10 @@
 package terraform
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/src-bin/substrate/version"
+)
 
 type VPC struct {
 	Label                         string
@@ -16,6 +20,10 @@ func (vpc VPC) Name() string {
 		return vpc.Special
 	}
 	return ""
+}
+
+func (vpc VPC) SubstrateVersion() string {
+	return version.Version
 }
 
 func (VPC) Template() string {
@@ -36,7 +44,7 @@ func (VPC) Template() string {
 {{if .Quality -}}
 		"Quality" = "{{.Quality}}"
 {{end -}}
-		"SubstrateVersion" = "TODO"
+		"SubstrateVersion" = "{{.SubstrateVersion}}"
 	}
 }`
 }

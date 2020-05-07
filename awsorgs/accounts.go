@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -47,11 +48,11 @@ func EnsureAccount(
 		nameFor(domain, environment, quality),
 		email,
 		map[string]string{
-			"Domain":           domain,
-			"Environment":      environment,
-			"Manager":          "Substrate",
-			"Quality":          quality,
-			"SubstrateVersion": version.Version,
+			tags.Domain:           domain,
+			tags.Environment:      environment,
+			tags.Manager:          tags.Substrate,
+			tags.Quality:          quality,
+			tags.SubstrateVersion: version.Version,
 		},
 	)
 }
@@ -61,9 +62,9 @@ func EnsureSpecialAccount(
 	name, email string,
 ) (*organizations.Account, error) {
 	return ensureAccount(svc, name, email, map[string]string{
-		"Manager":                 "Substrate",
-		"SubstrateSpecialAccount": name,
-		"SubstrateVersion":        version.Version,
+		tags.Manager:                 tags.Substrate,
+		tags.SubstrateSpecialAccount: name,
+		tags.SubstrateVersion:        version.Version,
 	})
 }
 

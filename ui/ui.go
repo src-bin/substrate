@@ -7,23 +7,23 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-func Confirm(args ...interface{}) (string, error) {
+func Confirm(args ...interface{}) (bool, error) {
 	for {
 		yesno, err := Prompt(args...)
 		if err != nil {
-			return "", err
+			return false, err
 		}
 		if strings.ToLower(yesno) == "yes" {
-			return "yes", nil
+			return true, nil
 		}
 		if strings.ToLower(yesno) == "no" {
-			return "no", nil
+			return false, nil
 		}
 		Print(`please respond "yes" or "no"`)
 	}
 }
 
-func Confirmf(format string, args ...interface{}) (string, error) {
+func Confirmf(format string, args ...interface{}) (bool, error) {
 	return Confirm(fmt.Sprintf(format, args...))
 }
 
@@ -44,10 +44,11 @@ func Prompt(args ...interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	s = strings.Trim(s, "\r\n")
 	if !terminal.IsTerminal(0) {
-		fmt.Println("(read from non-TTY)")
+		fmt.Printf("%s (read from non-TTY)\n", s)
 	}
-	return strings.TrimSuffix(s, "\n"), nil
+	return s, nil
 }
 
 func Promptf(format string, args ...interface{}) (string, error) {

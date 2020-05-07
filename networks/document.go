@@ -46,7 +46,6 @@ func ReadDocument() (*Document, error) {
 }
 
 func (d *Document) Ensure(n0 *Network) (*Network, error) {
-	// TODO validate against valid Environment and Quality pairs
 	if n := d.Find(n0); n != nil {
 		return n, nil
 	}
@@ -55,10 +54,10 @@ func (d *Document) Ensure(n0 *Network) (*Network, error) {
 
 func (d *Document) Find(n0 *Network) *Network {
 	for _, n := range d.Networks {
-		if n0.Environment == n.Environment &&
-			n0.Quality == n.Quality &&
-			n0.Region == n.Region &&
-			n0.Special == n.Special {
+		if (n0.Environment == "" || n0.Environment == n.Environment) &&
+			(n0.Quality == "" || n0.Quality == n.Quality) &&
+			(n0.Region == "" || n0.Region == n.Region) &&
+			(n0.Special == "" || n0.Special == n.Special) {
 			return n
 		}
 	}

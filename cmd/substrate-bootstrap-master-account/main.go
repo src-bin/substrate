@@ -22,8 +22,20 @@ import (
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
+)
+
+const (
+	CloudTrailRegionFilename = "substrate.CloudTrail-region"
+	Okta                     = "Okta"
+	OktaMetadataFilename     = "substrate.okta.xml"
+	PrefixFilename           = "substrate.prefix"
+	ServiceControlPolicyName = "SubstrateServiceControlPolicy"
+	TagPolicyName            = "SubstrateTaggingPolicy"
+	TrailName                = "GlobalMultiRegionOrganizationTrail"
 )
 
 func main() {
@@ -33,7 +45,7 @@ func main() {
 	ui.Printf("using access key %s", accessKeyId)
 
 	prefix, err := ui.PromptFile(
-		"substrate.prefix",
+		PrefixFilename,
 		"what prefix do you want to use for global names like S3 buckets?",
 	)
 	if err != nil {
@@ -42,7 +54,7 @@ func main() {
 	ui.Printf("using prefix %s", prefix)
 
 	region, err := ui.PromptFile(
-		"substrate.region",
+		CloudTrailRegionFilename,
 		"what region should host the S3 bucket that stores your CloudTrail logs?",
 	)
 	if err != nil {
@@ -53,15 +65,13 @@ func main() {
 	}
 	ui.Printf("using region %s", region)
 
-	// TODO need to launch an editor for this because a line reader isn't going to cut it
-	metadata, err := ui.PromptFile(
-		"substrate.okta.xml",
+	metadata, err := ui.EditFile(
+		OktaMetadataFilename,
 		"paste your identity provider metadata XML from Okta\n",
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// TODO do some light validation of the XML
 
 	sess := awssessions.NewSession(awssessions.Config{
 		AccessKeyId:     accessKeyId,
@@ -80,7 +90,7 @@ func main() {
 
 		user, err := awsiam.EnsureUserWithPolicy(
 			svc,
-			"OrganizationAdministrator",
+			roles.OrganizationAdministrator,
 			&policies.Document{
 				Statement: []policies.Statement{
 					policies.Statement{
@@ -97,7 +107,7 @@ func main() {
 
 		if err := awsiam.DeleteAllAccessKeys(
 			svc,
-			"OrganizationAdministrator",
+			roles.OrganizationAdministrator,
 		); err != nil {
 			log.Fatal(err)
 		}
@@ -109,7 +119,7 @@ func main() {
 		//log.Printf("%+v", accessKey)
 		defer awsiam.DeleteAllAccessKeys(
 			svc,
-			"OrganizationAdministrator",
+			roles.OrganizationAdministrator,
 		) // TODO ensure this succeeds even when we exit via log.Fatal
 
 		sess = awssessions.NewSession(awssessions.Config{
@@ -189,9 +199,9 @@ func main() {
 	// Tag the master account.
 	ui.Spin("tagging the master account")
 	if err := awsorgs.Tag(svc, aws.StringValue(org.MasterAccountId), map[string]string{
-		"Manager":                 "Substrate",
-		"SubstrateSpecialAccount": "master",
-		"SubstrateVersion":        version.Version,
+		tags.Manager:                 tags.Substrate,
+		tags.SubstrateSpecialAccount: awsorgs.MasterAccountName,
+		tags.SubstrateVersion:        version.Version,
 	}); err != nil {
 		log.Fatal(err)
 	}
@@ -209,7 +219,7 @@ func main() {
 	if err := awsorgs.EnsurePolicy(
 		svc,
 		root,
-		"SubstrateServiceControlPolicy",
+		ServiceControlPolicyName,
 		awsorgs.SERVICE_CONTROL_POLICY,
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -234,7 +244,7 @@ func main() {
 		if err := awsorgs.EnsurePolicy(
 			svc,
 			root,
-			"SubstrateTaggingPolicy",
+			TagPolicyName,
 			awsorgs.TAG_POLICY,
 			`{"tags":{}}`,
 		); err != nil {
@@ -254,8 +264,8 @@ func main() {
 	ui.Spin("finding or creating the audit account")
 	auditAccount, err := awsorgs.EnsureSpecialAccount(
 		svc,
-		"audit",
-		awsorgs.EmailForAccount(org, "audit"),
+		awsorgs.AuditAccountName,
+		awsorgs.EmailForAccount(org, awsorgs.AuditAccountName),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -269,8 +279,9 @@ func main() {
 	if err := awss3.EnsureBucket(
 		s3.New(sess, &aws.Config{
 			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-				"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
+				"arn:aws:iam::%s:role/%s",
 				aws.StringValue(auditAccount.Id),
+				roles.OrganizationAccountAccessRole,
 			)),
 			Region: aws.String(region),
 		}),
@@ -311,7 +322,7 @@ func main() {
 	if err := awsorgs.EnableAWSServiceAccess(svc, "cloudtrail.amazonaws.com"); err != nil {
 		log.Fatal(err)
 	}
-	trail, err := awscloudtrail.EnsureTrail(cloudtrail.New(sess), "GlobalMultiRegionOrganizationTrail", bucketName)
+	trail, err := awscloudtrail.EnsureTrail(cloudtrail.New(sess), TrailName, bucketName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -319,7 +330,11 @@ func main() {
 
 	// Ensure the deploy, network, and ops accounts exist.
 	var deployAccount, networkAccount, opsAccount *organizations.Account
-	for _, name := range []string{"deploy", "network", "ops"} {
+	for _, name := range []string{
+		awsorgs.DeployAccountName,
+		awsorgs.NetworkAccountName,
+		awsorgs.OpsAccountName,
+	} {
 		ui.Spinf("finding or creating the %s account", name)
 		account, err := awsorgs.EnsureSpecialAccount(
 			svc,
@@ -332,11 +347,11 @@ func main() {
 		ui.Stopf("account %s", account.Id)
 		//log.Printf("%+v", account)
 		switch name {
-		case "deploy":
+		case awsorgs.DeployAccountName:
 			deployAccount = account
-		case "network":
+		case awsorgs.NetworkAccountName:
 			networkAccount = account
-		case "ops":
+		case awsorgs.OpsAccountName:
 			opsAccount = account
 		}
 	}
@@ -346,7 +361,7 @@ func main() {
 	ui.Spin("finding or creating a role to allow the ops account to administer your organization")
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
-		"OrganizationAdministrator",
+		roles.OrganizationAdministrator,
 		&policies.Principal{AWS: []string{aws.StringValue(opsAccount.Id)}},
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -371,7 +386,7 @@ func main() {
 	ui.Spin("finding or creating a role to allow account discovery within your organization")
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
-		"OrganizationReader",
+		roles.OrganizationReader,
 		&policies.Principal{AWS: []string{aws.StringValue(opsAccount.Id)}},
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -393,11 +408,12 @@ func main() {
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess, &aws.Config{
 			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-				"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
+				"arn:aws:iam::%s:role/%s",
 				aws.StringValue(networkAccount.Id),
+				roles.OrganizationAccountAccessRole,
 			)),
 		}),
-		"NetworkAdministrator",
+		roles.NetworkAdministrator,
 		&policies.Principal{AWS: []string{aws.StringValue(opsAccount.Id)}},
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -436,13 +452,14 @@ func main() {
 func okta(sess *session.Session, account *organizations.Account, metadata string) {
 	svc := iam.New(sess, &aws.Config{
 		Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-			"arn:aws:iam::%s:role/OrganizationAccountAccessRole",
+			"arn:aws:iam::%s:role/%s",
 			aws.StringValue(account.Id),
+			roles.OrganizationAccountAccessRole,
 		)),
 	})
 
 	ui.Spin("configuring Okta as your organization's identity provider")
-	saml, err := awsiam.EnsureSAMLProvider(svc, "Okta", metadata)
+	saml, err := awsiam.EnsureSAMLProvider(svc, Okta, metadata)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -453,7 +470,7 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 	ui.Spin("finding or creating a role for Okta to use in the ops account")
 	role, err := awsiam.EnsureRoleWithPolicy(
 		svc,
-		"Okta",
+		Okta,
 		&policies.Principal{Federated: []string{saml.Arn}},
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -474,7 +491,7 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 	ui.Spin("finding or creating a user for Okta to use to enumerate roles")
 	user, err := awsiam.EnsureUserWithPolicy(
 		svc,
-		"Okta",
+		Okta,
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -489,11 +506,11 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 	}
 	ui.Stopf("user %s", user.UserName)
 	//log.Printf("%+v", user)
-	if yesno, err := ui.Confirm("do you need to configure Okta's AWS integration? (yes or no)"); err != nil {
+	if ok, err := ui.Confirm("do you need to configure Okta's AWS integration? (yes or no)"); err != nil {
 		log.Fatal(err)
-	} else if yesno == "yes" {
+	} else if ok {
 		ui.Spin("deleting existing access keys and creating a new one")
-		if err := awsiam.DeleteAllAccessKeys(svc, "Okta"); err != nil {
+		if err := awsiam.DeleteAllAccessKeys(svc, Okta); err != nil {
 			log.Fatal(err)
 		}
 		accessKey, err := awsiam.CreateAccessKey(svc, aws.StringValue(user.UserName))

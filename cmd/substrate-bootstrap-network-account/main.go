@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"path"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -18,6 +19,7 @@ import (
 
 const (
 	EnvironmentsFilename = "substrate.Environments"
+	QualitiesFilename    = "substrate.Qualities"
 	TerraformDirname     = "network-account"
 )
 
@@ -32,31 +34,51 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// TODO qualities
+	ui.Printf("using Environments %s", strings.Join(environments, ", "))
+	qualities, err := ui.EditFile(
+		QualitiesFilename,
+		"the following Qualities are currently valid in your Substrate-managed infrastructure:",
+		`list all your Qualities, one per line, in order from least to greatest quality (Substrate recommends "alpha", "beta", and "gamma")`,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if len(qualities) < 2 {
+		ui.Print(`you must define at least two Qualities (and Substrate recommends "alpha", "beta", and "gamma")`)
+		return
+	}
+	ui.Printf("using Qualities %s", strings.Join(qualities, ", "))
+
+	// Combine all Environments and Qualities.  If a given combination doesn't
+	// appear in substrate.ValidEnvironmentQualityPairs.json then offer its
+	// inclusion before validating the final document.
+	veqpDoc, err := veqp.ReadDocument()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, environment := range environments {
+		for _, quality := range qualities {
+			if !veqpDoc.Valid(environment, quality) {
+				ok, err := ui.Confirmf(`do you want to allow %s-Quality infrastructure in your %s Environment?`, quality, environment)
+				if err != nil {
+					log.Fatal(err)
+				}
+				if ok {
+					veqpDoc.Ensure(environment, quality)
+				}
+			}
+		}
+	}
+	if err := veqpDoc.Validate(environments, qualities); err != nil {
+		log.Fatal(err)
+	}
+	//log.Printf("%+v", veqpDoc)
 
 	netDoc, err := networks.ReadDocument()
 	if err != nil {
 		log.Fatal(err)
 	}
 	//log.Printf("%+v", netDoc)
-
-	veqpDoc, err := veqp.ReadDocument()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("%+v", veqpDoc)
-
-	veqpDoc.Ensure(veqp.EnvironmentQualityPair{"development", "alpha"})
-	veqpDoc.Ensure(veqp.EnvironmentQualityPair{"development", "beta"})
-	veqpDoc.Ensure(veqp.EnvironmentQualityPair{"production", "beta"})
-	veqpDoc.Ensure(veqp.EnvironmentQualityPair{"production", "gamma"})
-	// TODO if the JSON file doesn't exist, prime a file with pairwise "Environment Quality" lines and ask the user to remove the ones they don't want to allow
-	qualities := veqpDoc.Qualities()
-
-	if len(qualities) < 2 {
-		ui.Print(`you must define at least two Qualities (and Substrate recommends "alpha", "beta", and "gamma")`)
-		return
-	}
 
 	var alphaRegion string
 	if n := netDoc.Find(&networks.Network{Quality: qualities[0], Special: "ops"}); n == nil {
@@ -83,15 +105,13 @@ func main() {
 		qualities[1],
 	)
 
-	// TODO offer the opportunity to use a subset of regions by storing a list in substrate.regions and only allocating to those
-
 	sess := awssessions.AssumeRoleMaster(
 		awssessions.NewSession(awssessions.Config{}),
-		"OrganizationReader",
+		awssessions.OrganizationReader,
 	)
 	account, err := awsorgs.FindSpecialAccount(
 		organizations.New(sess),
-		"network",
+		awsorgs.NetworkAccountName,
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -174,7 +194,7 @@ func main() {
 
 	// TODO peer everything together and setup subnet sharing
 
-	// Write to substrate.networks.json once more so that, even if no changes
+	// Write to substrate.Networks.json once more so that, even if no changes
 	// were made, formatting changes and SubstrateVersion are changed.
 	if err := netDoc.Write(); err != nil {
 		log.Fatal(err)
@@ -183,7 +203,7 @@ func main() {
 	// Write some Terraform providers to make everything usable.
 	providers := terraform.Provider{
 		AccountId:   aws.StringValue(account.Id),
-		RoleName:    "NetworkAdministrator",
+		RoleName:    awsorgs.NetworkAdministrator,
 		SessionName: "Terraform",
 	}.AllRegions()
 	for _, environment := range environments {

@@ -20,29 +20,28 @@ import (
 // as a slice of strings, each representing a line in the file (without the
 // trailing newline).
 func EditFile(pathname, notice, instructions string) ([]string, error) {
-	b, err := fileutil.ReadFile(pathname)
-	if errors.Is(err, os.ErrNotExist) {
-		b = []byte("")
-		err = nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	edit := true
-	if len(b) != 0 {
-		Print(notice)
-		for _, s := range lines(b) {
-			Printf("\t%s", s)
+	for {
+		b, err := fileutil.ReadFile(pathname)
+		if errors.Is(err, os.ErrNotExist) {
+			b = []byte("")
+			err = nil
 		}
-		yesno, err := Confirm("is this list complete? (yes/no)")
 		if err != nil {
 			return nil, err
 		}
-		if yesno == "yes" {
-			edit = false
+		if len(b) != 0 {
+			Print(notice)
+			for _, s := range lines(b) {
+				Printf("\t%s", s)
+			}
+			ok, err := Confirm("is this list complete? (yes/no)")
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				return lines(b), nil
+			}
 		}
-	}
-	if edit {
 		if _, err := Promptf(
 			"press <enter> to open your EDITOR; %s; save and exit when you're finished",
 			instructions,
@@ -54,11 +53,6 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 		}
 		Printf("wrote %s, which you should commit to version control", pathname)
 	}
-	b, err = fileutil.ReadFile(pathname)
-	if err != nil {
-		return nil, err
-	}
-	return lines(b), nil
 }
 
 // PromptFile wraps Prompt in ReadFile and ioutil.WriteFile to avoid prompting
@@ -68,7 +62,7 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 // printed instructing the user to commit that file to version control.
 func PromptFile(pathname string, args ...interface{}) (string, error) {
 	b, err := fileutil.ReadFile(pathname)
-	s := strings.TrimSuffix(string(b), "\r\n")
+	s := strings.Trim(string(b), "\r\n")
 	if err != nil {
 		s, err = Prompt(args...)
 		if err != nil {

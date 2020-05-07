@@ -79,7 +79,7 @@ func EnsureRoleWithPolicy(
 	}
 	in := &iam.PutRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
-		PolicyName:     aws.String("FullAccess"),
+		PolicyName:     aws.String(FullAccess),
 		RoleName:       aws.String(rolename),
 	}
 	if _, err := svc.PutRolePolicy(in); err != nil {

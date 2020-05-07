@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -57,8 +58,8 @@ func EnsureBucket(svc *s3.S3, name, region string, doc *policies.Document) error
 		Bucket: aws.String(name),
 		Tagging: &s3.Tagging{
 			TagSet: []*s3.Tag{
-				&s3.Tag{Key: aws.String("Manager"), Value: aws.String("Substrate")},
-				&s3.Tag{Key: aws.String("SubstrateVersion"), Value: aws.String(version.Version)},
+				&s3.Tag{Key: aws.String(tags.Manager), Value: aws.String(tags.Substrate)},
+				&s3.Tag{Key: aws.String(tags.SubstrateVersion), Value: aws.String(version.Version)},
 			},
 		},
 	}); err != nil {
