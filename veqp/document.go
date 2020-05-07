@@ -3,6 +3,7 @@ package veqp
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/src-bin/substrate/fileutil"
@@ -38,23 +39,27 @@ func ReadDocument() (*Document, error) {
 	return d, nil
 }
 
-func (d *Document) Ensure(eqp0 EnvironmentQualityPair) error {
-	if d.Valid(eqp0) {
+func (d *Document) Ensure(environment, quality string) error {
+	return d.EnsurePair(EnvironmentQualityPair{environment, quality})
+}
+
+func (d *Document) EnsurePair(eqp0 EnvironmentQualityPair) error {
+	if d.ValidPair(eqp0) {
 		return nil
 	}
 	d.ValidEnvironmentQualityPairs = append(d.ValidEnvironmentQualityPairs, eqp0)
 	return d.Write()
 }
 
-func (d *Document) Environments() []string {
-	return nil
+// Valid returns true iff the given Environment and Quality appear together in
+// the Document.
+func (d *Document) Valid(environment, quality string) bool {
+	return d.ValidPair(EnvironmentQualityPair{environment, quality})
 }
 
-func (d *Document) Qualities() []string {
-	return nil
-}
-
-func (d *Document) Valid(eqp0 EnvironmentQualityPair) bool {
+// ValidPair returns true iff the given EnvironmentQualityPair appears in the
+// Document.
+func (d *Document) ValidPair(eqp0 EnvironmentQualityPair) bool {
 	for _, eqp := range d.ValidEnvironmentQualityPairs {
 		if eqp0 == eqp {
 			return true
@@ -63,8 +68,75 @@ func (d *Document) Valid(eqp0 EnvironmentQualityPair) bool {
 	return false
 }
 
+// Validate returns nil iff every Environment and Quality in the given slices
+// appears in the Document and no Environment or Quality in the Document is
+// missing from the given slices.
+//
+// Don't sort the arguments; their order is important.
+func (d *Document) Validate(environments, qualities []string) error {
+	for _, environment := range environments {
+		if err := d.validateEnvironment(environment); err != nil {
+			return err
+		}
+	}
+	for _, quality := range qualities {
+		if err := d.validateQuality(quality); err != nil {
+			return err
+		}
+	}
+	for _, eqp := range d.ValidEnvironmentQualityPairs {
+		if err := d.validateEnvironmentQualityPair(eqp, environments, qualities); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (d *Document) Write() error {
 	return jsonutil.Write(d, Filename)
+}
+
+// validateEnvironment returns nil iff the given Environment appears in the Document.
+func (d *Document) validateEnvironment(environment string) error {
+	for _, eqp := range d.ValidEnvironmentQualityPairs {
+		if environment == eqp.Environment {
+			return nil
+		}
+	}
+	return fmt.Errorf(`Environment "%s" not paired with any Quality`, environment)
+}
+
+// validateEnvironmentQualityPair returns nil iff both components of the given
+// EnvironmentQualityPair appear in their respective given slices.
+func (d *Document) validateEnvironmentQualityPair(
+	eqp EnvironmentQualityPair,
+	environments, qualities []string,
+) error {
+	validEnvironment := false
+	for _, environment := range environments {
+		if eqp.Environment == environment {
+			validEnvironment = true
+		}
+	}
+	if !validEnvironment {
+		return fmt.Errorf(`Environment "%s" is not valid`, eqp.Environment)
+	}
+	for _, quality := range qualities {
+		if eqp.Quality == quality {
+			return nil
+		}
+	}
+	return fmt.Errorf(`Quality "%s" is not valid`, eqp.Quality)
+}
+
+// validateQuality returns nil iff the given Quality appears in the Document.
+func (d *Document) validateQuality(quality string) error {
+	for _, eqp := range d.ValidEnvironmentQualityPairs {
+		if quality == eqp.Quality {
+			return nil
+		}
+	}
+	return fmt.Errorf(`Quality "%s" not paired with any Environment`, quality)
 }
 
 type EnvironmentQualityPair struct {
