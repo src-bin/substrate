@@ -8,8 +8,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/networks"
@@ -82,6 +84,8 @@ func main() {
 	}
 	//log.Printf("%+v", netDoc)
 
+	// Make changes to the ops network more testable by designating one region
+	// as the guinea pig.
 	var alphaRegion string
 	if n := netDoc.Find(&networks.Network{Quality: qualities[0], Special: "ops"}); n == nil {
 		ui.Printf(
@@ -92,6 +96,9 @@ func main() {
 		region, err := ui.Promptf("what region's ops network should be designated %s-Quality?", qualities[0])
 		if err != nil {
 			log.Fatal(err)
+		}
+		if !awsutil.IsBlacklistedRegion(region) {
+			log.Fatalf("%s is is blacklisted in this Substrate installation", region)
 		}
 		if !awsutil.IsRegion(region) {
 			log.Fatalf("%s is not an AWS region", region)
@@ -123,6 +130,9 @@ func main() {
 	ui.Printf("bootstrapping the ops network in %d regions", len(awsutil.Regions()))
 	blockses := []terraform.Blocks{terraform.NewBlocks(), terraform.NewBlocks()}
 	for _, region := range awsutil.Regions() {
+		if awsutil.IsBlacklistedRegion(region) {
+			continue
+		}
 		ui.Spinf("finding or assigning an IP address range to the ops network in %s", region)
 
 		i := 1
@@ -144,6 +154,8 @@ func main() {
 			CidrBlock: n.IPv4.String(),
 			Label:     fmt.Sprintf("ops-%s", region),
 			Provider:  terraform.ProviderAliasFor(region),
+			Quality:   qualities[i],
+			Special:   "ops",
 		})
 
 		ui.Stop(n.IPv4)
@@ -160,6 +172,9 @@ func main() {
 			blocks := terraform.NewBlocks()
 
 			for _, region := range awsutil.Regions() {
+				if awsutil.IsBlacklistedRegion(region) {
+					continue
+				}
 				ui.Spinf(
 					"finding or assigning an IP address range to the %s %s network in %s",
 					environment,
@@ -202,12 +217,29 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Ensure the VPCs-per-region service quota isn't going to get in the way.
+	log.Print(len(netDoc.Networks))
+	quota, err := awsservicequotas.GetServiceQuota(
+		servicequotas.New(sess),
+		"L-F678F1CE",
+		"vpc",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("%+v", quota)
+
 	// Write some Terraform providers to make everything usable.
 	providers := terraform.Provider{
 		AccountId:   aws.StringValue(account.Id),
 		RoleName:    roles.NetworkAdministrator,
 		SessionName: "Terraform",
 	}.AllRegions()
+	for i := 0; i < 2; i++ {
+		if err := providers.Write(path.Join(TerraformDirname, "ops", qualities[i], "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
+	}
 	for _, environment := range environments {
 		for _, quality := range qualities {
 			if err := providers.Write(path.Join(TerraformDirname, environment, quality, "providers.tf")); err != nil {
@@ -216,10 +248,40 @@ func main() {
 		}
 	}
 
+	// Format all the Terraform code you can possibly find.
 	if err := terraform.Fmt(); err != nil {
 		log.Fatal(err)
 	}
 
-	// TODO assume the NetworkAdministrator role in each region and apply the generated Terraform code
+	// Generate a Makefile in each root Terraform module then apply the generated
+	// Terraform code.  Start with the ops networks, then move on to the
+	// Environments, all Quality-by-Quality with a pause in between.
+	// TODO confirmation between steps
+	for i := 0; i < 2; i++ {
+		dirname := path.Join(TerraformDirname, "ops", qualities[i])
+		if err := terraform.Makefile(dirname); err != nil {
+			log.Fatal(err)
+		}
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
+		if err := terraform.Apply(dirname); err != nil {
+			log.Fatal(err)
+		}
+	}
+	for _, environment := range environments {
+		for _, quality := range qualities {
+			dirname := path.Join(TerraformDirname, environment, quality)
+			if err := terraform.Makefile(dirname); err != nil {
+				log.Fatal(err)
+			}
+			if err := terraform.Init(dirname); err != nil {
+				log.Fatal(err)
+			}
+			if err := terraform.Apply(dirname); err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
 
 }

@@ -25,20 +25,18 @@ func CheatSheet(
 	if err != nil {
 		return err
 	}
-	tmpl, err := template.New("accounts").Parse(Template())
+	defer f.Close()
+	tmpl, err := template.New("accounts").Parse(cheatSheetTemplate())
 	if err != nil {
 		return err
 	}
-	if err = tmpl.Execute(f, struct {
+	return tmpl.Execute(f, struct {
 		Organization                                            *organizations.Organization
 		AuditAccount, DeployAccount, NetworkAccount, OpsAccount *organizations.Account
-	}{org, auditAccount, deployAccount, networkAccount, opsAccount}); err != nil {
-		return err
-	}
-	return nil
+	}{org, auditAccount, deployAccount, networkAccount, opsAccount})
 }
 
-func Template() string {
+func cheatSheetTemplate() string {
 	return `Welcome to your Substrate-managed AWS organization!
 
 You can find the Substrate documentation at <https://src-bin.co/substrate.html>.

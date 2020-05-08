@@ -281,8 +281,7 @@ func main() {
 	bucketName := fmt.Sprintf("%s-cloudtrail", prefix)
 	if err := awss3.EnsureBucket(
 		s3.New(sess, &aws.Config{
-			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-				"arn:aws:iam::%s:role/%s",
+			Credentials: stscreds.NewCredentials(sess, roles.ARN(
 				aws.StringValue(auditAccount.Id),
 				roles.OrganizationAccountAccessRole,
 			)),
@@ -421,8 +420,7 @@ func main() {
 	ui.Spin("finding or creating a role to allow the ops account to administer your networks")
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess, &aws.Config{
-			Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-				"arn:aws:iam::%s:role/%s",
+			Credentials: stscreds.NewCredentials(sess, roles.ARN(
 				aws.StringValue(networkAccount.Id),
 				roles.OrganizationAccountAccessRole,
 			)),
@@ -448,7 +446,7 @@ func main() {
 	okta(sess, opsAccount, metadata)
 
 	ui.Print("until we get you an EC2 instance profile, here's your way into the ops account (good for one hour)")
-	awssts.Export(awssts.AssumeRole(sts.New(sess), fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", aws.StringValue(opsAccount.Id))))
+	awssts.Export(awssts.AssumeRole(sts.New(sess), roles.ARN(aws.StringValue(opsAccount.Id), roles.OrganizationAccountAccessRole)))
 
 	// At the very, very end, when we're exceedingly confident in the
 	// capabilities of the other accounts, detach the FullAWSAccess policy
@@ -465,8 +463,7 @@ func main() {
 
 func okta(sess *session.Session, account *organizations.Account, metadata string) {
 	svc := iam.New(sess, &aws.Config{
-		Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-			"arn:aws:iam::%s:role/%s",
+		Credentials: stscreds.NewCredentials(sess, roles.ARN(
 			aws.StringValue(account.Id),
 			roles.OrganizationAccountAccessRole,
 		)),

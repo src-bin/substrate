@@ -16,6 +16,7 @@ func Edit(pathname string) error {
 	cmd := exec.Command(editor, pathname)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	//log.Printf("%+v", cmd)
 	return cmd.Run()
 }

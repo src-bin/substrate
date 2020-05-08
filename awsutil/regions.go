@@ -6,6 +6,18 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 )
 
+func BlacklistedRegions() []string {
+	return []string{
+		"ap-east-1",
+		"me-south-1",
+	} // this list must remain sorted
+}
+
+func IsBlacklistedRegion(region string) bool {
+	blacklist := BlacklistedRegions()
+	return sort.SearchStrings(blacklist, region) != len(blacklist)
+}
+
 func IsRegion(region string) bool {
 	_, ok := regions()[region]
 	return ok

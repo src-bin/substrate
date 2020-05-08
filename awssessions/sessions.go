@@ -1,7 +1,6 @@
 package awssessions
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -10,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 )
 
@@ -40,11 +40,7 @@ func (c Config) AWS() aws.Config {
 
 func AssumeRole(sess *session.Session, accountId, rolename string) *session.Session {
 	return sess.Copy(&aws.Config{
-		Credentials: stscreds.NewCredentials(sess, fmt.Sprintf(
-			"arn:aws:iam::%s:role/%s",
-			accountId,
-			rolename,
-		)),
+		Credentials: stscreds.NewCredentials(sess, roles.ARN(accountId, rolename)),
 	})
 }
 

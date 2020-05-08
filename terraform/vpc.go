@@ -32,7 +32,7 @@ func (VPC) Template() string {
 	cidr_block = "{{.CidrBlock}}"
 	enable_dns_hostnames = true
 	enable_dns_support = true
-	provider = "{{.Provider}}"
+	provider = {{.Provider}}
 	tags = {
 {{if .Environment -}}
 		"Environment" = "{{.Environment}}"
