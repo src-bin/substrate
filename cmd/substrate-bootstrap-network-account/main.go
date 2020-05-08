@@ -8,10 +8,12 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/networks"
+	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
@@ -107,11 +109,11 @@ func main() {
 
 	sess := awssessions.AssumeRoleMaster(
 		awssessions.NewSession(awssessions.Config{}),
-		awssessions.OrganizationReader,
+		roles.OrganizationReader,
 	)
 	account, err := awsorgs.FindSpecialAccount(
 		organizations.New(sess),
-		awsorgs.NetworkAccountName,
+		accounts.Network,
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -203,7 +205,7 @@ func main() {
 	// Write some Terraform providers to make everything usable.
 	providers := terraform.Provider{
 		AccountId:   aws.StringValue(account.Id),
-		RoleName:    awsorgs.NetworkAdministrator,
+		RoleName:    roles.NetworkAdministrator,
 		SessionName: "Terraform",
 	}.AllRegions()
 	for _, environment := range environments {

@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscloudtrail"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
@@ -65,13 +66,15 @@ func main() {
 	}
 	ui.Printf("using region %s", region)
 
-	metadata, err := ui.EditFile(
+	lines, err := ui.EditFile(
 		OktaMetadataFilename,
-		"paste your identity provider metadata XML from Okta\n",
+		"here is your current identity provider metadata XML:",
+		"paste your identity provider metadata XML from Okta",
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	metadata := strings.Join(lines, "\n") + "\n" // hack around usually line-oriented ui.EditFile
 
 	sess := awssessions.NewSession(awssessions.Config{
 		AccessKeyId:     accessKeyId,
@@ -200,7 +203,7 @@ func main() {
 	ui.Spin("tagging the master account")
 	if err := awsorgs.Tag(svc, aws.StringValue(org.MasterAccountId), map[string]string{
 		tags.Manager:                 tags.Substrate,
-		tags.SubstrateSpecialAccount: awsorgs.MasterAccountName,
+		tags.SubstrateSpecialAccount: accounts.Master,
 		tags.SubstrateVersion:        version.Version,
 	}); err != nil {
 		log.Fatal(err)
@@ -264,8 +267,8 @@ func main() {
 	ui.Spin("finding or creating the audit account")
 	auditAccount, err := awsorgs.EnsureSpecialAccount(
 		svc,
-		awsorgs.AuditAccountName,
-		awsorgs.EmailForAccount(org, awsorgs.AuditAccountName),
+		accounts.Audit,
+		awsorgs.EmailForAccount(org, accounts.Audit),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -331,9 +334,9 @@ func main() {
 	// Ensure the deploy, network, and ops accounts exist.
 	var deployAccount, networkAccount, opsAccount *organizations.Account
 	for _, name := range []string{
-		awsorgs.DeployAccountName,
-		awsorgs.NetworkAccountName,
-		awsorgs.OpsAccountName,
+		accounts.Deploy,
+		accounts.Network,
+		accounts.Ops,
 	} {
 		ui.Spinf("finding or creating the %s account", name)
 		account, err := awsorgs.EnsureSpecialAccount(
@@ -347,15 +350,26 @@ func main() {
 		ui.Stopf("account %s", account.Id)
 		//log.Printf("%+v", account)
 		switch name {
-		case awsorgs.DeployAccountName:
+		case accounts.Deploy:
 			deployAccount = account
-		case awsorgs.NetworkAccountName:
+		case accounts.Network:
 			networkAccount = account
-		case awsorgs.OpsAccountName:
+		case accounts.Ops:
 			opsAccount = account
 		}
 	}
-	_ = deployAccount // TODO remove when we do something with the deploy account
+
+	// Render a "cheat sheet" of sorts that has all the account numbers, role
+	// names, and role ARNs that folks might need to get the job done.
+	if err := accounts.CheatSheet(
+		org,
+		auditAccount,
+		deployAccount,
+		networkAccount,
+		opsAccount,
+	); err != nil {
+		log.Fatal(err)
+	}
 
 	// Ensure the ops account can get back into the master account.
 	ui.Spin("finding or creating a role to allow the ops account to administer your organization")
