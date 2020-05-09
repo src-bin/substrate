@@ -54,14 +54,20 @@ func (d *Document) Ensure(n0 *Network) (*Network, error) {
 
 func (d *Document) Find(n0 *Network) *Network {
 	for _, n := range d.Networks {
-		if (n0.Environment == "" || n0.Environment == n.Environment) &&
-			(n0.Quality == "" || n0.Quality == n.Quality) &&
-			(n0.Region == "" || n0.Region == n.Region) &&
-			(n0.Special == "" || n0.Special == n.Special) {
+		if match(n0, n) {
 			return n
 		}
 	}
 	return nil
+}
+
+func (d *Document) FindAll(n0 *Network) (nets []*Network) {
+	for _, n := range d.Networks {
+		if match(n0, n) {
+			nets = append(nets, n)
+		}
+	}
+	return nets
 }
 
 func (d *Document) Len() int { return len(d.Networks) }
@@ -162,4 +168,13 @@ type Network struct {
 
 func (n *Network) String() string {
 	return fmt.Sprintf("%+v", *n) // without dereferencing here, the program OOMs; bizarre
+}
+
+// match returns true iff every field in n0 that's not empty matches the
+// corresponding field in n.
+func match(n0, n *Network) bool {
+	return (n0.Environment == "" || n0.Environment == n.Environment) &&
+		(n0.Quality == "" || n0.Quality == n.Quality) &&
+		(n0.Region == "" || n0.Region == n.Region) &&
+		(n0.Special == "" || n0.Special == n.Special)
 }

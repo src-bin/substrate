@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
@@ -217,18 +216,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Ensure the VPCs-per-region service quota isn't going to get in the way.
-	log.Print(len(netDoc.Networks))
-	quota, err := awsservicequotas.GetServiceQuota(
-		servicequotas.New(sess),
-		"L-F678F1CE",
-		"vpc",
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("%+v", quota)
-
 	// Write some Terraform providers to make everything usable.
 	providers := terraform.Provider{
 		AccountId:   aws.StringValue(account.Id),
@@ -250,6 +237,23 @@ func main() {
 
 	// Format all the Terraform code you can possibly find.
 	if err := terraform.Fmt(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Ensure the VPCs-per-region service quota isn't going to get in the way.
+	ui.Print("raising the VPCs-per-region service quota in all regions (this could take days, unfortunately; this program is safe to re-run)")
+	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
+		awssessions.AssumeRole(
+			awssessions.NewSession(awssessions.Config{}),
+			aws.StringValue(account.Id),
+			"NetworkAdministrator",
+		),
+		"L-F678F1CE",
+		"vpc",
+		float64(len(netDoc.FindAll(&networks.Network{Region: "us-west-2"}))+ // networks for existing (Environment, Quality) pairs
+			len(qualities)+ // plus room to add another Environment
+			1), // plus the ops network
+	); err != nil {
 		log.Fatal(err)
 	}
 
