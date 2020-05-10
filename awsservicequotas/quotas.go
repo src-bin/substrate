@@ -185,8 +185,64 @@ func ListRequestedServiceQuotaChangeHistoryByQuota(
 			if err != nil {
 				log.Fatal(err)
 			}
-			log.Printf("%+v", out)
+			//log.Printf("%+v", out)
 			for _, req := range out.RequestedQuotas {
+				ch <- req
+			}
+			if nextToken = out.NextToken; nextToken == nil {
+				break
+			}
+		}
+		close(ch)
+	}(ch)
+	return ch
+}
+
+func ListServiceQuotas(
+	svc *servicequotas.ServiceQuotas,
+	serviceCode string,
+) chan *servicequotas.ServiceQuota {
+	ch := make(chan *servicequotas.ServiceQuota)
+	go func(chan<- *servicequotas.ServiceQuota) {
+		var nextToken *string
+		for {
+			in := &servicequotas.ListServiceQuotasInput{
+				NextToken:   nextToken,
+				ServiceCode: aws.String(serviceCode),
+			}
+			out, err := svc.ListServiceQuotas(in)
+			if err != nil {
+				log.Fatal(err)
+			}
+			//log.Printf("%+v", out)
+			for _, req := range out.Quotas {
+				ch <- req
+			}
+			if nextToken = out.NextToken; nextToken == nil {
+				break
+			}
+		}
+		close(ch)
+	}(ch)
+	return ch
+}
+
+func ListServices(
+	svc *servicequotas.ServiceQuotas,
+) chan *servicequotas.ServiceInfo {
+	ch := make(chan *servicequotas.ServiceInfo)
+	go func(chan<- *servicequotas.ServiceInfo) {
+		var nextToken *string
+		for {
+			in := &servicequotas.ListServicesInput{
+				NextToken: nextToken,
+			}
+			out, err := svc.ListServices(in)
+			if err != nil {
+				log.Fatal(err)
+			}
+			//log.Printf("%+v", out)
+			for _, req := range out.Services {
 				ch <- req
 			}
 			if nextToken = out.NextToken; nextToken == nil {
