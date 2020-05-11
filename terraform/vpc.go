@@ -2,49 +2,43 @@ package terraform
 
 import (
 	"fmt"
-
-	"github.com/src-bin/substrate/version"
 )
 
 type VPC struct {
-	Label                         string
-	CidrBlock                     string
-	Environment, Quality, Special string
-	Provider                      ProviderAlias
+	Label     string // defaults to Name()
+	CidrBlock string
+	Provider  ProviderAlias
+	Tags      Tags
 }
 
 func (vpc VPC) Name() string {
-	if vpc.Environment != "" && vpc.Quality != "" {
-		return fmt.Sprintf("%s-%s", vpc.Environment, vpc.Quality)
-	} else if vpc.Special != "" {
-		return vpc.Special
+	if vpc.Tags.Environment != "" && vpc.Tags.Quality != "" {
+		return fmt.Sprintf("%s-%s", vpc.Tags.Environment, vpc.Tags.Quality)
+	} else if vpc.Tags.Special != "" {
+		return vpc.Tags.Special
 	}
 	return ""
 }
 
-func (vpc VPC) SubstrateVersion() string {
-	return version.Version
-}
-
 func (VPC) Template() string {
-	return `resource "aws_vpc" "{{.Label}}" {
+	return `resource "aws_vpc" "{{if .Label}}{{.Label}}{{else}}{{.Name}}{{end}}" {
 	assign_generated_ipv6_cidr_block = true
 	cidr_block = "{{.CidrBlock}}"
 	enable_dns_hostnames = true
 	enable_dns_support = true
 	provider = {{.Provider}}
 	tags = {
-{{if .Environment -}}
-		"Environment" = "{{.Environment}}"
+{{if .Tags.Environment -}}
+		"Environment" = "{{.Tags.Environment}}"
 {{end -}}
-		"Manager" = "Terraform"
+		"Manager" = "{{.Tags.Manager}}"
 {{if .Name -}}
 		"Name" = "{{.Name}}"
 {{end -}}
-{{if .Quality -}}
-		"Quality" = "{{.Quality}}"
+{{if .Tags.Quality -}}
+		"Quality" = "{{.Tags.Quality}}"
 {{end -}}
-		"SubstrateVersion" = "{{.SubstrateVersion}}"
+		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
 	}
 }`
 }

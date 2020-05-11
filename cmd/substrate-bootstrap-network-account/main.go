@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/availabilityzones"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
@@ -130,6 +131,11 @@ func main() {
 		log.Fatal(err)
 	}
 	//log.Printf("%+v", account)
+	sess = awssessions.AssumeRole(
+		awssessions.NewSession(awssessions.Config{}),
+		aws.StringValue(account.Id),
+		"NetworkAdministrator",
+	)
 
 	ui.Printf("bootstrapping the ops network in %d regions", len(regions.Selected()))
 	blockses := []terraform.Blocks{terraform.NewBlocks(), terraform.NewBlocks()}
@@ -153,11 +159,30 @@ func main() {
 
 		blockses[i].Push(terraform.VPC{
 			CidrBlock: n.IPv4.String(),
-			Label:     fmt.Sprintf("ops-%s", region),
 			Provider:  terraform.ProviderAliasFor(region),
-			Quality:   qualities[i],
-			Special:   "ops",
+			Tags: terraform.Tags{
+				Quality: qualities[i],
+				Special: "ops",
+			},
 		})
+
+		azs, err := availabilityzones.Select(sess, region, 3)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, az := range azs {
+			blockses[i].Push(terraform.Subnet{
+				AvailabilityZone: az,
+				CidrBlock:        "TODO cidrsubnet",
+				IPv6CidrBlock:    "TODO cidrsubnet",
+				Provider:         terraform.ProviderAliasFor(region),
+				Tags: terraform.Tags{
+					Quality: qualities[i],
+					Special: "ops",
+				},
+				VpcId: fmt.Sprintf("${aws_vpc.ops-%s.id}", region),
+			})
+		}
 
 		ui.Stop(n.IPv4)
 	}
@@ -191,7 +216,6 @@ func main() {
 
 			blocks.Push(terraform.VPC{
 				CidrBlock: n.IPv4.String(),
-				Label:     fmt.Sprintf("%s-%s-%s", eq.Environment, eq.Quality, region),
 				Provider:  terraform.ProviderAliasFor(region),
 			})
 
@@ -237,11 +261,7 @@ func main() {
 	// Ensure the VPCs-per-region service quota isn't going to get in the way.
 	ui.Print("raising the VPCs-per-region service quota in all regions (this could take days, unfortunately; this program is safe to re-run)")
 	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
-		awssessions.AssumeRole(
-			awssessions.NewSession(awssessions.Config{}),
-			aws.StringValue(account.Id),
-			"NetworkAdministrator",
-		),
+		sess,
 		"L-F678F1CE",
 		"vpc",
 		float64(len(netDoc.FindAll(&networks.Network{Region: "us-west-2"}))+ // networks for existing (Environment, Quality) pairs
@@ -250,6 +270,8 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	}
+
+	return
 
 	// Generate a Makefile in each root Terraform module then apply the generated
 	// Terraform code.  Start with the ops networks, then move on to the
