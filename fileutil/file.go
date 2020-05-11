@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 const DefaultEditor = "vim"
@@ -21,6 +22,10 @@ func Edit(pathname string) error {
 	return cmd.Run()
 }
 
+func FromLines(ss []string) []byte {
+	return []byte(strings.Join(ss, "\n") + "\n")
+}
+
 // ReadFile is ioutil.WriteFile's brother from another mother.
 func ReadFile(pathname string) ([]byte, error) {
 	f, err := os.Open(pathname)
@@ -32,4 +37,8 @@ func ReadFile(pathname string) ([]byte, error) {
 		return nil, err
 	}
 	return b, err
+}
+
+func ToLines(b []byte) []string {
+	return strings.Split(strings.Trim(strings.Replace(string(b), "\r", "\n", -1), "\n"), "\n")
 }

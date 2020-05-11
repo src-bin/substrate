@@ -23,6 +23,7 @@ import (
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
@@ -61,7 +62,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if !awsutil.IsRegion(region) {
+	if !regions.IsRegion(region) {
 		log.Fatalf("%s is not an AWS region", region)
 	}
 	ui.Printf("using region %s", region)

@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/regions"
 )
 
 type Provider struct {
@@ -18,7 +18,7 @@ type Provider struct {
 // the provider will be necessary in order to destroy those resources.
 func (p Provider) AllRegions() Blocks {
 	blocks := NewBlocks()
-	for _, region := range awsutil.Regions() {
+	for _, region := range regions.All() {
 		p.Region = region
 		blocks.Push(p)
 	}

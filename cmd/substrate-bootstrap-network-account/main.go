@@ -12,8 +12,8 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/networks"
+	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
@@ -77,6 +77,11 @@ func main() {
 	}
 	//log.Printf("%+v", veqpDoc)
 
+	// Select or confirm which regions to use.
+	if _, err := regions.Select(); err != nil {
+		log.Fatal(err)
+	}
+
 	netDoc, err := networks.ReadDocument()
 	if err != nil {
 		log.Fatal(err)
@@ -96,10 +101,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if !awsutil.IsBlacklistedRegion(region) {
+		if !regions.IsBlacklisted(region) {
 			log.Fatalf("%s is is blacklisted in this Substrate installation", region)
 		}
-		if !awsutil.IsRegion(region) {
+		if !regions.IsRegion(region) {
 			log.Fatalf("%s is not an AWS region", region)
 		}
 		alphaRegion = region
@@ -126,12 +131,9 @@ func main() {
 	}
 	//log.Printf("%+v", account)
 
-	ui.Printf("bootstrapping the ops network in %d regions", len(awsutil.Regions()))
+	ui.Printf("bootstrapping the ops network in %d regions", len(regions.Selected()))
 	blockses := []terraform.Blocks{terraform.NewBlocks(), terraform.NewBlocks()}
-	for _, region := range awsutil.Regions() {
-		if awsutil.IsBlacklistedRegion(region) {
-			continue
-		}
+	for _, region := range regions.Selected() {
 		ui.Spinf("finding or assigning an IP address range to the ops network in %s", region)
 
 		i := 1
@@ -165,45 +167,39 @@ func main() {
 		}
 	}
 
-	ui.Printf("bootstrapping networks for every Environment and Quality in %d regions", len(awsutil.Regions()))
-	for _, environment := range environments {
-		for _, quality := range qualities {
-			blocks := terraform.NewBlocks()
+	ui.Printf("bootstrapping networks for every Environment and Quality in %d regions", len(regions.Selected()))
+	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
+		blocks := terraform.NewBlocks()
 
-			for _, region := range awsutil.Regions() {
-				if awsutil.IsBlacklistedRegion(region) {
-					continue
-				}
-				ui.Spinf(
-					"finding or assigning an IP address range to the %s %s network in %s",
-					environment,
-					quality,
-					region,
-				)
+		for _, region := range regions.Selected() {
+			ui.Spinf(
+				"finding or assigning an IP address range to the %s %s network in %s",
+				eq.Environment,
+				eq.Quality,
+				region,
+			)
 
-				n, err := netDoc.Ensure(&networks.Network{
-					Environment: environment,
-					Quality:     quality,
-					Region:      region,
-				})
-				if err != nil {
-					log.Fatal(err)
-				}
-				//log.Printf("%+v", n)
-
-				blocks.Push(terraform.VPC{
-					CidrBlock: n.IPv4.String(),
-					Label:     fmt.Sprintf("%s-%s-%s", environment, quality, region),
-					Provider:  terraform.ProviderAliasFor(region),
-				})
-
-				ui.Stop(n.IPv4)
-			}
-
-			if err := blocks.Write(path.Join(TerraformDirname, environment, quality, "vpc.tf")); err != nil {
+			n, err := netDoc.Ensure(&networks.Network{
+				Environment: eq.Environment,
+				Quality:     eq.Quality,
+				Region:      region,
+			})
+			if err != nil {
 				log.Fatal(err)
 			}
+			//log.Printf("%+v", n)
 
+			blocks.Push(terraform.VPC{
+				CidrBlock: n.IPv4.String(),
+				Label:     fmt.Sprintf("%s-%s-%s", eq.Environment, eq.Quality, region),
+				Provider:  terraform.ProviderAliasFor(region),
+			})
+
+			ui.Stop(n.IPv4)
+		}
+
+		if err := blocks.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "vpc.tf")); err != nil {
+			log.Fatal(err)
 		}
 
 	}
@@ -227,11 +223,9 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	for _, environment := range environments {
-		for _, quality := range qualities {
-			if err := providers.Write(path.Join(TerraformDirname, environment, quality, "providers.tf")); err != nil {
-				log.Fatal(err)
-			}
+	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
+		if err := providers.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
+			log.Fatal(err)
 		}
 	}
 
@@ -273,18 +267,16 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	for _, environment := range environments {
-		for _, quality := range qualities {
-			dirname := path.Join(TerraformDirname, environment, quality)
-			if err := terraform.Makefile(dirname); err != nil {
-				log.Fatal(err)
-			}
-			if err := terraform.Init(dirname); err != nil {
-				log.Fatal(err)
-			}
-			if err := terraform.Apply(dirname); err != nil {
-				log.Fatal(err)
-			}
+	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
+		dirname := path.Join(TerraformDirname, eq.Environment, eq.Quality)
+		if err := terraform.Makefile(dirname); err != nil {
+			log.Fatal(err)
+		}
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
+		if err := terraform.Apply(dirname); err != nil {
+			log.Fatal(err)
 		}
 	}
 

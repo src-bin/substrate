@@ -31,15 +31,15 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 		}
 		if len(b) != 0 {
 			Print(notice)
-			for _, s := range lines(b) {
+			for _, s := range fileutil.ToLines(b) {
 				Printf("\t%s", s)
 			}
-			ok, err := Confirm("is this list complete? (yes/no)")
+			ok, err := Confirm("is this correct? (yes/no)")
 			if err != nil {
 				return nil, err
 			}
 			if ok {
-				return lines(b), nil
+				return fileutil.ToLines(b), nil
 			}
 		}
 		if _, err := Promptf(
@@ -79,8 +79,4 @@ func PromptFile(pathname string, args ...interface{}) (string, error) {
 // PromptfFile is like PromptFile but allows formatting of the prompt.
 func PromptfFile(pathname, format string, args ...interface{}) (string, error) {
 	return PromptFile(pathname, fmt.Sprintf(format, args...))
-}
-
-func lines(b []byte) []string {
-	return strings.Split(strings.Trim(strings.Replace(string(b), "\r", "\n", -1), "\n"), "\n")
 }

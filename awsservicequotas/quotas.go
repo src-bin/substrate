@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
-	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
 )
 
@@ -15,7 +15,6 @@ func EnsureServiceQuota(
 	svc *servicequotas.ServiceQuotas,
 	quotaCode, serviceCode string,
 	desiredValue float64,
-	// TODO deadline?
 ) error {
 
 	quota, err := GetServiceQuota(
@@ -107,19 +106,14 @@ func EnsureServiceQuotaInAllRegions(
 	sess *session.Session,
 	quotaCode, serviceCode string,
 	desiredValue float64,
-	// TODO deadline?
 ) error {
-	ch := make(chan error, len(awsutil.Regions()))
+	ch := make(chan error, len(regions.Selected()))
 
-	for _, region := range awsutil.Regions() {
-		if awsutil.IsBlacklistedRegion(region) {
-			continue
-		}
+	for _, region := range regions.Selected() {
 		go func(
 			svc *servicequotas.ServiceQuotas,
 			quotaCode, serviceCode string,
 			desiredValue float64,
-			// TODO deadline?
 			ch chan<- error,
 		) {
 			ch <- EnsureServiceQuota(svc, quotaCode, serviceCode, desiredValue)
@@ -135,10 +129,7 @@ func EnsureServiceQuotaInAllRegions(
 		)
 	}
 
-	for _, region := range awsutil.Regions() {
-		if awsutil.IsBlacklistedRegion(region) {
-			continue
-		}
+	for range regions.Selected() {
 		if err := <-ch; err != nil {
 			return err
 		}
