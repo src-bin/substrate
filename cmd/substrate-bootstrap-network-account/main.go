@@ -188,7 +188,7 @@ func main() {
 			blockses[i].Push(terraform.Subnet{
 				AvailabilityZone: terraform.Q(az),
 				CidrBlock:        vpc.CidrsubnetIPv4(2, j+1),
-				IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, j+5),
+				IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, j+0x81),
 				Provider:         terraform.ProviderAliasFor(region),
 				Tags: terraform.Tags{
 					Quality: qualities[i],
@@ -228,12 +228,47 @@ func main() {
 			}
 			//log.Printf("%+v", n)
 
-			/*
-				blocks.Push(terraform.VPC{
-					CidrBlock: n.IPv4.String(),
-					Provider:  terraform.ProviderAliasFor(region),
+			name := fmt.Sprintf("%s-%s-%s", eq.Environment, eq.Quality, region)
+			vpc := terraform.VPC{
+				CidrBlock: terraform.Q(n.IPv4.String()),
+				Provider:  terraform.ProviderAliasFor(region),
+				Tags: terraform.Tags{
+					Environment: eq.Environment,
+					Name:        name,
+					Quality:     eq.Quality,
+				},
+			}
+			blocks.Push(vpc)
+
+			azs, err := availabilityzones.Select(sess, region, 3)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for i, az := range azs {
+				blocks.Push(terraform.Subnet{
+					AvailabilityZone:    terraform.Q(az),
+					CidrBlock:           vpc.CidrsubnetIPv4(4, i+1),
+					IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, i+1),
+					MapPublicIPOnLaunch: true,
+					Provider:            terraform.ProviderAliasFor(region),
+					Tags: terraform.Tags{
+						Environment: eq.Environment,
+						Quality:     eq.Quality,
+					},
+					VpcId: terraform.Uf("aws_vpc.%s.id", name),
 				})
-			*/
+				blocks.Push(terraform.Subnet{
+					AvailabilityZone: terraform.Q(az),
+					CidrBlock:        vpc.CidrsubnetIPv4(2, i+1),
+					IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, i+0x81),
+					Provider:         terraform.ProviderAliasFor(region),
+					Tags: terraform.Tags{
+						Environment: eq.Environment,
+						Quality:     eq.Quality,
+					},
+					VpcId: terraform.Uf("aws_vpc.%s.id", name),
+				})
+			}
 
 			ui.Stop(n.IPv4)
 		}
@@ -311,7 +346,7 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if err := terraform.Plan(dirname); err != nil {
+		if err := terraform.Apply(dirname); err != nil {
 			log.Fatal(err)
 		}
 	}

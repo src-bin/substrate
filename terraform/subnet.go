@@ -38,9 +38,7 @@ func (Subnet) Template() string {
 		"Environment" = "{{.Tags.Environment}}"
 {{end -}}
 		"Manager" = "{{.Tags.Manager}}"
-{{if .Tags.Name -}}
-		"Name" = "{{.Tags.Name}}"
-{{end -}}
+		"Name" = {{.Label.Value}}
 {{if .Tags.Quality -}}
 		"Quality" = "{{.Tags.Quality}}"
 {{end -}}
