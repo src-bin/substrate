@@ -9,23 +9,27 @@ import (
 
 func Apply(dirname string) error {
 	ui.Printf("applying Terraform changes in %s", dirname)
-	cmd := exec.Command("make", "-C", dirname, "apply")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return execlp("make", "-C", dirname, "apply")
 }
 
 func Fmt() error {
 	ui.Spin("formatting Terraform source files")
 	defer ui.Stop("done")
-	cmd := exec.Command("terraform", "fmt", "-recursive")
-	return cmd.Run()
+	return execlp("terraform", "fmt", "-recursive")
 }
 
 func Init(dirname string) error {
 	ui.Printf("initializing Terraform in %s", dirname)
-	cmd := exec.Command("make", "-C", dirname, "init")
+	return execlp("make", "-C", dirname, "init")
+}
+
+func Plan(dirname string) error {
+	ui.Printf("planning Terraform changes in %s", dirname)
+	return execlp("make", "-C", dirname, "plan")
+}
+
+func execlp(progname string, args ...string) error {
+	cmd := exec.Command(progname, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

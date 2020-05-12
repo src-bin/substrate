@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"path"
 	"strings"
@@ -157,30 +156,44 @@ func main() {
 		}
 		//log.Printf("%+v", n)
 
-		blockses[i].Push(terraform.VPC{
-			CidrBlock: n.IPv4.String(),
+		vpc := terraform.VPC{
+			CidrBlock: terraform.Q(n.IPv4.String()),
+			Label:     terraform.Qf("ops-%s", region),
 			Provider:  terraform.ProviderAliasFor(region),
 			Tags: terraform.Tags{
 				Quality: qualities[i],
 				Special: "ops",
 			},
-		})
+		}
+		blockses[i].Push(vpc)
 
 		azs, err := availabilityzones.Select(sess, region, 3)
 		if err != nil {
 			log.Fatal(err)
 		}
-		for _, az := range azs {
+		for j, az := range azs {
 			blockses[i].Push(terraform.Subnet{
-				AvailabilityZone: az,
-				CidrBlock:        "TODO cidrsubnet",
-				IPv6CidrBlock:    "TODO cidrsubnet",
+				AvailabilityZone:    terraform.Q(az),
+				CidrBlock:           vpc.CidrsubnetIPv4(4, j+1),
+				IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, j+1),
+				MapPublicIPOnLaunch: true,
+				Provider:            terraform.ProviderAliasFor(region),
+				Tags: terraform.Tags{
+					Quality: qualities[i],
+					Special: "ops",
+				},
+				VpcId: terraform.Uf("aws_vpc.ops-%s.id", region),
+			})
+			blockses[i].Push(terraform.Subnet{
+				AvailabilityZone: terraform.Q(az),
+				CidrBlock:        vpc.CidrsubnetIPv4(2, j+1),
+				IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, j+5),
 				Provider:         terraform.ProviderAliasFor(region),
 				Tags: terraform.Tags{
 					Quality: qualities[i],
 					Special: "ops",
 				},
-				VpcId: fmt.Sprintf("${aws_vpc.ops-%s.id}", region),
+				VpcId: terraform.Uf("aws_vpc.ops-%s.id", region),
 			})
 		}
 
@@ -214,10 +227,12 @@ func main() {
 			}
 			//log.Printf("%+v", n)
 
-			blocks.Push(terraform.VPC{
-				CidrBlock: n.IPv4.String(),
-				Provider:  terraform.ProviderAliasFor(region),
-			})
+			/*
+				blocks.Push(terraform.VPC{
+					CidrBlock: n.IPv4.String(),
+					Provider:  terraform.ProviderAliasFor(region),
+				})
+			*/
 
 			ui.Stop(n.IPv4)
 		}
@@ -271,8 +286,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	return
-
 	// Generate a Makefile in each root Terraform module then apply the generated
 	// Terraform code.  Start with the ops networks, then move on to the
 	// Environments, all Quality-by-Quality with a pause in between.
@@ -297,7 +310,7 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if err := terraform.Apply(dirname); err != nil {
+		if err := terraform.Plan(dirname); err != nil {
 			log.Fatal(err)
 		}
 	}
