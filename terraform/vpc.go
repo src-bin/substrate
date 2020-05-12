@@ -6,23 +6,22 @@ import (
 )
 
 type VPC struct {
-	Label     Value // defaults to Name()
 	CidrBlock Value
 	Provider  ProviderAlias
 	Tags      Tags
 }
 
 func (vpc VPC) CidrsubnetIPv4(newbits, netnum int) Value {
-	return cidrsubnet(fmt.Sprintf("aws_vpc.%s.cidr_block", vpc.Name()), newbits, netnum)
+	return cidrsubnet(fmt.Sprintf("aws_vpc.%s.cidr_block", vpc.Label()), newbits, netnum)
 }
 
 func (vpc VPC) CidrsubnetIPv6(newbits, netnum int) Value {
-	return cidrsubnet(fmt.Sprintf("aws_vpc.%s.ipv6_cidr_block", vpc.Name()), newbits, netnum)
+	return cidrsubnet(fmt.Sprintf("aws_vpc.%s.ipv6_cidr_block", vpc.Label()), newbits, netnum)
 }
 
-func (vpc VPC) Name() Value {
-	if vpc.Label != nil && !vpc.Label.Empty() {
-		return vpc.Label
+func (vpc VPC) Label() Value {
+	if vpc.Tags.Name != "" {
+		return Q(vpc.Tags.Name)
 	} else if vpc.Tags.Environment != "" && vpc.Tags.Quality != "" {
 		return Qf("%s-%s", vpc.Tags.Environment, vpc.Tags.Quality)
 	} else if vpc.Tags.Special != "" {
@@ -32,7 +31,7 @@ func (vpc VPC) Name() Value {
 }
 
 func (VPC) Template() string {
-	return `resource "aws_vpc" {{.Name.Value}} {
+	return `resource "aws_vpc" {{.Label.Value}} {
 	assign_generated_ipv6_cidr_block = true
 	cidr_block = {{.CidrBlock.Value}}
 	enable_dns_hostnames = true
@@ -43,8 +42,8 @@ func (VPC) Template() string {
 		"Environment" = "{{.Tags.Environment}}"
 {{end -}}
 		"Manager" = "{{.Tags.Manager}}"
-{{if .Name -}}
-		"Name" = "{{.Name}}"
+{{if .Tags.Name -}}
+		"Name" = "{{.Tags.Name}}"
 {{end -}}
 {{if .Tags.Quality -}}
 		"Quality" = "{{.Tags.Quality}}"
@@ -52,10 +51,6 @@ func (VPC) Template() string {
 		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
 	}
 }`
-}
-
-func (vpc VPC) label() Value {
-	return vpc.Name()
 }
 
 func cidrsubnet(prefix string, newbits, netnum int) Value {

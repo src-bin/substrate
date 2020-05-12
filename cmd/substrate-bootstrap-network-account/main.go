@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"path"
 	"strings"
@@ -158,9 +159,9 @@ func main() {
 
 		vpc := terraform.VPC{
 			CidrBlock: terraform.Q(n.IPv4.String()),
-			Label:     terraform.Qf("ops-%s", region),
 			Provider:  terraform.ProviderAliasFor(region),
 			Tags: terraform.Tags{
+				Name:    fmt.Sprintf("ops-%s", region),
 				Quality: qualities[i],
 				Special: "ops",
 			},

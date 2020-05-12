@@ -3,7 +3,9 @@ package terraform
 import "github.com/src-bin/substrate/version"
 
 type Tags struct {
-	Environment, Quality, Special string
+	Domain, Environment, Quality string
+	Name                         string
+	Special                      string
 }
 
 func (Tags) Manager() string { return "Terraform" }

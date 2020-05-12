@@ -1,7 +1,6 @@
 package terraform
 
 type Subnet struct {
-	Label                    Value // defaults to Name()
 	AvailabilityZone         Value
 	CidrBlock, IPv6CidrBlock Value
 	MapPublicIPOnLaunch      bool
@@ -10,9 +9,9 @@ type Subnet struct {
 	VpcId                    Value
 }
 
-func (s Subnet) Name() Value {
-	if s.Label != nil && !s.Label.Empty() {
-		return s.Label
+func (s Subnet) Label() Value {
+	if s.Tags.Name != "" {
+		return Q(s.Tags.Name)
 	}
 	publicPrivate := "private"
 	if s.MapPublicIPOnLaunch {
@@ -27,7 +26,7 @@ func (s Subnet) Name() Value {
 }
 
 func (Subnet) Template() string {
-	return `resource "aws_subnet" {{.Name.Value}} {
+	return `resource "aws_subnet" {{.Label.Value}} {
 	assign_ipv6_address_on_creation = true
 	availability_zone = {{.AvailabilityZone.Value}}
 	cidr_block = {{.CidrBlock.Value}}
@@ -39,8 +38,8 @@ func (Subnet) Template() string {
 		"Environment" = "{{.Tags.Environment}}"
 {{end -}}
 		"Manager" = "{{.Tags.Manager}}"
-{{if .Name -}}
-		"Name" = "{{.Name}}"
+{{if .Tags.Name -}}
+		"Name" = "{{.Tags.Name}}"
 {{end -}}
 {{if .Tags.Quality -}}
 		"Quality" = "{{.Tags.Quality}}"
@@ -49,8 +48,4 @@ func (Subnet) Template() string {
 	}
 	vpc_id = {{.VpcId}}
 }`
-}
-
-func (s Subnet) label() Value {
-	return s.Name()
 }
