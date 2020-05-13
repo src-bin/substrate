@@ -15,17 +15,19 @@ type Block interface {
 	Template() string
 }
 
-type Blocks []Block
+type Blocks struct {
+	blocks []Block
+}
 
-func NewBlocks() Blocks {
-	return make(Blocks, 0)
+func NewBlocks() *Blocks {
+	return &Blocks{make([]Block, 0)}
 }
 
 func (blocks *Blocks) Push(block Block) {
-	*blocks = append(*blocks, block)
+	blocks.blocks = append(blocks.blocks, block)
 }
 
-func (blocks Blocks) Write(pathname string) (err error) {
+func (blocks *Blocks) Write(pathname string) (err error) {
 	dirname := path.Dir(pathname)
 	if err = os.MkdirAll(dirname, 0777); err != nil {
 		return
@@ -36,7 +38,7 @@ func (blocks Blocks) Write(pathname string) (err error) {
 		return
 	}
 	fmt.Fprintln(f, "# managed by Substrate; do not edit by hand")
-	for _, block := range blocks {
+	for _, block := range blocks.blocks {
 		fmt.Fprintln(f, "")
 		var tmpl *template.Template
 		tmpl, err = template.New(fmt.Sprintf("%T", block)).Parse(block.Template())

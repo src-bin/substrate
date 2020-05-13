@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/availabilityzones"
@@ -138,7 +139,7 @@ func main() {
 	)
 
 	ui.Printf("bootstrapping the ops network in %d regions", len(regions.Selected()))
-	blockses := []terraform.Blocks{terraform.NewBlocks(), terraform.NewBlocks()}
+	blockses := []*terraform.Blocks{terraform.NewBlocks(), terraform.NewBlocks()}
 	for _, region := range regions.Selected() {
 		ui.Spinf("finding or assigning an IP address range to the ops network in %s", region)
 
@@ -168,35 +169,10 @@ func main() {
 		}
 		blockses[i].Push(vpc)
 
-		azs, err := availabilityzones.Select(sess, region, 3)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for j, az := range azs {
-			blockses[i].Push(terraform.Subnet{
-				AvailabilityZone:    terraform.Q(az),
-				CidrBlock:           vpc.CidrsubnetIPv4(4, j+1),
-				IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, j+1),
-				MapPublicIPOnLaunch: true,
-				Provider:            terraform.ProviderAliasFor(region),
-				Tags: terraform.Tags{
-					Quality: qualities[i],
-					Special: "ops",
-				},
-				VpcId: terraform.Uf("aws_vpc.ops-%s.id", region),
-			})
-			blockses[i].Push(terraform.Subnet{
-				AvailabilityZone: terraform.Q(az),
-				CidrBlock:        vpc.CidrsubnetIPv4(2, j+1),
-				IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, j+0x81),
-				Provider:         terraform.ProviderAliasFor(region),
-				Tags: terraform.Tags{
-					Quality: qualities[i],
-					Special: "ops",
-				},
-				VpcId: terraform.Uf("aws_vpc.ops-%s.id", region),
-			})
-		}
+		subnets(sess, region, vpc, terraform.Tags{
+			Quality: qualities[i],
+			Special: "ops",
+		}, blockses[i])
 
 		ui.Stop(n.IPv4)
 	}
@@ -240,35 +216,10 @@ func main() {
 			}
 			blocks.Push(vpc)
 
-			azs, err := availabilityzones.Select(sess, region, 3)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for i, az := range azs {
-				blocks.Push(terraform.Subnet{
-					AvailabilityZone:    terraform.Q(az),
-					CidrBlock:           vpc.CidrsubnetIPv4(4, i+1),
-					IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, i+1),
-					MapPublicIPOnLaunch: true,
-					Provider:            terraform.ProviderAliasFor(region),
-					Tags: terraform.Tags{
-						Environment: eq.Environment,
-						Quality:     eq.Quality,
-					},
-					VpcId: terraform.Uf("aws_vpc.%s.id", name),
-				})
-				blocks.Push(terraform.Subnet{
-					AvailabilityZone: terraform.Q(az),
-					CidrBlock:        vpc.CidrsubnetIPv4(2, i+1),
-					IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, i+0x81),
-					Provider:         terraform.ProviderAliasFor(region),
-					Tags: terraform.Tags{
-						Environment: eq.Environment,
-						Quality:     eq.Quality,
-					},
-					VpcId: terraform.Uf("aws_vpc.%s.id", name),
-				})
-			}
+			subnets(sess, region, vpc, terraform.Tags{
+				Environment: eq.Environment,
+				Quality:     eq.Quality,
+			}, blocks)
 
 			ui.Stop(n.IPv4)
 		}
@@ -351,4 +302,36 @@ func main() {
 		}
 	}
 
+}
+
+func subnets(
+	sess *session.Session,
+	region string,
+	vpc terraform.VPC,
+	tags terraform.Tags,
+	blocks terraform.Blocks,
+) {
+	azs, err := availabilityzones.Select(sess, region, 3)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i, az := range azs {
+		blocks.Push(terraform.Subnet{
+			AvailabilityZone:    terraform.Q(az),
+			CidrBlock:           vpc.CidrsubnetIPv4(4, i+1),
+			IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, i+1),
+			MapPublicIPOnLaunch: true,
+			Provider:            terraform.ProviderAliasFor(region),
+			Tags:                tags,
+			VpcId:               vpc.Ref(),
+		})
+		blocks.Push(terraform.Subnet{
+			AvailabilityZone: terraform.Q(az),
+			CidrBlock:        vpc.CidrsubnetIPv4(2, i+1),
+			IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, i+0x81),
+			Provider:         terraform.ProviderAliasFor(region),
+			Tags:             tags,
+			VpcId:            vpc.Ref(),
+		})
+	}
 }

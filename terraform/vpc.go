@@ -30,6 +30,10 @@ func (vpc VPC) Label() Value {
 	return Q("")
 }
 
+func (vpc VPC) Ref() Value {
+	return Uf("aws_vpc.%s.id", vpc.Label())
+}
+
 func (VPC) Template() string {
 	return `resource "aws_vpc" {{.Label.Value}} {
 	assign_generated_ipv6_cidr_block = true
