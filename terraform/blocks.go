@@ -27,6 +27,12 @@ func (blocks *Blocks) Push(block Block) {
 	blocks.blocks = append(blocks.blocks, block)
 }
 
+func (blocks *Blocks) PushAll(otherBlocks Blocks) {
+	for _, block := range otherBlocks.blocks {
+		blocks.Push(block)
+	}
+}
+
 func (blocks *Blocks) Write(pathname string) (err error) {
 	dirname := path.Dir(pathname)
 	if err = os.MkdirAll(dirname, 0777); err != nil {

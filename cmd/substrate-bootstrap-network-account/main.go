@@ -159,28 +159,18 @@ func main() {
 		}
 		//log.Printf("%+v", n)
 
-		tags := terraform.Tags{
-			Name:    fmt.Sprintf("ops-%s", region),
-			Quality: qualities[i],
-			Special: "ops",
-		}
 		vpc := terraform.VPC{
 			CidrBlock: terraform.Q(n.IPv4.String()),
 			Provider:  terraform.ProviderAliasFor(region),
-			Tags:      tags,
+			Tags: terraform.Tags{
+				Name:    fmt.Sprintf("ops-%s", region),
+				Quality: qualities[i],
+				Special: "ops",
+			},
 		}
 		blockses[i].Push(vpc)
 
-		rs := terraform.ResourceShare{
-			Provider: terraform.ProviderAliasFor(region),
-			Tags:     tags,
-		}
-		blockses[i].Push(rs)
-
-		subnets(sess, region, vpc, rs, terraform.Tags{
-			Quality: qualities[i],
-			Special: "ops",
-		}, blockses[i])
+		vpcAccoutrements(sess, region, vpc, blockses[i])
 
 		ui.Stop(n.IPv4)
 	}
@@ -214,28 +204,18 @@ func main() {
 			}
 			//log.Printf("%+v", n)
 
-			tags := terraform.Tags{
-				Environment: eq.Environment,
-				Name:        fmt.Sprintf("%s-%s-%s", eq.Environment, eq.Quality, region),
-				Quality:     eq.Quality,
-			}
 			vpc := terraform.VPC{
 				CidrBlock: terraform.Q(n.IPv4.String()),
 				Provider:  terraform.ProviderAliasFor(region),
-				Tags:      tags,
+				Tags: terraform.Tags{
+					Environment: eq.Environment,
+					Name:        fmt.Sprintf("%s-%s-%s", eq.Environment, eq.Quality, region),
+					Quality:     eq.Quality,
+				},
 			}
 			blocks.Push(vpc)
 
-			rs := terraform.ResourceShare{
-				Provider: terraform.ProviderAliasFor(region),
-				Tags:     tags,
-			}
-			blocks.Push(rs)
-
-			subnets(sess, region, vpc, rs, terraform.Tags{
-				Environment: eq.Environment,
-				Quality:     eq.Quality,
-			}, blocks)
+			vpcAccoutrements(sess, region, vpc, blocks)
 
 			ui.Stop(n.IPv4)
 		}
@@ -320,52 +300,143 @@ func main() {
 
 }
 
-func subnets(
+func vpcAccoutrements(
 	sess *session.Session,
 	region string,
 	vpc terraform.VPC,
-	rs terraform.ResourceShare,
-	tags terraform.Tags,
 	blocks *terraform.Blocks,
 ) {
+
+	// Accept the default Network ACL until we need to do otherwise.
+
+	// Accept the default DHCP option set until we need to do otherwise.
+
+	// A resource share for the subnets to reference.
+	rs := terraform.ResourceShare{
+		Provider: vpc.Provider,
+		Tags:     vpc.Tags,
+	}
+	blocks.Push(rs)
+
+	// New routing tables, one for public subnets and one for private subnets.
+	// We're not going to use the main route table to keep things explicit.
+	// Route tables automatically bring local IPv4 and IPv6 routes so there's
+	// no need for us to specify those here.
+	public := terraform.RouteTable{
+		Tags:  vpc.Tags,
+		VpcId: vpc.Ref(),
+	}
+	public.Tags.Name += "-public" // dicey assumption that the Name tag is actually set above
+	blocks.Push(public)
+	private := terraform.RouteTable{
+		Tags:  vpc.Tags,
+		VpcId: vpc.Ref(),
+	}
+	private.Tags.Name += "-private" // dicey assumption that the Name tag is actually set above
+	blocks.Push(private)
+
+	// IPv4 and IPv6 Internet Gateways for the public subnets.
+	igw := terraform.InternetGateway{
+		Tags:  vpc.Tags,
+		VpcId: vpc.Ref(),
+	}
+	blocks.Push(igw)
+	blocks.Push(terraform.Route{
+		DestinationIPv4:   "0.0.0.0/0",
+		InternetGatewayId: igw.Ref(),
+		RouteTableId:      public.Ref(),
+	})
+	blocks.Push(terraform.Route{
+		DestinationIPv6:   "::/0",
+		InternetGatewayId: igw.Ref(),
+		RouteTableId:      public.Ref(),
+	})
+
+	// IPv6 Egress-only Internet Gateway for the private subnets.  (The IPv4
+	// NAT Gateway comes later because it's per-subnet.)
+	egw := terraform.EgressOnlyInternetGateway{
+		Tags:  vpc.Tags,
+		VpcId: vpc.Ref(),
+	}
+	blocks.Push(egw)
+	blocks.Push(terraform.Route{
+		DestinationIPv6:             "::/0",
+		EgressOnlyInternetGatewayId: egw.Ref(),
+		RouteTableId:                private.Ref(),
+	})
+
+	// Create a public and private subnet in each of (up to, and the newest)
+	// three availability zones in the region.
 	azs, err := availabilityzones.Select(sess, region, 3)
 	if err != nil {
 		log.Fatal(err)
 	}
 	for i, az := range azs {
+		tags := terraform.Tags{
+			AvailabilityZone: az,
+			Environment:      vpc.Tags.Environment,
+			Quality:          vpc.Tags.Quality,
+			Special:          vpc.Tags.Special,
+		}
 
+		// Public subnet, shared org-wide.
 		s := terraform.Subnet{
 			AvailabilityZone:    terraform.Q(az),
 			CidrBlock:           vpc.CidrsubnetIPv4(4, i+1),
 			IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, i+1),
 			MapPublicIPOnLaunch: true,
-			Provider:            terraform.ProviderAliasFor(region),
+			Provider:            vpc.Provider,
 			Tags:                tags,
 			VpcId:               vpc.Ref(),
 		}
 		blocks.Push(s)
 		blocks.Push(terraform.ResourceAssociation{
-			Label:         s.Label(),
-			Provider:      terraform.ProviderAliasFor(region),
-			Resource:      s.Ref(),
-			ResourceShare: rs.Ref(),
+			Label:            s.Label(),
+			Provider:         vpc.Provider,
+			ResourceArn:      s.Ref(),
+			ResourceShareArn: rs.Ref(),
+		})
+		blocks.Push(terraform.RouteTableAssociation{
+			RouteTableId: public.Ref(),
+			SubnetId:     s.Ref(),
 		})
 
+		// Private subnet, also shared org-wide.
 		s = terraform.Subnet{
 			AvailabilityZone: terraform.Q(az),
 			CidrBlock:        vpc.CidrsubnetIPv4(2, i+1),
 			IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, i+0x81),
-			Provider:         terraform.ProviderAliasFor(region),
+			Provider:         vpc.Provider,
 			Tags:             tags,
 			VpcId:            vpc.Ref(),
 		}
 		blocks.Push(s)
 		blocks.Push(terraform.ResourceAssociation{
-			Label:         s.Label(),
-			Provider:      terraform.ProviderAliasFor(region),
-			Resource:      s.Ref(),
-			ResourceShare: rs.Ref(),
+			Label:            s.Label(),
+			Provider:         vpc.Provider,
+			ResourceArn:      s.Ref(),
+			ResourceShareArn: rs.Ref(),
+		})
+		blocks.Push(terraform.RouteTableAssociation{
+			RouteTableId: private.Ref(),
+			SubnetId:     s.Ref(),
 		})
 
+		// NAT Gateway for this private subnet.
+		ngw := terraform.NATGateway{
+			Provider: vpc.Provider,
+			SubnetId: s.Ref(), // XXX may break because it's an ARN
+			Tags:     tags,
+		}
+		blocks.Push(ngw)
+		/*
+			blocks.Push(terraform.Route{
+				DestinationIPv4: "0.0.0.0/0",
+				NATGatewayId:    ngw.Ref(),
+				RouteTableId:    private.Ref(),
+			})
+		*/
+
 	}
+
 }

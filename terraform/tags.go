@@ -3,6 +3,7 @@ package terraform
 import "github.com/src-bin/substrate/version"
 
 type Tags struct {
+	AvailabilityZone             string
 	Domain, Environment, Quality string
 	Name                         string
 	Special                      string

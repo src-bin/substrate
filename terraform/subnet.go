@@ -38,6 +38,7 @@ func (Subnet) Template() string {
 	map_public_ip_on_launch = {{.MapPublicIPOnLaunch}}
 	provider = {{.Provider}}
 	tags = {
+		"AvailabilityZone" = "{{.Tags.AvailabilityZone}}"
 {{if .Tags.Environment -}}
 		"Environment" = "{{.Tags.Environment}}"
 {{end -}}
@@ -48,6 +49,6 @@ func (Subnet) Template() string {
 {{end -}}
 		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
 	}
-	vpc_id = {{.VpcId}}
+	vpc_id = {{.VpcId.Value}}
 }`
 }

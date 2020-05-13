@@ -1,9 +1,9 @@
 package terraform
 
 type ResourceAssociation struct {
-	Label                   Value
-	Provider                ProviderAlias
-	Resource, ResourceShare Value
+	Label                         Value
+	Provider                      ProviderAlias
+	ResourceArn, ResourceShareArn Value
 }
 
 func (ra ResourceAssociation) Ref() Value {
@@ -13,7 +13,7 @@ func (ra ResourceAssociation) Ref() Value {
 func (ResourceAssociation) Template() string {
 	return `resource "aws_ram_resource_association" {{.Label.Value}} {
 	provider = {{.Provider}}
-	resource_arn = {{.Resource.Value}}
-	resource_share_arn = {{.ResourceShare.Value}}
+	resource_arn = {{.ResourceArn.Value}}
+	resource_share_arn = {{.ResourceShareArn.Value}}
 }`
 }
