@@ -6,6 +6,9 @@ import (
 	"text/template"
 )
 
+// Makefile writes a simple Makefile into the given directory whose purpose is
+// essentially to make it easy to invoke Terraform from other directories in
+// a single command and without involving a shell as an intermediary.
 func Makefile(dirname string) error {
 	f, err := os.Create(path.Join(dirname, "Makefile"))
 	if err != nil {
@@ -20,10 +23,13 @@ func Makefile(dirname string) error {
 }
 
 func makefileTemplate() string {
-	return `all:
+	return `AUTO_APPROVE=
+#AUTO_APPROVE=-auto-approve
+
+all:
 
 apply: init
-	terraform apply -auto-approve # XXX
+	terraform apply $(AUTO_APPROVE)
 
 init: .terraform
 

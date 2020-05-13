@@ -8,30 +8,15 @@ import (
 type Subnet struct {
 	AvailabilityZone         Value
 	CidrBlock, IPv6CidrBlock Value
+	Label                    Value
 	MapPublicIPOnLaunch      bool
 	Provider                 ProviderAlias
 	Tags                     Tags
 	VpcId                    Value
 }
 
-func (s Subnet) Label() Value {
-	if s.Tags.Name != "" {
-		return Q(s.Tags.Name)
-	}
-	publicPrivate := "private"
-	if s.MapPublicIPOnLaunch {
-		publicPrivate = "public"
-	}
-	if s.Tags.Environment != "" && s.Tags.Quality != "" {
-		return Qf("%s-%s-%s-%s", s.Tags.Environment, s.Tags.Quality, s.AvailabilityZone, publicPrivate)
-	} else if s.Tags.Special != "" {
-		return Qf("%s-%s-%s", s.Tags.Special, s.AvailabilityZone, publicPrivate)
-	}
-	return Q("")
-}
-
 func (s Subnet) Ref() Value {
-	return Uf("aws_subnet.%s.arn", s.Label())
+	return Uf("aws_subnet.%s", s.Label)
 }
 
 func (Subnet) Template() string {
@@ -44,14 +29,16 @@ func (Subnet) Template() string {
 	provider = {{.Provider}}
 	tags = {
 		"AvailabilityZone" = "{{.Tags.AvailabilityZone}}"
-{{if .Tags.Environment -}}
+{{- if .Tags.Environment}}
 		"Environment" = "{{.Tags.Environment}}"
-{{end -}}
+{{- end}}
 		"Manager" = "{{.Tags.Manager}}"
-		"Name" = {{.Label.Value}}
-{{if .Tags.Quality -}}
+{{- if .Tags.Name}}
+		"Name" = "{{.Tags.Name}}"
+{{- end}}
+{{- if .Tags.Quality}}
 		"Quality" = "{{.Tags.Quality}}"
-{{end -}}
+{{- end}}
 		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
 	}
 	vpc_id = {{.VpcId.Value}}
@@ -60,31 +47,21 @@ func (Subnet) Template() string {
 
 type VPC struct {
 	CidrBlock Value
+	Label     Value
 	Provider  ProviderAlias
 	Tags      Tags
 }
 
 func (vpc VPC) CidrsubnetIPv4(newbits, netnum int) Value {
-	return cidrsubnet(fmt.Sprintf("aws_vpc.%s.cidr_block", vpc.Label()), newbits, netnum)
+	return cidrsubnet(fmt.Sprintf("aws_vpc.%s.cidr_block", vpc.Label), newbits, netnum)
 }
 
 func (vpc VPC) CidrsubnetIPv6(newbits, netnum int) Value {
-	return cidrsubnet(fmt.Sprintf("aws_vpc.%s.ipv6_cidr_block", vpc.Label()), newbits, netnum)
-}
-
-func (vpc VPC) Label() Value {
-	if vpc.Tags.Name != "" {
-		return Q(vpc.Tags.Name)
-	} else if vpc.Tags.Environment != "" && vpc.Tags.Quality != "" {
-		return Qf("%s-%s", vpc.Tags.Environment, vpc.Tags.Quality)
-	} else if vpc.Tags.Special != "" {
-		return Q(vpc.Tags.Special)
-	}
-	return Q("")
+	return cidrsubnet(fmt.Sprintf("aws_vpc.%s.ipv6_cidr_block", vpc.Label), newbits, netnum)
 }
 
 func (vpc VPC) Ref() Value {
-	return Uf("aws_vpc.%s.id", vpc.Label())
+	return Uf("aws_vpc.%s", vpc.Label)
 }
 
 func (VPC) Template() string {
@@ -95,14 +72,16 @@ func (VPC) Template() string {
 	enable_dns_support = true
 	provider = {{.Provider}}
 	tags = {
-{{if .Tags.Environment -}}
+{{- if .Tags.Environment}}
 		"Environment" = "{{.Tags.Environment}}"
-{{end -}}
+{{- end}}
 		"Manager" = "{{.Tags.Manager}}"
-		"Name" = {{.Label.Value}}
-{{if .Tags.Quality -}}
+{{- if .Tags.Name}}
+		"Name" = "{{.Tags.Name}}"
+{{- end}}
+{{- if .Tags.Quality}}
 		"Quality" = "{{.Tags.Quality}}"
-{{end -}}
+{{- end}}
 		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
 	}
 }`

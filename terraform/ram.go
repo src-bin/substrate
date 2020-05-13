@@ -6,10 +6,6 @@ type ResourceAssociation struct {
 	ResourceArn, ResourceShareArn Value
 }
 
-func (ra ResourceAssociation) Ref() Value {
-	return Uf("aws_ram_resource_share.%s.arn", ra.Label)
-}
-
 func (ResourceAssociation) Template() string {
 	return `resource "aws_ram_resource_association" {{.Label.Value}} {
 	provider = {{.Provider}}
@@ -19,24 +15,13 @@ func (ResourceAssociation) Template() string {
 }
 
 type ResourceShare struct {
+	Label    Value
 	Provider ProviderAlias
 	Tags     Tags
 }
 
-func (rs ResourceShare) Label() Value {
-	if rs.Tags.Name != "" {
-		return Q(rs.Tags.Name)
-	}
-	if rs.Tags.Environment != "" && rs.Tags.Quality != "" {
-		return Qf("%s-%s", rs.Tags.Environment, rs.Tags.Quality)
-	} else if rs.Tags.Special != "" {
-		return Q(rs.Tags.Special)
-	}
-	return Q("")
-}
-
 func (rs ResourceShare) Ref() Value {
-	return Uf("aws_ram_resource_share.%s.arn", rs.Label())
+	return Uf("aws_ram_resource_share.%s", rs.Label)
 }
 
 func (ResourceShare) Template() string {
@@ -45,14 +30,16 @@ func (ResourceShare) Template() string {
 	name = {{.Label.Value}}
 	provider = {{.Provider}}
 	tags = {
-{{if .Tags.Environment -}}
+{{- if .Tags.Environment}}
 		"Environment" = "{{.Tags.Environment}}"
-{{end -}}
+{{- end}}
 		"Manager" = "{{.Tags.Manager}}"
-		"Name" = {{.Label.Value}}
-{{if .Tags.Quality -}}
+{{- if .Tags.Name}}
+		"Name" = "{{.Tags.Name}}"
+{{- end}}
+{{- if .Tags.Quality}}
 		"Quality" = "{{.Tags.Quality}}"
-{{end -}}
+{{- end}}
 		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
 	}
 }`
