@@ -12,12 +12,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go/service/ram"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscloudtrail"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
@@ -442,6 +444,13 @@ func main() {
 	}
 	ui.Stopf("role %s", role.RoleName)
 	//log.Printf("%+v", role)
+
+	// Enable resource sharing throughout the organization.
+	ui.Spin("enabling resource sharing throughout your organization")
+	if err := awsram.EnableSharingWithAwsOrganization(ram.New(sess)); err != nil {
+		log.Fatal(err)
+	}
+	ui.Stop("ok")
 
 	// Configure Okta so we can get into the ops account directly, SSH, etc.
 	okta(sess, opsAccount, metadata)

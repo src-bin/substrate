@@ -138,6 +138,7 @@ func main() {
 		"NetworkAdministrator",
 	)
 
+	// Write (or rewrite) Terraform resources that create the ops network.
 	ui.Printf("bootstrapping the ops network in %d regions", len(regions.Selected()))
 	blockses := []*terraform.Blocks{terraform.NewBlocks(), terraform.NewBlocks()}
 	for _, region := range regions.Selected() {
@@ -158,18 +159,25 @@ func main() {
 		}
 		//log.Printf("%+v", n)
 
+		tags := terraform.Tags{
+			Name:    fmt.Sprintf("ops-%s", region),
+			Quality: qualities[i],
+			Special: "ops",
+		}
 		vpc := terraform.VPC{
 			CidrBlock: terraform.Q(n.IPv4.String()),
 			Provider:  terraform.ProviderAliasFor(region),
-			Tags: terraform.Tags{
-				Name:    fmt.Sprintf("ops-%s", region),
-				Quality: qualities[i],
-				Special: "ops",
-			},
+			Tags:      tags,
 		}
 		blockses[i].Push(vpc)
 
-		subnets(sess, region, vpc, terraform.Tags{
+		rs := terraform.ResourceShare{
+			Provider: terraform.ProviderAliasFor(region),
+			Tags:     tags,
+		}
+		blockses[i].Push(rs)
+
+		subnets(sess, region, vpc, rs, terraform.Tags{
 			Quality: qualities[i],
 			Special: "ops",
 		}, blockses[i])
@@ -182,6 +190,8 @@ func main() {
 		}
 	}
 
+	// Write (or rewrite) Terraform resources that create the various
+	// (Environment, Quality) networks.
 	ui.Printf("bootstrapping networks for every Environment and Quality in %d regions", len(regions.Selected()))
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		blocks := terraform.NewBlocks()
@@ -204,19 +214,25 @@ func main() {
 			}
 			//log.Printf("%+v", n)
 
-			name := fmt.Sprintf("%s-%s-%s", eq.Environment, eq.Quality, region)
+			tags := terraform.Tags{
+				Environment: eq.Environment,
+				Name:        fmt.Sprintf("%s-%s-%s", eq.Environment, eq.Quality, region),
+				Quality:     eq.Quality,
+			}
 			vpc := terraform.VPC{
 				CidrBlock: terraform.Q(n.IPv4.String()),
 				Provider:  terraform.ProviderAliasFor(region),
-				Tags: terraform.Tags{
-					Environment: eq.Environment,
-					Name:        name,
-					Quality:     eq.Quality,
-				},
+				Tags:      tags,
 			}
 			blocks.Push(vpc)
 
-			subnets(sess, region, vpc, terraform.Tags{
+			rs := terraform.ResourceShare{
+				Provider: terraform.ProviderAliasFor(region),
+				Tags:     tags,
+			}
+			blocks.Push(rs)
+
+			subnets(sess, region, vpc, rs, terraform.Tags{
 				Environment: eq.Environment,
 				Quality:     eq.Quality,
 			}, blocks)
@@ -230,15 +246,15 @@ func main() {
 
 	}
 
-	// TODO peer everything together and setup subnet sharing
-
 	// Write to substrate.Networks.json once more so that, even if no changes
 	// were made, formatting changes and SubstrateVersion are changed.
 	if err := netDoc.Write(); err != nil {
 		log.Fatal(err)
 	}
 
-	// Write some Terraform providers to make everything usable.
+	// TODO peering / Transit Gateway
+
+	// Write (or rewrite) some Terraform providers to make everything usable.
 	providers := terraform.Provider{
 		AccountId:   aws.StringValue(account.Id),
 		RoleName:    roles.NetworkAdministrator,
@@ -308,15 +324,17 @@ func subnets(
 	sess *session.Session,
 	region string,
 	vpc terraform.VPC,
+	rs terraform.ResourceShare,
 	tags terraform.Tags,
-	blocks terraform.Blocks,
+	blocks *terraform.Blocks,
 ) {
 	azs, err := availabilityzones.Select(sess, region, 3)
 	if err != nil {
 		log.Fatal(err)
 	}
 	for i, az := range azs {
-		blocks.Push(terraform.Subnet{
+
+		s := terraform.Subnet{
 			AvailabilityZone:    terraform.Q(az),
 			CidrBlock:           vpc.CidrsubnetIPv4(4, i+1),
 			IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, i+1),
@@ -324,14 +342,30 @@ func subnets(
 			Provider:            terraform.ProviderAliasFor(region),
 			Tags:                tags,
 			VpcId:               vpc.Ref(),
+		}
+		blocks.Push(s)
+		blocks.Push(terraform.ResourceAssociation{
+			Label:         s.Label(),
+			Provider:      terraform.ProviderAliasFor(region),
+			Resource:      s.Ref(),
+			ResourceShare: rs.Ref(),
 		})
-		blocks.Push(terraform.Subnet{
+
+		s = terraform.Subnet{
 			AvailabilityZone: terraform.Q(az),
 			CidrBlock:        vpc.CidrsubnetIPv4(2, i+1),
 			IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, i+0x81),
 			Provider:         terraform.ProviderAliasFor(region),
 			Tags:             tags,
 			VpcId:            vpc.Ref(),
+		}
+		blocks.Push(s)
+		blocks.Push(terraform.ResourceAssociation{
+			Label:         s.Label(),
+			Provider:      terraform.ProviderAliasFor(region),
+			Resource:      s.Ref(),
+			ResourceShare: rs.Ref(),
 		})
+
 	}
 }
