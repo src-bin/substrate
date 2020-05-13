@@ -25,6 +25,10 @@ func (s Subnet) Label() Value {
 	return Q("")
 }
 
+func (s Subnet) Ref() Value {
+	return Uf("aws_subnet.%s.arn", s.Label())
+}
+
 func (Subnet) Template() string {
 	return `resource "aws_subnet" {{.Label.Value}} {
 	assign_ipv6_address_on_creation = true
