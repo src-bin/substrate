@@ -138,6 +138,21 @@ func main() {
 		"NetworkAdministrator",
 	)
 
+	// Provide every Terraform module with a reference to the organization.
+	orgBlocks := terraform.NewBlocks()
+	org := terraform.Organization{
+		Label:    terraform.Q("current"),
+		Provider: terraform.ProviderAliasFor(regions.Selected()[0]),
+	}
+	orgBlocks.Push(org)
+
+	// Write (or rewrite) some Terraform providers to make everything usable.
+	providers := terraform.Provider{
+		AccountId:   aws.StringValue(account.Id),
+		RoleName:    roles.NetworkAdministrator,
+		SessionName: "Terraform",
+	}.AllRegions()
+
 	// Write (or rewrite) Terraform resources that create the ops network.
 	ui.Printf("bootstrapping the ops network in %d regions", len(regions.Selected()))
 	blockses := []*terraform.Blocks{terraform.NewBlocks(), terraform.NewBlocks()}
@@ -173,11 +188,17 @@ func main() {
 		}
 		blockses[i].Push(vpc)
 
-		vpcAccoutrements(sess, region, vpc, blockses[i])
+		vpcAccoutrements(sess, region, org, vpc, blockses[i])
 
 		ui.Stop(n.IPv4)
 	}
 	for i := 0; i < len(blockses); i++ {
+		if err := orgBlocks.Write(path.Join(TerraformDirname, "ops", qualities[i], "organization.tf")); err != nil {
+			log.Fatal(err)
+		}
+		if err := providers.Write(path.Join(TerraformDirname, "ops", qualities[i], "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
 		if err := blockses[i].Write(path.Join(TerraformDirname, "ops", qualities[i], "vpc.tf")); err != nil {
 			log.Fatal(err)
 		}
@@ -221,11 +242,17 @@ func main() {
 			}
 			blocks.Push(vpc)
 
-			vpcAccoutrements(sess, region, vpc, blocks)
+			vpcAccoutrements(sess, region, org, vpc, blocks)
 
 			ui.Stop(n.IPv4)
 		}
 
+		if err := orgBlocks.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "organization.tf")); err != nil {
+			log.Fatal(err)
+		}
+		if err := providers.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
 		if err := blocks.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "vpc.tf")); err != nil {
 			log.Fatal(err)
 		}
@@ -236,25 +263,6 @@ func main() {
 	// were made, formatting changes and SubstrateVersion are changed.
 	if err := netDoc.Write(); err != nil {
 		log.Fatal(err)
-	}
-
-	// TODO peering / Transit Gateway
-
-	// Write (or rewrite) some Terraform providers to make everything usable.
-	providers := terraform.Provider{
-		AccountId:   aws.StringValue(account.Id),
-		RoleName:    roles.NetworkAdministrator,
-		SessionName: "Terraform",
-	}.AllRegions()
-	for i := 0; i < 2; i++ {
-		if err := providers.Write(path.Join(TerraformDirname, "ops", qualities[i], "providers.tf")); err != nil {
-			log.Fatal(err)
-		}
-	}
-	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
-		if err := providers.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	// Format all the Terraform code you can possibly find.
@@ -319,6 +327,7 @@ func main() {
 func vpcAccoutrements(
 	sess *session.Session,
 	region string,
+	org terraform.Organization,
 	vpc terraform.VPC,
 	blocks *terraform.Blocks,
 ) {
@@ -327,13 +336,19 @@ func vpcAccoutrements(
 
 	// Accept the default DHCP option set until we need to do otherwise.
 
-	// A resource share for the subnets to reference.
+	// A resource share for the subnets to reference, shared org-wide.
 	rs := terraform.ResourceShare{
 		Label:    terraform.Label(vpc.Tags),
 		Provider: vpc.Provider,
 		Tags:     vpc.Tags,
 	}
 	blocks.Push(rs)
+	blocks.Push(terraform.PrincipalAssociation{
+		Label:            terraform.Label(vpc.Tags),
+		Principal:        terraform.U(org.Ref(), ".arn"),
+		Provider:         vpc.Provider,
+		ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
+	})
 
 	// IPv4 and IPv6 Internet Gateways for the public subnets.
 	igw := terraform.InternetGateway{

@@ -1,5 +1,23 @@
 package terraform
 
+type PrincipalAssociation struct {
+	Label                       Value
+	Provider                    ProviderAlias
+	Principal, ResourceShareArn Value
+}
+
+func (pa PrincipalAssociation) Ref() Value {
+	return Uf("aws_resource_association.%s", pa.Label)
+}
+
+func (PrincipalAssociation) Template() string {
+	return `resource "aws_ram_principal_association" {{.Label.Value}} {
+	principal = {{.Principal.Value}}
+	provider = {{.Provider}}
+	resource_share_arn = {{.ResourceShareArn.Value}}
+}`
+}
+
 type ResourceAssociation struct {
 	Label                         Value
 	Provider                      ProviderAlias
