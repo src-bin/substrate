@@ -31,6 +31,9 @@ all:
 apply: init
 	terraform apply $(AUTO_APPROVE)
 
+destroy: init
+	terraform destroy $(AUTO_APPROVE)
+
 init: .terraform
 
 plan:

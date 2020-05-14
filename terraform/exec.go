@@ -12,6 +12,11 @@ func Apply(dirname string) error {
 	return execlp("make", "-C", dirname, "apply", "AUTO_APPROVE=-auto-approve")
 }
 
+func Destroy(dirname string) error {
+	ui.Printf("destroying Terraform-managed resources in %s", dirname)
+	return execlp("make", "-C", dirname, "destroy", "AUTO_APPROVE=-auto-approve")
+}
+
 func Fmt() error {
 	ui.Spin("formatting Terraform source files")
 	defer ui.Stop("done")

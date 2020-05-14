@@ -25,6 +25,10 @@ func (p Provider) AllRegions() *Blocks {
 	return blocks
 }
 
+func (p Provider) Ref() Value {
+	return Uf("aws.%s", p.Region)
+}
+
 func (Provider) Template() string {
 	return `provider "aws" {
 	alias = "{{.Region}}"

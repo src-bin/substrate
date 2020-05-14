@@ -480,13 +480,13 @@ func vpcAccoutrements(
 		}
 		ngw.Tags.Name = vpc.Tags.Name + "-" + az
 		blocks.Push(ngw)
-		/*
-			blocks.Push(terraform.Route{
-				DestinationIPv4: "0.0.0.0/0",
-				NATGatewayId:    terraform.U(ngw.Ref(), ".id"),
-				RouteTableId:    terraform.U(private.Ref(), ".id"),
-			})
-		*/
+		blocks.Push(terraform.Route{
+			DestinationIPv4: terraform.Q("0.0.0.0/0"),
+			Label:           terraform.Label(tags),
+			NATGatewayId:    terraform.U(ngw.Ref(), ".id"),
+			Provider:        vpc.Provider,
+			RouteTableId:    terraform.U(private.Ref(), ".id"),
+		})
 
 	}
 

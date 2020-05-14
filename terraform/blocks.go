@@ -6,12 +6,14 @@ import (
 	"log"
 	"os"
 	"path"
+	"sort"
 	"text/template"
 
 	"github.com/src-bin/substrate/ui"
 )
 
 type Block interface {
+	Ref() Value
 	Template() string
 }
 
@@ -23,28 +25,44 @@ func NewBlocks() *Blocks {
 	return &Blocks{make([]Block, 0)}
 }
 
-func (blocks *Blocks) Push(block Block) {
-	blocks.blocks = append(blocks.blocks, block)
+func (b *Blocks) Len() int { return len(b.blocks) }
+
+func (b *Blocks) Less(i, j int) bool {
+	return b.blocks[i].Ref().Raw() < b.blocks[j].Ref().Raw()
 }
 
-func (blocks *Blocks) PushAll(otherBlocks Blocks) {
+func (b *Blocks) Push(block Block) {
+	b.blocks = append(b.blocks, block)
+}
+
+func (b *Blocks) PushAll(otherBlocks Blocks) {
 	for _, block := range otherBlocks.blocks {
-		blocks.Push(block)
+		b.Push(block)
 	}
 }
 
-func (blocks *Blocks) Write(pathname string) (err error) {
+func (b *Blocks) Swap(i, j int) {
+	tmp := b.blocks[i]
+	b.blocks[i] = b.blocks[j]
+	b.blocks[j] = tmp
+}
+
+func (b *Blocks) Write(pathname string) (err error) {
+
 	dirname := path.Dir(pathname)
 	if err = os.MkdirAll(dirname, 0777); err != nil {
 		return
 	}
+
 	var f *os.File
 	f, err = ioutil.TempFile(dirname, path.Base(pathname))
 	if err != nil {
 		return
 	}
 	fmt.Fprintln(f, "# managed by Substrate; do not edit by hand")
-	for _, block := range blocks.blocks {
+
+	sort.Sort(b)
+	for _, block := range b.blocks {
 		fmt.Fprintln(f, "")
 		var tmpl *template.Template
 		tmpl, err = template.New(fmt.Sprintf("%T", block)).Parse(block.Template())
@@ -56,6 +74,7 @@ func (blocks *Blocks) Write(pathname string) (err error) {
 		}
 		fmt.Fprintln(f, "")
 	}
+
 Error:
 	if err := f.Close(); err != nil {
 		log.Print(err)

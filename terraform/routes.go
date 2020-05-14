@@ -8,6 +8,10 @@ type Route struct {
 	RouteTableId                                                                   Value
 }
 
+func (r Route) Ref() Value {
+	return Uf("aws_route.%s", r.Label)
+}
+
 func (Route) Template() string {
 	return `resource "aws_route" {{.Label.Value}} {
 {{- if .DestinationIPv4}}
@@ -56,6 +60,10 @@ type RouteTableAssociation struct {
 	Label                  Value
 	Provider               ProviderAlias
 	RouteTableId, SubnetId Value
+}
+
+func (rta RouteTableAssociation) Ref() Value {
+	return Uf("aws_route_table_association.%s", rta.Label)
 }
 
 func (RouteTableAssociation) Template() string {
