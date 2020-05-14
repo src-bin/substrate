@@ -27,20 +27,7 @@ func (Subnet) Template() string {
 	ipv6_cidr_block = {{.IPv6CidrBlock.Value}}
 	map_public_ip_on_launch = {{.MapPublicIPOnLaunch}}
 	provider = {{.Provider}}
-	tags = {
-		"AvailabilityZone" = "{{.Tags.AvailabilityZone}}"
-{{- if .Tags.Environment}}
-		"Environment" = "{{.Tags.Environment}}"
-{{- end}}
-		"Manager" = "{{.Tags.Manager}}"
-{{- if .Tags.Name}}
-		"Name" = "{{.Tags.Name}}"
-{{- end}}
-{{- if .Tags.Quality}}
-		"Quality" = "{{.Tags.Quality}}"
-{{- end}}
-		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
-	}
+	tags = {{.Tags.Value}}
 	vpc_id = {{.VpcId.Value}}
 }`
 }
@@ -71,19 +58,7 @@ func (VPC) Template() string {
 	enable_dns_hostnames = true
 	enable_dns_support = true
 	provider = {{.Provider}}
-	tags = {
-{{- if .Tags.Environment}}
-		"Environment" = "{{.Tags.Environment}}"
-{{- end}}
-		"Manager" = "{{.Tags.Manager}}"
-{{- if .Tags.Name}}
-		"Name" = "{{.Tags.Name}}"
-{{- end}}
-{{- if .Tags.Quality}}
-		"Quality" = "{{.Tags.Quality}}"
-{{- end}}
-		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
-	}
+	tags = {{.Tags.Value}}
 }`
 }
 

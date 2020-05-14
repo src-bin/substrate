@@ -29,18 +29,6 @@ func (ResourceShare) Template() string {
 	allow_external_principals = false
 	name = {{.Label.Value}}
 	provider = {{.Provider}}
-	tags = {
-{{- if .Tags.Environment}}
-		"Environment" = "{{.Tags.Environment}}"
-{{- end}}
-		"Manager" = "{{.Tags.Manager}}"
-{{- if .Tags.Name}}
-		"Name" = "{{.Tags.Name}}"
-{{- end}}
-{{- if .Tags.Quality}}
-		"Quality" = "{{.Tags.Quality}}"
-{{- end}}
-		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
-	}
+	tags = {{.Tags.Value}}
 }`
 }

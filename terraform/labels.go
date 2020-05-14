@@ -7,7 +7,7 @@ import (
 
 // Label performs a domain-specific dimensionality reduction that "feels right"
 // enough to represent a resource with a unique label to satisfy Terraform.
-func Label(tags Tags, region string, suffixes ...string) Value {
+func Label(tags Tags, suffixes ...string) Value {
 	var s string
 
 	// TODO lots more permutations of tags to support
@@ -21,14 +21,14 @@ func Label(tags Tags, region string, suffixes ...string) Value {
 		s = "unnamed"
 	}
 
-	if tags.AvailabilityZone != "" {
-		s = fmt.Sprintf("%s-%s", s, tags.AvailabilityZone)
-	} else if region != "" {
-		s = fmt.Sprintf("%s-%s", s, region)
-	}
-
 	if len(suffixes) > 0 {
 		s = fmt.Sprintf("%s-%s", s, strings.Join(suffixes, "-"))
+	}
+
+	if tags.AvailabilityZone != "" && !strings.Contains(s, tags.AvailabilityZone) {
+		s = fmt.Sprintf("%s-%s", s, tags.AvailabilityZone)
+	} else if tags.Region != "" && !strings.Contains(s, tags.Region) {
+		s = fmt.Sprintf("%s-%s", s, tags.Region)
 	}
 
 	return Q(s)

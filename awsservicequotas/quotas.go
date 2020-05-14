@@ -7,9 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
 )
+
+const NoSuchResourceException = "NoSuchResourceException"
 
 func EnsureServiceQuota(
 	svc *servicequotas.ServiceQuotas,
@@ -22,7 +25,11 @@ func EnsureServiceQuota(
 		quotaCode,
 		serviceCode,
 	)
+	if awsutil.ErrorCodeIs(err, NoSuchResourceException) {
+		return nil // the presumption being we don't need to raise limits we can't see
+	}
 	if err != nil {
+		log.Println(aws.StringValue(svc.Client.Config.Region), quotaCode, serviceCode)
 		return err
 	}
 	//log.Printf("%+v", quota)

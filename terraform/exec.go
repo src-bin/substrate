@@ -9,7 +9,6 @@ import (
 
 func Apply(dirname string) error {
 	ui.Printf("applying Terraform changes in %s", dirname)
-	return execlp("make", "-C", dirname, "apply")
 	return execlp("make", "-C", dirname, "apply", "AUTO_APPROVE=-auto-approve")
 }
 

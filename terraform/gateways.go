@@ -8,7 +8,7 @@ type EgressOnlyInternetGateway struct {
 }
 
 func (egw EgressOnlyInternetGateway) Ref() Value {
-	return Uf("aws_internet_gateway.%s", egw.Label)
+	return Uf("aws_egress_only_internet_gateway.%s", egw.Label)
 }
 
 func (EgressOnlyInternetGateway) Template() string {
@@ -75,43 +75,10 @@ func (ngw NATGateway) Ref() Value {
 }
 
 func (NATGateway) Template() string {
-	return `resource "aws_eip" {{.Label.Value}} {
-	depends_on = [{{.InternetGatewayRef}}]
-	provider = {{.Provider}}
-	tags = {
-		"AvailabilityZone" = "{{.Tags.AvailabilityZone}}"
-{{- if .Tags.Environment}}
-		"Environment" = "{{.Tags.Environment}}"
-{{- end}}
-		"Manager" = "{{.Tags.Manager}}"
-{{- if .Tags.Name}}
-		"Name" = "{{.Tags.Name}}"
-{{- end}}
-{{- if .Tags.Quality}}
-		"Quality" = "{{.Tags.Quality}}"
-{{- end}}
-		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
-	}
-	vpc = true # who knows what this actually means
-}
-
-resource "aws_nat_gateway" {{.Label.Value}} {
+	return `resource "aws_nat_gateway" {{.Label.Value}} {
 	allocation_id = aws_eip.{{.Label}}.id
 	provider = {{.Provider}}
 	subnet_id = {{.SubnetId.Value}}
-	tags = {
-		"AvailabilityZone" = "{{.Tags.AvailabilityZone}}"
-{{- if .Tags.Environment}}
-		"Environment" = "{{.Tags.Environment}}"
-{{- end}}
-		"Manager" = "{{.Tags.Manager}}"
-{{- if .Tags.Name}}
-		"Name" = "{{.Tags.Name}}"
-{{- end}}
-{{- if .Tags.Quality}}
-		"Quality" = "{{.Tags.Quality}}"
-{{- end}}
-		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
-	}
+	tags = {{.Tags.Value}}
 }`
 }

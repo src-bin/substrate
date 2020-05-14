@@ -47,19 +47,7 @@ func (rt RouteTable) Ref() Value {
 func (RouteTable) Template() string {
 	return `resource "aws_route_table" {{.Label.Value}} {
 	provider = {{.Provider}}
-	tags = {
-{{- if .Tags.Environment}}
-		"Environment" = "{{.Tags.Environment}}"
-{{- end}}
-		"Manager" = "{{.Tags.Manager}}"
-{{- if .Tags.Name}}
-		"Name" = "{{.Tags.Name}}"
-{{- end}}
-{{- if .Tags.Quality}}
-		"Quality" = "{{.Tags.Quality}}"
-{{- end}}
-		"SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
-	}
+	tags = {{.Tags.Value}}
 	vpc_id = {{.VpcId.Value}}
 }`
 }

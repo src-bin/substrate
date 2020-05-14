@@ -162,11 +162,12 @@ func main() {
 		tags := terraform.Tags{
 			Name:    "ops",
 			Quality: qualities[i],
+			Region:  region,
 			Special: "ops",
 		}
 		vpc := terraform.VPC{
 			CidrBlock: terraform.Q(n.IPv4.String()),
-			Label:     terraform.Label(tags, region),
+			Label:     terraform.Label(tags),
 			Provider:  terraform.ProviderAliasFor(region),
 			Tags:      tags,
 		}
@@ -210,10 +211,11 @@ func main() {
 				Environment: eq.Environment,
 				Name:        fmt.Sprintf("%s-%s", eq.Environment, eq.Quality),
 				Quality:     eq.Quality,
+				Region:      region,
 			}
 			vpc := terraform.VPC{
 				CidrBlock: terraform.Q(n.IPv4.String()),
-				Label:     terraform.Label(tags, region),
+				Label:     terraform.Label(tags),
 				Provider:  terraform.ProviderAliasFor(region),
 				Tags:      tags,
 			}
@@ -260,17 +262,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Ensure the VPCs-per-region service quota isn't going to get in the way.
-	ui.Print("raising the VPCs-per-region service quota in all regions (this could take days, unfortunately; this program is safe to re-run)")
-	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
-		sess,
-		"L-F678F1CE",
-		"vpc",
-		float64(len(netDoc.FindAll(&networks.Network{Region: "us-west-2"}))+ // networks for existing (Environment, Quality) pairs
-			len(qualities)+ // plus room to add another Environment
-			1), // plus the ops network
-	); err != nil {
-		log.Fatal(err)
+	// Ensure the VPCs-per-region service quota and a few others that  isn't going to get in the way.
+	ui.Print("raising the VPC, Internet, Egress-Only Internet, and NAT Gateway, and EIP service quotas in all your regions (this could take days, unfortunately; this program is safe to re-run)")
+	desiredValue := float64(len(netDoc.FindAll(&networks.Network{Region: regions.Selected()[0]})) + // networks for existing (Environment, Quality) pairs
+		len(qualities) + // plus room to add another Environment
+		1 + // plus the ops network
+		1) // plus the default VPC
+	for _, quota := range [][2]string{
+		{"L-F678F1CE", "vpc"}, // VPCs per region
+		{"L-45FE3B85", "vpc"}, // Egress-Only Internet Gateways per region
+		{"L-A4707A72", "vpc"}, // Internet Gateways per region
+		{"L-FE5A380F", "vpc"}, // NAT Gateways per availability zone
+		{"L-0263D0A3", "ec2"}, // EIPs per VPC
+	} {
+		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
+			sess,
+			quota[0],
+			quota[1],
+			desiredValue,
+		); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// Generate a Makefile in each root Terraform module then apply the generated
@@ -285,7 +297,7 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if err := terraform.Plan(dirname); err != nil {
+		if err := terraform.Apply(dirname); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -297,7 +309,7 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if err := terraform.Plan(dirname); err != nil {
+		if err := terraform.Apply(dirname); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -317,7 +329,7 @@ func vpcAccoutrements(
 
 	// A resource share for the subnets to reference.
 	rs := terraform.ResourceShare{
-		Label:    terraform.Label(vpc.Tags, region),
+		Label:    terraform.Label(vpc.Tags),
 		Provider: vpc.Provider,
 		Tags:     vpc.Tags,
 	}
@@ -333,21 +345,21 @@ func vpcAccoutrements(
 		VpcId:    terraform.U(vpc.Ref(), ".id"),
 	}
 	public.Tags.Name += "-public"
-	public.Label = terraform.Label(public.Tags, region)
+	public.Label = terraform.Label(public.Tags)
 	blocks.Push(public)
 	private := terraform.RouteTable{
-		Label:    terraform.Label(vpc.Tags, region),
+		Label:    terraform.Label(vpc.Tags),
 		Provider: vpc.Provider,
 		Tags:     vpc.Tags,
 		VpcId:    terraform.U(vpc.Ref(), ".id"),
 	}
 	private.Tags.Name += "-private"
-	private.Label = terraform.Label(private.Tags, region)
+	private.Label = terraform.Label(private.Tags)
 	blocks.Push(private)
 
 	// IPv4 and IPv6 Internet Gateways for the public subnets.
 	igw := terraform.InternetGateway{
-		Label:    terraform.Label(vpc.Tags, region),
+		Label:    terraform.Label(vpc.Tags),
 		Provider: vpc.Provider,
 		Tags:     vpc.Tags,
 		VpcId:    terraform.U(vpc.Ref(), ".id"),
@@ -356,14 +368,14 @@ func vpcAccoutrements(
 	blocks.Push(terraform.Route{
 		DestinationIPv4:   terraform.Q("0.0.0.0/0"),
 		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
-		Label:             terraform.Label(vpc.Tags, region, "public-internet-ipv4"),
+		Label:             terraform.Label(vpc.Tags, "public-internet-ipv4"),
 		Provider:          vpc.Provider,
 		RouteTableId:      terraform.U(public.Ref(), ".id"),
 	})
 	blocks.Push(terraform.Route{
 		DestinationIPv6:   terraform.Q("::/0"),
 		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
-		Label:             terraform.Label(vpc.Tags, region, "public-internet-ipv6"),
+		Label:             terraform.Label(vpc.Tags, "public-internet-ipv6"),
 		Provider:          vpc.Provider,
 		RouteTableId:      terraform.U(public.Ref(), ".id"),
 	})
@@ -371,7 +383,7 @@ func vpcAccoutrements(
 	// IPv6 Egress-only Internet Gateway for the private subnets.  (The IPv4
 	// NAT Gateway comes later because it's per-subnet.)
 	egw := terraform.EgressOnlyInternetGateway{
-		Label:    terraform.Label(vpc.Tags, region),
+		Label:    terraform.Label(vpc.Tags),
 		Provider: vpc.Provider,
 		Tags:     vpc.Tags,
 		VpcId:    terraform.U(vpc.Ref(), ".id"),
@@ -380,7 +392,7 @@ func vpcAccoutrements(
 	blocks.Push(terraform.Route{
 		DestinationIPv6:             terraform.Q("::/0"),
 		EgressOnlyInternetGatewayId: terraform.U(egw.Ref(), ".id"),
-		Label:                       terraform.Label(vpc.Tags, region, "private-internet-ipv6"),
+		Label:                       terraform.Label(vpc.Tags, "private-internet-ipv6"),
 		Provider:                    vpc.Provider,
 		RouteTableId:                terraform.U(private.Ref(), ".id"),
 	})
@@ -396,6 +408,7 @@ func vpcAccoutrements(
 			AvailabilityZone: az,
 			Environment:      vpc.Tags.Environment,
 			Quality:          vpc.Tags.Quality,
+			Region:           region,
 			Special:          vpc.Tags.Special,
 		}
 
@@ -404,12 +417,13 @@ func vpcAccoutrements(
 			AvailabilityZone:    terraform.Q(az),
 			CidrBlock:           vpc.CidrsubnetIPv4(4, i+1),
 			IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, i+1),
-			Label:               terraform.Label(tags, region, "public"),
+			Label:               terraform.Label(tags, "public"),
 			MapPublicIPOnLaunch: true,
 			Provider:            vpc.Provider,
 			Tags:                tags,
 			VpcId:               terraform.U(vpc.Ref(), ".id"),
 		}
+		s.Tags.Name = vpc.Tags.Name + "-public-" + az
 		blocks.Push(s)
 		blocks.Push(terraform.ResourceAssociation{
 			Label:            s.Label,
@@ -429,11 +443,12 @@ func vpcAccoutrements(
 			AvailabilityZone: terraform.Q(az),
 			CidrBlock:        vpc.CidrsubnetIPv4(2, i+1),
 			IPv6CidrBlock:    vpc.CidrsubnetIPv6(8, i+0x81),
-			Label:            terraform.Label(tags, region, "private"),
+			Label:            terraform.Label(tags, "private"),
 			Provider:         vpc.Provider,
 			Tags:             tags,
 			VpcId:            terraform.U(vpc.Ref(), ".id"),
 		}
+		s.Tags.Name = vpc.Tags.Name + "-private-" + az
 		blocks.Push(s)
 		blocks.Push(terraform.ResourceAssociation{
 			Label:            s.Label,
@@ -449,13 +464,21 @@ func vpcAccoutrements(
 		})
 
 		// NAT Gateway for this private subnet.
-		ngw := terraform.NATGateway{
+		eip := terraform.EIP{
 			InternetGatewayRef: igw.Ref(),
-			Label:              terraform.Label(tags, region),
+			Label:              terraform.Label(tags),
 			Provider:           vpc.Provider,
-			SubnetId:           terraform.U(s.Ref(), ".id"),
 			Tags:               tags,
 		}
+		eip.Tags.Name = vpc.Tags.Name + "-nat-gateway-" + az
+		blocks.Push(eip)
+		ngw := terraform.NATGateway{
+			Label:    terraform.Label(tags),
+			Provider: vpc.Provider,
+			SubnetId: terraform.U(s.Ref(), ".id"),
+			Tags:     tags,
+		}
+		ngw.Tags.Name = vpc.Tags.Name + "-" + az
 		blocks.Push(ngw)
 		/*
 			blocks.Push(terraform.Route{
