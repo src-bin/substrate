@@ -335,28 +335,6 @@ func vpcAccoutrements(
 	}
 	blocks.Push(rs)
 
-	// New routing tables, one for public subnets and one for private subnets.
-	// We're not going to use the main route table to keep things explicit.
-	// Route tables automatically bring local IPv4 and IPv6 routes so there's
-	// no need for us to specify those here.
-	public := terraform.RouteTable{
-		Provider: vpc.Provider,
-		Tags:     vpc.Tags,
-		VpcId:    terraform.U(vpc.Ref(), ".id"),
-	}
-	public.Tags.Name += "-public"
-	public.Label = terraform.Label(public.Tags)
-	blocks.Push(public)
-	private := terraform.RouteTable{
-		Label:    terraform.Label(vpc.Tags),
-		Provider: vpc.Provider,
-		Tags:     vpc.Tags,
-		VpcId:    terraform.U(vpc.Ref(), ".id"),
-	}
-	private.Tags.Name += "-private"
-	private.Label = terraform.Label(private.Tags)
-	blocks.Push(private)
-
 	// IPv4 and IPv6 Internet Gateways for the public subnets.
 	igw := terraform.InternetGateway{
 		Label:    terraform.Label(vpc.Tags),
@@ -370,18 +348,19 @@ func vpcAccoutrements(
 		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
 		Label:             terraform.Label(vpc.Tags, "public-internet-ipv4"),
 		Provider:          vpc.Provider,
-		RouteTableId:      terraform.U(public.Ref(), ".id"),
+		RouteTableId:      terraform.U(vpc.Ref(), ".default_route_table_id"),
 	})
 	blocks.Push(terraform.Route{
 		DestinationIPv6:   terraform.Q("::/0"),
 		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
 		Label:             terraform.Label(vpc.Tags, "public-internet-ipv6"),
 		Provider:          vpc.Provider,
-		RouteTableId:      terraform.U(public.Ref(), ".id"),
+		RouteTableId:      terraform.U(vpc.Ref(), ".default_route_table_id"),
 	})
 
-	// IPv6 Egress-only Internet Gateway for the private subnets.  (The IPv4
-	// NAT Gateway comes later because it's per-subnet.)
+	// IPv6 Egress-Only Internet Gateway for the private subnets.  (The IPv4
+	// NAT Gateway comes later because it's per-subnet.  That is also where
+	// this Egress-Only Internat Gateway is associated with the route table.)
 	egw := terraform.EgressOnlyInternetGateway{
 		Label:    terraform.Label(vpc.Tags),
 		Provider: vpc.Provider,
@@ -389,13 +368,6 @@ func vpcAccoutrements(
 		VpcId:    terraform.U(vpc.Ref(), ".id"),
 	}
 	blocks.Push(egw)
-	blocks.Push(terraform.Route{
-		DestinationIPv6:             terraform.Q("::/0"),
-		EgressOnlyInternetGatewayId: terraform.U(egw.Ref(), ".id"),
-		Label:                       terraform.Label(vpc.Tags, "private-internet-ipv6"),
-		Provider:                    vpc.Provider,
-		RouteTableId:                terraform.U(private.Ref(), ".id"),
-	})
 
 	// Create a public and private subnet in each of (up to, and the newest)
 	// three availability zones in the region.
@@ -431,10 +403,12 @@ func vpcAccoutrements(
 			ResourceArn:      terraform.U(s.Ref(), ".arn"),
 			ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
 		})
+
+		// Explicitly associate the public subnets with the main routing table.
 		blocks.Push(terraform.RouteTableAssociation{
 			Label:        s.Label,
 			Provider:     vpc.Provider,
-			RouteTableId: terraform.U(public.Ref(), ".id"),
+			RouteTableId: terraform.U(vpc.Ref(), ".default_route_table_id"),
 			SubnetId:     terraform.U(s.Ref(), ".id"),
 		})
 
@@ -456,10 +430,20 @@ func vpcAccoutrements(
 			ResourceArn:      terraform.U(s.Ref(), ".arn"),
 			ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
 		})
+
+		// Private subnets need their own routing tables to keep their NAT
+		// Gateway traffic zonal.
+		rt := terraform.RouteTable{
+			Label:    s.Label,
+			Provider: vpc.Provider,
+			Tags:     s.Tags,
+			VpcId:    terraform.U(vpc.Ref(), ".id"),
+		}
+		blocks.Push(rt)
 		blocks.Push(terraform.RouteTableAssociation{
 			Label:        s.Label,
 			Provider:     vpc.Provider,
-			RouteTableId: terraform.U(private.Ref(), ".id"),
+			RouteTableId: terraform.U(rt.Ref(), ".id"),
 			SubnetId:     terraform.U(s.Ref(), ".id"),
 		})
 
@@ -485,7 +469,16 @@ func vpcAccoutrements(
 			Label:           terraform.Label(tags),
 			NATGatewayId:    terraform.U(ngw.Ref(), ".id"),
 			Provider:        vpc.Provider,
-			RouteTableId:    terraform.U(private.Ref(), ".id"),
+			RouteTableId:    terraform.U(rt.Ref(), ".id"),
+		})
+
+		// Associate the VPC's Egress-Only Internet Gateway for IPv6 traffic.
+		blocks.Push(terraform.Route{
+			DestinationIPv6:             terraform.Q("::/0"),
+			EgressOnlyInternetGatewayId: terraform.U(egw.Ref(), ".id"),
+			Label:                       terraform.Label(s.Tags, "private-internet-ipv6"),
+			Provider:                    vpc.Provider,
+			RouteTableId:                terraform.U(rt.Ref(), ".id"),
 		})
 
 	}
