@@ -281,7 +281,7 @@ func main() {
 		{"L-45FE3B85", "vpc"}, // Egress-Only Internet Gateways per region
 		{"L-A4707A72", "vpc"}, // Internet Gateways per region
 		{"L-FE5A380F", "vpc"}, // NAT Gateways per availability zone
-		{"L-0263D0A3", "ec2"}, // EIPs per VPC
+		// XXX not waiting on this now, just seeing what breaks {"L-0263D0A3", "ec2"}, // EIPs per VPC
 	} {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 			sess,
@@ -317,7 +317,7 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if err := terraform.Apply(dirname); err != nil {
+		if err := terraform.Destroy(dirname); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -333,6 +333,8 @@ func vpcAccoutrements(
 ) {
 
 	// Accept the default Network ACL until we need to do otherwise.
+
+	// TODO manage the default security group to ensure it has no rules.
 
 	// Accept the default DHCP option set until we need to do otherwise.
 

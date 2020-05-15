@@ -39,9 +39,9 @@ init: .terraform
 plan:
 	terraform plan
 
+.PHONY: all apply init plan
+
 .terraform:
 	terraform init
-
-.PHONY: all apply init plan
 `
 }
