@@ -5,22 +5,22 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/src-bin/substrate/lambdautil"
 )
 
-func main() {
-	lambda.Start(start)
-}
-
-func start(ctx context.Context, event *lambdautil.ProxyEvent) (*lambdautil.ProxyResponse, error) {
+func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	b, err := json.MarshalIndent(event, "", "\t")
 	if err != nil {
 		return nil, err
 	}
-	return &lambdautil.ProxyResponse{
+	return &events.APIGatewayProxyResponse{
 		Body:       "We did it!\n\n" + string(b),
 		Headers:    map[string]string{"Content-Type": "text/plain"},
 		StatusCode: http.StatusOK,
 	}, nil
+}
+
+func main() {
+	lambda.Start(handle)
 }
