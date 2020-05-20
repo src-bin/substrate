@@ -17,8 +17,8 @@ type JWT struct {
 	signingInput []byte
 }
 
-func ParseAndVerifyJWT(s string, c *Client) (*JWT, error) {
-	jwt, err := ParseJWT(s)
+func ParseAndVerifyJWT(s string, c *Client, v interface{}) (*JWT, error) {
+	jwt, err := ParseJWT(s, v)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func ParseAndVerifyJWT(s string, c *Client) (*JWT, error) {
 	return jwt, nil
 }
 
-func ParseJWT(s string) (*JWT, error) {
+func ParseJWT(s string, v interface{}) (*JWT, error) {
 	slice := strings.Split(s, ".")
 	if len(slice) != 3 {
 		return nil, MalformedJWTError(fmt.Sprintf(
@@ -43,7 +43,7 @@ func ParseJWT(s string) (*JWT, error) {
 	if err != nil {
 		return nil, err
 	}
-	jwt.Payload, err = parseJWTPayload(slice[1])
+	jwt.Payload, err = parseJWTPayload(slice[1], v)
 	if err != nil {
 		return nil, err
 	}
@@ -97,34 +97,17 @@ func parseJWTHeader(s string) (*JWTHeader, error) {
 	return h, nil
 }
 
-type JWTPayload map[string]interface{}
+type JWTPayload interface{}
 
-/*
-type JWTPayload struct {
-	Version     int         `json:"ver"`
-	DebugID     string      `json:"jti"`
-	Issuer      string      `json:"iss"`
-	Audience    string      `json:"aud"`
-	Subject     string      `json:"sub"`
-	Issued      int64       `json:"iat"`
-	Expires     int64       `json:"exp"`
-	ClientID    string      `json:"cid"`
-	UserID      string      `json:"uid"`
-	Scopes      []string    `json:"scp"`
-	CustomClaim interface{} `json:"custom_claim"`
-}
-*/
-
-func parseJWTPayload(s string) (JWTPayload, error) {
+func parseJWTPayload(s string, v interface{}) (JWTPayload, error) {
 	b, err := base64.RawURLEncoding.DecodeString(s)
 	if err != nil {
 		return nil, err
 	}
-	p := JWTPayload{}
-	if err := json.Unmarshal(b, &p); err != nil {
+	if err := json.Unmarshal(b, v); err != nil {
 		return nil, err
 	}
-	return p, nil
+	return v, nil
 }
 
 type JWTSignature []byte

@@ -14,6 +14,47 @@ const (
 	TokenPath     = "token"
 )
 
+type OktaAccessToken struct {
+	Audience string   `json:"aud"`
+	ClientID string   `json:"cid"`
+	DebugID  string   `json:"jti"`
+	Expires  int64    `json:"exp"`
+	IssuedAt int64    `json:"iat"`
+	Issuer   string   `json:"iss"`
+	Scopes   []string `json:"scp"`
+	Subject  string   `json:"sub"`
+	UserID   string   `json:"uid"`
+	Version  int      `json:"ver"`
+}
+
+type OktaIDToken struct {
+	Address               map[string]string `json:"address"`
+	Audience              string            `json:"aud"`
+	AuthenticationMethods []string          `json:"amr"`
+	AuthenticationTime    int64             `json:"auth_time"`
+	DebugID               string            `json:"jti"`
+	Email                 string            `json:"email"`
+	EmailVerified         bool              `json:"email_verified"`
+	Expires               int64             `json:"exp"`
+	FamilyName            string            `json:"family_name"`
+	GivenName             string            `json:"given_name"`
+	Groups                []string          `json:"groups"`
+	IdentityProvider      string            `json:"idp"`
+	IssuedAt              int64             `json:"iat"`
+	Issuer                string            `json:"iss"`
+	Locale                string            `json:"locale"`
+	MiddleName            string            `json:"middle_name"`
+	Name                  string            `json:"name"`
+	Nickname              string            `json:"nickname"`
+	PhoneNumber           string            `json:"phone_number"`
+	PreferredUsername     string            `json:"preferred_username"`
+	ProfileURL            string            `json:"profile"`
+	Subject               string            `json:"sub"`
+	UpdatedAt             int64             `json:"updated_at"`
+	Version               int               `json:"ver"`
+	ZoneInfo              string            `json:"zoneinfo"`
+}
+
 func OktaPathQualifier(basePath string) func(string) string {
 	return func(p string) string {
 		return path.Join(basePath, p)
