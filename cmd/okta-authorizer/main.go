@@ -10,8 +10,11 @@ import (
 
 func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest) (*events.APIGatewayCustomAuthorizerResponse, error) {
 	log.Printf("%+v", event)
+	//return nil, errors.New("GTFO")
 	return &events.APIGatewayCustomAuthorizerResponse{
-		Context: map[string]interface{}{},
+		Context: map[string]interface{}{
+			"foo": "bar", // XXX
+		},
 		PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
 			Statement: []events.IAMPolicyStatement{
 				{
@@ -22,8 +25,7 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 			},
 			Version: "2012-10-17",
 		},
-		PrincipalID:        "rcrowley",
-		UsageIdentifierKey: "rcrowley-was-here",
+		PrincipalID: "rcrowley", // XXX
 	}, nil
 }
 
