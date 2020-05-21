@@ -4,14 +4,17 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 	"path"
+	"time"
 )
 
 const (
-	AuthorizePath = "authorize"
-	KeysPath      = "keys"
-	TokenPath     = "token"
+	AuthorizePath = "v1/authorize"
+	IssuerPath    = ""
+	KeysPath      = "v1/keys"
+	TokenPath     = "v1/token"
 )
 
 type OktaAccessToken struct {
@@ -25,6 +28,17 @@ type OktaAccessToken struct {
 	Subject  string   `json:"sub"`
 	UserID   string   `json:"uid"`
 	Version  int      `json:"ver"`
+	WTF      []byte   // TODO remove
+}
+
+func (t *OktaAccessToken) Verify(c *Client) error {
+	if t.ClientID != c.ClientID {
+		return VerificationError{"cid", t.ClientID, c.ClientID}
+	}
+	if actual, expected := t.Issuer, c.URL(IssuerPath, nil).String(); actual != expected {
+		return VerificationError{"iss", actual, expected}
+	}
+	return nil
 }
 
 type OktaIDToken struct {
@@ -42,9 +56,11 @@ type OktaIDToken struct {
 	IdentityProvider      string            `json:"idp"`
 	IssuedAt              int64             `json:"iat"`
 	Issuer                string            `json:"iss"`
+	Login                 string            `json:"login"`
 	Locale                string            `json:"locale"`
 	MiddleName            string            `json:"middle_name"`
 	Name                  string            `json:"name"`
+	Nonce                 string            `json:"nonce"`
 	Nickname              string            `json:"nickname"`
 	PhoneNumber           string            `json:"phone_number"`
 	PreferredUsername     string            `json:"preferred_username"`
@@ -53,12 +69,24 @@ type OktaIDToken struct {
 	UpdatedAt             int64             `json:"updated_at"`
 	Version               int               `json:"ver"`
 	ZoneInfo              string            `json:"zoneinfo"`
+	WTF                   []byte            // TODO remove
 }
 
-func OktaPathQualifier(basePath string) func(string) string {
-	return func(p string) string {
-		return path.Join(basePath, p)
+func (t *OktaIDToken) Verify(c *Client) error {
+	if t.Audience != c.ClientID {
+		return VerificationError{"aud", t.Audience, c.ClientID}
 	}
+	now := time.Now().Unix()
+	if t.Expires < now {
+		return InvalidJWTError(fmt.Sprintf("expired at %d", t.Expires))
+	}
+	if t.IssuedAt > now {
+		return InvalidJWTError(fmt.Sprintf("not issued until %d", t.IssuedAt))
+	}
+	if actual, expected := t.Issuer, c.URL(IssuerPath, nil).String(); actual != expected {
+		return VerificationError{"iss", actual, expected}
+	}
+	return nil
 }
 
 type OktaKey struct {
@@ -94,6 +122,12 @@ func (k *OktaKey) RSAPublicKey() (*rsa.PublicKey, error) {
 
 type OktaKeysResponse struct {
 	Keys []*OktaKey `json:"keys"`
+}
+
+func OktaPathQualifier(basePath string) func(string) string {
+	return func(p string) string {
+		return path.Join(basePath, p)
+	}
 }
 
 type OktaTokenResponse struct {

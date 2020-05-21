@@ -17,8 +17,8 @@ type JWT struct {
 	signingInput []byte
 }
 
-func ParseAndVerifyJWT(s string, c *Client, v interface{}) (*JWT, error) {
-	jwt, err := ParseJWT(s, v)
+func ParseAndVerifyJWT(s string, c *Client, p JWTPayload) (*JWT, error) {
+	jwt, err := ParseJWT(s, p)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func ParseAndVerifyJWT(s string, c *Client, v interface{}) (*JWT, error) {
 	return jwt, nil
 }
 
-func ParseJWT(s string, v interface{}) (*JWT, error) {
+func ParseJWT(s string, p JWTPayload) (*JWT, error) {
 	slice := strings.Split(s, ".")
 	if len(slice) != 3 {
 		return nil, MalformedJWTError(fmt.Sprintf(
@@ -43,7 +43,7 @@ func ParseJWT(s string, v interface{}) (*JWT, error) {
 	if err != nil {
 		return nil, err
 	}
-	jwt.Payload, err = parseJWTPayload(slice[1], v)
+	jwt.Payload, err = parseJWTPayload(slice[1], p)
 	if err != nil {
 		return nil, err
 	}
@@ -56,28 +56,44 @@ func ParseJWT(s string, v interface{}) (*JWT, error) {
 }
 
 func (jwt *JWT) Verify(c *Client) error {
+
+	key, err := jwt.findKey(c)
+	if err != nil {
+		return err
+	}
+
+	pub, err := key.RSAPublicKey()
+	if err != nil {
+		return err
+	}
+	hashed := sha256.Sum256(jwt.signingInput)
+	if err := rsa.VerifyPKCS1v15(
+		pub,
+		crypto.SHA256,
+		hashed[:],
+		[]byte(jwt.Signature),
+	); err != nil {
+		return err
+	}
+
+	if err := jwt.Payload.Verify(c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (jwt *JWT) findKey(c *Client) (*OktaKey, error) {
 	doc := &OktaKeysResponse{}
 	if _, err := c.Get(KeysPath, nil, doc); err != nil {
-		return err
+		return nil, err
 	}
 	for _, key := range doc.Keys {
 		if jwt.Header.KeyID == key.KeyID {
-
-			pub, err := key.RSAPublicKey()
-			if err != nil {
-				return err
-			}
-			hashed := sha256.Sum256(jwt.signingInput)
-			return rsa.VerifyPKCS1v15(
-				pub,
-				crypto.SHA256,
-				hashed[:],
-				[]byte(jwt.Signature),
-			)
-
+			return key, nil
 		}
 	}
-	return KeyNotFoundError(jwt.Header.KeyID)
+	return nil, KeyNotFoundError(jwt.Header.KeyID)
 }
 
 type JWTHeader struct {
@@ -97,17 +113,28 @@ func parseJWTHeader(s string) (*JWTHeader, error) {
 	return h, nil
 }
 
-type JWTPayload interface{}
+type JWTPayload interface {
+	Verify(c *Client) error
+}
 
-func parseJWTPayload(s string, v interface{}) (JWTPayload, error) {
+func parseJWTPayload(s string, p JWTPayload) (JWTPayload, error) {
 	b, err := base64.RawURLEncoding.DecodeString(s)
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(b, v); err != nil {
+	if err := json.Unmarshal(b, p); err != nil {
 		return nil, err
 	}
-	return v, nil
+
+	// TODO remove
+	if a, ok := p.(*OktaAccessToken); ok {
+		a.WTF = b
+	}
+	if id, ok := p.(*OktaIDToken); ok {
+		id.WTF = b
+	}
+
+	return p, nil
 }
 
 type JWTSignature []byte
@@ -120,14 +147,29 @@ func parseJWTSignature(s string) (JWTSignature, error) {
 	return JWTSignature(b), nil
 }
 
+type InvalidJWTError string
+
+func (err InvalidJWTError) Error() string {
+	return fmt.Sprintf("InvalidJWTError: %s", string(err))
+}
+
 type KeyNotFoundError string
 
 func (err KeyNotFoundError) Error() string {
-	return fmt.Sprintf("KeyNotFoundError: %v not found", string(err))
+	return fmt.Sprintf("KeyNotFoundError: %s not found", string(err))
 }
 
 type MalformedJWTError string
 
 func (err MalformedJWTError) Error() string {
-	return fmt.Sprintf("MalformedJWTError: %v", string(err))
+	return fmt.Sprintf("MalformedJWTError: %s", string(err))
+}
+
+type VerificationError struct {
+	Field            string
+	Actual, Expected string
+}
+
+func (err VerificationError) Error() string {
+	return fmt.Sprintf("VerificationError: expected %q to be %q but got %q", err.Field, err.Expected, err.Actual)
 }

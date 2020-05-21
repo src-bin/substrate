@@ -30,18 +30,22 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 
 	c := oauthoidc.NewClient(
 		"dev-662445.okta.com", // XXX
-		oauthoidc.OktaPathQualifier("/oauth2/default/v1"),
+		oauthoidc.OktaPathQualifier("/oauth2/default"),
 		"0oacg1iawaojz8rOo4x6",                     // XXX
 		"mFdL4HOHV5OquQVMm9SZd9r8RT9dLTccfTxPrfWc", // XXX
 	)
+	redirectURI := "https://czo8u1t120.execute-api.us-west-1.amazonaws.com/alpha/login" // XXX
 
 	code := event.QueryStringParameters["code"]
-	state := event.QueryStringParameters["state"]
-	if code != "" && state != "" {
+	state, err := oauthoidc.ParseState(event.QueryStringParameters["state"])
+	if err != nil {
+		return nil, err
+	}
+	if code != "" && state != nil {
 		v := url.Values{}
 		v.Add("code", code)
 		v.Add("grant_type", "authorization_code")
-		v.Add("redirect_uri", "https://czo8u1t120.execute-api.us-west-1.amazonaws.com/alpha/login") // XXX
+		v.Add("redirect_uri", redirectURI)
 		doc := &oauthoidc.OktaTokenResponse{}
 		if _, err := c.Post(oauthoidc.TokenPath, v, doc); err != nil {
 			return nil, err
@@ -55,15 +59,26 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		if _, err := oauthoidc.ParseAndVerifyJWT(doc.IDToken, c, idToken); err != nil {
 			return errorResponse(err, doc.IDToken), nil
 		}
-		return &events.APIGatewayProxyResponse{
-			Body: fmt.Sprintf("%+v\n\n%+v\n\n%s\n", accessToken, idToken, string(b)),
-			Headers: map[string]string{
-				"Content-Type": "text/plain",
-				// "Location":     location,
-				// "Set-Cookie":   cookie,
-				// "Set-Cookie":   cookie,
+		if idToken.Nonce != state.Nonce {
+			return errorResponse(oauthoidc.VerificationError{"nonce", idToken.Nonce, state.Nonce}, doc.IDToken), nil
+		}
+
+		multiValueHeaders := map[string][]string{
+			"Content-Type": []string{"text/plain"},
+			"Set-Cookie": []string{
+				fmt.Sprintf("a=%s; HttpOnly; Max-Age=43200; Secure", doc.AccessToken),
+				fmt.Sprintf("id=%s; HttpOnly; Max-Age=43200; Secure", doc.IDToken),
 			},
-			StatusCode: http.StatusFound,
+		}
+		statusCode := http.StatusOK
+		if state.Next != "" {
+			multiValueHeaders["Location"] = []string{state.Next}
+			statusCode = http.StatusFound
+		}
+		return &events.APIGatewayProxyResponse{
+			Body:              fmt.Sprintf("%s\n\n%+v\n\n%s\n\n%+v\n\n%s\n", accessToken.WTF, accessToken, idToken.WTF, idToken, string(b)),
+			MultiValueHeaders: multiValueHeaders,
+			StatusCode:        statusCode,
 		}, nil
 	}
 
@@ -79,10 +94,14 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		return nil, err
 	}
 	q.Add("nonce", nonce)
-	q.Add("redirect_uri", "https://czo8u1t120.execute-api.us-west-1.amazonaws.com/alpha/login") // XXX
+	q.Add("redirect_uri", redirectURI)
 	q.Add("response_type", "code")
-	q.Add("scope", "openid") // TODO figure out how to get the "profile" scope, too, because we need preferred_username
-	q.Add("state", "foobar") // XXX
+	q.Add("scope", "openid profile") // TODO figure out how to get the "profile" scope, too, because we need preferred_username
+	state = &oauthoidc.State{
+		Next:  "", //TODO
+		Nonce: nonce,
+	}
+	q.Add("state", state.String())
 	location := c.URL(oauthoidc.AuthorizePath, q).String()
 
 	return &events.APIGatewayProxyResponse{
@@ -100,7 +119,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 `,
 		Headers: map[string]string{
 			"Content-Type": "text/html",
-			// "Location":     location,
+			"Location":     location,
 		},
 		StatusCode: http.StatusFound,
 	}, nil
