@@ -98,7 +98,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	q.Add("response_type", "code")
 	q.Add("scope", "openid profile") // TODO figure out how to get the "profile" scope, too, because we need preferred_username
 	state = &oauthoidc.State{
-		Next:  "", //TODO
+		Next:  event.QueryStringParameters["next"],
 		Nonce: nonce,
 	}
 	q.Add("state", state.String())

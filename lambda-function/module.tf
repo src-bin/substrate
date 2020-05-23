@@ -1,6 +1,9 @@
 variable "apigateway_execution_arn" {}
+
 variable "filename" {}
+
 variable "name" {}
+
 variable "policy" {}
 
 output "function_arn" {
