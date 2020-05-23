@@ -34,7 +34,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		"0oacg1iawaojz8rOo4x6",                     // XXX
 		"mFdL4HOHV5OquQVMm9SZd9r8RT9dLTccfTxPrfWc", // XXX
 	)
-	redirectURI := "https://czo8u1t120.execute-api.us-west-1.amazonaws.com/alpha/login" // XXX
+	redirectURI := "https://p8xb2bdbgc.execute-api.us-west-1.amazonaws.com/alpha/login" // XXX
 
 	code := event.QueryStringParameters["code"]
 	state, err := oauthoidc.ParseState(event.QueryStringParameters["state"])
