@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"path"
@@ -29,6 +30,14 @@ type OktaAccessToken struct {
 	UserID   string   `json:"uid"`
 	Version  int      `json:"ver"`
 	WTF      []byte   // TODO remove
+}
+
+func (t *OktaAccessToken) JSONString() (string, error) {
+	b, err := json.Marshal(t)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func (t *OktaAccessToken) Verify(c *Client) error {
@@ -70,6 +79,14 @@ type OktaIDToken struct {
 	Version               int               `json:"ver"`
 	ZoneInfo              string            `json:"zoneinfo"`
 	WTF                   []byte            // TODO remove
+}
+
+func (t *OktaIDToken) JSONString() (string, error) {
+	b, err := json.Marshal(t)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func (t *OktaIDToken) Verify(c *Client) error {

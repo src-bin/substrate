@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
+	"strings"
+	"text/template"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -21,10 +23,6 @@ func errorResponse(err error, s string) *events.APIGatewayProxyResponse {
 }
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	b, err := json.MarshalIndent(event, "", "\t")
-	if err != nil {
-		return nil, err
-	}
 
 	// TODO logout per <https://developer.okta.com/docs/reference/api/oidc/#logout>
 
@@ -34,7 +32,11 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		"0oacg1iawaojz8rOo4x6",                     // XXX
 		"mFdL4HOHV5OquQVMm9SZd9r8RT9dLTccfTxPrfWc", // XXX
 	)
-	redirectURI := "https://p8xb2bdbgc.execute-api.us-west-1.amazonaws.com/alpha/login" // XXX
+	redirectURI := &url.URL{
+		Scheme: "https",
+		Host:   event.Headers["Host"],
+		Path:   path.Join("/", event.RequestContext.Stage, event.RequestContext.ResourcePath),
+	}
 
 	code := event.QueryStringParameters["code"]
 	state, err := oauthoidc.ParseState(event.QueryStringParameters["state"])
@@ -45,7 +47,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		v := url.Values{}
 		v.Add("code", code)
 		v.Add("grant_type", "authorization_code")
-		v.Add("redirect_uri", redirectURI)
+		v.Add("redirect_uri", redirectURI.String())
 		doc := &oauthoidc.OktaTokenResponse{}
 		if _, err := c.Post(oauthoidc.TokenPath, v, doc); err != nil {
 			return nil, err
@@ -63,8 +65,15 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			return errorResponse(oauthoidc.VerificationError{"nonce", idToken.Nonce, state.Nonce}, doc.IDToken), nil
 		}
 
+		var bodyV struct {
+			AccessToken *oauthoidc.OktaAccessToken
+			IDToken     *oauthoidc.OktaIDToken
+			Location    string
+		}
+		bodyV.AccessToken = accessToken
+		bodyV.IDToken = idToken
 		multiValueHeaders := map[string][]string{
-			"Content-Type": []string{"text/plain"},
+			"Content-Type": []string{"text/html"},
 			"Set-Cookie": []string{
 				fmt.Sprintf("a=%s; HttpOnly; Max-Age=43200; Secure", doc.AccessToken),
 				fmt.Sprintf("id=%s; HttpOnly; Max-Age=43200; Secure", doc.IDToken),
@@ -72,19 +81,32 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		}
 		statusCode := http.StatusOK
 		if state.Next != "" {
+			bodyV.Location = state.Next
 			multiValueHeaders["Location"] = []string{state.Next}
 			statusCode = http.StatusFound
 		}
+		body, err := render(`<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Intranet</title>
+<body>
+<h1>Intranet</h1>
+<p>Hello, <a href="mailto:{{.AccessToken.Subject}}">{{.AccessToken.Subject}}</a>!</p>
+{{- if .Location}}
+<p>Redirecting to <a href="{{.Location}}">{{.Location}}</a>.</p>
+{{- end}}
+</body>
+</html>
+`, bodyV)
+		if err != nil {
+			return nil, err
+		}
+
 		return &events.APIGatewayProxyResponse{
-			Body:              fmt.Sprintf("%s\n\n%+v\n\n%s\n\n%+v\n\n%s\n", accessToken.WTF, accessToken, idToken.WTF, idToken, string(b)),
+			Body:              body,
 			MultiValueHeaders: multiValueHeaders,
 			StatusCode:        statusCode,
 		}, nil
-	}
-
-	error_description := event.QueryStringParameters["error_description"]
-	if error_description != "" {
-		// TODO
 	}
 
 	q := url.Values{}
@@ -94,37 +116,62 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		return nil, err
 	}
 	q.Add("nonce", nonce)
-	q.Add("redirect_uri", redirectURI)
+	q.Add("redirect_uri", redirectURI.String())
 	q.Add("response_type", "code")
-	q.Add("scope", "openid profile") // TODO figure out how to get the "profile" scope, too, because we need preferred_username
+	q.Add("scope", "openid profile") // TODO figure out how to get "preferred_username", too
 	state = &oauthoidc.State{
 		Next:  event.QueryStringParameters["next"],
 		Nonce: nonce,
 	}
 	q.Add("state", state.String())
-	location := c.URL(oauthoidc.AuthorizePath, q).String()
 
-	return &events.APIGatewayProxyResponse{
-		Body: `<!DOCTYPE html>
+	var bodyV struct{ ErrorDescription, Location string }
+	bodyV.ErrorDescription = event.QueryStringParameters["error_description"]
+	headers := map[string]string{"Content-Type": "text/html"}
+	statusCode := http.StatusOK
+	bodyV.Location = c.URL(oauthoidc.AuthorizePath, q).String()
+	if bodyV.ErrorDescription == "" {
+		headers["Location"] = bodyV.Location
+		statusCode = http.StatusFound
+	}
+	body, err := render(`<!DOCTYPE html>
 <html lang="en">
 <meta charset="utf-8">
 <title>Intranet</title>
 <body>
 <h1>Intranet</h1>
-<p>Redirecting to <a href="` + location + `">Okta</a>.</p>
-<hr>
-<pre>` + string(b) + `</pre>
+{{- if .ErrorDescription}}
+<p class="error">{{.ErrorDescription}}</p>
+<p><a href="{{.Location}}">Try again</a>.</p>
+{{- else}}
+<p>Redirecting to <a href="{{.Location}}">Okta</a>.</p>
+{{- end}}
 </body>
 </html>
-`,
-		Headers: map[string]string{
-			"Content-Type": "text/html",
-			"Location":     location,
-		},
-		StatusCode: http.StatusFound,
+`, bodyV)
+	if err != nil {
+		return nil, err
+	}
+
+	return &events.APIGatewayProxyResponse{
+		Body:       body,
+		Headers:    headers,
+		StatusCode: statusCode,
 	}, nil
 }
 
 func main() {
 	lambda.Start(handle)
+}
+
+func render(html string, v interface{}) (string, error) {
+	tmpl, err := template.New("HTML").Parse(html)
+	if err != nil {
+		return "", err
+	}
+	builder := &strings.Builder{}
+	if err = tmpl.Execute(builder, v); err != nil {
+		return "", err
+	}
+	return builder.String(), nil
 }
