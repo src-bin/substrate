@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/regions"
 )
 
 func main() {
@@ -28,20 +28,19 @@ func main() {
 
 	flag.Parse()
 
-	if !*allRegions && !awsutil.IsRegion(*region) {
+	if !*allRegions && !regions.IsRegion(*region) {
 		log.Fatal("one of -all-regions or a valid -region is required")
 	}
-	var regions []string
+	var regionSlice []string
 	if *allRegions {
-		for _, region := range awsutil.Regions() {
-			if !awsutil.IsBlacklistedRegion(region) {
-				regions = append(regions, region)
-			}
+		for _, region := range regions.Selected() {
+			regionSlice = append(regionSlice, region)
 		}
 	} else {
-		regions = []string{*region}
+		regionSlice = []string{*region}
 	}
 
+	// TODO factor this part out into substrate-assume-role to simplify this tools interface
 	sess := awssessions.AssumeRole(
 		awssessions.NewSession(awssessions.Config{}),
 		*accountId,
@@ -50,7 +49,7 @@ func main() {
 
 	if *listServices {
 		var lines []string
-		for _, region := range regions {
+		for _, region := range regionSlice {
 			for info := range awsservicequotas.ListServices(
 				servicequotasNew(sess, region),
 			) {
@@ -76,7 +75,7 @@ func main() {
 		if *serviceCode == "" {
 			log.Fatal("-service-code is required with -list-quotas")
 		}
-		for _, region := range regions {
+		for _, region := range regionSlice {
 			for quota := range awsservicequotas.ListServiceQuotas(
 				servicequotasNew(sess, region),
 				*serviceCode,
@@ -116,7 +115,7 @@ func main() {
 		}
 	} else {
 
-		for _, region := range regions {
+		for _, region := range regionSlice {
 			quota, err := awsservicequotas.GetServiceQuota(
 				servicequotasNew(sess, region),
 				*quotaCode,

@@ -50,10 +50,13 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_method.POST-login),
       jsonencode(aws_api_gateway_resource.instance-factory),
       jsonencode(aws_api_gateway_resource.login),
-      #jsonencode(module.okta-authorizer),
     )))
   }
-  variables = {}
+  variables = {
+    "OktaClientID"              = var.okta_client_id
+    "OktaClientSecretTimestamp" = var.okta_client_secret_timestamp
+    "OktaHostname"              = var.okta_hostname
+  }
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {

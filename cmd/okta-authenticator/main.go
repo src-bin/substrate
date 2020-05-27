@@ -3,18 +3,27 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/src-bin/substrate/awssecretsmanager"
+	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/oauthoidc"
 )
 
+var clientSecrets = &sync.Map{}
+
 func errorResponse(err error, s string) *events.APIGatewayProxyResponse {
+	log.Printf("%+v", err)
 	return &events.APIGatewayProxyResponse{
 		Body:       err.Error() + "\n\n" + s + "\n",
 		Headers:    map[string]string{"Content-Type": "text/plain"},
@@ -26,11 +35,35 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 
 	// TODO logout per <https://developer.okta.com/docs/reference/api/oidc/#logout>
 
+	v, ok := clientSecrets.Load(event.StageVariables["OktaClientID"])
+	var clientSecret string
+	if ok {
+		clientSecret = v.(string)
+	} else {
+		sess := awssessions.NewSession(awssessions.Config{})
+		svc := secretsmanager.New(sess) /* , &aws.Config{
+			Region: aws.String(region),
+		}) */
+		out, err := awssecretsmanager.GetSecretValue(
+			svc,
+			fmt.Sprintf(
+				"OktaClientSecret-%s",
+				event.StageVariables["OktaClientID"],
+			),
+			event.StageVariables["OktaClientSecretTimestamp"],
+		)
+		if err != nil {
+			return nil, err
+		}
+		clientSecret = aws.StringValue(out.SecretString)
+		clientSecrets.Store(event.StageVariables["OktaClientID"], clientSecret)
+	}
+
 	c := oauthoidc.NewClient(
-		"dev-662445.okta.com", // XXX
+		event.StageVariables["OktaHostname"],
 		oauthoidc.OktaPathQualifier("/oauth2/default"),
-		"0oacg1iawaojz8rOo4x6",                     // XXX
-		"mFdL4HOHV5OquQVMm9SZd9r8RT9dLTccfTxPrfWc", // XXX
+		event.StageVariables["OktaClientID"],
+		clientSecret,
 	)
 	redirectURI := &url.URL{
 		Scheme: "https",

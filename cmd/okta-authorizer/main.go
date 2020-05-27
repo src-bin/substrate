@@ -11,11 +11,21 @@ import (
 
 func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequestTypeRequest) (*events.APIGatewayCustomAuthorizerResponse, error) {
 
+	/*
+		clientSecret, err := awssecretsmanager.GetSecretValue(fmt.Sprintf(
+			"OktaClientSecret-%s",
+			event.StageVariables["OktaClientID"],
+		))
+		if err != nil {
+			return nil, err
+		}
+	*/
+	clientSecret := "mFdL4HOHV5OquQVMm9SZd9r8RT9dLTccfTxPrfWc" // XXX
 	c := oauthoidc.NewClient(
-		"dev-662445.okta.com", // XXX
+		event.StageVariables["OktaHostname"],
 		oauthoidc.OktaPathQualifier("/oauth2/default"),
-		"0oacg1iawaojz8rOo4x6",                     // XXX
-		"mFdL4HOHV5OquQVMm9SZd9r8RT9dLTccfTxPrfWc", // XXX
+		event.StageVariables["OktaClientID"],
+		clientSecret,
 	)
 
 	accessToken := &oauthoidc.OktaAccessToken{}
