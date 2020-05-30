@@ -11,7 +11,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-const Filename = "substrate.ValidEnvironmentQualityPairs.json"
+const Filename = "substrate.valid-Environment-Quality-pairs.json"
 
 type Document struct {
 	Admonition                   jsonutil.Admonition `json:"#"`

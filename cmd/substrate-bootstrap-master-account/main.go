@@ -33,6 +33,8 @@ import (
 )
 
 const (
+	Administrator            = "Administrator"
+	Auditor                  = "Auditor"
 	CloudTrailRegionFilename = "substrate.CloudTrail-region"
 	Okta                     = "Okta"
 	OktaMetadataFilename     = "substrate.okta.xml"
@@ -333,7 +335,7 @@ func main() {
 	}
 	ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 
-	// Ensure the deploy, network, and ops accounts exist.
+	// Ensure the deploy and network accounts exist.
 	var deployAccount, networkAccount, opsAccount *organizations.Account
 	for _, name := range []string{
 		accounts.Deploy,
@@ -487,11 +489,11 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 	ui.Stopf("provider %s", saml.Arn)
 	//log.Printf("%+v", saml)
 
-	// Give Okta an entrypoint in the ops account.
-	ui.Spin("finding or creating a role for Okta to use in the ops account")
-	role, err := awsiam.EnsureRoleWithPolicy(
+	// Give Okta some entrypoints in the Admin account.
+	ui.Spin("finding or creating roles for Okta to use in the ops account")
+	_, err = awsiam.EnsureRoleWithPolicy(
 		svc,
-		Okta,
+		Administrator,
 		&policies.Principal{Federated: []string{saml.Arn}},
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -505,8 +507,66 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("role %s", role.RoleName)
-	//log.Printf("%+v", role)
+	_, err = awsiam.EnsureRoleWithPolicy(
+		svc,
+		Auditor, // TODO allow it to assume roles but set a permission boundary to keep it read-only
+		&policies.Principal{Federated: []string{saml.Arn}},
+		&policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Action: []string{
+						"cloudformation:GetTemplate",
+						"dynamodb:BatchGetItem",
+						"dynamodb:GetItem",
+						"dynamodb:Query",
+						"dynamodb:Scan",
+						"ec2:GetConsoleOutput",
+						"ec2:GetConsoleScreenshot",
+						"ecr:BatchGetImage",
+						"ecr:GetAuthorizationToken",
+						"ecr:GetDownloadUrlForLayer",
+						"kinesis:Get*",
+						"lambda:GetFunction",
+						"logs:GetLogEvents",
+						"s3:GetObject",
+						"sdb:Select*",
+						"sqs:ReceiveMessage",
+					},
+					Effect:   policies.Deny,
+					Resource: []string{"*"},
+				},
+			},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := awsiam.AttachRolePolicy(
+		svc,
+		Auditor,
+		"arn:aws:iam::aws:policy/ReadOnlyAccess",
+	); err != nil {
+		log.Fatal(err)
+	}
+	/*
+		role, err = awsiam.EnsureRoleWithPolicy(
+			svc,
+			Okta,
+			&policies.Principal{Federated: []string{saml.Arn}},
+			&policies.Document{
+				Statement: []policies.Statement{
+					policies.Statement{
+						Action:   []string{"*"},
+						Resource: []string{"*"},
+					},
+				},
+			},
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+	*/
+	ui.Stop("ok")
 
 	// And give Okta a user that can enumerate the roles it can assume.
 	ui.Spin("finding or creating a user for Okta to use to enumerate roles")

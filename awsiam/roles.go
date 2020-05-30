@@ -7,6 +7,18 @@ import (
 	"github.com/src-bin/substrate/policies"
 )
 
+func AttachRolePolicy(
+	svc *iam.IAM,
+	rolename, policyArn string,
+) error {
+	in := &iam.AttachRolePolicyInput{
+		RoleName:  aws.String(rolename),
+		PolicyArn: aws.String(policyArn),
+	}
+	_, err := svc.AttachRolePolicy(in)
+	return err
+}
+
 func CreateRole(svc *iam.IAM, rolename string, principal *policies.Principal) (*iam.Role, error) {
 	docJSON, err := assumeRolePolicyDocument(principal).JSON()
 	if err != nil {
@@ -79,7 +91,7 @@ func EnsureRoleWithPolicy(
 	}
 	in := &iam.PutRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
-		PolicyName:     aws.String(FullAccess),
+		PolicyName:     aws.String("SubstrateManaged"),
 		RoleName:       aws.String(rolename),
 	}
 	if _, err := svc.PutRolePolicy(in); err != nil {

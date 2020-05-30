@@ -10,7 +10,7 @@ import (
 const FullAccess = "FullAccess"
 
 // NOT DONE!
-func EnsurePolicy(svc *iam.IAM, username, name, content string) error {
+func EnsurePolicy(svc *iam.IAM, name, content string) error {
 
 	policy, err := createPolicy(svc, name, content)
 	/*
@@ -35,13 +35,6 @@ func EnsurePolicy(svc *iam.IAM, username, name, content string) error {
 	*/
 	log.Printf("%+v", policy)
 
-	err = attachUserPolicy(svc, username, aws.StringValue(policy.Arn))
-	/*
-		if awsutil.ErrorCodeIs(err, DuplicatePolicyAttachmentException) {
-			err = nil
-		}
-	*/
-
 	return err
 }
 
@@ -51,6 +44,11 @@ func attachUserPolicy(svc *iam.IAM, username, policyArn string) error {
 		UserName:  aws.String(username),
 	}
 	_, err := svc.AttachUserPolicy(in)
+	/*
+		if awsutil.ErrorCodeIs(err, DuplicatePolicyAttachmentException) {
+			err = nil
+		}
+	*/
 	return err
 }
 

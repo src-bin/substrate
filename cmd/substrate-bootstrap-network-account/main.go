@@ -34,10 +34,18 @@ func main() {
 	environments, err := ui.EditFile(
 		EnvironmentsFilename,
 		"the following Environments are currently valid in your Substrate-managed infrastructure:",
-		"list all your Environments, one per line, in order of progression from e.g. development through e.g. production",
+		`list all your Environments, one per line, in order of progression from e.g. development through e.g. production; your list MUST include "admin"`,
 	)
 	if err != nil {
 		log.Fatal(err)
+	}
+	found := false
+	for _, environment := range environments {
+		found = found || environment == "admin"
+	}
+	if !found {
+		ui.Print(`you must include "admin" in your list of Environments`)
+		return
 	}
 	ui.Printf("using Environments %s", strings.Join(environments, ", "))
 	qualities, err := ui.EditFile(
@@ -84,7 +92,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	netDoc, err := networks.ReadDocument()
+	// Configure the allocator for Admin networks to use 192.168.0.0/16 and
+	// 21-bit subnet masks which yields 2,048 IP addresses per VPC and 32
+	// possible VPCs while keeping a tidy source IP address range for granting
+	// SSH and other administrative access safely and easily.
+	adminNetDoc, err := networks.ReadDocument(networks.AdminFilename, networks.RFC1918_192_168_0_0_16, 21)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//log.Printf("%+v", adminNetDoc)
+
+	// Configure the allocator for normal (Environment, Quality) networks to use
+	// 10.0.0.0/8 and 18-bit subnet masks which yields 16,384 IP addresses per
+	// VPC and 1,024 possible VPCs.
+	netDoc, err := networks.ReadDocument(networks.Filename, networks.RFC1918_10_0_0_0_8, 18)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,6 +141,7 @@ func main() {
 		qualities[1],
 	)
 
+	// TODO be more tolerant of different entrypoints - consider starting from the Network account, an Admin account, or the Master account
 	sess := awssessions.AssumeRoleMaster(
 		awssessions.NewSession(awssessions.Config{}),
 		roles.OrganizationReader,
@@ -205,7 +227,8 @@ func main() {
 	}
 
 	// Write (or rewrite) Terraform resources that create the various
-	// (Environment, Quality) networks.
+	// (Environment, Quality) networks.  Networks in the admin Environment will
+	// be created in the 192.168.0.0/16 CIDR block managed by adminNetDoc.
 	ui.Printf("bootstrapping networks for every Environment and Quality in %d regions", len(regions.Selected()))
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		blocks := terraform.NewBlocks()
@@ -218,7 +241,13 @@ func main() {
 				region,
 			)
 
-			n, err := netDoc.Ensure(&networks.Network{
+			var doc *networks.Document
+			if eq.Environment == "admin" {
+				doc = adminNetDoc
+			} else {
+				doc = netDoc
+			}
+			n, err := doc.Ensure(&networks.Network{
 				Environment: eq.Environment,
 				Quality:     eq.Quality,
 				Region:      region,
@@ -226,7 +255,7 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			//log.Printf("%+v", n)
+			//log.Printf("%+v", net)
 
 			tags := terraform.Tags{
 				Environment: eq.Environment,
@@ -331,6 +360,7 @@ func vpcAccoutrements(
 	vpc terraform.VPC,
 	blocks *terraform.Blocks,
 ) {
+	hasPrivateSubnets := vpc.Tags.Environment != "admin"
 
 	// Accept the default Network ACL until we need to do otherwise.
 
@@ -384,7 +414,9 @@ func vpcAccoutrements(
 		Tags:     vpc.Tags,
 		VpcId:    terraform.U(vpc.Ref(), ".id"),
 	}
-	blocks.Push(egw)
+	if hasPrivateSubnets {
+		blocks.Push(egw)
+	}
 
 	// Create a public and private subnet in each of (up to, and the newest)
 	// three availability zones in the region.
@@ -402,9 +434,13 @@ func vpcAccoutrements(
 		}
 
 		// Public subnet, shared org-wide.
+		bits := 2
+		if hasPrivateSubnets {
+			bits = 4
+		}
 		s := terraform.Subnet{
 			AvailabilityZone:    terraform.Q(az),
-			CidrBlock:           vpc.CidrsubnetIPv4(4, i+1),
+			CidrBlock:           vpc.CidrsubnetIPv4(bits, i+1),
 			IPv6CidrBlock:       vpc.CidrsubnetIPv6(8, i+1),
 			Label:               terraform.Label(tags, "public"),
 			MapPublicIPOnLaunch: true,
@@ -428,6 +464,10 @@ func vpcAccoutrements(
 			RouteTableId: terraform.U(vpc.Ref(), ".default_route_table_id"),
 			SubnetId:     terraform.U(s.Ref(), ".id"),
 		})
+
+		if !hasPrivateSubnets {
+			continue
+		}
 
 		// Private subnet, also shared org-wide.
 		s = terraform.Subnet{

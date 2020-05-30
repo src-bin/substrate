@@ -15,18 +15,20 @@ import (
 )
 
 const (
-	Filename             = "substrate.Networks.json"
-	IPv4SubnetMaskLength = 18 // 16,384 IP addresses per VPC, 1,092 possible VPCs; value must be in range [16,24]
+	AdminFilename = "substrate.admin-networks.json"
+	Filename      = "substrate.networks.json"
 )
 
 type Document struct {
-	Admonition       jsonutil.Admonition `json:"#"`
-	Networks         []*Network
-	SubstrateVersion jsonutil.SubstrateVersion
+	Admonition           jsonutil.Admonition `json:"#"`
+	IPv4SubnetMaskLength int                 // must be in range [16, 24]
+	Networks             []*Network
+	RFC1918              IPv4
+	SubstrateVersion     jsonutil.SubstrateVersion
 }
 
-func ReadDocument() (*Document, error) {
-	b, err := fileutil.ReadFile(Filename)
+func ReadDocument(filename string, rfc1918 IPv4, subnetMaskLength int) (*Document, error) {
+	b, err := fileutil.ReadFile(filename)
 	if errors.Is(err, os.ErrNotExist) {
 		b = []byte("{}")
 		err = nil
@@ -40,6 +42,14 @@ func ReadDocument() (*Document, error) {
 	}
 
 	// If d.SubstrateVersion != version.Version, migrate here.
+
+	zero := IPv4{0, 0, 0, 0, 0}
+	if d.RFC1918 == zero {
+		d.RFC1918 = rfc1918
+	}
+	if d.IPv4SubnetMaskLength == 0 {
+		d.IPv4SubnetMaskLength = subnetMaskLength
+	}
 
 	d.SubstrateVersion = jsonutil.SubstrateVersion(version.Version)
 	return d, nil
@@ -96,7 +106,7 @@ func (d *Document) Write() error {
 
 func (d *Document) next(n *Network) (*Network, error) {
 	if len(d.Networks) == 0 {
-		n.IPv4 = FirstIPv4()
+		n.IPv4 = FirstIPv4(d.RFC1918, d.IPv4SubnetMaskLength)
 		d.Networks = append(d.Networks, n)
 		return n, nil
 	}
@@ -112,16 +122,23 @@ func (d *Document) next(n *Network) (*Network, error) {
 
 type IPv4 [5]int
 
-func FirstIPv4() IPv4 {
-	return IPv4{10, 0, 0, 0, IPv4SubnetMaskLength}
+var (
+	RFC1918_10_0_0_0_8     = IPv4{10, 0, 0, 0, 8}
+	RFC1918_172_16_0_0_12  = IPv4{172, 16, 0, 0, 12}
+	RFC1918_192_168_0_0_16 = IPv4{192, 168, 0, 0, 16}
+)
+
+func FirstIPv4(rfc1918 IPv4, subnetMaskLength int) IPv4 {
+	rfc1918[4] = subnetMaskLength
+	return rfc1918
 }
 
 func NextIPv4(ipv4 IPv4) (IPv4, error) {
-	if ipv4[4] != IPv4SubnetMaskLength {
-		return ipv4, fmt.Errorf("subnet mask %d != IPv4SubnetMaskLength (%d)", ipv4[4], IPv4SubnetMaskLength)
+	if ipv4[4] < 16 || ipv4[4] > 24 {
+		return ipv4, fmt.Errorf("subnet mask %d outside range [16, 24]", ipv4[4])
 	}
 	ipv4[3] = 0
-	ipv4[2] = ipv4[2] + (1 << (24 - IPv4SubnetMaskLength)) // this is why IPv4SubnetMaskLength must be in [16, 24]
+	ipv4[2] = ipv4[2] + (1 << (24 - ipv4[4])) // this is why IPv4SubnetMaskLength must be in [16, 24]
 	if ipv4[2] == 256 {
 		ipv4[2] = 0
 		ipv4[1] = ipv4[1] + 1
