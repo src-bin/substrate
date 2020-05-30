@@ -92,7 +92,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Configure the allocator for Admin networks to use 192.168.0.0/16 and
+	// Configure the allocator for admin networks to use 192.168.0.0/16 and
 	// 21-bit subnet masks which yields 2,048 IP addresses per VPC and 32
 	// possible VPCs while keeping a tidy source IP address range for granting
 	// SSH and other administrative access safely and easily.
@@ -141,7 +141,7 @@ func main() {
 		qualities[1],
 	)
 
-	// TODO be more tolerant of different entrypoints - consider starting from the Network account, an Admin account, or the Master account
+	// TODO be more tolerant of different entrypoints - consider starting from the network account, an admin account, or the master account
 	sess := awssessions.AssumeRoleMaster(
 		awssessions.NewSession(awssessions.Config{}),
 		roles.OrganizationReader,
@@ -157,7 +157,7 @@ func main() {
 	sess = awssessions.AssumeRole(
 		awssessions.NewSession(awssessions.Config{}),
 		aws.StringValue(account.Id),
-		"NetworkAdministrator",
+		roles.NetworkAdministrator,
 	)
 
 	// Provide every Terraform module with a reference to the organization.
@@ -288,8 +288,12 @@ func main() {
 
 	}
 
-	// Write to substrate.Networks.json once more so that, even if no changes
-	// were made, formatting changes and SubstrateVersion are changed.
+	// Write to substrate.admin-networks.json and substrate.networks.json once
+	// more so that, even if no changes were made, formatting changes and
+	// SubstrateVersion are changed.
+	if err := adminNetDoc.Write(); err != nil {
+		log.Fatal(err)
+	}
 	if err := netDoc.Write(); err != nil {
 		log.Fatal(err)
 	}
@@ -346,7 +350,7 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if err := terraform.Destroy(dirname); err != nil {
+		if err := terraform.Apply(dirname); err != nil {
 			log.Fatal(err)
 		}
 	}

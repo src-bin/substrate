@@ -25,6 +25,7 @@ type Document struct {
 	Networks             []*Network
 	RFC1918              IPv4
 	SubstrateVersion     jsonutil.SubstrateVersion
+	filename             string
 }
 
 func ReadDocument(filename string, rfc1918 IPv4, subnetMaskLength int) (*Document, error) {
@@ -36,7 +37,7 @@ func ReadDocument(filename string, rfc1918 IPv4, subnetMaskLength int) (*Documen
 	if err != nil {
 		return nil, err
 	}
-	d := &Document{}
+	d := &Document{filename: filename}
 	if err := json.Unmarshal(b, d); err != nil {
 		return nil, err
 	}
@@ -101,7 +102,7 @@ func (d *Document) Swap(i, j int) {
 }
 
 func (d *Document) Write() error {
-	return jsonutil.Write(d, Filename)
+	return jsonutil.Write(d, d.filename)
 }
 
 func (d *Document) next(n *Network) (*Network, error) {
@@ -140,13 +141,18 @@ func NextIPv4(ipv4 IPv4) (IPv4, error) {
 	ipv4[3] = 0
 	ipv4[2] = ipv4[2] + (1 << (24 - ipv4[4])) // this is why IPv4SubnetMaskLength must be in [16, 24]
 	if ipv4[2] == 256 {
+		if ipv4[0] == 192 {
+			return ipv4, errors.New("ran out of networks in 192.168.0.0/16")
+		}
 		ipv4[2] = 0
 		ipv4[1] = ipv4[1] + 1
 	}
-	if ipv4[1] == 256 {
-		return ipv4, errors.New("ran out of /18 networks in 10.0.0.0/8; add support for 172.16.0.0/12 and 192.168.0.0/16")
+	if ipv4[0] == 10 && ipv4[1] == 256 {
+		return ipv4, errors.New("ran out of networks in 10.0.0.0/8")
 	}
-	ipv4[0] = 10
+	if ipv4[0] == 172 && ipv4[1] == 32 {
+		return ipv4, errors.New("ran out of networks in 172.16.0.0/12")
+	}
 	return ipv4, nil
 }
 

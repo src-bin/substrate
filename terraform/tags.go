@@ -23,7 +23,7 @@ func (t Tags) Value() Value {
 	if t.AvailabilityZone != "" {
 		s += fmt.Sprintf(format, "AvailabilityZone", t.AvailabilityZone)
 	}
-	if t.Environment != "" {
+	if t.Domain != "" {
 		s += fmt.Sprintf(format, "Domain", t.Domain)
 	}
 	if t.Environment != "" {
