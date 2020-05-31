@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
-const FullAccess = "FullAccess"
+const SubstrateManaged = "SubstrateManaged"
 
 // NOT DONE!
 func EnsurePolicy(svc *iam.IAM, name, content string) error {

@@ -91,7 +91,7 @@ func EnsureRoleWithPolicy(
 	}
 	in := &iam.PutRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
-		PolicyName:     aws.String("SubstrateManaged"),
+		PolicyName:     aws.String(SubstrateManaged),
 		RoleName:       aws.String(rolename),
 	}
 	if _, err := svc.PutRolePolicy(in); err != nil {
@@ -112,6 +112,8 @@ func GetRole(svc *iam.IAM, rolename string) (*iam.Role, error) {
 	//log.Printf("%+v", out)
 	return out.Role, nil
 }
+
+// TODO GetRolePolicy with PolicyName: SubstrateManaged
 
 func assumeRolePolicyDocument(principal *policies.Principal) *policies.Document {
 	doc := &policies.Document{

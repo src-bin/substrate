@@ -8,12 +8,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/availabilityzones"
-	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/awssts"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -29,6 +30,28 @@ const (
 )
 
 func main() {
+
+	sess, err := awssessions.Special(
+		accounts.Network,
+		roles.NetworkAdministrator,
+		awssessions.Config{},
+	)
+	if err != nil {
+		ui.Print("unable to assume the NetworkAdministrator role, which means this is probably your first time bootstrapping your networks; please provide an access key from your master AWS account")
+		accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
+		ui.Printf("using access key %s", accessKeyId)
+		sess, err = awssessions.Special(
+			accounts.Network,
+			roles.NetworkAdministrator,
+			awssessions.Config{
+				AccessKeyId:     accessKeyId,
+				SecretAccessKey: secretAccessKey,
+			},
+		)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Gather the definitive list of Environments and Qualities first.
 	environments, err := ui.EditFile(
@@ -111,55 +134,6 @@ func main() {
 	}
 	//log.Printf("%+v", netDoc)
 
-	// Make changes to the ops network more testable by designating one region
-	// as the guinea pig.
-	var alphaRegion string
-	if n := netDoc.Find(&networks.Network{Quality: qualities[0], Special: "ops"}); n == nil {
-		ui.Printf(
-			"most of your ops account will be designated %s-Quality (this controls the order in which Terraform changes are applied) but you should designate one region to be %s-Quality so changes may be tested before affecting your entire ops network",
-			qualities[1],
-			qualities[0],
-		)
-		region, err := ui.Promptf("what region's ops network should be designated %s-Quality?", qualities[0])
-		if err != nil {
-			log.Fatal(err)
-		}
-		if !regions.IsBlacklisted(region) {
-			log.Fatalf("%s is is blacklisted in this Substrate installation", region)
-		}
-		if !regions.IsRegion(region) {
-			log.Fatalf("%s is not an AWS region", region)
-		}
-		alphaRegion = region
-	} else {
-		alphaRegion = n.Region
-	}
-	ui.Printf(
-		"marking the ops network in %s as %s-Quality (other regions will be %s-Quality)",
-		alphaRegion,
-		qualities[0],
-		qualities[1],
-	)
-
-	// TODO be more tolerant of different entrypoints - consider starting from the network account, an admin account, or the master account
-	sess := awssessions.AssumeRoleMaster(
-		awssessions.NewSession(awssessions.Config{}),
-		roles.OrganizationReader,
-	)
-	account, err := awsorgs.FindSpecialAccount(
-		organizations.New(sess),
-		accounts.Network,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	//log.Printf("%+v", account)
-	sess = awssessions.AssumeRole(
-		awssessions.NewSession(awssessions.Config{}),
-		aws.StringValue(account.Id),
-		roles.NetworkAdministrator,
-	)
-
 	// Provide every Terraform module with a reference to the organization.
 	orgBlocks := terraform.NewBlocks()
 	org := terraform.Organization{
@@ -169,62 +143,12 @@ func main() {
 	orgBlocks.Push(org)
 
 	// Write (or rewrite) some Terraform providers to make everything usable.
+	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
 	providers := terraform.Provider{
-		AccountId:   aws.StringValue(account.Id),
+		AccountId:   aws.StringValue(callerIdentity.Account),
 		RoleName:    roles.NetworkAdministrator,
 		SessionName: "Terraform",
 	}.AllRegions()
-
-	// Write (or rewrite) Terraform resources that create the ops network.
-	ui.Printf("bootstrapping the ops network in %d regions", len(regions.Selected()))
-	blockses := []*terraform.Blocks{terraform.NewBlocks(), terraform.NewBlocks()}
-	for _, region := range regions.Selected() {
-		ui.Spinf("finding or assigning an IP address range to the ops network in %s", region)
-
-		i := 1
-		if region == alphaRegion {
-			i = 0
-		}
-
-		n, err := netDoc.Ensure(&networks.Network{
-			Quality: qualities[i],
-			Region:  region,
-			Special: "ops",
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-		//log.Printf("%+v", n)
-
-		tags := terraform.Tags{
-			Name:    "ops",
-			Quality: qualities[i],
-			Region:  region,
-			Special: "ops",
-		}
-		vpc := terraform.VPC{
-			CidrBlock: terraform.Q(n.IPv4.String()),
-			Label:     terraform.Label(tags),
-			Provider:  terraform.ProviderAliasFor(region),
-			Tags:      tags,
-		}
-		blockses[i].Push(vpc)
-
-		vpcAccoutrements(sess, region, org, vpc, blockses[i])
-
-		ui.Stop(n.IPv4)
-	}
-	for i := 0; i < len(blockses); i++ {
-		if err := orgBlocks.Write(path.Join(TerraformDirname, "ops", qualities[i], "organization.tf")); err != nil {
-			log.Fatal(err)
-		}
-		if err := providers.Write(path.Join(TerraformDirname, "ops", qualities[i], "providers.tf")); err != nil {
-			log.Fatal(err)
-		}
-		if err := blockses[i].Write(path.Join(TerraformDirname, "ops", qualities[i], "vpc.tf")); err != nil {
-			log.Fatal(err)
-		}
-	}
 
 	// Write (or rewrite) Terraform resources that create the various
 	// (Environment, Quality) networks.  Networks in the admin Environment will
@@ -330,18 +254,6 @@ func main() {
 	// Terraform code.  Start with the ops networks, then move on to the
 	// Environments, all Quality-by-Quality with a pause in between.
 	// TODO confirmation between steps
-	for i := 0; i < 2; i++ {
-		dirname := path.Join(TerraformDirname, "ops", qualities[i])
-		if err := terraform.Makefile(dirname); err != nil {
-			log.Fatal(err)
-		}
-		if err := terraform.Init(dirname); err != nil {
-			log.Fatal(err)
-		}
-		if err := terraform.Apply(dirname); err != nil {
-			log.Fatal(err)
-		}
-	}
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		dirname := path.Join(TerraformDirname, eq.Environment, eq.Quality)
 		if err := terraform.Makefile(dirname); err != nil {

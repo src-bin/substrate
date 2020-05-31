@@ -19,7 +19,7 @@ const (
 
 func CheatSheet(
 	org *organizations.Organization,
-	auditAccount, deployAccount, networkAccount, opsAccount *organizations.Account,
+	auditAccount, deployAccount, networkAccount *organizations.Account,
 ) error {
 	f, err := os.Create(Filename)
 	if err != nil {
@@ -31,9 +31,9 @@ func CheatSheet(
 		return err
 	}
 	return tmpl.Execute(f, struct {
-		Organization                                            *organizations.Organization
-		AuditAccount, DeployAccount, NetworkAccount, OpsAccount *organizations.Account
-	}{org, auditAccount, deployAccount, networkAccount, opsAccount})
+		Organization                                *organizations.Organization
+		AuditAccount, DeployAccount, NetworkAccount *organizations.Account
+	}{org, auditAccount, deployAccount, networkAccount})
 }
 
 func cheatSheetTemplate() string {
@@ -53,7 +53,7 @@ your Organization.  Here are the account numbers and roles you'll need:
 | network      | {{.NetworkAccount.Id}}   | NetworkAdministrator      | arn:aws:iam::{{.NetworkAccount.Id}}:role/NetworkAdministrator      |
 +--------------+----------------+---------------------------+----------------------------------------------------------+
 
-There's also the ops account (account number {{.OpsAccount.Id}}) where you'll land
-when you launch a dev/ops EC2 instance or login to the AWS Console via Okta.
+There's also at least one admin account where you'll land when you get an
+instance from the instance factory or login to the AWS Console via Okta.
 `
 }

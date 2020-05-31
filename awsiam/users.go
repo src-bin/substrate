@@ -89,7 +89,7 @@ func EnsureUserWithPolicy(svc *iam.IAM, username string, doc *policies.Document)
 	}
 	in := &iam.PutUserPolicyInput{
 		PolicyDocument: aws.String(docJSON),
-		PolicyName:     aws.String(FullAccess),
+		PolicyName:     aws.String(SubstrateManaged),
 		UserName:       aws.String(username),
 	}
 	if _, err := svc.PutUserPolicy(in); err != nil {
