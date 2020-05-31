@@ -30,27 +30,18 @@ func DescribeAccount(svc *organizations.Organizations, accountId string) (*organ
 	return out.Account, nil
 }
 
-func EmailForAccount(org *organizations.Organization, accountName string) string {
-	return strings.Replace(
-		aws.StringValue(org.MasterAccountEmail),
-		"@",
-		fmt.Sprintf("+%s@", accountName),
-		1,
-	)
-}
-
 func EnsureAccount(
 	svc *organizations.Organizations,
-	domain, environment, quality, email string,
+	domain, environment, quality string,
 ) (*organizations.Account, error) {
 	return ensureAccount(
 		svc,
 		nameFor(domain, environment, quality),
-		email,
 		map[string]string{
 			tags.Domain:           domain,
 			tags.Environment:      environment,
 			tags.Manager:          tags.Substrate,
+			tags.Name:             nameFor(domain, environment, quality),
 			tags.Quality:          quality,
 			tags.SubstrateVersion: version.Version,
 		},
@@ -59,11 +50,12 @@ func EnsureAccount(
 
 func EnsureSpecialAccount(
 	svc *organizations.Organizations,
-	name, email string,
+	name string,
 ) (*organizations.Account, error) {
-	return ensureAccount(svc, name, email, map[string]string{
+	return ensureAccount(svc, name, map[string]string{
 		tags.Manager:                 tags.Substrate,
-		tags.SubstrateSpecialAccount: name,
+		tags.Name:                    name,
+		tags.SubstrateSpecialAccount: name, // TODO get rid of this
 		tags.SubstrateVersion:        version.Version,
 	})
 }
@@ -140,11 +132,29 @@ func createAccount(
 	return status, nil
 }
 
+func emailFor(svc *organizations.Organizations, name string) (string, error) {
+	org, err := DescribeOrganization(svc)
+	if err != nil {
+		return "", err
+	}
+	return strings.Replace(
+		aws.StringValue(org.MasterAccountEmail),
+		"@",
+		fmt.Sprintf("+%s@", name),
+		1,
+	), nil
+}
+
 func ensureAccount(
 	svc *organizations.Organizations,
-	name, email string,
+	name string,
 	tags map[string]string,
 ) (*organizations.Account, error) {
+
+	email, err := emailFor(svc, name)
+	if err != nil {
+		return nil, err
+	}
 
 	status, err := createAccount(svc, name, email)
 	if err != nil {
@@ -200,5 +210,8 @@ func listAccounts(svc *organizations.Organizations) <-chan *organizations.Accoun
 }
 
 func nameFor(domain, environment, quality string) string {
+	if domain == environment {
+		return fmt.Sprintf("%s-%s", environment, quality)
+	}
 	return fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 }

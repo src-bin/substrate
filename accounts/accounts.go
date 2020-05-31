@@ -8,11 +8,11 @@ import (
 )
 
 const (
+	Admin   = "admin"
 	Audit   = "audit"
 	Deploy  = "deploy"
 	Master  = "master"
 	Network = "network"
-	Ops     = "ops"
 
 	Filename = "substrate.accounts.txt"
 )
@@ -20,6 +20,7 @@ const (
 func CheatSheet(
 	org *organizations.Organization,
 	auditAccount, deployAccount, networkAccount *organizations.Account,
+	// TODO adminAccounts []*organizations.Account,
 ) error {
 	f, err := os.Create(Filename)
 	if err != nil {

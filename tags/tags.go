@@ -2,11 +2,15 @@ package tags
 
 // Keys.
 const (
-	Domain                  = "Domain"
-	Environment             = "Environment"
-	Manager                 = "Manager"
-	Quality                 = "Quality"
-	SubstrateSpecialAccount = "SubstrateSpecialAccount"
+	Domain      = "Domain"
+	Environment = "Environment"
+	Quality     = "Quality"
+
+	Manager = "Manager"
+
+	Name = "Name"
+
+	SubstrateSpecialAccount = "SubstrateSpecialAccount" // TODO get rid of this
 	SubstrateVersion        = "SubstrateVersion"
 )
 

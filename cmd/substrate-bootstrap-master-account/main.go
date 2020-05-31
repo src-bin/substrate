@@ -30,11 +30,7 @@ import (
 )
 
 const (
-	Administrator            = "Administrator"
-	Auditor                  = "Auditor"
 	CloudTrailRegionFilename = "substrate.CloudTrail-region"
-	Okta                     = "Okta"
-	OktaMetadataFilename     = "substrate.okta.xml"
 	PrefixFilename           = "substrate.prefix"
 	ServiceControlPolicyName = "SubstrateServiceControlPolicy"
 	TagPolicyName            = "SubstrateTaggingPolicy"
@@ -127,11 +123,7 @@ func main() {
 	// Ensure the audit account exists.  This one comes first so we can enable
 	// CloudTrail ASAP.
 	ui.Spin("finding or creating the audit account")
-	auditAccount, err := awsorgs.EnsureSpecialAccount(
-		svc,
-		accounts.Audit,
-		awsorgs.EmailForAccount(org, accounts.Audit),
-	)
+	auditAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Audit)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -194,22 +186,14 @@ func main() {
 
 	// Ensure the deploy and network accounts exist.
 	ui.Spinf("finding or creating the deploy account")
-	deployAccount, err := awsorgs.EnsureSpecialAccount(
-		svc,
-		accounts.Deploy,
-		awsorgs.EmailForAccount(org, accounts.Deploy),
-	)
+	deployAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Deploy)
 	if err != nil {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", deployAccount.Id)
 	//log.Printf("%+v", account)
 	ui.Spinf("finding or creating the network account")
-	networkAccount, err := awsorgs.EnsureSpecialAccount(
-		svc,
-		accounts.Network,
-		awsorgs.EmailForAccount(org, accounts.Network),
-	)
+	networkAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Network)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -14,6 +14,12 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
+const (
+	Administrator = "Administrator"
+	Auditor       = "Auditor"
+	Okta          = "Okta"
+)
+
 func okta(sess *session.Session, account *organizations.Account, metadata string) {
 	svc := iam.New(sess, &aws.Config{
 		Credentials: stscreds.NewCredentials(sess, roles.Arn(
@@ -73,7 +79,7 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 						"sdb:Select*",
 						"sqs:ReceiveMessage",
 					},
-					Effect:   policies.Deny,
+					Effect:   policies.Deny, // <https://alestic.com/2015/10/aws-iam-readonly-too-permissive/>
 					Resource: []string{"*"},
 				},
 			},
