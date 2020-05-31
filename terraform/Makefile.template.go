@@ -9,8 +9,7 @@ func makefileTemplate() string {
 all:
 
 apply: init
-	env
-	terraform apply $(AUTO_APPROVE)
+	terraform apply $(AUTO_APPROVE) -refresh=true
 
 destroy: init
 	terraform destroy $(AUTO_APPROVE)

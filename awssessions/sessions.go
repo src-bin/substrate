@@ -60,12 +60,50 @@ func AssumeRoleMaster(sess *session.Session, rolename string) (*session.Session,
 	return AssumeRole(sess, aws.StringValue(org.MasterAccountId), rolename), nil
 }
 
-// Master returns a session in the organization's master account in the given
-// role or an error if it can't assume the role there for any reason. It
-// supports starting from the desired role, root credentials in the master
+// InAccount returns a session in the given account (by Domain, Environment,
+// and Quality) in the given role or an error if it can't assume that role for
+// any reason.  It supports starting from the OrganizationAdministrator role,
+// root credentials in the master account, or any role in any account in the
+// organization that can assume the given role.
+func InAccount(
+	domain, environment, quality, rolename string,
+	config Config,
+) (*session.Session, error) {
+	sess, err := NewSession(config)
+	if err != nil {
+		return nil, err
+	}
+
+	masterSess, err := AssumeRoleMaster(sess, roles.OrganizationReader)
+	if err != nil {
+		return nil, err
+	}
+	account, err := awsorgs.FindAccount(organizations.New(masterSess), domain, environment, quality)
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", account)
+
+	// Maybe we're already in the desired role.
+	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", callerIdentity)
+	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
+		return sess, nil
+	}
+
+	// Nope.
+	return AssumeRole(sess, aws.StringValue(account.Id), rolename), nil
+}
+
+// InMasterAccount returns a session in the organization's master account in
+// the given role or an error if it can't assume the role there for any reason.
+// It supports starting from the desired role, root credentials in the master
 // account, or any role in any account in the organization that can assume the
 // given role.
-func Master(rolename string, config Config) (*session.Session, error) {
+func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	sess, err := NewSession(config)
 	if err != nil {
 		return nil, err
@@ -96,6 +134,41 @@ func Master(rolename string, config Config) (*session.Session, error) {
 
 	// Nope.
 	return AssumeRoleMaster(sess, rolename)
+}
+
+// InSpecialAccount returns a session in the given special account (by name)
+// in the given role or an error if it can't assume that role for any reason.
+// It supports starting from the OrganizationAdministrator role, root
+// credentials in the master account, or any role in any account in the
+// organization that can assume the given role.
+func InSpecialAccount(name, rolename string, config Config) (*session.Session, error) {
+	sess, err := NewSession(config)
+	if err != nil {
+		return nil, err
+	}
+
+	masterSess, err := AssumeRoleMaster(sess, roles.OrganizationReader)
+	if err != nil {
+		return nil, err
+	}
+	account, err := awsorgs.FindSpecialAccount(organizations.New(masterSess), name)
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", account)
+
+	// Maybe we're already in the desired role.
+	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", callerIdentity)
+	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
+		return sess, nil
+	}
+
+	// Nope.
+	return AssumeRole(sess, aws.StringValue(account.Id), rolename), nil
 }
 
 // NewSession constucts an AWS session from whatever given and environmental
@@ -188,41 +261,6 @@ func NewSession(config Config) (*session.Session, error) {
 	ui.Stopf("switched to access key %s", accessKey.AccessKeyId)
 
 	return sess, nil
-}
-
-// Special returns a session in the given special account (by name) in the
-// given role or an error if it can't assume that role for any reason.  It
-// supports starting from the OrganizationAdministrator role, root credentials
-// in the master account, or any role in any account in the organization that
-// can assume the given role.
-func Special(special, rolename string, config Config) (*session.Session, error) {
-	sess, err := NewSession(config)
-	if err != nil {
-		return nil, err
-	}
-
-	masterSess, err := AssumeRoleMaster(sess, roles.OrganizationReader)
-	if err != nil {
-		return nil, err
-	}
-	account, err := awsorgs.FindSpecialAccount(organizations.New(masterSess), special)
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", account)
-
-	// Maybe we're already in the desired role.
-	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", callerIdentity)
-	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
-		return sess, nil
-	}
-
-	// Nope.
-	return AssumeRole(sess, aws.StringValue(account.Id), rolename), nil
 }
 
 func options(config aws.Config) session.Options {

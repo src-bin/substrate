@@ -1,6 +1,9 @@
 *~
-*-account
+audit-account
 bin
+deploy-account
+network-account
+ops-account
 *.stdin
 substrate.*
 *.swo

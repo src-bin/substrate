@@ -31,7 +31,7 @@ const (
 
 func main() {
 
-	sess, err := awssessions.Special(
+	sess, err := awssessions.InSpecialAccount(
 		accounts.Network,
 		roles.NetworkAdministrator,
 		awssessions.Config{},
@@ -40,7 +40,7 @@ func main() {
 		ui.Print("unable to assume the NetworkAdministrator role, which means this is probably your first time bootstrapping your networks; please provide an access key from your master AWS account")
 		accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
 		ui.Printf("using access key %s", accessKeyId)
-		sess, err = awssessions.Special(
+		sess, err = awssessions.InSpecialAccount(
 			accounts.Network,
 			roles.NetworkAdministrator,
 			awssessions.Config{
@@ -262,8 +262,14 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if err := terraform.Apply(dirname); err != nil {
-			log.Fatal(err)
+		if eq.Environment == "admin" {
+			if err := terraform.Apply(dirname); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			if err := terraform.Destroy(dirname); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 

@@ -68,7 +68,7 @@ func main() {
 	}
 	ui.Printf("using region %s", region)
 
-	sess, err := awssessions.Master(roles.OrganizationAdministrator, awssessions.Config{
+	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{
 		AccessKeyId:     accessKeyId,
 		SecretAccessKey: secretAccessKey,
 		Region:          region,
@@ -305,7 +305,10 @@ func main() {
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationAdministrator,
-		&policies.Principal{AWS: []string{aws.StringValue(org.MasterAccountId)}},
+		&policies.Principal{AWS: []string{
+			aws.StringValue(org.MasterAccountId),
+			fmt.Sprintf("arn:aws:iam::%s:user/%s", aws.StringValue(org.MasterAccountId), roles.OrganizationAdministrator),
+		}},
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{

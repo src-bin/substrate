@@ -72,7 +72,7 @@ func FindAccount(
 	svc *organizations.Organizations,
 	domain, environment, quality string,
 ) (*organizations.Account, error) {
-	return FindSpecialAccount(svc, nameFor(domain, environment, quality))
+	return findAccount(svc, nameFor(domain, environment, quality))
 }
 
 func FindSpecialAccount(svc *organizations.Organizations, name string) (*organizations.Account, error) {
