@@ -22,4 +22,4 @@ func Makefile(dirname string) error {
 	return tmpl.Execute(f, nil)
 }
 
-//go:generate go run ../tools/template.go -name makefileTemplate Makefile.template
+//go:generate go run ../tools/template/main.go -name makefileTemplate Makefile.template

@@ -43,7 +43,7 @@ func EnsureBucket(svc *s3.S3, name, region string, doc *policies.Document) error
 		return err
 	}
 
-	docJSON, err := doc.JSON()
+	docJSON, err := doc.Marshal()
 	if err != nil {
 		return err
 	}

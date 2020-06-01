@@ -83,7 +83,7 @@ func EnsureUserWithPolicy(svc *iam.IAM, username string, doc *policies.Document)
 	}
 
 	// TODO attach the managed AdministratorAccess policy instead of inlining.
-	docJSON, err := doc.JSON()
+	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
 	}

@@ -2,11 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
@@ -18,7 +19,7 @@ import (
 type StringSliceFlag []string
 
 func (ssf *StringSliceFlag) String() string {
-	return fmt.Sprint(*ssf)
+	return strings.Join(*ssf, ", ")
 }
 
 func (ssf *StringSliceFlag) Set(s string) error {
@@ -43,14 +44,14 @@ func main() {
 			policies.Statement{
 				Action: []string{"secretsmanager:GetSecretValue"},
 				Principal: &policies.Principal{
-					AWS: *principals,
+					AWS: []string(*principals),
 				},
 				Resource: []string{"*"},
 			},
 		},
 	}
 
-	sess := awssessions.NewSession(awssessions.Config{})
+	sess := session.Must(awssessions.NewSession(awssessions.Config{}))
 
 	stage := time.Now().Format(time.RFC3339)
 

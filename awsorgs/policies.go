@@ -119,7 +119,7 @@ func createPolicy(
 	policyType PolicyType,
 	doc *policies.Document,
 ) (*organizations.Policy, error) {
-	docJSON, err := doc.JSON()
+	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func updatePolicy(
 	policyId, name string,
 	doc *policies.Document,
 ) (*organizations.Policy, error) {
-	docJSON, err := doc.JSON()
+	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
 	}

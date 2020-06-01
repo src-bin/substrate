@@ -42,7 +42,7 @@ func main() {
 
 	// TODO factor this part out into substrate-assume-role to simplify this tools interface
 	sess := awssessions.AssumeRole(
-		awssessions.NewSession(awssessions.Config{}),
+		session.Must(awssessions.NewSession(awssessions.Config{})),
 		*accountId,
 		*rolename,
 	)

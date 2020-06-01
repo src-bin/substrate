@@ -40,7 +40,10 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	if ok {
 		clientSecret = v.(string)
 	} else {
-		sess := awssessions.NewSession(awssessions.Config{})
+		sess, err := awssessions.NewSession(awssessions.Config{})
+		if err != nil {
+			return nil, err
+		}
 		svc := secretsmanager.New(sess) /* , &aws.Config{
 			Region: aws.String(region),
 		}) */

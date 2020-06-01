@@ -5,11 +5,15 @@ import (
 	"log"
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/veqp"
 )
 
 func main() {
@@ -21,6 +25,14 @@ func main() {
 		ui.Print(`-domain="..." -environment="..." -quality"..." are required`)
 		os.Exit(1)
 	}
+	veqpDoc, err := veqp.ReadDocument()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !veqpDoc.Valid(*environment, *quality) {
+		ui.Printf(`-environment="%s" -quality"%s" is not a valid Environment and Quality pair in your organization`, *environment, *quality)
+		os.Exit(1)
+	}
 
 	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{})
 	if err != nil {
@@ -28,13 +40,27 @@ func main() {
 	}
 
 	ui.Spin("finding or creating the account")
-	account, err := awsorgs.EnsureAccount(organizations.New(svc), *domain, *environment, *quality)
+	account, err := awsorgs.EnsureAccount(organizations.New(sess), *domain, *environment, *quality)
 	if err != nil {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", account.Id)
 	log.Printf("%+v", account)
 
-	// TODO add this account to the principals of the OrganizationReader role
+	// Allow any role in this account to assume the OrganizationReader role in
+	// the master account.
+	role, err = awsiam.GetRole(svc, roles.OrganizationReader)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := role.AddPrincipal(svc, &policies.Principal{
+		AWS: []string{aws.StringValue(account.Id)},
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+	// TODO more?
+
+	// TODO next steps?
 
 }

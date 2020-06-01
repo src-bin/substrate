@@ -3,6 +3,8 @@ package policies
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/src-bin/substrate/jsonutil"
 )
 
 type Document struct {
@@ -10,7 +12,12 @@ type Document struct {
 	Statement []Statement
 }
 
-func (d *Document) JSON() (string, error) {
+func Unmarshal(s string) (*Document, error) {
+	d := &Document{}
+	return d, json.Unmarshal([]byte(s), d)
+}
+
+func (d *Document) Marshal() (string, error) {
 	b, err := json.MarshalIndent(d, "", "\t")
 	return string(b), err
 }
@@ -18,9 +25,9 @@ func (d *Document) JSON() (string, error) {
 type Statement struct {
 	Effect    Effect
 	Principal *Principal `json:",omitempty"`
-	Action    []string
-	Resource  []string  `json:",omitempty"` // omitempty for AssumeRolePolicyDocument
-	Condition Condition `json:",omitempty"`
+	Action    jsonutil.StringSlice
+	Resource  jsonutil.StringSlice `json:",omitempty"` // omitempty for AssumeRolePolicyDocument
+	Condition Condition            `json:",omitempty"`
 }
 
 type Effect string
@@ -42,10 +49,12 @@ func (e Effect) MarshalJSON() ([]byte, error) {
 }
 
 type Principal struct {
-	AWS       []string `json:",omitempty"`
-	Federated []string `json:",omitempty"`
-	Service   []string `json:",omitempty"`
+	AWS       jsonutil.StringSlice `json:",omitempty"`
+	Federated jsonutil.StringSlice `json:",omitempty"`
+	Service   jsonutil.StringSlice `json:",omitempty"`
 }
+
+func (p *Principal) String() string { return fmt.Sprintf("%+v", *p) }
 
 type Condition map[string]map[string]string
 
@@ -54,3 +63,5 @@ type version struct{}
 func (version) MarshalJSON() ([]byte, error) {
 	return []byte(`"2012-10-17"`), nil
 }
+
+func (version) UnmarshalJSON([]byte) error { return nil }

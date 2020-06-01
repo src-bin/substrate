@@ -6,12 +6,17 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/veqp"
 )
 
 const OktaMetadataFilename = "substrate.okta.xml"
@@ -22,6 +27,14 @@ func main() {
 	flag.Parse()
 	if *quality == "" {
 		ui.Print(`-quality"..." is required`)
+		os.Exit(1)
+	}
+	veqpDoc, err := veqp.ReadDocument()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !veqpDoc.Valid("admin", *quality) {
+		ui.Printf(`-quality"%s" is not a valid Quality for an admin account in your organization`, *quality)
 		os.Exit(1)
 	}
 
@@ -40,18 +53,43 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Ensure the account exists.
 	ui.Spin("finding or creating the admin account")
 	account, err := awsorgs.EnsureAccount(organizations.New(sess), accounts.Admin, accounts.Admin, *quality)
 	if err != nil {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", account.Id)
-	log.Printf("%+v", account)
+	//log.Printf("%+v", account)
+
+	okta(sess, account, metadata)
+
+	// Allow only the Administrator role in this account to assume the
+	// OrganizationAdministrator role in the master account.  Allow any role
+	// in this account to assume the OrganizationReader role in the master
+	// account.
+	svc := iam.New(sess)
+	role, err := awsiam.GetRole(svc, roles.OrganizationAdministrator)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := role.AddPrincipal(svc, &policies.Principal{
+		AWS: []string{roles.Arn(aws.StringValue(account.Id), Administrator)},
+	}); err != nil {
+		log.Fatal(err)
+	}
+	role, err = awsiam.GetRole(svc, roles.OrganizationReader)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := role.AddPrincipal(svc, &policies.Principal{
+		AWS: []string{aws.StringValue(account.Id)},
+	}); err != nil {
+		log.Fatal(err)
+	}
 
 	// TODO add this account to the principals of the OrganizationReader role
 	// TODO add this to the principals OrganizationAdministrator and NetworkAdministrator (plus whatever we add for the audit and deploy accounts)
-
-	okta(sess, account, metadata)
 
 	// TODO setup Intranet
 

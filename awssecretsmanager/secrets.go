@@ -78,7 +78,7 @@ func GetSecretValue(svc *secretsmanager.SecretsManager, name, stage string) (*se
 }
 
 func PutResourcePolicy(svc *secretsmanager.SecretsManager, name string, doc *policies.Document) (*secretsmanager.PutResourcePolicyOutput, error) {
-	docJSON, err := doc.JSON()
+	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
 	}

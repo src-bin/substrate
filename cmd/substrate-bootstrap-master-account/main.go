@@ -305,7 +305,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("role %s", role.RoleName)
+	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
 	// Ensure admin accounts can find other accounts in the organization without full administrative
@@ -336,7 +336,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("role %s", role.RoleName)
+	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
 	// Ensure the master account can get into the network account the same way
@@ -363,7 +363,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Stopf("role %s", role.RoleName)
+	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
 	ui.Print("next, run substrate-bootstrap-network-account")

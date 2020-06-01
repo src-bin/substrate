@@ -1,6 +1,8 @@
 package roles
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	NetworkAdministrator          = "NetworkAdministrator"
