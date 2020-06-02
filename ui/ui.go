@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -25,6 +26,16 @@ func Confirm(args ...interface{}) (bool, error) {
 
 func Confirmf(format string, args ...interface{}) (bool, error) {
 	return Confirm(fmt.Sprintf(format, args...))
+}
+
+func Fatal(args ...interface{}) {
+	Print(args...)
+	os.Exit(1)
+}
+
+func Fatalf(format string, args ...interface{}) {
+	Printf(format, args...)
+	os.Exit(1)
 }
 
 func Print(args ...interface{}) {

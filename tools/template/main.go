@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -36,15 +38,44 @@ func main() {
 		*pkg = filepath.Base(filepath.Dir(abs))
 	}
 
-	b, err := ioutil.ReadFile(flag.Arg(0))
+	fi, err := os.Stat(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
 	}
-	var content string
-	if bytes.ContainsRune(b, '`') {
-		content = fmt.Sprintf("%#v", string(b))
+	var content, returnType string
+	if fi.IsDir() {
+
+		content = "map[string]string{\n"
+		f, err := os.Open(flag.Arg(0))
+		if err != nil {
+			log.Fatal(err)
+		}
+		filenames, err := f.Readdirnames(-1)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var max int
+		for _, filename := range filenames {
+			if i := len(filename); i > max {
+				max = i
+			}
+		}
+		for _, filename := range filenames {
+			content += fmt.Sprintf(
+				"\t\t%q:%s%s\n",
+				filename,
+				strings.Repeat(" ", max-len(filename)),
+				readFile(path.Join(flag.Arg(0), filename)),
+			)
+		}
+		content += "\t}"
+		returnType = "map[string]string"
+
 	} else {
-		content = "`" + string(b) + "`"
+
+		content = readFile(flag.Arg(0))
+		returnType = "string"
+
 	}
 
 	f, err := os.Create(*out)
@@ -57,19 +88,31 @@ func main() {
 
 // managed by go generate; do not edit by hand
 
-func {{if .ReceiverType}}({{.ReceiverType}}) {{end}}{{.Name}}() string {
+func {{if .ReceiverType}}({{.ReceiverType}}) {{end}}{{.Name}}() {{.ReturnType}} {
 	return {{.Content}}
 }
 `))
 	if err := tmpl.Execute(f, struct {
-		Content, Name, Package, ReceiverType string
+		Content, Name, Package, ReceiverType, ReturnType string
 	}{
 		Content:      content,
 		Name:         *name,
 		Package:      *pkg,
 		ReceiverType: *receiverType,
+		ReturnType:   returnType,
 	}); err != nil {
 		log.Fatal(err)
 	}
 
+}
+
+func readFile(pathname string) string {
+	b, err := ioutil.ReadFile(pathname)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if bytes.ContainsRune(b, '`') {
+		return fmt.Sprintf("%#v", string(b))
+	}
+	return "`" + string(b) + "`"
 }

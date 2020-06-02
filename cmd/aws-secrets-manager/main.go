@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
@@ -51,7 +50,7 @@ func main() {
 		},
 	}
 
-	sess := session.Must(awssessions.NewSession(awssessions.Config{}))
+	sess := awssessions.Must(awssessions.NewSession(awssessions.Config{}))
 
 	stage := time.Now().Format(time.RFC3339)
 

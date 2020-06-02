@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
@@ -22,16 +22,14 @@ func main() {
 	quality := flag.String("quality", "", "Quality for this new AWS account")
 	flag.Parse()
 	if *domain == "" || *environment == "" || *quality == "" {
-		ui.Print(`-domain="..." -environment="..." -quality"..." are required`)
-		os.Exit(1)
+		ui.Fatal(`-domain="..." -environment="..." -quality"..." are required`)
 	}
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !veqpDoc.Valid(*environment, *quality) {
-		ui.Printf(`-environment="%s" -quality"%s" is not a valid Environment and Quality pair in your organization`, *environment, *quality)
-		os.Exit(1)
+		ui.Fatalf(`-environment="%s" -quality"%s" is not a valid Environment and Quality pair in your organization`, *environment, *quality)
 	}
 
 	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{})
@@ -49,7 +47,8 @@ func main() {
 
 	// Allow any role in this account to assume the OrganizationReader role in
 	// the master account.
-	role, err = awsiam.GetRole(svc, roles.OrganizationReader)
+	svc := iam.New(sess)
+	role, err := awsiam.GetRole(svc, roles.OrganizationReader)
 	if err != nil {
 		log.Fatal(err)
 	}

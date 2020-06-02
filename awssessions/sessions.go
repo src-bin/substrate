@@ -116,16 +116,18 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	//log.Printf("%+v", callerIdentity)
 
 	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
+	//log.Printf("%+v", org)
+	//log.Printf("%+v", err)
 	var masterAccountId string
 	if awsutil.ErrorCodeIs(err, awsorgs.AWSOrganizationsNotInUseException) {
 		err = nil
 		masterAccountId = aws.StringValue(callerIdentity.Account)
+	} else {
+		masterAccountId = aws.StringValue(org.MasterAccountId)
 	}
 	if err != nil {
 		return nil, err
 	}
-	masterAccountId = aws.StringValue(org.MasterAccountId)
-	//log.Printf("%+v", org)
 
 	// Maybe we're already in the desired role.
 	if aws.StringValue(callerIdentity.Arn) == roles.Arn(masterAccountId, rolename) {
@@ -169,6 +171,13 @@ func InSpecialAccount(name, rolename string, config Config) (*session.Session, e
 
 	// Nope.
 	return AssumeRole(sess, aws.StringValue(account.Id), rolename), nil
+}
+
+func Must(sess *session.Session, err error) *session.Session {
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return sess
 }
 
 // NewSession constucts an AWS session from whatever given and environmental

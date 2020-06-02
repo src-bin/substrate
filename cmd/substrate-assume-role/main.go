@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -27,16 +26,13 @@ func main() {
 		*domain, *environment = "admin", "admin"
 	}
 	if (*domain == "" || *environment == "" || *quality == "") && *special == "" {
-		ui.Print(`one of -domain="..." -environment="..." -quality"..." or -special="..." is required`)
-		os.Exit(1)
+		ui.Fatal(`one of -domain="..." -environment="..." -quality"..." or -special="..." is required`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *special != "" {
-		ui.Print(`can't mix -domain="..." -environment="..." -quality"..." with -special="..."`)
-		os.Exit(1)
+		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -special="..."`)
 	}
 	if *rolename == "" {
-		ui.Print(`-role="..." is required`)
-		os.Exit(1)
+		ui.Fatal(`-role="..." is required`)
 	}
 
 	sess, err := awssessions.NewSession(awssessions.Config{})

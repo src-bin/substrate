@@ -13,6 +13,7 @@ func Label(tags Tags, suffixes ...string) Value {
 	// TODO lots more permutations of tags to support
 	if tags.Name != "" {
 		s = tags.Name
+		// TODO tags.Domain
 	} else if tags.Environment != "" && tags.Quality != "" {
 		s = fmt.Sprintf("%s-%s", tags.Environment, tags.Quality)
 	} else if tags.Special != "" {
