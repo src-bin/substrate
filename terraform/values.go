@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Value interface {
@@ -29,6 +30,9 @@ func (q quotedString) Raw() string {
 }
 
 func (q quotedString) Value() string {
+	if strings.Contains(string(q), "\n") {
+		return fmt.Sprintf("<<EOF\n%s\nEOF", string(q)) // TODO handle q containing "EOF"
+	}
 	return fmt.Sprintf("%q", string(q))
 }
 

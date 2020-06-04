@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"path"
 	"strings"
@@ -21,7 +22,11 @@ import (
 	"github.com/src-bin/substrate/veqp"
 )
 
-const OktaMetadataFilename = "substrate.okta.xml"
+const (
+	Domain               = "admin"
+	Environment          = "admin"
+	OktaMetadataFilename = "substrate.okta.xml"
+)
 
 func main() {
 	oktaMetadataPathname := flag.String("okta-metadata", OktaMetadataFilename, "pathname of a file containing your Okta SAML provider metadata")
@@ -34,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if !veqpDoc.Valid("admin", *quality) {
+	if !veqpDoc.Valid(Environment, *quality) {
 		ui.Fatalf(`-quality"%s" is not a valid Quality for an admin account in your organization`, *quality)
 	}
 
@@ -86,7 +91,22 @@ func main() {
 	}
 
 	// Also allow the Administrator role in this account to assume the
+	// DeployAdministrator role in the deploy account and the
 	// NetworkAdministrator role in the network account.
+	svc = iam.New(awssessions.Must(awssessions.InSpecialAccount(
+		accounts.Deploy,
+		roles.DeployAdministrator,
+		awssessions.Config{},
+	)))
+	role, err = awsiam.GetRole(svc, roles.DeployAdministrator)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := role.AddPrincipal(svc, &policies.Principal{
+		AWS: []string{roles.Arn(aws.StringValue(account.Id), Administrator)},
+	}); err != nil {
+		log.Fatal(err)
+	}
 	svc = iam.New(awssessions.Must(awssessions.InSpecialAccount(
 		accounts.Network,
 		roles.NetworkAdministrator,
@@ -102,12 +122,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// TODO setup Intranet
+	// Write (or rewrite) Terraform resources that create the Intranet in this
+	// admin account.
+	dirname := fmt.Sprintf("%s-%s-account", Domain, *quality)
 	intranet := terraform.NewBlocks()
 	for _, region := range regions.Selected() {
 		tags := terraform.Tags{
-			Domain:      "admin",
-			Environment: "admin",
+			Domain:      Domain,
+			Environment: Environment,
 			Quality:     *quality,
 			Region:      region,
 		}
@@ -123,18 +145,22 @@ func main() {
 			Source:   terraform.Q("../intranet"),
 		})
 	}
-	if err := intranet.Write(path.Join("admin", *quality, "intranet.tf")); err != nil {
+	if err := intranet.Write(path.Join(dirname, "intranet.tf")); err != nil {
 		log.Fatal(err)
 	}
+
+	// Write (or rewrite) some Terraform providers to make everything usable.
 	providers := terraform.Provider{
 		AccountId:   aws.StringValue(account.Id),
 		RoleName:    roles.Administrator,
 		SessionName: "Terraform",
 	}.AllRegions()
-	if err := providers.Write(path.Join("admin", *quality, "providers.tf")); err != nil {
+	if err := providers.Write(path.Join(dirname, "providers.tf")); err != nil {
 		log.Fatal(err)
 	}
 
-	// TODO instruct them to put the Okta client secret and Okta client secret timestamp into AWS Secrets Manager
+	// TODO put the Okta client secret and Okta client secret timestamp into AWS Secrets Manager
+
+	// TODO make -C intranet && terraform init && terraform apply
 
 }

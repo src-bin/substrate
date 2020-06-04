@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/src-bin/substrate/jsonutil"
+	"github.com/src-bin/substrate/ui"
 )
 
 type Document struct {
@@ -20,6 +21,14 @@ func Unmarshal(s string) (*Document, error) {
 func (d *Document) Marshal() (string, error) {
 	b, err := json.MarshalIndent(d, "", "\t")
 	return string(b), err
+}
+
+func (d *Document) MustMarshal() string {
+	s, err := d.Marshal()
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return s
 }
 
 type Statement struct {

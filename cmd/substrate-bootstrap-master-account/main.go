@@ -24,6 +24,7 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/s3config"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -31,7 +32,6 @@ import (
 
 const (
 	CloudTrailRegionFilename = "substrate.CloudTrail-region"
-	PrefixFilename           = "substrate.prefix"
 	ServiceControlPolicyName = "SubstrateServiceControlPolicy"
 	TagPolicyName            = "SubstrateTaggingPolicy"
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
@@ -43,14 +43,7 @@ func main() {
 	accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
 	ui.Printf("using access key %s", accessKeyId)
 
-	prefix, err := ui.PromptFile(
-		PrefixFilename,
-		"what prefix do you want to use for global names like S3 buckets?",
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Printf("using prefix %s", prefix)
+	prefix := s3config.Prefix()
 
 	region, err := ui.PromptFile(
 		CloudTrailRegionFilename,
@@ -161,15 +154,17 @@ func main() {
 						fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
 					},
 				},
-				policies.Statement{
-					Principal: &policies.Principal{AWS: []string{"*"}},
-					Action:    []string{"s3:GetObject", "s3:ListBucket"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
-						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+				/*
+					policies.Statement{
+						Principal: &policies.Principal{AWS: []string{"*"}},
+						Action:    []string{"s3:GetObject", "s3:ListBucket"},
+						Resource: []string{
+							fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+							fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+						},
+						Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
 					},
-					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
-				},
+				*/
 			},
 		},
 	); err != nil {
@@ -339,10 +334,33 @@ func main() {
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
-	// Ensure the master account can get into the network account the same way
-	// admin accounts will in the future.  This will make network boostrapping
-	// (the next step) easier.
+	// Ensure the master account can get into the deploy and network accounts
+	// the same way admin accounts will in the future.  This will make deploy
+	// and network account boostrapping (the next steps) easier.
+	ui.Spin("finding or creating a role to allow admin accounts to administer your deploy artifacts")
+	role, err = awsiam.EnsureRoleWithPolicy(
+		iam.New(awssessions.AssumeRole(
+			sess,
+			aws.StringValue(deployAccount.Id),
+			roles.OrganizationAccountAccessRole,
+		)),
+		roles.DeployAdministrator,
+		&policies.Principal{AWS: []string{aws.StringValue(org.MasterAccountId)}},
+		&policies.Document{
+			Statement: []policies.Statement{
+				policies.Statement{
+					Action:   []string{"*"},
+					Resource: []string{"*"},
+				},
+			},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", role.Name)
 	ui.Spin("finding or creating a role to allow admin accounts to administer your networks")
+	//log.Printf("%+v", role)
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(awssessions.AssumeRole(
 			sess,
@@ -366,7 +384,7 @@ func main() {
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
-	ui.Print("next, run substrate-bootstrap-network-account")
+	ui.Print("next, run substrate-bootstrap-deploy-account and substrate-bootstrap-network-account")
 
 	//ui.Print("until we get you an EC2 instance profile, here's your way into the ops account (good for one hour)")
 	//awssts.Export(awssts.AssumeRole(sts.New(sess), roles.Arn(aws.StringValue(opsAccount.Id), roles.OrganizationAccountAccessRole)))

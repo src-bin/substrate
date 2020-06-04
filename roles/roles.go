@@ -6,6 +6,7 @@ import (
 
 const (
 	Administrator                 = "Administrator"
+	DeployAdministrator           = "DeployAdministrator"
 	NetworkAdministrator          = "NetworkAdministrator"
 	OrganizationAccountAccessRole = "OrganizationAccountAccessRole"
 	OrganizationAdministrator     = "OrganizationAdministrator"
