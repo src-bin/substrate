@@ -45,20 +45,24 @@ func EnsureServiceQuota(
 	}
 
 	requested := false
-	for req := range ListRequestedServiceQuotaChangeHistoryByQuota(
+	changes, err := ListRequestedServiceQuotaChangeHistoryByQuota(
 		svc,
 		quotaCode,
 		serviceCode,
-	) {
-		if aws.Float64Value(req.DesiredValue) < desiredValue {
+	)
+	if err != nil {
+		return err
+	}
+	for _, change := range changes {
+		if aws.Float64Value(change.DesiredValue) < desiredValue {
 			continue
 		}
-		if status := aws.StringValue(req.Status); status == "PENDING" || status == "CASE_OPENED" {
+		if status := aws.StringValue(change.Status); status == "PENDING" || status == "CASE_OPENED" {
 			ui.Printf(
 				"found a previous request to increase service quota %s in %s to %.0f",
 				quotaCode,
 				aws.StringValue(svc.Client.Config.Region),
-				aws.Float64Value(req.DesiredValue),
+				aws.Float64Value(change.DesiredValue),
 			)
 			requested = true
 		}
@@ -169,87 +173,69 @@ func GetServiceQuota(
 func ListRequestedServiceQuotaChangeHistoryByQuota(
 	svc *servicequotas.ServiceQuotas,
 	quotaCode, serviceCode string,
-) chan *servicequotas.RequestedServiceQuotaChange {
-	ch := make(chan *servicequotas.RequestedServiceQuotaChange)
-	go func(chan<- *servicequotas.RequestedServiceQuotaChange) {
-		var nextToken *string
-		for {
-			in := &servicequotas.ListRequestedServiceQuotaChangeHistoryByQuotaInput{
-				NextToken:   nextToken,
-				QuotaCode:   aws.String(quotaCode),
-				ServiceCode: aws.String(serviceCode),
-			}
-			out, err := svc.ListRequestedServiceQuotaChangeHistoryByQuota(in)
-			if err != nil {
-				log.Fatal(err)
-			}
-			//log.Printf("%+v", out)
-			for _, req := range out.RequestedQuotas {
-				ch <- req
-			}
-			if nextToken = out.NextToken; nextToken == nil {
-				break
-			}
+) (changes []*servicequotas.RequestedServiceQuotaChange, err error) {
+	var nextToken *string
+	for {
+		in := &servicequotas.ListRequestedServiceQuotaChangeHistoryByQuotaInput{
+			NextToken:   nextToken,
+			QuotaCode:   aws.String(quotaCode),
+			ServiceCode: aws.String(serviceCode),
 		}
-		close(ch)
-	}(ch)
-	return ch
+		out, err := svc.ListRequestedServiceQuotaChangeHistoryByQuota(in)
+		if err != nil {
+			return nil, err
+		}
+		//log.Printf("%+v", out)
+		changes = append(changes, out.RequestedQuotas...)
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
 }
 
 func ListServiceQuotas(
 	svc *servicequotas.ServiceQuotas,
 	serviceCode string,
-) chan *servicequotas.ServiceQuota {
-	ch := make(chan *servicequotas.ServiceQuota)
-	go func(chan<- *servicequotas.ServiceQuota) {
-		var nextToken *string
-		for {
-			in := &servicequotas.ListServiceQuotasInput{
-				NextToken:   nextToken,
-				ServiceCode: aws.String(serviceCode),
-			}
-			out, err := svc.ListServiceQuotas(in)
-			if err != nil {
-				log.Fatal(err)
-			}
-			//log.Printf("%+v", out)
-			for _, req := range out.Quotas {
-				ch <- req
-			}
-			if nextToken = out.NextToken; nextToken == nil {
-				break
-			}
+) (quotas []*servicequotas.ServiceQuota, err error) {
+	var nextToken *string
+	for {
+		in := &servicequotas.ListServiceQuotasInput{
+			NextToken:   nextToken,
+			ServiceCode: aws.String(serviceCode),
 		}
-		close(ch)
-	}(ch)
-	return ch
+		out, err := svc.ListServiceQuotas(in)
+		if err != nil {
+			return nil, err
+		}
+		//log.Printf("%+v", out)
+		quotas = append(quotas, out.Quotas...)
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
 }
 
 func ListServices(
 	svc *servicequotas.ServiceQuotas,
-) chan *servicequotas.ServiceInfo {
-	ch := make(chan *servicequotas.ServiceInfo)
-	go func(chan<- *servicequotas.ServiceInfo) {
-		var nextToken *string
-		for {
-			in := &servicequotas.ListServicesInput{
-				NextToken: nextToken,
-			}
-			out, err := svc.ListServices(in)
-			if err != nil {
-				log.Fatal(err)
-			}
-			//log.Printf("%+v", out)
-			for _, req := range out.Services {
-				ch <- req
-			}
-			if nextToken = out.NextToken; nextToken == nil {
-				break
-			}
+) (services []*servicequotas.ServiceInfo, err error) {
+	var nextToken *string
+	for {
+		in := &servicequotas.ListServicesInput{
+			NextToken: nextToken,
 		}
-		close(ch)
-	}(ch)
-	return ch
+		out, err := svc.ListServices(in)
+		if err != nil {
+			return nil, err
+		}
+		//log.Printf("%+v", out)
+		services = append(services, out.Services...)
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
 }
 
 func RequestServiceQuotaIncrease(

@@ -6,8 +6,10 @@ import (
 	"path"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
@@ -49,6 +51,10 @@ func main() {
 
 	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
 	accountId := aws.StringValue(callerIdentity.Account)
+	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Write (or rewrite) some Terraform providers to make everything usable.
 	providers := terraform.Provider{
@@ -75,17 +81,15 @@ func main() {
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
 				},
-				/*
-					policies.Statement{
-						Principal: &policies.Principal{AWS: []string{"*"}},
-						Action:    []string{"s3:GetObject", "s3:ListBucket", "s3:PutObject"},
-						Resource: []string{
-							fmt.Sprintf("arn:aws:s3:::%s", name),
-							fmt.Sprintf("arn:aws:s3:::%s/*", name),
-						},
-						Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
+				policies.Statement{
+					Principal: &policies.Principal{AWS: []string{"*"}},
+					Action:    []string{"s3:GetObject", "s3:ListBucket", "s3:PutObject"},
+					Resource: []string{
+						fmt.Sprintf("arn:aws:s3:::%s", name),
+						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
-				*/
+					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
+				},
 			},
 		}
 		tags := terraform.Tags{

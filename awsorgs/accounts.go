@@ -179,7 +179,11 @@ func ensureAccount(
 }
 
 func findAccount(svc *organizations.Organizations, name string) (*organizations.Account, error) {
-	for account := range listAccounts(svc) {
+	accounts, err := listAccounts(svc)
+	if err != nil {
+		return nil, err
+	}
+	for _, account := range accounts {
 		if aws.StringValue(account.Name) == name {
 			return account, nil
 		}
@@ -187,26 +191,23 @@ func findAccount(svc *organizations.Organizations, name string) (*organizations.
 	return nil, fmt.Errorf("%s account not found", name)
 }
 
-func listAccounts(svc *organizations.Organizations) <-chan *organizations.Account {
-	ch := make(chan *organizations.Account)
-	go func(chan<- *organizations.Account) {
-		var nextToken *string
-		for {
-			in := &organizations.ListAccountsInput{NextToken: nextToken}
-			out, err := svc.ListAccounts(in)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for _, account := range out.Accounts {
-				ch <- account
-			}
-			if nextToken = out.NextToken; nextToken == nil {
-				break
-			}
+func listAccounts(svc *organizations.Organizations) (accounts []*organizations.Account, err error) {
+	var nextToken *string
+	for {
+		in := &organizations.ListAccountsInput{NextToken: nextToken}
+		out, err := svc.ListAccounts(in)
+		if err != nil {
+			return nil, err
 		}
-		close(ch)
-	}(ch)
-	return ch
+		for _, account := range out.Accounts {
+			log.Printf("listAccounts Id: %s, Name: %s, Email: %s", aws.StringValue(account.Id), aws.StringValue(account.Name), aws.StringValue(account.Email))
+		}
+		accounts = append(accounts, out.Accounts...)
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
 }
 
 func nameFor(domain, environment, quality string) string {

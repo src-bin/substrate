@@ -1,8 +1,6 @@
 package awsorgs
 
 import (
-	"log"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsutil"
@@ -49,12 +47,16 @@ func EnsurePolicy(
 	if awsutil.ErrorCodeIs(err, DuplicatePolicyException) {
 		err = nil
 
-		for policySummary := range ListPolicies(svc, policyType) {
-			if aws.StringValue(policySummary.Name) != name {
+		summaries, err := ListPolicies(svc, policyType)
+		if err != nil {
+			return err
+		}
+		for _, summary := range summaries {
+			if aws.StringValue(summary.Name) != name {
 				continue
 			}
 
-			policy, err = updatePolicy(svc, aws.StringValue(policySummary.Id), name, doc)
+			policy, err = updatePolicy(svc, aws.StringValue(summary.Id), name, doc)
 			if err != nil {
 				return err
 			}
@@ -79,29 +81,23 @@ func EnsurePolicy(
 func ListPolicies(
 	svc *organizations.Organizations,
 	policyType PolicyType,
-) <-chan *organizations.PolicySummary {
-	ch := make(chan *organizations.PolicySummary)
-	go func(chan<- *organizations.PolicySummary) {
-		var nextToken *string
-		for {
-			in := &organizations.ListPoliciesInput{
-				Filter:    aws.String(string(policyType)),
-				NextToken: nextToken,
-			}
-			out, err := svc.ListPolicies(in)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for _, policySummary := range out.Policies {
-				ch <- policySummary
-			}
-			if nextToken = out.NextToken; nextToken == nil {
-				break
-			}
+) (summaries []*organizations.PolicySummary, err error) {
+	var nextToken *string
+	for {
+		in := &organizations.ListPoliciesInput{
+			Filter:    aws.String(string(policyType)),
+			NextToken: nextToken,
 		}
-		close(ch)
-	}(ch)
-	return ch
+		out, err := svc.ListPolicies(in)
+		if err != nil {
+			return nil, err
+		}
+		summaries = append(summaries, out.Policies...)
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
 }
 
 func attachPolicy(svc *organizations.Organizations, policyId, rootId string) error {

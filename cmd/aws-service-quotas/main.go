@@ -50,13 +50,15 @@ func main() {
 	if *listServices {
 		var lines []string
 		for _, region := range regionSlice {
-			for info := range awsservicequotas.ListServices(
-				servicequotasNew(sess, region),
-			) {
+			services, err := awsservicequotas.ListServices(servicequotasNew(sess, region))
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, service := range services {
 				lines = append(lines, fmt.Sprintf(
 					"%-23s %s\n",
-					aws.StringValue(info.ServiceCode),
-					aws.StringValue(info.ServiceName),
+					aws.StringValue(service.ServiceCode),
+					aws.StringValue(service.ServiceName),
 				))
 			}
 		}
@@ -76,10 +78,14 @@ func main() {
 			log.Fatal("-service-code is required with -list-quotas")
 		}
 		for _, region := range regionSlice {
-			for quota := range awsservicequotas.ListServiceQuotas(
+			quotas, err := awsservicequotas.ListServiceQuotas(
 				servicequotasNew(sess, region),
 				*serviceCode,
-			) {
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, quota := range quotas {
 				fmt.Printf("%+v\n", quota)
 			}
 		}

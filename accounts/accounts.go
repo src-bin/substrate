@@ -49,8 +49,8 @@ your Organization.  Here are the account numbers and roles you'll need:
 + Account Name | Account Number | Role Name                 | Role ARN                                                 |
 +--------------+----------------+---------------------------+----------------------------------------------------------+
 | master       | {{.Organization.MasterAccountId}}   | OrganizationAdministrator | arn:aws:iam::{{.Organization.MasterAccountId}}:role/OrganizationAdministrator |
-| audit        | {{.AuditAccount.Id}}   | Auditor                   | arn:aws:iam::{{.AuditAccount.Id}}:role/Auditor                   |
-| deploy       | {{.DeployAccount.Id}}   | ?                         | arn:aws:iam::{{.DeployAccount.Id}}:role/?                         |
+| audit        | {{.AuditAccount.Id}}   | Auditor (soon)            | arn:aws:iam::{{.AuditAccount.Id}}:role/Auditor (soon)            |
+| deploy       | {{.DeployAccount.Id}}   | DeployAdministrator       | arn:aws:iam::{{.DeployAccount.Id}}:role/DeployAdministrator       |
 | network      | {{.NetworkAccount.Id}}   | NetworkAdministrator      | arn:aws:iam::{{.NetworkAccount.Id}}:role/NetworkAdministrator      |
 +--------------+----------------+---------------------------+----------------------------------------------------------+
 

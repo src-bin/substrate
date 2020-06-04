@@ -221,7 +221,10 @@ func main() {
 
 	// The master account isn't the organization, though.  It's just an account.
 	// To affect the entire organization, we need its root.
-	root := awsorgs.Root(svc)
+	root, err := awsorgs.Root(svc)
+	if err != nil {
+		log.Fatal(err)
+	}
 	//log.Printf("%+v", root)
 
 	// Ensure service control policies are enabled and that Substrate's is
@@ -287,6 +290,7 @@ func main() {
 		&policies.Principal{AWS: []string{
 			aws.StringValue(org.MasterAccountId),
 			fmt.Sprintf("arn:aws:iam::%s:user/%s", aws.StringValue(org.MasterAccountId), roles.OrganizationAdministrator),
+			// TODO add the Administrator role in every admin account to this list
 		}},
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -313,11 +317,12 @@ func main() {
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationReader,
-		&policies.Principal{AWS: []string{
+		&policies.Principal{AWS: []string{ // TODO every time this runs, admin and other domain accounts lose access
 			aws.StringValue(org.MasterAccountId),
 			aws.StringValue(auditAccount.Id),
 			aws.StringValue(deployAccount.Id),
 			aws.StringValue(networkAccount.Id),
+			// TODO add every account to this list
 		}},
 		&policies.Document{
 			Statement: []policies.Statement{
@@ -345,7 +350,10 @@ func main() {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.DeployAdministrator,
-		&policies.Principal{AWS: []string{aws.StringValue(org.MasterAccountId)}},
+		&policies.Principal{AWS: []string{
+			aws.StringValue(org.MasterAccountId),
+			// TODO add the Administrator role in every admin account to this list
+		}},
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -368,7 +376,10 @@ func main() {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.NetworkAdministrator,
-		&policies.Principal{AWS: []string{aws.StringValue(org.MasterAccountId)}},
+		&policies.Principal{AWS: []string{
+			aws.StringValue(org.MasterAccountId),
+			// TODO add the Administrator role in every admin account to this list
+		}},
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{

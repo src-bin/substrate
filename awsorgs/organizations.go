@@ -1,7 +1,7 @@
 package awsorgs
 
 import (
-	"log"
+	"errors"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -41,33 +41,29 @@ func EnableAWSServiceAccess(svc *organizations.Organizations, principal string) 
 	return err
 }
 
-func Root(svc *organizations.Organizations) *organizations.Root {
-	ch := listRoots(svc)
-	root := <-ch
-	if root2 := <-ch; root2 != nil {
-		log.Fatal("ListRoots responded with more than one Root which AWS says is impossible")
+func Root(svc *organizations.Organizations) (*organizations.Root, error) {
+	roots, err := listRoots(svc)
+	if err != nil {
+		return nil, err
 	}
-	return root
+	if len(roots) != 1 {
+		return nil, errors.New("ListRoots responded with more than one Root which AWS says is impossible")
+	}
+	return roots[0], nil
 }
 
-func listRoots(svc *organizations.Organizations) <-chan *organizations.Root {
-	ch := make(chan *organizations.Root)
-	go func(chan<- *organizations.Root) {
-		var nextToken *string
-		for {
-			in := &organizations.ListRootsInput{NextToken: nextToken}
-			out, err := svc.ListRoots(in)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for _, root := range out.Roots {
-				ch <- root
-			}
-			if nextToken = out.NextToken; nextToken == nil {
-				break
-			}
+func listRoots(svc *organizations.Organizations) (roots []*organizations.Root, err error) {
+	var nextToken *string
+	for {
+		in := &organizations.ListRootsInput{NextToken: nextToken}
+		out, err := svc.ListRoots(in)
+		if err != nil {
+			return nil, err
 		}
-		close(ch)
-	}(ch)
-	return ch
+		roots = append(roots, out.Roots...)
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
 }
