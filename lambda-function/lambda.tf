@@ -1,5 +1,14 @@
+data "archive_file" "zip" {
+  output_path = var.filename
+  source_file = "${data.external.gobin.result.GOBIN}/${var.name}"
+  type        = "zip"
+}
+
+data "external" "gobin" {
+  program = ["/bin/sh", "-c", "echo \"{\\\"GOBIN\\\":\\\"$GOBIN\\\"}\""]
+}
+
 resource "aws_lambda_function" "function" {
-  depends_on       = [null_resource.zip]
   filename         = var.filename
   function_name    = var.name
   handler          = var.name
@@ -19,14 +28,4 @@ resource "aws_lambda_permission" "permission" {
   function_name = aws_lambda_function.function.function_name
   principal     = "apigateway.amazonaws.com"
   #source_arn    = var.apigateway_execution_arn
-}
-
-resource "null_resource" "zip" {
-  provisioner "local-exec" {
-    command = "touch -t 197001010000 $GOBIN/${var.name}"
-  }
-  provisioner "local-exec" {
-    command = "zip -X -j ${var.filename} $GOBIN/${var.name}"
-  }
-  triggers = { timestamp = timestamp() } # trigger every time
 }
