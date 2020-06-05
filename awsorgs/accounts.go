@@ -2,7 +2,6 @@ package awsorgs
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -99,9 +98,6 @@ func ListAccounts(svc *organizations.Organizations) (accounts []*organizations.A
 		out, err := svc.ListAccounts(in)
 		if err != nil {
 			return nil, err
-		}
-		for _, account := range out.Accounts {
-			log.Printf("ListAccounts Id: %s, Name: %s, Email: %s", aws.StringValue(account.Id), aws.StringValue(account.Name), aws.StringValue(account.Email))
 		}
 		accounts = append(accounts, out.Accounts...)
 		if nextToken = out.NextToken; nextToken == nil {
