@@ -28,7 +28,7 @@ const (
 
 func main() {
 	oktaMetadataPathname := flag.String("okta-metadata", OktaMetadataFilename, "pathname of a file containing your Okta SAML provider metadata")
-	quality := flag.String("quality", "", "Quality for this new AWS account")
+	quality := flag.String("quality", "", "quality for this new AWS account")
 	flag.Parse()
 	if *quality == "" {
 		ui.Fatal(`-quality"..." is required`)
@@ -38,7 +38,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if !veqpDoc.Valid(Environment, *quality) {
-		ui.Fatalf(`-quality"%s" is not a valid Quality for an admin account in your organization`, *quality)
+		ui.Fatalf(`-quality"%s" is not a valid quality for an admin account in your organization`, *quality)
 	}
 
 	lines, err := ui.EditFile(

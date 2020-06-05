@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	EnvironmentsFilename = "substrate.Environments"
-	QualitiesFilename    = "substrate.Qualities"
+	EnvironmentsFilename = "substrate.environments"
+	QualitiesFilename    = "substrate.qualities"
 	TerraformDirname     = "network-account"
 )
 
@@ -53,11 +53,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Gather the definitive list of Environments and Qualities first.
+	// Gather the definitive list of environments and qualities first.
 	environments, err := ui.EditFile(
 		EnvironmentsFilename,
-		"the following Environments are currently valid in your Substrate-managed infrastructure:",
-		`list all your Environments, one per line, in order of progression from e.g. development through e.g. production; your list MUST include "admin"`,
+		"the following environments are currently valid in your Substrate-managed infrastructure:",
+		`list all your environments, one per line, in order of progression from e.g. development through e.g. production; your list MUST include "admin"`,
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -67,26 +67,22 @@ func main() {
 		found = found || environment == "admin"
 	}
 	if !found {
-		ui.Print(`you must include "admin" in your list of Environments`)
+		ui.Print(`you must include "admin" in your list of environments`)
 		return
 	}
-	ui.Printf("using Environments %s", strings.Join(environments, ", "))
+	ui.Printf("using environments %s", strings.Join(environments, ", "))
 	qualities, err := ui.EditFile(
 		QualitiesFilename,
-		"the following Qualities are currently valid in your Substrate-managed infrastructure:",
-		`list all your Qualities, one per line, in order from least to greatest quality (Substrate recommends "alpha", "beta", and "gamma")`,
+		"the following qualities are currently valid in your Substrate-managed infrastructure:",
+		`list all your qualities, one per line, in order from least to greatest quality (Substrate recommends "alpha", "beta", and "gamma")`,
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if len(qualities) < 2 {
-		ui.Print(`you must define at least two Qualities (and Substrate recommends "alpha", "beta", and "gamma")`)
-		return
-	}
-	ui.Printf("using Qualities %s", strings.Join(qualities, ", "))
+	ui.Printf("using qualities %s", strings.Join(qualities, ", "))
 
-	// Combine all Environments and Qualities.  If a given combination doesn't
-	// appear in substrate.ValidEnvironmentQualityPairs.json then offer its
+	// Combine all environments and qualities.  If a given combination doesn't
+	// appear in substrate.valid-environment-quality-pairs.json then offer its
 	// inclusion before validating the final document.
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
@@ -95,7 +91,7 @@ func main() {
 	for _, environment := range environments {
 		for _, quality := range qualities {
 			if !veqpDoc.Valid(environment, quality) {
-				ok, err := ui.Confirmf(`do you want to allow %s-Quality infrastructure in your %s Environment?`, quality, environment)
+				ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment?`, quality, environment)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -125,7 +121,7 @@ func main() {
 	}
 	//log.Printf("%+v", adminNetDoc)
 
-	// Configure the allocator for normal (Environment, Quality) networks to use
+	// Configure the allocator for normal (environment, quality) networks to use
 	// 10.0.0.0/8 and 18-bit subnet masks which yields 16,384 IP addresses per
 	// VPC and 1,024 possible VPCs.
 	netDoc, err := networks.ReadDocument(networks.Filename, networks.RFC1918_10_0_0_0_8, 18)
@@ -151,9 +147,9 @@ func main() {
 	}.AllRegions()
 
 	// Write (or rewrite) Terraform resources that create the various
-	// (Environment, Quality) networks.  Networks in the admin Environment will
+	// (environment, quality) networks.  Networks in the admin environment will
 	// be created in the 192.168.0.0/16 CIDR block managed by adminNetDoc.
-	ui.Printf("bootstrapping networks for every Environment and Quality in %d regions", len(regions.Selected()))
+	ui.Printf("bootstrapping networks for every environment and	quality in %d regions", len(regions.Selected()))
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		blocks := terraform.NewBlocks()
 
@@ -229,8 +225,8 @@ func main() {
 
 	// Ensure the VPCs-per-region service quota and a few others that  isn't going to get in the way.
 	ui.Print("raising the VPC, Internet, Egress-Only Internet, and NAT Gateway, and EIP service quotas in all your regions (this could take days, unfortunately; this program is safe to re-run)")
-	desiredValue := float64(len(netDoc.FindAll(&networks.Network{Region: regions.Selected()[0]})) + // networks for existing (Environment, Quality) pairs
-		len(qualities) + // plus room to add another Environment
+	desiredValue := float64(len(netDoc.FindAll(&networks.Network{Region: regions.Selected()[0]})) + // networks for existing (environment, quality) pairs
+		len(qualities) + // plus room to add another environment
 		1 + // plus the ops network
 		1) // plus the default VPC
 	for _, quota := range [][2]string{
@@ -252,7 +248,7 @@ func main() {
 
 	// Generate a Makefile in each root Terraform module then apply the generated
 	// Terraform code.  Start with the ops networks, then move on to the
-	// Environments, all Quality-by-Quality with a pause in between.
+	// environments, all quality-by-quality with a pause in between.
 	// TODO confirmation between steps
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		dirname := path.Join(TerraformDirname, eq.Environment, eq.Quality)

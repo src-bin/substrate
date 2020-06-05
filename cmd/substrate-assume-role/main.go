@@ -16,9 +16,9 @@ import (
 
 func main() {
 	admin := flag.Bool("admin", false, `shorthand for -domain="admin" -environment="admin"`)
-	domain := flag.String("domain", "", "Domain of an AWS account in which to assume a role")
-	environment := flag.String("environment", "", "Environment of an AWS account in which to assume a role")
-	quality := flag.String("quality", "", "Quality of an AWS account in which to assume a role")
+	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
+	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")
+	quality := flag.String("quality", "", "quality of an AWS account in which to assume a role")
 	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "master" or "network"`)
 	rolename := flag.String("role", "", "name of the IAM role to assume")
 	flag.Parse()

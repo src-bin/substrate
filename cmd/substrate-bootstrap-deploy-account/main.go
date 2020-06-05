@@ -67,7 +67,7 @@ func main() {
 	}
 
 	// Write (or rewrite) Terraform resources that creates the S3 bucket we
-	// will use to shuttle artifacts between Environments and Qualities.
+	// will use to shuttle artifacts between environments and qualities.
 	blocks := terraform.NewBlocks()
 	for _, region := range regions.Selected() {
 		name := fmt.Sprintf("%s-deploy-artifacts-%s", prefix, region) // including region because S3 bucket names are still global

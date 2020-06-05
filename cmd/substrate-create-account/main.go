@@ -17,9 +17,9 @@ import (
 )
 
 func main() {
-	domain := flag.String("domain", "", "Domain for this new AWS account")
-	environment := flag.String("environment", "", "Environment for this new AWS account")
-	quality := flag.String("quality", "", "Quality for this new AWS account")
+	domain := flag.String("domain", "", "domain for this new AWS account")
+	environment := flag.String("environment", "", "environment for this new AWS account")
+	quality := flag.String("quality", "", "quality for this new AWS account")
 	flag.Parse()
 	if *domain == "" || *environment == "" || *quality == "" {
 		ui.Fatal(`-domain="..." -environment="..." -quality"..." are required`)
@@ -29,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if !veqpDoc.Valid(*environment, *quality) {
-		ui.Fatalf(`-environment="%s" -quality"%s" is not a valid Environment and Quality pair in your organization`, *environment, *quality)
+		ui.Fatalf(`-environment="%s" -quality"%s" is not a valid environment and quality pair in your organization`, *environment, *quality)
 	}
 
 	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{})

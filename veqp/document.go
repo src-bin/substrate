@@ -11,7 +11,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-const Filename = "substrate.valid-Environment-Quality-pairs.json"
+const Filename = "substrate.valid-environment-quality-pairs.json"
 
 type Document struct {
 	Admonition                   jsonutil.Admonition `json:"#"`
@@ -68,8 +68,8 @@ func (d *Document) ValidPair(eqp0 EnvironmentQualityPair) bool {
 	return false
 }
 
-// Validate returns nil iff every Environment and Quality in the given slices
-// appears in the Document and no Environment or Quality in the Document is
+// Validate returns nil iff every environment and quality in the given slices
+// appears in the Document and no environment or quality in the Document is
 // missing from the given slices.
 //
 // Don't sort the arguments; their order is important.
@@ -103,7 +103,7 @@ func (d *Document) validateEnvironment(environment string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf(`Environment "%s" not paired with any Quality`, environment)
+	return fmt.Errorf(`environment "%s" not paired with any quality`, environment)
 }
 
 // validateEnvironmentQualityPair returns nil iff both components of the given
@@ -119,14 +119,14 @@ func (d *Document) validateEnvironmentQualityPair(
 		}
 	}
 	if !validEnvironment {
-		return fmt.Errorf(`Environment "%s" is not valid`, eqp.Environment)
+		return fmt.Errorf(`environment "%s" is not valid`, eqp.Environment)
 	}
 	for _, quality := range qualities {
 		if eqp.Quality == quality {
 			return nil
 		}
 	}
-	return fmt.Errorf(`Quality "%s" is not valid`, eqp.Quality)
+	return fmt.Errorf(`quality "%s" is not valid`, eqp.Quality)
 }
 
 // validateQuality returns nil iff the given Quality appears in the Document.
@@ -136,7 +136,7 @@ func (d *Document) validateQuality(quality string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf(`Quality "%s" not paired with any Environment`, quality)
+	return fmt.Errorf(`quality "%s" not paired with any environment`, quality)
 }
 
 type EnvironmentQualityPair struct {

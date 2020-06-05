@@ -63,8 +63,8 @@ func AssumeRoleMaster(sess *session.Session, rolename string) (*session.Session,
 	return AssumeRole(sess, aws.StringValue(org.MasterAccountId), rolename), nil
 }
 
-// InAccount returns a session in the given account (by Domain, Environment,
-// and Quality) in the given role or an error if it can't assume that role for
+// InAccount returns a session in the given account (by domain, environment,
+// and quality) in the given role or an error if it can't assume that role for
 // any reason.  It supports starting from the OrganizationAdministrator role,
 // root credentials in the master account, or any role in any account in the
 // organization that can assume the given role.
