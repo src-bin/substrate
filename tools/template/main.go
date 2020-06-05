@@ -61,8 +61,18 @@ func main() {
 			}
 		}
 		for _, filename := range filenames {
+
+			// Act a bit like gitignore(5) by at least omitting frequent
+			// offenders.
+			if strings.HasSuffix(filename, ".swo") ||
+				strings.HasSuffix(filename, ".swp") ||
+				strings.HasSuffix(filename, ".swx") ||
+				strings.HasSuffix(filename, ".zip") {
+				continue
+			}
+
 			content += fmt.Sprintf(
-				"\t\t%q:%s%s,\n",
+				"\t\t%q: %s%s,\n",
 				filename,
 				strings.Repeat(" ", max-len(filename)),
 				readFile(path.Join(flag.Arg(0), filename)),

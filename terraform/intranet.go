@@ -4,7 +4,7 @@ package terraform
 
 func intranetTemplate() map[string]string {
 	return map[string]string{
-		"substrate_instance_factory.tf":  `data "aws_iam_policy_document" "substrate-instance-factory" {
+		"substrate_instance_factory.tf":   `data "aws_iam_policy_document" "substrate-instance-factory" {
   statement {
     actions = [
       "autoscaling:DescribeAutoScalingGroups",
@@ -23,7 +23,7 @@ module "substrate-instance-factory" {
   source                   = "../lambda-function"
 }
 `,
-		"module.tf":                      `variable "okta_client_id" {}
+		"module.tf":                       `variable "okta_client_id" {}
 
 variable "okta_client_secret_timestamp" {} # TODO it's awkward to have to apply this Terraform in order to know how to set this
 
@@ -35,7 +35,7 @@ output "url" {
   value = "https://${aws_api_gateway_rest_api.intranet.id}.execute_api.${data.aws_region.current.name}.amazonaws.com/${var.stage_name}"
 }
 `,
-		"substrate_okta_authenticator.tf":`data "aws_iam_policy_document" "substrate-okta-authenticator" {
+		"substrate_okta_authenticator.tf": `data "aws_iam_policy_document" "substrate-okta-authenticator" {
   statement {
     actions   = ["sts:GetCallerIdentity"]
     resources = ["*"]
@@ -50,7 +50,7 @@ module "substrate-okta-authenticator" {
   source                   = "../lambda-function"
 }
 `,
-		"substrate_okta_authorizer.tf":   `data "aws_caller_identity" "current" {}
+		"substrate_okta_authorizer.tf":    `data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "substrate-okta-authorizer" {
   statement {
@@ -72,7 +72,7 @@ module "substrate-okta-authorizer" {
   source                   = "../lambda-function"
 }
 `,
-		"Makefile":                       `all:
+		"Makefile":                        `all:
 	touch -t 197001010000 $(GOBIN)/substrate-okta-authenticator
 	zip -X -j substrate-okta-authenticator.zip $(GOBIN)/substrate-okta-authenticator
 	touch -t 197001010000 $(GOBIN)/substrate-okta-authorizer
@@ -82,7 +82,7 @@ module "substrate-okta-authorizer" {
 
 .PHONY: all
 `,
-		"apigateway.tf":                  `data "aws_iam_policy_document" "apigateway" {
+		"apigateway.tf":                   `data "aws_iam_policy_document" "apigateway" {
   statement {
     actions = ["lambda:InvokeFunction"]
     resources = [
