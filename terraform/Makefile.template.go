@@ -14,14 +14,12 @@ apply: init
 destroy: init
 	terraform destroy $(AUTO_APPROVE)
 
-init: .terraform
+init:
+	terraform init
 
 plan:
 	terraform plan
 
 .PHONY: all apply init plan
-
-.terraform:
-	terraform init
 `
 }

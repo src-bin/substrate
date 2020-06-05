@@ -131,12 +131,12 @@ func main() {
 	//log.Printf("%+v", netDoc)
 
 	// Provide every Terraform module with a reference to the organization.
-	orgBlocks := terraform.NewBlocks()
+	orgFile := terraform.NewFile()
 	org := terraform.Organization{
 		Label:    terraform.Q("current"),
 		Provider: terraform.ProviderAliasFor(regions.Selected()[0]),
 	}
-	orgBlocks.Push(org)
+	orgFile.Push(org)
 
 	// Write (or rewrite) some Terraform providers to make everything usable.
 	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
@@ -151,7 +151,7 @@ func main() {
 	// be created in the 192.168.0.0/16 CIDR block managed by adminNetDoc.
 	ui.Printf("bootstrapping networks for every environment and	quality in %d regions", len(regions.Selected()))
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
-		blocks := terraform.NewBlocks()
+		file := terraform.NewFile()
 
 		for _, region := range regions.Selected() {
 			ui.Spinf(
@@ -189,20 +189,20 @@ func main() {
 				Provider:  terraform.ProviderAliasFor(region),
 				Tags:      tags,
 			}
-			blocks.Push(vpc)
+			file.Push(vpc)
 
-			vpcAccoutrements(sess, region, org, vpc, blocks)
+			vpcAccoutrements(sess, region, org, vpc, file)
 
 			ui.Stop(n.IPv4)
 		}
 
-		if err := orgBlocks.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "organization.tf")); err != nil {
+		if err := orgFile.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "organization.tf")); err != nil {
 			log.Fatal(err)
 		}
 		if err := providers.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
 			log.Fatal(err)
 		}
-		if err := blocks.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "vpc.tf")); err != nil {
+		if err := file.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "vpc.tf")); err != nil {
 			log.Fatal(err)
 		}
 
@@ -276,7 +276,7 @@ func vpcAccoutrements(
 	region string,
 	org terraform.Organization,
 	vpc terraform.VPC,
-	blocks *terraform.Blocks,
+	file *terraform.File,
 ) {
 	hasPrivateSubnets := vpc.Tags.Environment != "admin"
 
@@ -292,8 +292,8 @@ func vpcAccoutrements(
 		Provider: vpc.Provider,
 		Tags:     vpc.Tags,
 	}
-	blocks.Push(rs)
-	blocks.Push(terraform.PrincipalAssociation{
+	file.Push(rs)
+	file.Push(terraform.PrincipalAssociation{
 		Label:            terraform.Label(vpc.Tags),
 		Principal:        terraform.U(org.Ref(), ".arn"),
 		Provider:         vpc.Provider,
@@ -307,15 +307,15 @@ func vpcAccoutrements(
 		Tags:     vpc.Tags,
 		VpcId:    terraform.U(vpc.Ref(), ".id"),
 	}
-	blocks.Push(igw)
-	blocks.Push(terraform.Route{
+	file.Push(igw)
+	file.Push(terraform.Route{
 		DestinationIPv4:   terraform.Q("0.0.0.0/0"),
 		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
 		Label:             terraform.Label(vpc.Tags, "public-internet-ipv4"),
 		Provider:          vpc.Provider,
 		RouteTableId:      terraform.U(vpc.Ref(), ".default_route_table_id"),
 	})
-	blocks.Push(terraform.Route{
+	file.Push(terraform.Route{
 		DestinationIPv6:   terraform.Q("::/0"),
 		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
 		Label:             terraform.Label(vpc.Tags, "public-internet-ipv6"),
@@ -333,7 +333,7 @@ func vpcAccoutrements(
 		VpcId:    terraform.U(vpc.Ref(), ".id"),
 	}
 	if hasPrivateSubnets {
-		blocks.Push(egw)
+		file.Push(egw)
 	}
 
 	// Create a public and private subnet in each of (up to, and the newest)
@@ -367,8 +367,8 @@ func vpcAccoutrements(
 			VpcId:               terraform.U(vpc.Ref(), ".id"),
 		}
 		s.Tags.Name = vpc.Tags.Name + "-public-" + az
-		blocks.Push(s)
-		blocks.Push(terraform.ResourceAssociation{
+		file.Push(s)
+		file.Push(terraform.ResourceAssociation{
 			Label:            s.Label,
 			Provider:         vpc.Provider,
 			ResourceArn:      terraform.U(s.Ref(), ".arn"),
@@ -376,7 +376,7 @@ func vpcAccoutrements(
 		})
 
 		// Explicitly associate the public subnets with the main routing table.
-		blocks.Push(terraform.RouteTableAssociation{
+		file.Push(terraform.RouteTableAssociation{
 			Label:        s.Label,
 			Provider:     vpc.Provider,
 			RouteTableId: terraform.U(vpc.Ref(), ".default_route_table_id"),
@@ -398,8 +398,8 @@ func vpcAccoutrements(
 			VpcId:            terraform.U(vpc.Ref(), ".id"),
 		}
 		s.Tags.Name = vpc.Tags.Name + "-private-" + az
-		blocks.Push(s)
-		blocks.Push(terraform.ResourceAssociation{
+		file.Push(s)
+		file.Push(terraform.ResourceAssociation{
 			Label:            s.Label,
 			Provider:         vpc.Provider,
 			ResourceArn:      terraform.U(s.Ref(), ".arn"),
@@ -414,8 +414,8 @@ func vpcAccoutrements(
 			Tags:     s.Tags,
 			VpcId:    terraform.U(vpc.Ref(), ".id"),
 		}
-		blocks.Push(rt)
-		blocks.Push(terraform.RouteTableAssociation{
+		file.Push(rt)
+		file.Push(terraform.RouteTableAssociation{
 			Label:        s.Label,
 			Provider:     vpc.Provider,
 			RouteTableId: terraform.U(rt.Ref(), ".id"),
@@ -430,7 +430,7 @@ func vpcAccoutrements(
 			Tags:               tags,
 		}
 		eip.Tags.Name = vpc.Tags.Name + "-nat-gateway-" + az
-		blocks.Push(eip)
+		file.Push(eip)
 		ngw := terraform.NATGateway{
 			Label:    terraform.Label(tags),
 			Provider: vpc.Provider,
@@ -438,8 +438,8 @@ func vpcAccoutrements(
 			Tags:     tags,
 		}
 		ngw.Tags.Name = vpc.Tags.Name + "-" + az
-		blocks.Push(ngw)
-		blocks.Push(terraform.Route{
+		file.Push(ngw)
+		file.Push(terraform.Route{
 			DestinationIPv4: terraform.Q("0.0.0.0/0"),
 			Label:           terraform.Label(tags),
 			NATGatewayId:    terraform.U(ngw.Ref(), ".id"),
@@ -448,7 +448,7 @@ func vpcAccoutrements(
 		})
 
 		// Associate the VPC's Egress-Only Internet Gateway for IPv6 traffic.
-		blocks.Push(terraform.Route{
+		file.Push(terraform.Route{
 			DestinationIPv6:             terraform.Q("::/0"),
 			EgressOnlyInternetGatewayId: terraform.U(egw.Ref(), ".id"),
 			Label:                       terraform.Label(s.Tags, "private-internet-ipv6"),

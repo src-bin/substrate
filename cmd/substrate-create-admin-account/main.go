@@ -66,10 +66,11 @@ func main() {
 
 	admin.EnsureAdministratorRolesAndPolicies(sess)
 
+	dirname := fmt.Sprintf("%s-%s-account", Domain, *quality)
+
 	// Write (or rewrite) Terraform resources that create the Intranet in this
 	// admin account.
-	dirname := fmt.Sprintf("%s-%s-account", Domain, *quality)
-	intranet := terraform.NewBlocks()
+	intranet := terraform.NewFile()
 	for _, region := range regions.Selected() {
 		tags := terraform.Tags{
 			Domain:      Domain,
@@ -93,6 +94,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Write (or rewrite) the Terraform modules we referenced just above.
+	intranetModule := terraform.IntranetModule()
+	if err := intranetModule.Write("intranet"); err != nil {
+		log.Fatal(err)
+	}
+	lambdaFunctionModule := terraform.LambdaFunctionModule()
+	if err := lambdaFunctionModule.Write("lambda-function"); err != nil {
+		log.Fatal(err)
+	}
+
 	// Write (or rewrite) some Terraform providers to make everything usable.
 	providers := terraform.Provider{
 		AccountId:   aws.StringValue(account.Id),
@@ -105,6 +116,18 @@ func main() {
 
 	// TODO put the Okta client secret and Okta client secret timestamp into AWS Secrets Manager
 
-	// TODO make -C intranet && terraform init && terraform apply
+	// TODO make -C intranet
+
+	// Generate a Makefile in the root Terraform module then apply the generated
+	// Terraform code.
+	if err := terraform.Makefile(dirname); err != nil {
+		log.Fatal(err)
+	}
+	if err := terraform.Init(dirname); err != nil {
+		log.Fatal(err)
+	}
+	if err := terraform.Apply(dirname); err != nil {
+		log.Fatal(err)
+	}
 
 }

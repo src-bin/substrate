@@ -68,7 +68,7 @@ func main() {
 
 	// Write (or rewrite) Terraform resources that creates the S3 bucket we
 	// will use to shuttle artifacts between environments and qualities.
-	blocks := terraform.NewBlocks()
+	file := terraform.NewFile()
 	for _, region := range regions.Selected() {
 		name := fmt.Sprintf("%s-deploy-artifacts-%s", prefix, region) // including region because S3 bucket names are still global
 		policy := &policies.Document{
@@ -96,7 +96,7 @@ func main() {
 			Name:   name,
 			Region: region,
 		}
-		blocks.Push(terraform.S3Bucket{
+		file.Push(terraform.S3Bucket{
 			Bucket:   terraform.Q(tags.Name),
 			Label:    terraform.Label(tags),
 			Policy:   terraform.Q(policy.MustMarshal()),
@@ -104,7 +104,7 @@ func main() {
 			Tags:     tags,
 		})
 	}
-	if err := blocks.Write(path.Join(TerraformDirname, "s3.tf")); err != nil {
+	if err := file.Write(path.Join(TerraformDirname, "s3.tf")); err != nil {
 		log.Fatal(err)
 	}
 

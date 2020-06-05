@@ -13,16 +13,16 @@ type Provider struct {
 }
 
 // AllRegions creates a provider block for every AWS region.  It purposely
-// doesn't exclude blacklisted regions because if a region is added to the
-// blacklist after resource blocks that reference it are added to Terraform,
-// the provider will be necessary in order to destroy those resources.
-func (p Provider) AllRegions() *Blocks {
-	blocks := NewBlocks()
+// includes blacklisted regions because if a region is added to the blacklist
+// after resource blocks that reference it are added to Terraform, the
+// provider will be necessary in order to destroy those resources.
+func (p Provider) AllRegions() *File {
+	file := NewFile()
 	for _, region := range regions.All() {
 		p.Region = region
-		blocks.Push(p)
+		file.Push(p)
 	}
-	return blocks
+	return file
 }
 
 func (p Provider) Ref() Value {

@@ -1,4 +1,88 @@
-data "aws_iam_policy_document" "apigateway" {
+package terraform
+
+// managed by go generate; do not edit by hand
+
+func intranetTemplate() map[string]string {
+	return map[string]string{
+		"substrate_instance_factory.tf":  `data "aws_iam_policy_document" "substrate-instance-factory" {
+  statement {
+    actions = [
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:UpdateAutoScalingGroup",
+      "ec2:DescribeInstances",
+    ]
+    resources = ["*"]
+  }
+}
+
+module "substrate-instance-factory" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-instance-factory.zip"
+  name                     = "substrate-instance-factory"
+  policy                   = data.aws_iam_policy_document.substrate-instance-factory.json
+  source                   = "../lambda-function"
+}
+`,
+		"module.tf":                      `variable "okta_client_id" {}
+
+variable "okta_client_secret_timestamp" {} # TODO it's awkward to have to apply this Terraform in order to know how to set this
+
+variable "okta_hostname" {}
+
+variable "stage_name" {}
+
+output "url" {
+  value = "https://${aws_api_gateway_rest_api.intranet.id}.execute_api.${data.aws_region.current.name}.amazonaws.com/${var.stage_name}"
+}
+`,
+		"substrate_okta_authenticator.tf":`data "aws_iam_policy_document" "substrate-okta-authenticator" {
+  statement {
+    actions   = ["sts:GetCallerIdentity"]
+    resources = ["*"]
+  }
+}
+
+module "substrate-okta-authenticator" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-okta-authenticator.zip"
+  name                     = "substrate-okta-authenticator"
+  policy                   = data.aws_iam_policy_document.substrate-okta-authenticator.json
+  source                   = "../lambda-function"
+}
+`,
+		"substrate_okta_authorizer.tf":   `data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "substrate-okta-authorizer" {
+  statement {
+    actions   = ["sts:GetCallerIdentity"]
+    resources = ["*"]
+  }
+}
+
+data "aws_region" "current" {}
+
+module "substrate-okta-authorizer" {
+  #apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::*"
+  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::/restapis/${aws_api_gateway_rest_api.intranet.id}/authorizers/${aws_api_gateway_authorizer.okta.id}"
+  apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
+  filename                 = "${path.module}/substrate-okta-authorizer.zip"
+  name                     = "substrate-okta-authorizer"
+  policy                   = data.aws_iam_policy_document.substrate-okta-authorizer.json
+  source                   = "../lambda-function"
+}
+`,
+		"Makefile":                       `all:
+	touch -t 197001010000 $(GOBIN)/substrate-okta-authenticator
+	zip -X -j substrate-okta-authenticator.zip $(GOBIN)/substrate-okta-authenticator
+	touch -t 197001010000 $(GOBIN)/substrate-okta-authorizer
+	zip -X -j substrate-okta-authorizer.zip $(GOBIN)/substrate-okta-authorizer
+	touch -t 197001010000 $(GOBIN)/substrate-instance-factory
+	zip -X -j substrate-instance-factory.zip $(GOBIN)/substrate-instance-factory
+
+.PHONY: all
+`,
+		"apigateway.tf":                  `data "aws_iam_policy_document" "apigateway" {
   statement {
     actions = ["lambda:InvokeFunction"]
     resources = [
@@ -181,4 +265,7 @@ resource "aws_iam_role_policy_attachment" "apigateway" {
 resource "aws_iam_role_policy_attachment" "apigateway-cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
   role       = aws_iam_role.apigateway.name
+}
+`,
+	}
 }

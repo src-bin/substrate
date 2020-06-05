@@ -28,10 +28,10 @@ func main() {
 		log.Fatal("too many arguments")
 	}
 	if *out == "" {
-		*out = flag.Arg(0) + ".go"
+		*out = filepath.Base(flag.Arg(0)) + ".go"
 	}
 	if *pkg == "" {
-		abs, err := filepath.Abs(flag.Arg(0))
+		abs, err := filepath.Abs(*out)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -62,7 +62,7 @@ func main() {
 		}
 		for _, filename := range filenames {
 			content += fmt.Sprintf(
-				"\t\t%q:%s%s\n",
+				"\t\t%q:%s%s,\n",
 				filename,
 				strings.Repeat(" ", max-len(filename)),
 				readFile(path.Join(flag.Arg(0), filename)),
