@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -279,6 +280,33 @@ func main() {
 	}
 	ui.Stop("ok")
 
+	// Gather lists of accounts.  These are used below in configuring policies
+	// to allow cross-account access.  On the first run they're basically
+	// no-ops but on subsequent runs this is key to not undoing the work of
+	// substrate-create-account and substrate-create-admin-account.
+	adminAccounts, err := awsorgs.FindAccountsByDomain(svc, accounts.Admin)
+	if err != nil {
+		log.Fatal(err)
+	}
+	adminPrincipals := make([]string, len(adminAccounts)+2) // +2 for the master account and its IAM user
+	for i, account := range adminAccounts {
+		adminPrincipals[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+	}
+	adminPrincipals[len(adminPrincipals)-2] = aws.StringValue(org.MasterAccountId)
+	adminPrincipals[len(adminPrincipals)-1] = fmt.Sprintf("arn:aws:iam::%s:user/%s", aws.StringValue(org.MasterAccountId), roles.OrganizationAdministrator)
+	sort.Strings(adminPrincipals) // to avoid spurious policy diffs
+	log.Printf("%+v", adminPrincipals)
+	allAccounts, err := awsorgs.ListAccounts(svc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	allAccountIds := make([]string, len(allAccounts))
+	for i, account := range allAccounts {
+		allAccountIds[i] = aws.StringValue(account.Id)
+	}
+	sort.Strings(allAccountIds) // to avoid spurious policy diffs
+	log.Printf("%+v", allAccountIds)
+
 	// Admin accounts, once they exist, are going to need to be able to assume
 	// a role in the master account.  Because no admin accounts exist yet, this
 	// is something of a no-op but it provides a place for them to attach
@@ -287,11 +315,7 @@ func main() {
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationAdministrator,
-		&policies.Principal{AWS: []string{
-			aws.StringValue(org.MasterAccountId),
-			fmt.Sprintf("arn:aws:iam::%s:user/%s", aws.StringValue(org.MasterAccountId), roles.OrganizationAdministrator),
-			// TODO add the Administrator role in every admin account to this list
-		}},
+		&policies.Principal{AWS: adminPrincipals},
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -317,13 +341,7 @@ func main() {
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationReader,
-		&policies.Principal{AWS: []string{ // TODO every time this runs, admin and other domain accounts lose access
-			aws.StringValue(org.MasterAccountId),
-			aws.StringValue(auditAccount.Id),
-			aws.StringValue(deployAccount.Id),
-			aws.StringValue(networkAccount.Id),
-			// TODO add every account to this list
-		}},
+		&policies.Principal{AWS: allAccountIds},
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -350,10 +368,7 @@ func main() {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.DeployAdministrator,
-		&policies.Principal{AWS: []string{
-			aws.StringValue(org.MasterAccountId),
-			// TODO add the Administrator role in every admin account to this list
-		}},
+		&policies.Principal{AWS: adminPrincipals},
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -376,10 +391,7 @@ func main() {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.NetworkAdministrator,
-		&policies.Principal{AWS: []string{
-			aws.StringValue(org.MasterAccountId),
-			// TODO add the Administrator role in every admin account to this list
-		}},
+		&policies.Principal{AWS: adminPrincipals},
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{

@@ -67,8 +67,48 @@ func FindAccount(
 	return findAccount(svc, nameFor(domain, environment, quality))
 }
 
+func FindAccountsByDomain(
+	svc *organizations.Organizations,
+	domain string,
+) (accounts []*organizations.Account, err error) {
+	allAccounts, err := ListAccounts(svc)
+	if err != nil {
+		return nil, err
+	}
+	for _, account := range allAccounts {
+
+		// TODO a more formal and foolproof way to implement this is using
+		// ListTagsForResource to fetch the tags for each account to directly
+		// compare the Domain tag to the given domain.
+		if strings.HasPrefix(aws.StringValue(account.Name), fmt.Sprintf("%s-", domain)) {
+			accounts = append(accounts, account)
+		}
+
+	}
+	return accounts, nil
+}
+
 func FindSpecialAccount(svc *organizations.Organizations, name string) (*organizations.Account, error) {
 	return findAccount(svc, name)
+}
+
+func ListAccounts(svc *organizations.Organizations) (accounts []*organizations.Account, err error) {
+	var nextToken *string
+	for {
+		in := &organizations.ListAccountsInput{NextToken: nextToken}
+		out, err := svc.ListAccounts(in)
+		if err != nil {
+			return nil, err
+		}
+		for _, account := range out.Accounts {
+			log.Printf("ListAccounts Id: %s, Name: %s, Email: %s", aws.StringValue(account.Id), aws.StringValue(account.Name), aws.StringValue(account.Email))
+		}
+		accounts = append(accounts, out.Accounts...)
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
 }
 
 func RegisterDelegatedAdministrator(svc *organizations.Organizations, accountId, service string) error {
@@ -179,7 +219,7 @@ func ensureAccount(
 }
 
 func findAccount(svc *organizations.Organizations, name string) (*organizations.Account, error) {
-	accounts, err := listAccounts(svc)
+	accounts, err := ListAccounts(svc)
 	if err != nil {
 		return nil, err
 	}
@@ -189,25 +229,6 @@ func findAccount(svc *organizations.Organizations, name string) (*organizations.
 		}
 	}
 	return nil, fmt.Errorf("%s account not found", name)
-}
-
-func listAccounts(svc *organizations.Organizations) (accounts []*organizations.Account, err error) {
-	var nextToken *string
-	for {
-		in := &organizations.ListAccountsInput{NextToken: nextToken}
-		out, err := svc.ListAccounts(in)
-		if err != nil {
-			return nil, err
-		}
-		for _, account := range out.Accounts {
-			log.Printf("listAccounts Id: %s, Name: %s, Email: %s", aws.StringValue(account.Id), aws.StringValue(account.Name), aws.StringValue(account.Email))
-		}
-		accounts = append(accounts, out.Accounts...)
-		if nextToken = out.NextToken; nextToken == nil {
-			break
-		}
-	}
-	return
 }
 
 func nameFor(domain, environment, quality string) string {
