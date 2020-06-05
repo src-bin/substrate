@@ -21,6 +21,9 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
+// TODO make a Session type here that lazily constructs and caches all the
+// service/*.New clients so we don't have to keep awkwardly bouncing around.
+
 type Config struct {
 	AccessKeyId, SecretAccessKey string
 	Region                       string

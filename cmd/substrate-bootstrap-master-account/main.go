@@ -3,19 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
-	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/ram"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscloudtrail"
-	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awss3"
@@ -280,132 +278,7 @@ func main() {
 	}
 	ui.Stop("ok")
 
-	// Gather lists of accounts.  These are used below in configuring policies
-	// to allow cross-account access.  On the first run they're basically
-	// no-ops but on subsequent runs this is key to not undoing the work of
-	// substrate-create-account and substrate-create-admin-account.
-	adminAccounts, err := awsorgs.FindAccountsByDomain(svc, accounts.Admin)
-	if err != nil {
-		log.Fatal(err)
-	}
-	adminPrincipals := make([]string, len(adminAccounts)+2) // +2 for the master account and its IAM user
-	for i, account := range adminAccounts {
-		adminPrincipals[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-	}
-	adminPrincipals[len(adminPrincipals)-2] = aws.StringValue(org.MasterAccountId)
-	adminPrincipals[len(adminPrincipals)-1] = fmt.Sprintf("arn:aws:iam::%s:user/%s", aws.StringValue(org.MasterAccountId), roles.OrganizationAdministrator)
-	sort.Strings(adminPrincipals) // to avoid spurious policy diffs
-	log.Printf("%+v", adminPrincipals)
-	allAccounts, err := awsorgs.ListAccounts(svc)
-	if err != nil {
-		log.Fatal(err)
-	}
-	allAccountIds := make([]string, len(allAccounts))
-	for i, account := range allAccounts {
-		allAccountIds[i] = aws.StringValue(account.Id)
-	}
-	sort.Strings(allAccountIds) // to avoid spurious policy diffs
-	log.Printf("%+v", allAccountIds)
-
-	// Admin accounts, once they exist, are going to need to be able to assume
-	// a role in the master account.  Because no admin accounts exist yet, this
-	// is something of a no-op but it provides a place for them to attach
-	// themselves as they're created.
-	ui.Spin("finding or creating a role to allow admin accounts to administer your organization")
-	role, err := awsiam.EnsureRoleWithPolicy(
-		iam.New(sess),
-		roles.OrganizationAdministrator,
-		&policies.Principal{AWS: adminPrincipals},
-		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
-		},
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Stopf("role %s", role.Name)
-	//log.Printf("%+v", role)
-
-	// Ensure admin accounts can find other accounts in the organization without full administrative
-	// privileges.  This should be directly possible via organizations:RegisterDelegatedAdministrator
-	// but that API appears to just not work the way
-	// <https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrated-services-list.html>
-	// implies it does.  As above, this is almost a no-op for now because, while it grants access to
-	// the special accounts, no admin accounts exist yet.
-	ui.Spin("finding or creating a role to allow account discovery within your organization")
-	role, err = awsiam.EnsureRoleWithPolicy(
-		iam.New(sess),
-		roles.OrganizationReader,
-		&policies.Principal{AWS: allAccountIds},
-		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"organizations:ListAccounts"},
-					Resource: []string{"*"},
-				},
-			},
-		},
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Stopf("role %s", role.Name)
-	//log.Printf("%+v", role)
-
-	// Ensure the master account can get into the deploy and network accounts
-	// the same way admin accounts will in the future.  This will make deploy
-	// and network account boostrapping (the next steps) easier.
-	ui.Spin("finding or creating a role to allow admin accounts to administer your deploy artifacts")
-	role, err = awsiam.EnsureRoleWithPolicy(
-		iam.New(awssessions.AssumeRole(
-			sess,
-			aws.StringValue(deployAccount.Id),
-			roles.OrganizationAccountAccessRole,
-		)),
-		roles.DeployAdministrator,
-		&policies.Principal{AWS: adminPrincipals},
-		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
-		},
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Stopf("role %s", role.Name)
-	ui.Spin("finding or creating a role to allow admin accounts to administer your networks")
-	//log.Printf("%+v", role)
-	role, err = awsiam.EnsureRoleWithPolicy(
-		iam.New(awssessions.AssumeRole(
-			sess,
-			aws.StringValue(networkAccount.Id),
-			roles.OrganizationAccountAccessRole,
-		)),
-		roles.NetworkAdministrator,
-		&policies.Principal{AWS: adminPrincipals},
-		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
-		},
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Stopf("role %s", role.Name)
-	//log.Printf("%+v", role)
+	admin.EnsureAdministratorRolesAndPolicies(sess)
 
 	ui.Print("next, run substrate-bootstrap-deploy-account and substrate-bootstrap-network-account")
 

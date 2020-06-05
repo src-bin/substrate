@@ -8,13 +8,11 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
-	"github.com/src-bin/substrate/awsiam"
+	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/terraform"
@@ -66,61 +64,7 @@ func main() {
 
 	okta(sess, account, metadata)
 
-	// Allow only the Administrator role in this account to assume the
-	// OrganizationAdministrator role in the master account.  Allow any role
-	// in this account to assume the OrganizationReader role in the master
-	// account.
-	svc := iam.New(sess)
-	role, err := awsiam.GetRole(svc, roles.OrganizationAdministrator)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := role.AddPrincipal(svc, &policies.Principal{
-		AWS: []string{roles.Arn(aws.StringValue(account.Id), Administrator)},
-	}); err != nil {
-		log.Fatal(err)
-	}
-	role, err = awsiam.GetRole(svc, roles.OrganizationReader)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := role.AddPrincipal(svc, &policies.Principal{
-		AWS: []string{aws.StringValue(account.Id)},
-	}); err != nil {
-		log.Fatal(err)
-	}
-
-	// Also allow the Administrator role in this account to assume the
-	// DeployAdministrator role in the deploy account and the
-	// NetworkAdministrator role in the network account.
-	svc = iam.New(awssessions.Must(awssessions.InSpecialAccount(
-		accounts.Deploy,
-		roles.DeployAdministrator,
-		awssessions.Config{},
-	)))
-	role, err = awsiam.GetRole(svc, roles.DeployAdministrator)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := role.AddPrincipal(svc, &policies.Principal{
-		AWS: []string{roles.Arn(aws.StringValue(account.Id), Administrator)},
-	}); err != nil {
-		log.Fatal(err)
-	}
-	svc = iam.New(awssessions.Must(awssessions.InSpecialAccount(
-		accounts.Network,
-		roles.NetworkAdministrator,
-		awssessions.Config{},
-	)))
-	role, err = awsiam.GetRole(svc, roles.NetworkAdministrator)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := role.AddPrincipal(svc, &policies.Principal{
-		AWS: []string{roles.Arn(aws.StringValue(account.Id), Administrator)},
-	}); err != nil {
-		log.Fatal(err)
-	}
+	admin.EnsureAdministratorRolesAndPolicies(sess)
 
 	// Write (or rewrite) Terraform resources that create the Intranet in this
 	// admin account.
