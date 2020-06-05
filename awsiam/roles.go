@@ -22,8 +22,12 @@ func AttachRolePolicy(
 	return err
 }
 
-func CreateRole(svc *iam.IAM, rolename string, principal *policies.Principal) (*Role, error) {
-	docJSON, err := assumeRolePolicy(principal).Marshal()
+func CreateRole(
+	svc *iam.IAM,
+	rolename string,
+	assumeRolePolicyDoc *policies.Document,
+) (*Role, error) {
+	docJSON, err := assumeRolePolicyDoc.Marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -43,10 +47,10 @@ func CreateRole(svc *iam.IAM, rolename string, principal *policies.Principal) (*
 func EnsureRole(
 	svc *iam.IAM,
 	rolename string,
-	principal *policies.Principal,
+	assumeRolePolicyDoc *policies.Document,
 ) (*Role, error) {
 
-	role, err := CreateRole(svc, rolename, principal)
+	role, err := CreateRole(svc, rolename, assumeRolePolicyDoc)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
 		role, err = GetRole(svc, rolename)
 	}
@@ -61,7 +65,7 @@ func EnsureRole(
 		return nil, err
 	}
 
-	docJSON, err := assumeRolePolicy(principal).Marshal()
+	docJSON, err := assumeRolePolicyDoc.Marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -78,16 +82,15 @@ func EnsureRole(
 func EnsureRoleWithPolicy(
 	svc *iam.IAM,
 	rolename string,
-	principal *policies.Principal,
+	assumeRolePolicyDoc *policies.Document,
 	doc *policies.Document,
 ) (*Role, error) {
 
-	role, err := EnsureRole(svc, rolename, principal)
+	role, err := EnsureRole(svc, rolename, assumeRolePolicyDoc)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO attach the managed AdministratorAccess policy instead of inlining.
 	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
@@ -162,26 +165,4 @@ func (r *Role) AddPrincipal(svc *iam.IAM, principal *policies.Principal) error {
 		RoleName:       aws.String(r.Name),
 	})
 	return err
-}
-
-func assumeRolePolicy(principal *policies.Principal) *policies.Document {
-	doc := &policies.Document{
-		Statement: []policies.Statement{
-			policies.Statement{
-				Principal: principal,
-				Action:    []string{"sts:AssumeRole"},
-			},
-		},
-	}
-
-	// Infer from the type of principal whether we additionally need a condition on this statement per
-	// <https://help.okta.com/en/prod/Content/Topics/DeploymentGuides/AWS/connect-okta-single-aws.htm>.
-	if principal.Federated != nil {
-		for i := 0; i < len(doc.Statement); i++ {
-			doc.Statement[i].Action[0] = "sts:AssumeRoleWithSAML"
-			doc.Statement[i].Condition = policies.Condition{"StringEquals": {"SAML:aud": "https://signin.aws.amazon.com/saml"}}
-		}
-	}
-
-	return doc
 }

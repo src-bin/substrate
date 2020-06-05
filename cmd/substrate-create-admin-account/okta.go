@@ -9,9 +9,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsiam"
+	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/users"
 )
 
 const (
@@ -21,6 +23,11 @@ const (
 )
 
 func okta(sess *session.Session, account *organizations.Account, metadata string) {
+	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	svc := iam.New(sess, &aws.Config{
 		Credentials: stscreds.NewCredentials(sess, roles.Arn(
 			aws.StringValue(account.Id),
@@ -38,10 +45,26 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 
 	// Give Okta some entrypoints in the Admin account.
 	ui.Spin("finding or creating roles for Okta to use in the ops account")
+	assumeRolePolicyDocument := &policies.Document{
+		Statement: []policies.Statement{
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				AWS: []string{
+					aws.StringValue(org.MasterAccountId),
+					users.Arn(
+						aws.StringValue(org.MasterAccountId),
+						users.OrganizationAdministrator,
+					),
+				},
+			}).Statement[0],
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				Federated: []string{saml.Arn},
+			}).Statement[0],
+		},
+	}
 	_, err = awsiam.EnsureRoleWithPolicy(
 		svc,
 		Administrator,
-		&policies.Principal{Federated: []string{saml.Arn}},
+		assumeRolePolicyDocument,
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -57,7 +80,7 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 	_, err = awsiam.EnsureRoleWithPolicy(
 		svc,
 		Auditor, // TODO allow it to assume roles but set a permission boundary to keep it read-only
-		&policies.Principal{Federated: []string{saml.Arn}},
+		assumeRolePolicyDocument,
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{

@@ -7,6 +7,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/users"
 )
 
 func main() {
@@ -15,7 +16,7 @@ func main() {
 
 	if err := awsiam.DeleteAllAccessKeys(
 		iam.New(sess),
-		roles.OrganizationAdministrator,
+		users.OrganizationAdministrator,
 	); err != nil {
 		log.Fatal(err)
 	}

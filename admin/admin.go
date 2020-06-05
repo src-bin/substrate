@@ -70,7 +70,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationAdministrator,
-		&policies.Principal{AWS: adminPrincipals},
+		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: adminPrincipals}),
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -96,7 +96,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationReader,
-		&policies.Principal{AWS: allAccountIds},
+		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: allAccountIds}),
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -127,7 +127,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.DeployAdministrator,
-		&policies.Principal{AWS: adminPrincipals},
+		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: adminPrincipals}),
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -154,7 +154,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.NetworkAdministrator,
-		&policies.Principal{AWS: adminPrincipals},
+		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: adminPrincipals}),
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{

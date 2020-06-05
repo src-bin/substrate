@@ -19,6 +19,7 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/users"
 )
 
 // TODO make a Session type here that lazily constructs and caches all the
@@ -204,7 +205,7 @@ func NewSession(config Config) (*session.Session, error) {
 
 	user, err := awsiam.EnsureUserWithPolicy(
 		svc,
-		roles.OrganizationAdministrator, // reuse the rolename for the username
+		users.OrganizationAdministrator,
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -221,7 +222,7 @@ func NewSession(config Config) (*session.Session, error) {
 
 	if err := awsiam.DeleteAllAccessKeys(
 		svc,
-		roles.OrganizationAdministrator,
+		users.OrganizationAdministrator,
 	); err != nil {
 		return nil, err
 	}
@@ -234,7 +235,7 @@ func NewSession(config Config) (*session.Session, error) {
 	/*
 		defer awsiam.DeleteAllAccessKeys(
 			svc,
-			roles.OrganizationAdministrator,
+			users.OrganizationAdministrator,
 		) // TODO ensure this succeeds even when we exit via log.Fatal
 	*/
 

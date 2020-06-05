@@ -13,6 +13,28 @@ type Document struct {
 	Statement []Statement
 }
 
+func AssumeRolePolicyDocument(principal *Principal) *Document {
+	doc := &Document{
+		Statement: []Statement{
+			Statement{
+				Principal: principal,
+				Action:    []string{"sts:AssumeRole"},
+			},
+		},
+	}
+
+	// Infer from the type of principal whether we additionally need a condition on this statement per
+	// <https://help.okta.com/en/prod/Content/Topics/DeploymentGuides/AWS/connect-okta-single-aws.htm>.
+	if principal.Federated != nil {
+		for i := 0; i < len(doc.Statement); i++ {
+			doc.Statement[i].Action[0] = "sts:AssumeRoleWithSAML"
+			doc.Statement[i].Condition = Condition{"StringEquals": {"SAML:aud": "https://signin.aws.amazon.com/saml"}}
+		}
+	}
+
+	return doc
+}
+
 func Unmarshal(s string) (*Document, error) {
 	d := &Document{}
 	return d, json.Unmarshal([]byte(s), d)
