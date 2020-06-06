@@ -76,56 +76,30 @@ func main() {
 		Environment: Environment,
 		Quality:     *quality,
 	}
-	var functionArns terraform.ValueSlice
+	module := terraform.Module{
+		Label:    terraform.Label(tags),
+		Provider: terraform.GlobalProviderAlias(),
+		Source:   terraform.Q("../intranet/global"),
+	}
+	intranet.Push(module)
 	for _, region := range regions.Selected() {
 		tags.Region = region
-		module := terraform.Module{
+		intranet.Push(terraform.Module{
 			Arguments: map[string]terraform.Value{
-				"okta_client_id":               terraform.Q("0oacg1iawaojz8rOo4x6"), // XXX
-				"okta_client_secret_timestamp": terraform.Q("2020-05-28T13:19:31Z"), // XXX
-				"okta_hostname":                terraform.Q("dev-662445.okta.com"),  // XXX
-				"stage_name":                   terraform.Q(*quality),
+				"apigateway_role_arn":                   terraform.U(module.Ref(), ".apigateway_role_arn"),
+				"okta_client_id":                        terraform.Q("0oacg1iawaojz8rOo4x6"), // XXX
+				"okta_client_secret_timestamp":          terraform.Q("2020-05-28T13:19:31Z"), // XXX
+				"okta_hostname":                         terraform.Q("dev-662445.okta.com"),  // XXX
+				"stage_name":                            terraform.Q(*quality),
+				"substrate_instance_factory_role_arn":   terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
+				"substrate_okta_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_okta_authenticator_role_arn"),
+				"substrate_okta_authorizer_role_arn":    terraform.U(module.Ref(), ".substrate_okta_authorizer_role_arn"),
 			},
 			Label:    terraform.Label(tags),
 			Provider: terraform.ProviderAliasFor(region),
 			Source:   terraform.Q("../intranet/regional"),
-		}
-		functionArns = append(
-			functionArns,
-			/*
-				terraform.U(module.Ref(), ".substrate_instance_factory_function_arn"),
-				terraform.U(module.Ref(), ".substrate_okta_authenticator_function_arn"),
-				terraform.U(module.Ref(), ".substrate_okta_authorizer_function_arn"),
-			*/
-			terraform.Qf(
-				"arn:aws:lambda:%s:%s:function:substrate-instance-factory",
-				region,
-				aws.StringValue(account.Id),
-			),
-			terraform.Qf(
-				"arn:aws:lambda:%s:%s:function:substrate-okta-authenticator",
-				region,
-				aws.StringValue(account.Id),
-			),
-			terraform.Qf(
-				"arn:aws:lambda:%s:%s:function:substrate-okta-authorizer",
-				region,
-				aws.StringValue(account.Id),
-			),
-		)
-		intranet.Push(module)
-	}
-	tags.Region = "" // for the global module that includes IAM resources
-	/*
-		intranet.Push(terraform.Module{
-			Arguments: map[string]terraform.Value{
-				"function_arns": functionArns,
-			},
-			Label:    terraform.Label(tags),
-			Provider: terraform.GlobalProviderAlias(),
-			Source:   terraform.Q("../intranet/global"),
 		})
-	*/
+	}
 	if err := intranet.Write(path.Join(dirname, "intranet.tf")); err != nil {
 		log.Fatal(err)
 	}

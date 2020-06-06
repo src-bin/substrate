@@ -1,7 +1,7 @@
 data "aws_iam_policy_document" "apigateway" {
   statement {
     actions   = ["lambda:InvokeFunction"]
-    resources = var.function_arns
+    resources = ["*"]
   }
 }
 

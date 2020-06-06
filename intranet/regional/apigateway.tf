@@ -1,13 +1,9 @@
-locals {
-  apigateway_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/apigateway" # breaks a dependency cycle
-}
-
 resource "aws_api_gateway_account" "current" {
-  cloudwatch_role_arn = local.apigateway_role_arn
+  cloudwatch_role_arn = var.apigateway_role_arn
 }
 
 resource "aws_api_gateway_authorizer" "okta" {
-  authorizer_credentials           = local.apigateway_role_arn
+  authorizer_credentials           = var.apigateway_role_arn
   authorizer_result_ttl_in_seconds = 1 # XXX longer once we know it's working; default 300
   authorizer_uri                   = module.substrate-okta-authorizer.invoke_arn
   identity_source                  = "method.request.header.Cookie"
@@ -43,7 +39,7 @@ resource "aws_api_gateway_deployment" "intranet" {
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {
-  credentials             = local.apigateway_role_arn
+  credentials             = var.apigateway_role_arn
   http_method             = aws_api_gateway_method.GET-instance-factory.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -54,7 +50,7 @@ resource "aws_api_gateway_integration" "GET-instance-factory" {
 }
 
 resource "aws_api_gateway_integration" "GET-login" {
-  credentials             = local.apigateway_role_arn
+  credentials             = var.apigateway_role_arn
   http_method             = aws_api_gateway_method.GET-login.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -65,7 +61,7 @@ resource "aws_api_gateway_integration" "GET-login" {
 }
 
 resource "aws_api_gateway_integration" "POST-login" {
-  credentials             = local.apigateway_role_arn
+  credentials             = var.apigateway_role_arn
   http_method             = aws_api_gateway_method.POST-login.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"

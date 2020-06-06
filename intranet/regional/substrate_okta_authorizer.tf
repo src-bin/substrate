@@ -5,6 +5,6 @@ module "substrate-okta-authorizer" {
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
   filename                 = "${path.module}/substrate-okta-authorizer.zip"
   name                     = "substrate-okta-authorizer"
-  role_arn                 = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/substrate-okta-authorizer" # breaks a dependency cycle
+  role_arn                 = var.substrate_okta_authorizer_role_arn
   source                   = "../../lambda-function/regional"
 }
