@@ -2,113 +2,57 @@ package terraform
 
 // managed by go generate; do not edit by hand
 
-func intranetTemplate() map[string]string {
+func intranetRegionalTemplate() map[string]string {
 	return map[string]string{
-		"substrate_instance_factory.tf":   `data "aws_iam_policy_document" "substrate-instance-factory" {
-  statement {
-    actions = [
-      "autoscaling:DescribeAutoScalingGroups",
-      "autoscaling:UpdateAutoScalingGroup",
-      "ec2:DescribeInstances",
-    ]
-    resources = ["*"]
-  }
-}
-
-module "substrate-instance-factory" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-instance-factory.zip"
-  name                     = "substrate-instance-factory"
-  policy                   = data.aws_iam_policy_document.substrate-instance-factory.json
-  source                   = "../lambda-function"
-}
-`,
-		"module.tf":                       `variable "okta_client_id" {}
-
-variable "okta_client_secret_timestamp" {} # TODO it's awkward to have to apply this Terraform in order to know how to set this
-
-variable "okta_hostname" {}
-
-variable "stage_name" {}
-
-output "url" {
-  value = "https://${aws_api_gateway_rest_api.intranet.id}.execute_api.${data.aws_region.current.name}.amazonaws.com/${var.stage_name}"
-}
-`,
-		"substrate_okta_authenticator.tf": `data "aws_iam_policy_document" "substrate-okta-authenticator" {
-  statement {
-    actions   = ["sts:GetCallerIdentity"]
-    resources = ["*"]
-  }
-}
-
-module "substrate-okta-authenticator" {
+		"substrate_okta_authenticator.tf": `module "substrate-okta-authenticator" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-okta-authenticator.zip"
   name                     = "substrate-okta-authenticator"
-  policy                   = data.aws_iam_policy_document.substrate-okta-authenticator.json
-  source                   = "../lambda-function"
+  role_arn                 = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/substrate-okta-authenticator" # breaks a dependency cycle
+  source                   = "../../lambda-function/regional"
 }
 `,
-		"substrate_okta_authorizer.tf":    `data "aws_caller_identity" "current" {}
-
-data "aws_iam_policy_document" "substrate-okta-authorizer" {
-  statement {
-    actions   = ["sts:GetCallerIdentity"]
-    resources = ["*"]
-  }
-}
+		"data.tf":                         `data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
-
-module "substrate-okta-authorizer" {
+`,
+		"substrate_instance_factory.tf":   `module "substrate-instance-factory" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-instance-factory.zip"
+  name                     = "substrate-instance-factory"
+  role_arn                 = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/substrate-instance-factory" # breaks a dependency cycle
+  source                   = "../../lambda-function/regional"
+}
+`,
+		"substrate_okta_authorizer.tf":    `module "substrate-okta-authorizer" {
   #apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::*"
   #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::/restapis/${aws_api_gateway_rest_api.intranet.id}/authorizers/${aws_api_gateway_authorizer.okta.id}"
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
   filename                 = "${path.module}/substrate-okta-authorizer.zip"
   name                     = "substrate-okta-authorizer"
-  policy                   = data.aws_iam_policy_document.substrate-okta-authorizer.json
-  source                   = "../lambda-function"
+  role_arn                 = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/substrate-okta-authorizer" # breaks a dependency cycle
+  source                   = "../../lambda-function/regional"
 }
 `,
-		"Makefile":                        `all:
-	touch -t 197001010000 $(GOBIN)/substrate-okta-authenticator
-	zip -X -j substrate-okta-authenticator.zip $(GOBIN)/substrate-okta-authenticator
-	touch -t 197001010000 $(GOBIN)/substrate-okta-authorizer
-	zip -X -j substrate-okta-authorizer.zip $(GOBIN)/substrate-okta-authorizer
-	touch -t 197001010000 $(GOBIN)/substrate-instance-factory
-	zip -X -j substrate-instance-factory.zip $(GOBIN)/substrate-instance-factory
+		"variables.tf":                    `variable "okta_client_id" {}
 
-.PHONY: all
+variable "okta_client_secret_timestamp" {} # TODO it's awkward to have to apply this Terraform in order to know how to set this
+
+variable "okta_hostname" {}
+
+variable "stage_name" {}
 `,
-		"apigateway.tf":                   `data "aws_iam_policy_document" "apigateway" {
-  statement {
-    actions = ["lambda:InvokeFunction"]
-    resources = [
-      module.substrate-okta-authenticator.function_arn,
-      module.substrate-okta-authorizer.function_arn,
-      module.substrate-instance-factory.function_arn,
-    ]
-  }
-}
-
-data "aws_iam_policy_document" "apigateway-trust" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      identifiers = ["apigateway.amazonaws.com"]
-      type        = "Service"
-    }
-  }
+		"apigateway.tf":                   `locals {
+  apigateway_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/apigateway" # breaks a dependency cycle
 }
 
 resource "aws_api_gateway_account" "current" {
-  cloudwatch_role_arn = aws_iam_role.apigateway.arn
+  cloudwatch_role_arn = local.apigateway_role_arn
 }
 
 resource "aws_api_gateway_authorizer" "okta" {
-  authorizer_credentials           = aws_iam_role.apigateway.arn
+  authorizer_credentials           = local.apigateway_role_arn
   authorizer_result_ttl_in_seconds = 1 # XXX longer once we know it's working; default 300
   authorizer_uri                   = module.substrate-okta-authorizer.invoke_arn
   identity_source                  = "method.request.header.Cookie"
@@ -144,7 +88,7 @@ resource "aws_api_gateway_deployment" "intranet" {
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {
-  credentials             = aws_iam_role.apigateway.arn
+  credentials             = local.apigateway_role_arn
   http_method             = aws_api_gateway_method.GET-instance-factory.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -155,7 +99,7 @@ resource "aws_api_gateway_integration" "GET-instance-factory" {
 }
 
 resource "aws_api_gateway_integration" "GET-login" {
-  credentials             = aws_iam_role.apigateway.arn
+  credentials             = local.apigateway_role_arn
   http_method             = aws_api_gateway_method.GET-login.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -166,7 +110,7 @@ resource "aws_api_gateway_integration" "GET-login" {
 }
 
 resource "aws_api_gateway_integration" "POST-login" {
-  credentials             = aws_iam_role.apigateway.arn
+  credentials             = local.apigateway_role_arn
   http_method             = aws_api_gateway_method.POST-login.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -246,25 +190,22 @@ resource "aws_cloudwatch_log_group" "apigateway-welcome" {
     Manager = "Terraform"
   }
 }
-
-resource "aws_iam_policy" "apigateway" {
-  name   = "IntranetAPIGateway"
-  policy = data.aws_iam_policy_document.apigateway.json
+`,
+		"outputs.tf":                      `output "substrate_instance_factory_function_arn" {
+  value = module.substrate-instance-factory.function_arn
 }
 
-resource "aws_iam_role" "apigateway" {
-  assume_role_policy = data.aws_iam_policy_document.apigateway-trust.json
-  name               = "IntranetAPIGateway"
+output "substrate_okta_authenticator_function_arn" {
+  value = module.substrate-okta-authenticator.function_arn
 }
 
-resource "aws_iam_role_policy_attachment" "apigateway" {
-  policy_arn = aws_iam_policy.apigateway.arn
-  role       = aws_iam_role.apigateway.name
+output "substrate_okta_authorizer_function_arn" {
+  value = module.substrate-okta-authorizer.function_arn
 }
 
-resource "aws_iam_role_policy_attachment" "apigateway-cloudwatch" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
-  role       = aws_iam_role.apigateway.name
+
+output "url" {
+  value = "https://${aws_api_gateway_rest_api.intranet.id}.execute_api.${data.aws_region.current.name}.amazonaws.com/${var.stage_name}"
 }
 `,
 	}

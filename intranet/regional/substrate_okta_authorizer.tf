@@ -1,14 +1,3 @@
-data "aws_caller_identity" "current" {}
-
-data "aws_iam_policy_document" "substrate-okta-authorizer" {
-  statement {
-    actions   = ["sts:GetCallerIdentity"]
-    resources = ["*"]
-  }
-}
-
-data "aws_region" "current" {}
-
 module "substrate-okta-authorizer" {
   #apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::*"
@@ -16,6 +5,6 @@ module "substrate-okta-authorizer" {
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
   filename                 = "${path.module}/substrate-okta-authorizer.zip"
   name                     = "substrate-okta-authorizer"
-  policy                   = data.aws_iam_policy_document.substrate-okta-authorizer.json
-  source                   = "../lambda-function"
+  role_arn                 = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/substrate-okta-authorizer" # breaks a dependency cycle
+  source                   = "../../lambda-function/regional"
 }

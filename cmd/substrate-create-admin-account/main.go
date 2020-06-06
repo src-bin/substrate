@@ -71,14 +71,15 @@ func main() {
 	// Write (or rewrite) Terraform resources that create the Intranet in this
 	// admin account.
 	intranet := terraform.NewFile()
+	tags := terraform.Tags{
+		Domain:      Domain,
+		Environment: Environment,
+		Quality:     *quality,
+	}
+	var functionArns terraform.ValueSlice
 	for _, region := range regions.Selected() {
-		tags := terraform.Tags{
-			Domain:      Domain,
-			Environment: Environment,
-			Quality:     *quality,
-			Region:      region,
-		}
-		intranet.Push(terraform.Module{
+		tags.Region = region
+		module := terraform.Module{
 			Arguments: map[string]terraform.Value{
 				"okta_client_id":               terraform.Q("0oacg1iawaojz8rOo4x6"), // XXX
 				"okta_client_secret_timestamp": terraform.Q("2020-05-28T13:19:31Z"), // XXX
@@ -87,20 +88,45 @@ func main() {
 			},
 			Label:    terraform.Label(tags),
 			Provider: terraform.ProviderAliasFor(region),
-			Source:   terraform.Q("../intranet"),
-		})
+			Source:   terraform.Q("../intranet/regional"),
+		}
+		functionArns = append(
+			functionArns,
+			terraform.U(module.Ref(), ".substrate_instance_factory_function_arn"),
+			terraform.U(module.Ref(), ".substrate_okta_authenticator_function_arn"),
+			terraform.U(module.Ref(), ".substrate_okta_authorizer_function_arn"),
+		)
+		intranet.Push(module)
 	}
+	tags.Region = "" // for the global module that includes IAM resources
+	intranet.Push(terraform.Module{
+		Arguments: map[string]terraform.Value{
+			"function_arns": functionArns,
+		},
+		Label:    terraform.Label(tags),
+		Provider: terraform.GlobalProviderAlias(),
+		Source:   terraform.Q("../intranet/global"),
+	})
 	if err := intranet.Write(path.Join(dirname, "intranet.tf")); err != nil {
 		log.Fatal(err)
 	}
 
-	// Write (or rewrite) the Terraform modules we referenced just above.
-	intranetModule := terraform.IntranetModule()
-	if err := intranetModule.Write("intranet"); err != nil {
+	// Write (or rewrite) the Terraform modules we referenced (even indirectly)
+	// just above.
+	intranetGlobalModule := terraform.IntranetGlobalModule()
+	if err := intranetGlobalModule.Write("intranet/global"); err != nil {
 		log.Fatal(err)
 	}
-	lambdaFunctionModule := terraform.LambdaFunctionModule()
-	if err := lambdaFunctionModule.Write("lambda-function"); err != nil {
+	intranetRegionalModule := terraform.IntranetRegionalModule()
+	if err := intranetRegionalModule.Write("intranet/regional"); err != nil {
+		log.Fatal(err)
+	}
+	lambdaFunctionGlobalModule := terraform.LambdaFunctionGlobalModule()
+	if err := lambdaFunctionGlobalModule.Write("lambda-function/global"); err != nil {
+		log.Fatal(err)
+	}
+	lambdaFunctionRegionalModule := terraform.LambdaFunctionRegionalModule()
+	if err := lambdaFunctionRegionalModule.Write("lambda-function/regional"); err != nil {
 		log.Fatal(err)
 	}
 

@@ -11,6 +11,44 @@ type Value interface {
 	Value() string
 }
 
+type ValueSlice []Value
+
+func (vs ValueSlice) Empty() bool {
+	return len(vs) == 0
+}
+
+func (vs ValueSlice) Raw() string {
+	switch len(vs) {
+	case 0:
+		return "[]"
+	case 1:
+		return fmt.Sprintf("[%s]", vs[0].Raw())
+	default:
+		s := "[\n"
+		for _, v := range vs {
+			s += fmt.Sprintf("\t\t%s,\n", v.Raw())
+		}
+		s += "\t]"
+		return s
+	}
+}
+
+func (vs ValueSlice) Value() string {
+	switch len(vs) {
+	case 0:
+		return "[]"
+	case 1:
+		return fmt.Sprintf("[%s]", vs[0].Value())
+	default:
+		s := "[\n"
+		for _, v := range vs {
+			s += fmt.Sprintf("\t\t%s,\n", v.Value())
+		}
+		s += "\t]"
+		return s
+	}
+}
+
 type quotedString string
 
 func Q(args ...interface{}) Value {
