@@ -92,21 +92,40 @@ func main() {
 		}
 		functionArns = append(
 			functionArns,
-			terraform.U(module.Ref(), ".substrate_instance_factory_function_arn"),
-			terraform.U(module.Ref(), ".substrate_okta_authenticator_function_arn"),
-			terraform.U(module.Ref(), ".substrate_okta_authorizer_function_arn"),
+			/*
+				terraform.U(module.Ref(), ".substrate_instance_factory_function_arn"),
+				terraform.U(module.Ref(), ".substrate_okta_authenticator_function_arn"),
+				terraform.U(module.Ref(), ".substrate_okta_authorizer_function_arn"),
+			*/
+			terraform.Qf(
+				"arn:aws:lambda:%s:%s:function:substrate-instance-factory",
+				region,
+				aws.StringValue(account.Id),
+			),
+			terraform.Qf(
+				"arn:aws:lambda:%s:%s:function:substrate-okta-authenticator",
+				region,
+				aws.StringValue(account.Id),
+			),
+			terraform.Qf(
+				"arn:aws:lambda:%s:%s:function:substrate-okta-authorizer",
+				region,
+				aws.StringValue(account.Id),
+			),
 		)
 		intranet.Push(module)
 	}
 	tags.Region = "" // for the global module that includes IAM resources
-	intranet.Push(terraform.Module{
-		Arguments: map[string]terraform.Value{
-			"function_arns": functionArns,
-		},
-		Label:    terraform.Label(tags),
-		Provider: terraform.GlobalProviderAlias(),
-		Source:   terraform.Q("../intranet/global"),
-	})
+	/*
+		intranet.Push(terraform.Module{
+			Arguments: map[string]terraform.Value{
+				"function_arns": functionArns,
+			},
+			Label:    terraform.Label(tags),
+			Provider: terraform.GlobalProviderAlias(),
+			Source:   terraform.Q("../intranet/global"),
+		})
+	*/
 	if err := intranet.Write(path.Join(dirname, "intranet.tf")); err != nil {
 		log.Fatal(err)
 	}
