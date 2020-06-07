@@ -7,16 +7,18 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
-	"text/template"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 )
+
+//go:generate go run ../../tools/template/main.go -name loginTemplate -package main login.html
+//go:generate go run ../../tools/template/main.go -name redirectTemplate -package main redirect.html
 
 func errorResponse(err error, s string) *events.APIGatewayProxyResponse {
 	log.Printf("%+v", err)
@@ -107,19 +109,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			multiValueHeaders["Location"] = []string{state.Next}
 			statusCode = http.StatusFound
 		}
-		body, err := render(`<!DOCTYPE html>
-<html lang="en">
-<meta charset="utf-8">
-<title>Intranet</title>
-<body>
-<h1>Intranet</h1>
-<p>Hello, <a href="mailto:{{.AccessToken.Subject}}">{{.AccessToken.Subject}}</a>!</p>
-{{- if .Location}}
-<p>Redirecting to <a href="{{.Location}}">{{.Location}}</a>.</p>
-{{- end}}
-</body>
-</html>
-`, bodyV)
+		body, err := lambdautil.RenderHTML(loginTemplate(), bodyV)
 		if err != nil {
 			return nil, err
 		}
@@ -156,21 +146,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		headers["Location"] = bodyV.Location
 		statusCode = http.StatusFound
 	}
-	body, err := render(`<!DOCTYPE html>
-<html lang="en">
-<meta charset="utf-8">
-<title>Intranet</title>
-<body>
-<h1>Intranet</h1>
-{{- if .ErrorDescription}}
-<p class="error">{{.ErrorDescription}}</p>
-<p><a href="{{.Location}}">Try again</a>.</p>
-{{- else}}
-<p>Redirecting to <a href="{{.Location}}">Okta</a>.</p>
-{{- end}}
-</body>
-</html>
-`, bodyV)
+	body, err := lambdautil.RenderHTML(redirectTemplate(), bodyV)
 	if err != nil {
 		return nil, err
 	}
@@ -184,16 +160,4 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 
 func main() {
 	lambda.Start(handle)
-}
-
-func render(html string, v interface{}) (string, error) {
-	tmpl, err := template.New("HTML").Parse(html)
-	if err != nil {
-		return "", err
-	}
-	builder := &strings.Builder{}
-	if err = tmpl.Execute(builder, v); err != nil {
-		return "", err
-	}
-	return builder.String(), nil
 }
