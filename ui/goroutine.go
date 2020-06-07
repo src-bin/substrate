@@ -86,7 +86,7 @@ func init() {
 							fmt.Println(inst.s[:i])
 						}
 					}
-					s, spinner = inst.s[i:], "-"
+					dots, s, spinner = "", inst.s[i:], "-"
 					fmt.Print(s, " ", dots, spinner)
 
 				case opStop:
@@ -110,7 +110,7 @@ func init() {
 				}
 
 				if ticks%(2*hz) == 0 {
-					dots = dots + "."
+					dots += "."
 				}
 				if spinner != "" {
 

@@ -50,7 +50,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 		roles.OrganizationAdministrator,
 	)
 	sort.Strings(adminPrincipals) // to avoid spurious policy diffs
-	log.Printf("%+v", adminPrincipals)
+	//log.Printf("%+v", adminPrincipals)
 	allAccounts, err := awsorgs.ListAccounts(svc)
 	if err != nil {
 		log.Fatal(err)
@@ -60,7 +60,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 		allAccountIds[i] = aws.StringValue(account.Id)
 	}
 	sort.Strings(allAccountIds) // to avoid spurious policy diffs
-	log.Printf("%+v", allAccountIds)
+	//log.Printf("%+v", allAccountIds)
 
 	// Admin accounts, once they exist, are going to need to be able to assume
 	// a role in the master account.  Because no admin accounts exist yet, this

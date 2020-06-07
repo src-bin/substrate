@@ -4,7 +4,7 @@ resource "aws_api_gateway_account" "current" {
 
 resource "aws_api_gateway_authorizer" "okta" {
   authorizer_credentials           = var.apigateway_role_arn
-  authorizer_result_ttl_in_seconds = 1 # XXX longer once we know it's working; default 300
+  authorizer_result_ttl_in_seconds = 1 # TODO longer once we know it's working; default 300
   authorizer_uri                   = module.substrate-okta-authorizer.invoke_arn
   identity_source                  = "method.request.header.Cookie"
   name                             = "Okta"

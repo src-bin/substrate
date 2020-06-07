@@ -77,6 +77,18 @@ func GetSecretValue(svc *secretsmanager.SecretsManager, name, stage string) (*se
 	return out, nil
 }
 
+func Policy(principal *policies.Principal) *policies.Document {
+	return &policies.Document{
+		Statement: []policies.Statement{
+			policies.Statement{
+				Action:    []string{"secretsmanager:GetSecretValue"},
+				Principal: principal,
+				Resource:  []string{"*"},
+			},
+		},
+	}
+}
+
 func PutResourcePolicy(svc *secretsmanager.SecretsManager, name string, doc *policies.Document) (*secretsmanager.PutResourcePolicyOutput, error) {
 	docJSON, err := doc.Marshal()
 	if err != nil {

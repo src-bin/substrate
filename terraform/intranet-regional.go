@@ -32,17 +32,13 @@ variable "substrate_okta_authenticator_role_arn" {}
 
 variable "substrate_okta_authorizer_role_arn" {}
 `,
-		"data.tf":                         `data "aws_caller_identity" "current" {}
-
-data "aws_region" "current" {}
-`,
 		"apigateway.tf":                   `resource "aws_api_gateway_account" "current" {
   cloudwatch_role_arn = var.apigateway_role_arn
 }
 
 resource "aws_api_gateway_authorizer" "okta" {
   authorizer_credentials           = var.apigateway_role_arn
-  authorizer_result_ttl_in_seconds = 1 # XXX longer once we know it's working; default 300
+  authorizer_result_ttl_in_seconds = 1 # TODO longer once we know it's working; default 300
   authorizer_uri                   = module.substrate-okta-authorizer.invoke_arn
   identity_source                  = "method.request.header.Cookie"
   name                             = "Okta"
@@ -179,6 +175,10 @@ resource "aws_cloudwatch_log_group" "apigateway-welcome" {
     Manager = "Terraform"
   }
 }
+`,
+		"data.tf":                         `data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
 `,
 		"substrate_instance_factory.tf":   `module "substrate-instance-factory" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"

@@ -2,25 +2,36 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/src-bin/substrate/awssecretsmanager"
+	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/oauthoidc"
 )
 
 func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequestTypeRequest) (*events.APIGatewayCustomAuthorizerResponse, error) {
 
-	/*
-		clientSecret, err := awssecretsmanager.GetSecretValue(fmt.Sprintf(
+	sess, err := awssessions.NewSession(awssessions.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	clientSecret, err := awssecretsmanager.CachedSecret(
+		secretsmanager.New(sess),
+		fmt.Sprintf(
 			"OktaClientSecret-%s",
 			event.StageVariables["OktaClientID"],
-		))
-		if err != nil {
-			return nil, err
-		}
-	*/
-	clientSecret := "mFdL4HOHV5OquQVMm9SZd9r8RT9dLTccfTxPrfWc" // XXX
+		),
+		event.StageVariables["OktaClientSecretTimestamp"],
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	c := oauthoidc.NewClient(
 		event.StageVariables["OktaHostname"],
 		oauthoidc.OktaPathQualifier("/oauth2/default"),
@@ -47,7 +58,6 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	}
 
 	context := map[string]interface{}{}
-	var err error
 	if context["AccessToken"], err = accessToken.JSONString(); err != nil {
 		return nil, err
 	}

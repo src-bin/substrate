@@ -3,16 +3,22 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/terraform"
@@ -21,13 +27,15 @@ import (
 )
 
 const (
-	Domain               = "admin"
-	Environment          = "admin"
-	OktaMetadataFilename = "substrate.okta.xml"
+	Domain                            = "admin"
+	Environment                       = "admin"
+	OktaClientIdFilename              = "substrate.okta-client-id"
+	OktaClientSecretTimestampFilename = "substrate.okta-client-secret-timestamp"
+	OktaHostnameFilename              = "substrate.okta-hostname"
+	OktaMetadataFilename              = "substrate.okta.xml"
 )
 
 func main() {
-	oktaMetadataPathname := flag.String("okta-metadata", OktaMetadataFilename, "pathname of a file containing your Okta SAML provider metadata")
 	quality := flag.String("quality", "", "quality for this new AWS account")
 	flag.Parse()
 	if *quality == "" {
@@ -42,7 +50,7 @@ func main() {
 	}
 
 	lines, err := ui.EditFile(
-		*oktaMetadataPathname,
+		OktaMetadataFilename,
 		"here is your current identity provider metadata XML:",
 		"paste your identity provider metadata XML from Okta",
 	)
@@ -50,6 +58,35 @@ func main() {
 		log.Fatal(err)
 	}
 	metadata := strings.Join(lines, "\n") + "\n" // ui.EditFile is line-oriented but this instance isn't
+
+	hostname, err := ui.PromptFile(
+		OktaHostnameFilename,
+		"paste the hostname of your Okta installation:",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Printf("using Okta hostname %s", hostname)
+
+	clientId, err := ui.PromptFile(
+		OktaClientIdFilename,
+		"paste your Okta application's OAuth OIDC client ID:",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Printf("using OAuth OIDC client ID %s", clientId)
+
+	var clientSecret string
+	b, _ := fileutil.ReadFile(OktaClientSecretTimestampFilename)
+	clientSecretTimestamp := strings.Trim(string(b), "\r\n")
+	if clientSecretTimestamp == "" {
+		clientSecretTimestamp = time.Now().Format(time.RFC3339)
+		clientSecret, err = ui.Prompt("paste your Okta application's OAuth OIDC client secret:")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{}))
 
@@ -87,9 +124,9 @@ func main() {
 		intranet.Push(terraform.Module{
 			Arguments: map[string]terraform.Value{
 				"apigateway_role_arn":                   terraform.U(module.Ref(), ".apigateway_role_arn"),
-				"okta_client_id":                        terraform.Q("0oacg1iawaojz8rOo4x6"), // XXX
-				"okta_client_secret_timestamp":          terraform.Q("2020-05-28T13:19:31Z"), // XXX
-				"okta_hostname":                         terraform.Q("dev-662445.okta.com"),  // XXX
+				"okta_client_id":                        terraform.Q(clientId),
+				"okta_client_secret_timestamp":          terraform.Q(clientSecretTimestamp),
+				"okta_hostname":                         terraform.Q(hostname),
 				"stage_name":                            terraform.Q(*quality),
 				"substrate_instance_factory_role_arn":   terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
 				"substrate_okta_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_okta_authenticator_role_arn"),
@@ -133,10 +170,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// TODO put the Okta client secret and Okta client secret timestamp into AWS Secrets Manager
-
-	// TODO make -C intranet
-
 	// Generate a Makefile in the root Terraform module then apply the generated
 	// Terraform code.
 	if err := terraform.Makefile(dirname); err != nil {
@@ -147,6 +180,32 @@ func main() {
 	}
 	if err := terraform.Apply(dirname); err != nil {
 		log.Fatal(err)
+	}
+
+	// Store the Okta client secret in AWS Secrets Manager.
+	if clientSecret != "" {
+		ui.Spin("storing your Okta OAuth OIDC client secret in AWS Secrets Manager")
+		for _, region := range regions.Selected() {
+			if _, err := awssecretsmanager.EnsureSecret(
+				secretsmanager.New(
+					awssessions.AssumeRole(sess, aws.StringValue(account.Id), "Administrator"),
+					&aws.Config{Region: aws.String(region)},
+				),
+				fmt.Sprintf("OktaClientSecret-%s", clientId),
+				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
+					roles.Arn(aws.StringValue(account.Id), "substrate-okta-authenticator"), // must match intranet/global/substrate_okta_authenticator.tf
+					roles.Arn(aws.StringValue(account.Id), "substrate-okta-authorizer"),    // must match intranet/global/substrate_okta_authorizer.tf
+				}}),
+				clientSecretTimestamp,
+				clientSecret,
+			); err != nil {
+				log.Fatal(err)
+			}
+		}
+		if err := ioutil.WriteFile(OktaClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666); err != nil {
+			log.Fatal(err)
+		}
+		ui.Stop("ok")
 	}
 
 }
