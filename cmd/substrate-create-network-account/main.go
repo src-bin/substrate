@@ -37,7 +37,7 @@ func main() {
 		awssessions.Config{},
 	)
 	if err != nil {
-		ui.Print("unable to assume the NetworkAdministrator role, which means this is probably your first time bootstrapping your networks; please provide an access key from your master AWS account")
+		ui.Print("unable to assume the NetworkAdministrator role, which means this is probably your first time configuring your networks; please provide an access key from your master AWS account")
 		accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
 		ui.Printf("using access key %s", accessKeyId)
 		sess, err = awssessions.InSpecialAccount(
@@ -149,7 +149,7 @@ func main() {
 	// Write (or rewrite) Terraform resources that create the various
 	// (environment, quality) networks.  Networks in the admin environment will
 	// be created in the 192.168.0.0/16 CIDR block managed by adminNetDoc.
-	ui.Printf("bootstrapping networks for every environment and	quality in %d regions", len(regions.Selected()))
+	ui.Printf("configuring networks for every environment and quality in %d regions", len(regions.Selected()))
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		file := terraform.NewFile()
 
