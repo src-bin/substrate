@@ -269,6 +269,7 @@ func main() {
 		}
 	}
 
+	ui.Print("next, commit substrate.* and network-account/ to version control, then run substrate-create-deploy-account if you haven't already")
 }
 
 func vpcAccoutrements(
