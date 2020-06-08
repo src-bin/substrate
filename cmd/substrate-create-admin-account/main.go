@@ -29,6 +29,7 @@ import (
 const (
 	Domain                            = "admin"
 	Environment                       = "admin"
+	IntranetDNSDomainNameFile         = "substrate.intranet-dns-domain-name"
 	OktaClientIdFilename              = "substrate.okta-client-id"
 	OktaClientSecretTimestampFilename = "substrate.okta-client-secret-timestamp"
 	OktaHostnameFilename              = "substrate.okta-hostname"
@@ -48,6 +49,15 @@ func main() {
 	if !veqpDoc.Valid(Environment, *quality) {
 		ui.Fatalf(`-quality"%s" is not a valid quality for an admin account in your organization`, *quality)
 	}
+
+	dnsDomainName, err := ui.PromptFile(
+		IntranetDNSDomainNameFile,
+		"what DNS domain name will you use for your organization's intranet?",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Printf("using intranet DNS domain name %s", dnsDomainName)
 
 	lines, err := ui.EditFile(
 		OktaMetadataFilename,
@@ -114,6 +124,9 @@ func main() {
 		Quality:     *quality,
 	}
 	module := terraform.Module{
+		Arguments: map[string]terraform.Value{
+			"dns_domain_name": terraform.Q(dnsDomainName),
+		},
 		Label:    terraform.Label(tags),
 		Provider: terraform.GlobalProviderAlias(),
 		Source:   terraform.Q("../intranet/global"),
@@ -124,6 +137,7 @@ func main() {
 		intranet.Push(terraform.Module{
 			Arguments: map[string]terraform.Value{
 				"apigateway_role_arn":                   terraform.U(module.Ref(), ".apigateway_role_arn"),
+				"dns_domain_name":                       terraform.Q(dnsDomainName),
 				"okta_client_id":                        terraform.Q(clientId),
 				"okta_client_secret_timestamp":          terraform.Q(clientSecretTimestamp),
 				"okta_hostname":                         terraform.Q(hostname),
@@ -132,6 +146,7 @@ func main() {
 				"substrate_instance_factory_role_arn":   terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
 				"substrate_okta_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_okta_authenticator_role_arn"),
 				"substrate_okta_authorizer_role_arn":    terraform.U(module.Ref(), ".substrate_okta_authorizer_role_arn"),
+				"validation_fqdn":                       terraform.U(module.Ref(), ".validation_fqdn"),
 			},
 			Label:    terraform.Label(tags),
 			Provider: terraform.ProviderAliasFor(region),

@@ -16,7 +16,22 @@ func intranetRegionalTemplate() map[string]string {
   source                   = "../../lambda-function/regional"
 }
 `,
+		"acm.tf":                          `resource "aws_acm_certificate" "intranet" {
+  domain_name       = var.dns_domain_name
+  validation_method = "DNS"
+}
+
+resource "aws_acm_certificate_validation" "intranet" {
+  certificate_arn = aws_acm_certificate.intranet.arn
+  #validation_record_fqdns = [aws_route53_record.validation.fqdn]
+  validation_record_fqdns = [var.validation_fqdn]
+}
+`,
 		"variables.tf":                    `variable "apigateway_role_arn" {
+  type = string
+}
+
+variable "dns_domain_name" {
   type = string
 }
 
@@ -49,6 +64,10 @@ variable "substrate_okta_authenticator_role_arn" {
 }
 
 variable "substrate_okta_authorizer_role_arn" {
+  type = string
+}
+
+variable "validation_fqdn" {
   type = string
 }
 `,
@@ -92,6 +111,14 @@ resource "aws_api_gateway_deployment" "intranet" {
     "OktaClientSecretTimestamp" = var.okta_client_secret_timestamp
     "OktaHostname"              = var.okta_hostname
   }
+}
+
+resource "aws_api_gateway_domain_name" "intranet" {
+  domain_name = var.dns_domain_name
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+  regional_certificate_arn = aws_acm_certificate_validation.intranet.certificate_arn
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {

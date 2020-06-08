@@ -2,6 +2,10 @@ variable "apigateway_role_arn" {
   type = string
 }
 
+variable "dns_domain_name" {
+  type = string
+}
+
 variable "okta_client_id" {
   type = string
 }
@@ -31,5 +35,9 @@ variable "substrate_okta_authenticator_role_arn" {
 }
 
 variable "substrate_okta_authorizer_role_arn" {
+  type = string
+}
+
+variable "validation_fqdn" {
   type = string
 }

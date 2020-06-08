@@ -40,6 +40,14 @@ resource "aws_api_gateway_deployment" "intranet" {
   }
 }
 
+resource "aws_api_gateway_domain_name" "intranet" {
+  domain_name = var.dns_domain_name
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+  regional_certificate_arn = aws_acm_certificate_validation.intranet.certificate_arn
+}
+
 resource "aws_api_gateway_integration" "GET-instance-factory" {
   credentials             = var.apigateway_role_arn
   http_method             = aws_api_gateway_method.GET-instance-factory.http_method

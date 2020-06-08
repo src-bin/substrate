@@ -9,6 +9,11 @@ output "substrate_instance_factory_role_arn" {
 output "substrate_okta_authenticator_role_arn" {
   value = module.substrate-okta-authenticator.role_arn
 }
+
 output "substrate_okta_authorizer_role_arn" {
   value = module.substrate-okta-authorizer.role_arn
+}
+
+output "validation_fqdn" {
+  value = aws_route53_record.validation.fqdn
 }
