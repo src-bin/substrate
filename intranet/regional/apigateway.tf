@@ -12,6 +12,12 @@ resource "aws_api_gateway_authorizer" "okta" {
   type                             = "REQUEST"
 }
 
+resource "aws_api_gateway_base_path_mapping" "intranet" {
+  api_id      = aws_api_gateway_rest_api.intranet.id
+  stage_name  = aws_api_gateway_deployment.intranet.stage_name
+  domain_name = aws_api_gateway_domain_name.intranet.domain_name
+}
+
 resource "aws_api_gateway_deployment" "intranet" {
   lifecycle {
     create_before_destroy = true
@@ -46,6 +52,7 @@ resource "aws_api_gateway_domain_name" "intranet" {
     types = ["REGIONAL"]
   }
   regional_certificate_arn = aws_acm_certificate_validation.intranet.certificate_arn
+  security_policy          = "TLS_1_2"
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {

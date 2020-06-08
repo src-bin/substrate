@@ -27,50 +27,6 @@ resource "aws_acm_certificate_validation" "intranet" {
   validation_record_fqdns = [var.validation_fqdn]
 }
 `,
-		"variables.tf":                    `variable "apigateway_role_arn" {
-  type = string
-}
-
-variable "dns_domain_name" {
-  type = string
-}
-
-variable "okta_client_id" {
-  type = string
-}
-
-variable "okta_client_secret_timestamp" {
-  type = string
-}
-
-variable "okta_hostname" {
-  type = string
-}
-
-variable "selected_regions" {
-  type = list(string)
-}
-
-variable "stage_name" {
-  type = string
-}
-
-variable "substrate_instance_factory_role_arn" {
-  type = string
-}
-
-variable "substrate_okta_authenticator_role_arn" {
-  type = string
-}
-
-variable "substrate_okta_authorizer_role_arn" {
-  type = string
-}
-
-variable "validation_fqdn" {
-  type = string
-}
-`,
 		"apigateway.tf":                   `resource "aws_api_gateway_account" "current" {
   cloudwatch_role_arn = var.apigateway_role_arn
 }
@@ -83,6 +39,12 @@ resource "aws_api_gateway_authorizer" "okta" {
   name                             = "Okta"
   rest_api_id                      = aws_api_gateway_rest_api.intranet.id
   type                             = "REQUEST"
+}
+
+resource "aws_api_gateway_base_path_mapping" "intranet" {
+  api_id      = aws_api_gateway_rest_api.intranet.id
+  stage_name  = aws_api_gateway_deployment.intranet.stage_name
+  domain_name = aws_api_gateway_domain_name.intranet.domain_name
 }
 
 resource "aws_api_gateway_deployment" "intranet" {
@@ -119,6 +81,7 @@ resource "aws_api_gateway_domain_name" "intranet" {
     types = ["REGIONAL"]
   }
   regional_certificate_arn = aws_acm_certificate_validation.intranet.certificate_arn
+  security_policy          = "TLS_1_2"
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {
@@ -244,9 +207,73 @@ resource "aws_cloudwatch_log_group" "apigateway-welcome" {
   }
 }
 `,
+		"variables.tf":                    `variable "apigateway_role_arn" {
+  type = string
+}
+
+variable "dns_domain_name" {
+  type = string
+}
+
+variable "okta_client_id" {
+  type = string
+}
+
+variable "okta_client_secret_timestamp" {
+  type = string
+}
+
+variable "okta_hostname" {
+  type = string
+}
+
+variable "selected_regions" {
+  type = list(string)
+}
+
+variable "stage_name" {
+  type = string
+}
+
+variable "substrate_instance_factory_role_arn" {
+  type = string
+}
+
+variable "substrate_okta_authenticator_role_arn" {
+  type = string
+}
+
+variable "substrate_okta_authorizer_role_arn" {
+  type = string
+}
+
+variable "validation_fqdn" {
+  type = string
+}
+`,
 		"data.tf":                         `data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
+`,
+		"route53.tf":                      `data "aws_route53_zone" "intranet" {
+  name         = "${var.dns_domain_name}."
+  private_zone = false
+}
+
+resource "aws_route53_record" "intranet" {
+  alias {
+    evaluate_target_health = true
+    name                   = aws_api_gateway_domain_name.intranet.regional_domain_name
+    zone_id                = aws_api_gateway_domain_name.intranet.regional_zone_id
+  }
+  latency_routing_policy {
+    region = data.aws_region.current.name
+  }
+  name           = aws_api_gateway_domain_name.intranet.domain_name
+  set_identifier = data.aws_region.current.name
+  type           = "A"
+  zone_id        = data.aws_route53_zone.intranet.id
+}
 `,
 		"substrate_instance_factory.tf":   `module "substrate-instance-factory" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
