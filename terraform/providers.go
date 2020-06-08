@@ -13,7 +13,7 @@ type Provider struct {
 }
 
 // AllRegions creates a provider block for every AWS region.  It purposely
-// includes blacklisted regions because if a region is added to the blacklist
+// includes regions we're avoiding because if a region is added to that list
 // after resource blocks that reference it are added to Terraform, the
 // provider will be necessary in order to destroy those resources.
 func (p Provider) AllRegions() *File {

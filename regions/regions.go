@@ -23,7 +23,7 @@ func All() []string {
 	return ss
 }
 
-func Blacklist() []string {
+func Avoiding() []string {
 	return []string{
 		"ap-east-1", // IAM seems broken
 		//"ap-south-1",     // VPC quotas make me sad
@@ -37,10 +37,10 @@ func Blacklist() []string {
 	} // this list must remain sorted
 }
 
-func IsBlacklisted(region string) bool {
-	blacklist := Blacklist()
-	i := sort.SearchStrings(blacklist, region)
-	return i < len(blacklist) && blacklist[i] == region
+func IsBeingAvoided(region string) bool {
+	avoiding := Avoiding()
+	i := sort.SearchStrings(avoiding, region)
+	return i < len(avoiding) && avoiding[i] == region
 }
 
 func IsRegion(region string) bool {
@@ -53,7 +53,7 @@ func Select() ([]string, error) {
 	if _, err := os.Stat(Filename); os.IsNotExist(err) {
 		regions := []string{}
 		for _, region := range All() {
-			if !IsBlacklisted(region) {
+			if !IsBeingAvoided(region) {
 				regions = append(regions, region)
 			}
 		}
