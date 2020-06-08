@@ -125,5 +125,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ui.Print("next, commit deploy-account/ to version control, then run substrate-create-network-account if you haven't already")
+	ui.Print("next, commit deploy-account/ to version control, then run substrate-bootstrap-network-account if you haven't already")
 }
