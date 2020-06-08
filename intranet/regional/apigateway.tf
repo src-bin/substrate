@@ -23,9 +23,11 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_authorizer.okta),
       jsonencode(aws_api_gateway_integration.GET-instance-factory),
       jsonencode(aws_api_gateway_integration.GET-login),
+      jsonencode(aws_api_gateway_integration.POST-instance-factory),
       jsonencode(aws_api_gateway_integration.POST-login),
       jsonencode(aws_api_gateway_method.GET-instance-factory),
       jsonencode(aws_api_gateway_method.GET-login),
+      jsonencode(aws_api_gateway_method.POST-instance-factory),
       jsonencode(aws_api_gateway_method.POST-login),
       jsonencode(aws_api_gateway_resource.instance-factory),
       jsonencode(aws_api_gateway_resource.login),
@@ -60,6 +62,17 @@ resource "aws_api_gateway_integration" "GET-login" {
   uri                     = module.substrate-okta-authenticator.invoke_arn
 }
 
+resource "aws_api_gateway_integration" "POST-instance-factory" {
+  credentials             = var.apigateway_role_arn
+  http_method             = aws_api_gateway_method.POST-instance-factory.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.instance-factory.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.substrate-instance-factory.invoke_arn
+}
+
 resource "aws_api_gateway_integration" "POST-login" {
   credentials             = var.apigateway_role_arn
   http_method             = aws_api_gateway_method.POST-login.http_method
@@ -83,6 +96,14 @@ resource "aws_api_gateway_method" "GET-login" {
   authorization = "NONE"
   http_method   = "GET"
   resource_id   = aws_api_gateway_resource.login.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
+resource "aws_api_gateway_method" "POST-instance-factory" {
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.okta.id
+  http_method   = "POST"
+  resource_id   = aws_api_gateway_resource.instance-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
 }
 

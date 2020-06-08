@@ -1,15 +1,35 @@
-variable "apigateway_role_arn" {}
+variable "apigateway_role_arn" {
+  type = string
+}
 
-variable "okta_client_id" {}
+variable "okta_client_id" {
+  type = string
+}
 
-variable "okta_client_secret_timestamp" {} # TODO it's awkward to have to apply this Terraform in order to know how to set this
+variable "okta_client_secret_timestamp" {
+  type = string
+}
 
-variable "okta_hostname" {}
+variable "okta_hostname" {
+  type = string
+}
 
-variable "stage_name" {}
+variable "selected_regions" {
+  type = list(string)
+}
 
-variable "substrate_instance_factory_role_arn" {}
+variable "stage_name" {
+  type = string
+}
 
-variable "substrate_okta_authenticator_role_arn" {}
+variable "substrate_instance_factory_role_arn" {
+  type = string
+}
 
-variable "substrate_okta_authorizer_role_arn" {}
+variable "substrate_okta_authenticator_role_arn" {
+  type = string
+}
+
+variable "substrate_okta_authorizer_role_arn" {
+  type = string
+}

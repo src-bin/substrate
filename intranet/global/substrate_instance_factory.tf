@@ -1,9 +1,12 @@
 data "aws_iam_policy_document" "substrate-instance-factory" {
   statement {
     actions = [
-      "autoscaling:DescribeAutoScalingGroups",
-      "autoscaling:UpdateAutoScalingGroup",
+      "ec2:DescribeInstanceTypeOfferings",
+      "ec2:DescribeImages",
       "ec2:DescribeInstances",
+      "ec2:DescribeSubnets",
+      "ec2:RunInstances",
+      "ec2:TerminateInstances",
     ]
     resources = ["*"]
   }

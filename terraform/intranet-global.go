@@ -4,23 +4,6 @@ package terraform
 
 func intranetGlobalTemplate() map[string]string {
 	return map[string]string{
-		"substrate_instance_factory.tf":   `data "aws_iam_policy_document" "substrate-instance-factory" {
-  statement {
-    actions = [
-      "autoscaling:DescribeAutoScalingGroups",
-      "autoscaling:UpdateAutoScalingGroup",
-      "ec2:DescribeInstances",
-    ]
-    resources = ["*"]
-  }
-}
-
-module "substrate-instance-factory" {
-  name   = "substrate-instance-factory"
-  policy = data.aws_iam_policy_document.substrate-instance-factory.json
-  source = "../../lambda-function/global"
-}
-`,
 		"substrate_okta_authenticator.tf": `data "aws_iam_policy_document" "substrate-okta-authenticator" {
   statement {
     actions   = ["sts:GetCallerIdentity"]
@@ -100,6 +83,26 @@ resource "aws_iam_role_policy_attachment" "apigateway-cloudwatch" {
 }
 `,
 		"variables.tf":                    `
+`,
+		"substrate_instance_factory.tf":   `data "aws_iam_policy_document" "substrate-instance-factory" {
+  statement {
+    actions = [
+      "ec2:DescribeInstanceTypeOfferings",
+      "ec2:DescribeImages",
+      "ec2:DescribeInstances",
+      "ec2:DescribeSubnets",
+      "ec2:RunInstances",
+      "ec2:TerminateInstances",
+    ]
+    resources = ["*"]
+  }
+}
+
+module "substrate-instance-factory" {
+  name   = "substrate-instance-factory"
+  policy = data.aws_iam_policy_document.substrate-instance-factory.json
+  source = "../../lambda-function/global"
+}
 `,
 	}
 }

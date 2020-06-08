@@ -1,7 +1,15 @@
-variable "apigateway_execution_arn" {}
+variable "apigateway_execution_arn" {
+  type = string
+}
 
-variable "filename" {}
+variable "filename" {
+  type = string
+}
 
-variable "name" {}
+variable "name" {
+  type = string
+}
 
-variable "role_arn" {}
+variable "role_arn" {
+  type = string
+}

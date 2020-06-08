@@ -34,12 +34,16 @@ resource "aws_iam_role_policy_attachment" "cloudwatch" {
   role       = aws_iam_role.role.name
 }
 `,
-		"variables.tf": `variable "name" {}
-
-variable "policy" {}
-`,
 		"outputs.tf":   `output "role_arn" {
   value = aws_iam_role.role.arn
+}
+`,
+		"variables.tf": `variable "name" {
+  type = string
+}
+
+variable "policy" {
+  type = string
 }
 `,
 	}

@@ -20,14 +20,6 @@ output "invoke_arn" {
   value = aws_lambda_function.function.invoke_arn
 }
 `,
-		"variables.tf":  `variable "apigateway_execution_arn" {}
-
-variable "filename" {}
-
-variable "name" {}
-
-variable "role_arn" {}
-`,
 		"lambda.tf":     `data "archive_file" "zip" {
   output_path = var.filename
   source_file = "${data.external.gobin.result.GOBIN}/${var.name}"
@@ -58,6 +50,22 @@ resource "aws_lambda_permission" "permission" {
   function_name = aws_lambda_function.function.function_name
   principal     = "apigateway.amazonaws.com"
   #source_arn    = var.apigateway_execution_arn
+}
+`,
+		"variables.tf":  `variable "apigateway_execution_arn" {
+  type = string
+}
+
+variable "filename" {
+  type = string
+}
+
+variable "name" {
+  type = string
+}
+
+variable "role_arn" {
+  type = string
 }
 `,
 	}

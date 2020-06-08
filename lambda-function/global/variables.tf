@@ -1,3 +1,7 @@
-variable "name" {}
+variable "name" {
+  type = string
+}
 
-variable "policy" {}
+variable "policy" {
+  type = string
+}

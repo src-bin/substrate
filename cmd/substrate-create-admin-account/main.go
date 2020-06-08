@@ -127,6 +127,7 @@ func main() {
 				"okta_client_id":                        terraform.Q(clientId),
 				"okta_client_secret_timestamp":          terraform.Q(clientSecretTimestamp),
 				"okta_hostname":                         terraform.Q(hostname),
+				"selected_regions":                      terraform.QSlice(regions.Selected()),
 				"stage_name":                            terraform.Q(*quality),
 				"substrate_instance_factory_role_arn":   terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
 				"substrate_okta_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_okta_authenticator_role_arn"),

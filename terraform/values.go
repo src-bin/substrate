@@ -13,6 +13,22 @@ type Value interface {
 
 type ValueSlice []Value
 
+func QSlice(ss []string) ValueSlice {
+	vs := make(ValueSlice, len(ss))
+	for i, s := range ss {
+		vs[i] = Q(s)
+	}
+	return vs
+}
+
+func USlice(ss []string) ValueSlice {
+	vs := make(ValueSlice, len(ss))
+	for i, s := range ss {
+		vs[i] = U(s)
+	}
+	return vs
+}
+
 func (vs ValueSlice) Empty() bool {
 	return len(vs) == 0
 }
