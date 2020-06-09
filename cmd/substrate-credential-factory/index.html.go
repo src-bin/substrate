@@ -14,7 +14,7 @@ func indexTemplate() string {
 <p class="error">{{.Error}}</p>
 {{- end}}
 <form method="POST">
-<p><input type="submit" value="Mint new AWS credentials"> which will expire in 12 hours</p>
+<p><input type="submit" value="Mint new AWS credentials"> which will expire in one hour</p>
 </form>
 <hr>
 <pre>{{.Debug}}</pre>
