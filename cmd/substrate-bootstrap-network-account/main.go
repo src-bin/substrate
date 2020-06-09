@@ -258,14 +258,8 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if eq.Environment == "admin" {
-			if err := terraform.Apply(dirname); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			if err := terraform.Destroy(dirname); err != nil {
-				log.Fatal(err)
-			}
+		if err := terraform.Apply(dirname); err != nil {
+			log.Fatal(err)
 		}
 	}
 
