@@ -56,7 +56,7 @@ func main() {
 	}
 	ui.Printf("using region %s", region)
 
-	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{
+	sess, err := awssessions.NewSession(awssessions.Config{
 		AccessKeyId:     accessKeyId,
 		SecretAccessKey: secretAccessKey,
 		Region:          region,
@@ -113,7 +113,9 @@ func main() {
 	//log.Printf("%+v", org)
 
 	// Ensure the audit account exists.  This one comes first so we can enable
-	// CloudTrail ASAP.
+	// CloudTrail ASAP.  We might be _too_ fast, though, so we accommodate AWS
+	// being a little slow in bootstrapping the organization for this the first
+	// of several account creations.
 	ui.Spin("finding or creating the audit account")
 	auditAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Audit)
 	if err != nil {
@@ -280,7 +282,7 @@ func main() {
 
 	admin.EnsureAdministratorRolesAndPolicies(sess)
 
-	ui.Print("next, commit substrate.* to version control, then run substrate-bootstrap-deploy-account and substrate-bootstrap-network-account")
+	ui.Print("next, commit substrate.* to version control, then run substrate-bootstrap-network-account")
 
 	//ui.Print("until we get you an EC2 instance profile, here's your way into the ops account (good for one hour)")
 	//awssts.Export(awssts.AssumeRole(sts.New(sess), roles.Arn(aws.StringValue(opsAccount.Id), roles.OrganizationAccountAccessRole)))

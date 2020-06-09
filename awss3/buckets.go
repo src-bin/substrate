@@ -1,6 +1,8 @@
 package awss3
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/src-bin/substrate/awsutil"
@@ -12,9 +14,10 @@ import (
 const (
 	BucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
 	Enabled                 = "Enabled"
+	NotSignedUp             = "NotSignedUp"
 )
 
-func CreateBucket(svc *s3.S3, name, region string) error {
+func CreateBucket(svc *s3.S3, name, region string) (err error) {
 	in := &s3.CreateBucketInput{
 		ACL:    aws.String("private"), // the default but let's be explicit
 		Bucket: aws.String(name),
@@ -22,18 +25,31 @@ func CreateBucket(svc *s3.S3, name, region string) error {
 			LocationConstraint: aws.String(region),
 		},
 	}
-	_, err := svc.CreateBucket(in)
-	return err
+	for {
+		_, err = svc.CreateBucket(in)
+		if !awsutil.ErrorCodeIs(err, NotSignedUp) {
+			break
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
+	return
 }
 
 func EnsureBucket(svc *s3.S3, name, region string, doc *policies.Document) error {
 
-	err := CreateBucket(svc, name, region)
-	if awsutil.ErrorCodeIs(err, BucketAlreadyOwnedByYou) {
-		err = nil
-	}
-	if err != nil {
-		return err
+	for {
+		err := CreateBucket(svc, name, region)
+		if awsutil.ErrorCodeIs(err, NotSignedUp) {
+			time.Sleep(1e9) // TODO exponential backoff
+			continue
+		}
+		if awsutil.ErrorCodeIs(err, BucketAlreadyOwnedByYou) {
+			err = nil
+		}
+		if err != nil {
+			return err
+		}
+		break
 	}
 
 	if _, err := svc.PutBucketAcl(&s3.PutBucketAclInput{

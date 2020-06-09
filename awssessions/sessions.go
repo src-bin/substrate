@@ -269,7 +269,7 @@ func NewSession(config Config) (*session.Session, error) {
 		}
 		time.Sleep(1e9) // TODO exponential backoff
 	}
-	time.Sleep(1e9) // even when the loop above ends, we still might have to wait
+	time.Sleep(5e9) // even when the loop above ends, we still might have to wait
 
 	ui.Stopf("switched to access key %s", accessKey.AccessKeyId)
 

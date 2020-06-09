@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/version"
 )
@@ -16,6 +17,8 @@ const (
 	FAILED               = "FAILED"
 	SUCCEEDED            = "SUCCEEDED"
 )
+
+const FinalizingOrganizationException = "FinalizingOrganizationException"
 
 func DescribeAccount(svc *organizations.Organizations, accountId string) (*organizations.Account, error) {
 	in := &organizations.DescribeAccountInput{
@@ -141,7 +144,17 @@ func createAccount(
 		AccountName: aws.String(name),
 		Email:       aws.String(email),
 	}
-	out, err := svc.CreateAccount(in)
+	var (
+		out *organizations.CreateAccountOutput
+		err error
+	)
+	for {
+		out, err = svc.CreateAccount(in)
+		if !awsutil.ErrorCodeIs(err, FinalizingOrganizationException) {
+			break
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
 	if err != nil {
 		return nil, err
 	}
