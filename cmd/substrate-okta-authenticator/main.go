@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"path"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -59,7 +58,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	redirectURI := &url.URL{
 		Scheme: "https",
 		Host:   event.Headers["Host"],
-		Path:   path.Join("/", event.RequestContext.Stage, event.RequestContext.ResourcePath),
+		Path:   event.Path,
 	}
 
 	code := event.QueryStringParameters["code"]
