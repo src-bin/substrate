@@ -27,14 +27,19 @@ resource "aws_api_gateway_deployment" "intranet" {
   triggers = {
     redeployment = sha1(join(",", list(
       jsonencode(aws_api_gateway_authorizer.okta),
+      jsonencode(aws_api_gateway_integration.GET-credential-factory),
       jsonencode(aws_api_gateway_integration.GET-instance-factory),
       jsonencode(aws_api_gateway_integration.GET-login),
+      jsonencode(aws_api_gateway_integration.POST-credential-factory),
       jsonencode(aws_api_gateway_integration.POST-instance-factory),
       jsonencode(aws_api_gateway_integration.POST-login),
+      jsonencode(aws_api_gateway_method.GET-credential-factory),
       jsonencode(aws_api_gateway_method.GET-instance-factory),
       jsonencode(aws_api_gateway_method.GET-login),
+      jsonencode(aws_api_gateway_method.POST-credential-factory),
       jsonencode(aws_api_gateway_method.POST-instance-factory),
       jsonencode(aws_api_gateway_method.POST-login),
+      jsonencode(aws_api_gateway_resource.credential-factory),
       jsonencode(aws_api_gateway_resource.instance-factory),
       jsonencode(aws_api_gateway_resource.login),
     )))
@@ -43,6 +48,7 @@ resource "aws_api_gateway_deployment" "intranet" {
     "OktaClientID"              = var.okta_client_id
     "OktaClientSecretTimestamp" = var.okta_client_secret_timestamp
     "OktaHostname"              = var.okta_hostname
+    "SelectedRegions"           = join(",", var.selected_regions)
   }
 }
 
@@ -53,6 +59,17 @@ resource "aws_api_gateway_domain_name" "intranet" {
   }
   regional_certificate_arn = aws_acm_certificate_validation.intranet.certificate_arn
   security_policy          = "TLS_1_2"
+}
+
+resource "aws_api_gateway_integration" "GET-credential-factory" {
+  credentials             = var.apigateway_role_arn
+  http_method             = aws_api_gateway_method.GET-credential-factory.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.credential-factory.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.substrate-credential-factory.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {
@@ -77,6 +94,17 @@ resource "aws_api_gateway_integration" "GET-login" {
   uri                     = module.substrate-okta-authenticator.invoke_arn
 }
 
+resource "aws_api_gateway_integration" "POST-credential-factory" {
+  credentials             = var.apigateway_role_arn
+  http_method             = aws_api_gateway_method.POST-credential-factory.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.credential-factory.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.substrate-credential-factory.invoke_arn
+}
+
 resource "aws_api_gateway_integration" "POST-instance-factory" {
   credentials             = var.apigateway_role_arn
   http_method             = aws_api_gateway_method.POST-instance-factory.http_method
@@ -99,6 +127,14 @@ resource "aws_api_gateway_integration" "POST-login" {
   uri                     = module.substrate-okta-authenticator.invoke_arn
 }
 
+resource "aws_api_gateway_method" "GET-credential-factory" {
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.okta.id
+  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.credential-factory.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
 resource "aws_api_gateway_method" "GET-instance-factory" {
   authorization = "CUSTOM"
   authorizer_id = aws_api_gateway_authorizer.okta.id
@@ -111,6 +147,14 @@ resource "aws_api_gateway_method" "GET-login" {
   authorization = "NONE"
   http_method   = "GET"
   resource_id   = aws_api_gateway_resource.login.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
+resource "aws_api_gateway_method" "POST-credential-factory" {
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.okta.id
+  http_method   = "POST"
+  resource_id   = aws_api_gateway_resource.credential-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
 }
 
@@ -138,6 +182,12 @@ resource "aws_api_gateway_method_settings" "intranet" {
     metrics_enabled = false
   }
   stage_name = aws_api_gateway_deployment.intranet.stage_name
+}
+
+resource "aws_api_gateway_resource" "credential-factory" {
+  parent_id   = aws_api_gateway_rest_api.intranet.root_resource_id
+  path_part   = "credential-factory"
+  rest_api_id = aws_api_gateway_rest_api.intranet.id
 }
 
 resource "aws_api_gateway_resource" "instance-factory" {

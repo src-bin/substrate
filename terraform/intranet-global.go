@@ -21,6 +21,30 @@ resource "aws_route53_record" "validation" {
   zone_id = data.aws_route53_zone.intranet.zone_id
 }
 `,
+		"outputs.tf":                      `output "apigateway_role_arn" {
+  value = aws_iam_role.apigateway.arn
+}
+
+output "substrate_credential_factory_role_arn" {
+  value = module.substrate-credential-factory.role_arn
+}
+
+output "substrate_instance_factory_role_arn" {
+  value = module.substrate-instance-factory.role_arn
+}
+
+output "substrate_okta_authenticator_role_arn" {
+  value = module.substrate-okta-authenticator.role_arn
+}
+
+output "substrate_okta_authorizer_role_arn" {
+  value = module.substrate-okta-authorizer.role_arn
+}
+
+output "validation_fqdn" {
+  value = aws_route53_record.validation.fqdn
+}
+`,
 		"substrate_okta_authenticator.tf": `data "aws_iam_policy_document" "substrate-okta-authenticator" {
   statement {
     actions   = ["sts:GetCallerIdentity"]
@@ -47,24 +71,23 @@ module "substrate-okta-authorizer" {
   source = "../../lambda-function/global"
 }
 `,
-		"outputs.tf":                      `output "apigateway_role_arn" {
-  value = aws_iam_role.apigateway.arn
+		"substrate_credential_factory.tf": `data "aws_iam_policy_document" "substrate-credential-factory" {
+  statement {
+    actions = [
+      "sts:AssumeRole",
+    ]
+    resources = [data.aws_iam_role.admin.arn]
+  }
 }
 
-output "substrate_instance_factory_role_arn" {
-  value = module.substrate-instance-factory.role_arn
+data "aws_iam_role" "admin" {
+  name = "Administrator"
 }
 
-output "substrate_okta_authenticator_role_arn" {
-  value = module.substrate-okta-authenticator.role_arn
-}
-
-output "substrate_okta_authorizer_role_arn" {
-  value = module.substrate-okta-authorizer.role_arn
-}
-
-output "validation_fqdn" {
-  value = aws_route53_record.validation.fqdn
+module "substrate-credential-factory" {
+  name   = "substrate-credential-factory"
+  policy = data.aws_iam_policy_document.substrate-credential-factory.json
+  source = "../../lambda-function/global"
 }
 `,
 		"iam.tf":                          `data "aws_iam_policy_document" "apigateway" {

@@ -33,6 +33,7 @@ func CreateRole(
 	}
 	in := &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
+		MaxSessionDuration:       aws.Int64(12 * 60 * 60),
 		RoleName:                 aws.String(rolename),
 		Tags:                     tagsFor(rolename),
 	}

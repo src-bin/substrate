@@ -20,7 +20,7 @@ import (
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
 //go:generate go run ../../tools/template/main.go -name instanceTypeTemplate -package main instance_type.html
-//go:generate go run ../../tools/template/main.go -name provisionedTemplate -package main provisioned.html
+//go:generate go run ../../tools/template/main.go -name instanceTemplate -package main instance.html
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
@@ -37,6 +37,9 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 
 	if event.HTTPMethod == "POST" {
 		values, err := url.ParseQuery(event.Body)
+		if err != nil {
+			return nil, err
+		}
 		instanceType := values.Get("instance_type")
 		region := values.Get("region")
 
@@ -50,7 +53,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			InstanceType: instanceType,
 			Region:       region,
 		}
-		body, err := lambdautil.RenderHTML(provisionedTemplate(), v)
+		body, err := lambdautil.RenderHTML(instanceTemplate(), v)
 		if err != nil {
 			return nil, err
 		}
@@ -150,8 +153,8 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			Headers:    map[string]string{"Content-Type": "text/html"},
 			StatusCode: http.StatusOK,
 		}, nil
-
 	}
+
 	v := struct {
 		Debug   string
 		Error   error

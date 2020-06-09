@@ -143,6 +143,7 @@ func main() {
 				"okta_hostname":                         terraform.Q(hostname),
 				"selected_regions":                      terraform.QSlice(regions.Selected()),
 				"stage_name":                            terraform.Q(*quality),
+				"substrate_credential_factory_role_arn": terraform.U(module.Ref(), ".substrate_credential_factory_role_arn"),
 				"substrate_instance_factory_role_arn":   terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
 				"substrate_okta_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_okta_authenticator_role_arn"),
 				"substrate_okta_authorizer_role_arn":    terraform.U(module.Ref(), ".substrate_okta_authorizer_role_arn"),

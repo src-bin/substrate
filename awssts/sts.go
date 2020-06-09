@@ -14,6 +14,7 @@ const InvalidClientTokenId = "InvalidClientTokenId"
 
 func AssumeRole(svc *sts.STS, roleArn string) (*sts.AssumeRoleOutput, error) {
 	return svc.AssumeRole(&sts.AssumeRoleInput{
+		// DurationSeconds: aws.Int64(12 * 60 * 60), // can't go longer than the default of 3600 when chaining AssumeRole
 		RoleArn:         aws.String(roleArn),
 		RoleSessionName: aws.String(path.Base(os.Args[0])),
 	})

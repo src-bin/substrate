@@ -50,6 +50,10 @@ func okta(sess *session.Session, account *organizations.Account, metadata string
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				AWS: []string{
 					aws.StringValue(org.MasterAccountId),
+					roles.Arn(
+						aws.StringValue(account.Id),
+						"substrate-credential-factory",
+					),
 					users.Arn(
 						aws.StringValue(org.MasterAccountId),
 						users.OrganizationAdministrator,

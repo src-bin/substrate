@@ -9,6 +9,7 @@ func indexTemplate() string {
 <title>Instance Factory</title>
 <body>
 <h1>Instance Factory</h1>
+<p class="context">This tool provisions EC2 instances that administrators can use to work in the cloud. Alternatively, the <a href="credential-factory">Credential Factory</a> mints short-lived credentials with the same privileges as these EC2 instances that administrators can use (more) safely on their laptops.</p>
 {{- if .Error}}
 <p class="error">{{.Error}}</p>
 {{- end}}

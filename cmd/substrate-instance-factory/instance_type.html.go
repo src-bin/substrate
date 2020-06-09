@@ -26,7 +26,7 @@ func instanceTypeTemplate() string {
 </table>
 <input name="region" type="hidden" value="{{.Region}}">
 </form>
-<p>Or <a href="instance-factory">go back</a>.</p>
+<p>Or <a href="instance-factory">cancel</a></p>
 <hr>
 <pre>{{.Debug}}</pre>
 </body>

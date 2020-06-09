@@ -26,6 +26,10 @@ variable "stage_name" {
   type = string
 }
 
+variable "substrate_credential_factory_role_arn" {
+  type = string
+}
+
 variable "substrate_instance_factory_role_arn" {
   type = string
 }
