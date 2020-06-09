@@ -11,10 +11,12 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/fileutil"
@@ -50,15 +52,6 @@ func main() {
 		ui.Fatalf(`-quality"%s" is not a valid quality for an admin account in your organization`, *quality)
 	}
 
-	dnsDomainName, err := ui.PromptFile(
-		IntranetDNSDomainNameFile,
-		"what DNS domain name will you use for your organization's intranet?",
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Printf("using intranet DNS domain name %s", dnsDomainName)
-
 	lines, err := ui.EditFile(
 		OktaMetadataFilename,
 		"here is your current identity provider metadata XML:",
@@ -68,6 +61,45 @@ func main() {
 		log.Fatal(err)
 	}
 	metadata := strings.Join(lines, "\n") + "\n" // ui.EditFile is line-oriented but this instance isn't
+
+	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{}))
+
+	// Ensure the account exists.
+	ui.Spin("finding or creating the admin account")
+	account, err := awsorgs.EnsureAccount(organizations.New(sess), accounts.Admin, accounts.Admin, *quality)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("account %s", account.Id)
+	//log.Printf("%+v", account)
+
+	okta(sess, account, metadata)
+
+	admin.EnsureAdministratorRolesAndPolicies(sess)
+
+	// Make arrangements for a hosted zone to appear in this account so that
+	// the intranet can configure itself.  It's possible to do this entirely
+	// programmatically but there's a lot of UI surface area involved in doing
+	// a really good job.
+	ui.Print("visit <https://console.aws.amazon.com/route53/home#DomainListing:> and buy or transfer a domain into this account")
+	ui.Print("or visit <https://console.aws.amazon.com/route53/home#hosted-zones:> and create a hosted zone you've delegated from elsewhere")
+	ui.Prompt("when you've finished, press <enter> to continue")
+	dnsDomainName, err := ui.PromptFile(
+		IntranetDNSDomainNameFile,
+		"what DNS domain name (the one you just bought, transferred, or shared) will you use for your organization's intranet?",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Printf("using DNS domain name %s for your organization's intranet", dnsDomainName)
+	ui.Spinf("waiting for a hosted zone to appear for %s", dnsDomainName)
+	for {
+		zone, err := awsroute53.FindHostedZone(route53.New(sess), dnsDomainName+".")
+		if err == nil {
+			ui.Stopf("hosted zone %s", zone.Id)
+			break
+		}
+	}
 
 	hostname, err := ui.PromptFile(
 		OktaHostnameFilename,
@@ -97,21 +129,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-
-	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{}))
-
-	// Ensure the account exists.
-	ui.Spin("finding or creating the admin account")
-	account, err := awsorgs.EnsureAccount(organizations.New(sess), accounts.Admin, accounts.Admin, *quality)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Stopf("account %s", account.Id)
-	//log.Printf("%+v", account)
-
-	okta(sess, account, metadata)
-
-	admin.EnsureAdministratorRolesAndPolicies(sess)
 
 	dirname := fmt.Sprintf("%s-%s-account", Domain, *quality)
 
@@ -223,6 +240,7 @@ func main() {
 			log.Fatal(err)
 		}
 		ui.Stop("ok")
+		ui.Printf("wrote %s, which you should commit to version control", OktaClientSecretTimestampFilename)
 	}
 
 }
