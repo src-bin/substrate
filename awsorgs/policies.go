@@ -1,6 +1,9 @@
 package awsorgs
 
 import (
+	"log"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsutil"
@@ -16,6 +19,30 @@ const (
 	SERVICE_CONTROL_POLICY             PolicyType = "SERVICE_CONTROL_POLICY"
 	TAG_POLICY                         PolicyType = "TAG_POLICY"
 )
+
+func EnablePolicyType(svc *organizations.Organizations, policyType PolicyType) error {
+	for {
+		root, err := Root(svc)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("%+v", root)
+		for _, pt := range root.PolicyTypes {
+			if aws.StringValue(pt.Status) == "ENABLED" && aws.StringValue(pt.Type) == string(policyType) {
+				return nil
+			}
+		}
+		if out, err := svc.EnablePolicyType(&organizations.EnablePolicyTypeInput{
+			PolicyType: aws.String(string(policyType)),
+			RootId:     root.Id,
+		}); err != nil {
+			return err
+		} else {
+			log.Printf("%+v", out)
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
+}
 
 // EnsurePolicy makes potentially several AWS API requests to ensure,
 // regardless of initial state, that a policy by a given name and type exists,

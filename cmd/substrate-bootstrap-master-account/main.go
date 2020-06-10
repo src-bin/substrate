@@ -119,7 +119,7 @@ func main() {
 	ui.Spin("finding or creating the audit account")
 	auditAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Audit)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err) // TODO Casey encountered what looked like a race here (TooManyRequestsException "because another request is already in progress")
 	}
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
@@ -169,7 +169,7 @@ func main() {
 			},
 		},
 	); err != nil {
-		log.Fatal(err)
+		log.Fatal(err) // TODO another race here
 	}
 	if err := awsorgs.EnableAWSServiceAccess(svc, "cloudtrail.amazonaws.com"); err != nil {
 		log.Fatal(err)
@@ -226,10 +226,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//log.Printf("%+v", root)
 
 	// Ensure service control policies are enabled and that Substrate's is
 	// attached and up-to-date.
+	if err := awsorgs.EnablePolicyType(svc, awsorgs.SERVICE_CONTROL_POLICY); err != nil {
+		log.Fatal(err)
+	}
 	if err := awsorgs.EnsurePolicy(
 		svc,
 		root,
