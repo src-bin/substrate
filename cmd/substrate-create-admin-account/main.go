@@ -33,9 +33,9 @@ const (
 	Domain                                 = "admin"
 	Environment                            = "admin"
 	IntranetDNSDomainNameFile              = "substrate.intranet-dns-domain-name"
-	OAuthOIDCClientIdFilename              = "substrate.okta-client-id"
-	OAuthOIDCClientSecretTimestampFilename = "substrate.okta-client-secret-timestamp"
-	OAuthOIDCHostnameFilename              = "substrate.okta-hostname"
+	OAuthOIDCClientIdFilename              = "substrate.oauth-oidc-client-id"
+	OAuthOIDCClientSecretTimestampFilename = "substrate.oauth-oidc-client-secret-timestamp"
+	OktaHostnameFilename                   = "substrate.okta-hostname"
 	SAMLMetadataFilename                   = "substrate.saml-metadata.xml"
 )
 
@@ -89,7 +89,7 @@ func main() {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
-	idp(sess, account, metadata)
+	idpName := idp(sess, account, metadata)
 
 	admin.EnsureAdministratorRolesAndPolicies(sess)
 
@@ -130,14 +130,17 @@ func main() {
 		break
 	}
 
-	hostname, err := ui.PromptFile(
-		OAuthOIDCHostnameFilename,
-		"paste the hostname of your Okta installation:",
-	)
-	if err != nil {
-		log.Fatal(err)
+	var hostname string
+	if idpName == Okta {
+		hostname, err = ui.PromptFile(
+			OktaHostnameFilename,
+			"paste the hostname of your Okta installation:",
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ui.Printf("using Okta hostname %s", hostname)
 	}
-	ui.Printf("using OAuthOIDC hostname %s", hostname)
 
 	clientId, err := ui.PromptFile(
 		OAuthOIDCClientIdFilename,
@@ -184,8 +187,8 @@ func main() {
 			Arguments: map[string]terraform.Value{
 				"apigateway_role_arn":                   terraform.U(module.Ref(), ".apigateway_role_arn"),
 				"dns_domain_name":                       terraform.Q(dnsDomainName),
-				"okta_client_id":                        terraform.Q(clientId),
-				"okta_client_secret_timestamp":          terraform.Q(clientSecretTimestamp),
+				"oauth_oidc_client_id":                  terraform.Q(clientId),
+				"oauth_oidc_client_secret_timestamp":    terraform.Q(clientSecretTimestamp),
 				"okta_hostname":                         terraform.Q(hostname),
 				"selected_regions":                      terraform.QSlice(regions.Selected()),
 				"stage_name":                            terraform.Q(*quality),

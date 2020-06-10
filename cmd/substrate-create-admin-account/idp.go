@@ -24,7 +24,7 @@ const (
 	Okta          = "Okta"
 )
 
-func idp(sess *session.Session, account *organizations.Account, metadata string) {
+func idp(sess *session.Session, account *organizations.Account, metadata string) (name string) {
 	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
 	if err != nil {
 		log.Fatal(err)
@@ -37,7 +37,7 @@ func idp(sess *session.Session, account *organizations.Account, metadata string)
 		)),
 	})
 
-	name := "IdP"
+	name = "IdP"
 	if strings.Contains(metadata, "google.com") {
 		name = Google
 	} else if strings.Contains(metadata, "okta.com") {
@@ -191,4 +191,5 @@ func idp(sess *session.Session, account *organizations.Account, metadata string)
 		}
 	}
 
+	return name
 }

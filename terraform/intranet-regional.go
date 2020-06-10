@@ -72,10 +72,10 @@ resource "aws_api_gateway_deployment" "intranet" {
     )))
   }
   variables = {
-    "OktaClientID"              = var.okta_client_id
-    "OktaClientSecretTimestamp" = var.okta_client_secret_timestamp
-    "OktaHostname"              = var.okta_hostname
-    "SelectedRegions"           = join(",", var.selected_regions)
+    "OAuthOIDCClientID"              = var.oauth_oidc_client_id
+    "OAuthOIDCClientSecretTimestamp" = var.oauth_oidc_client_secret_timestamp
+    "OktaHostname"                   = var.okta_hostname
+    "SelectedRegions"                = join(",", var.selected_regions)
   }
 }
 
@@ -263,11 +263,11 @@ variable "dns_domain_name" {
   type = string
 }
 
-variable "okta_client_id" {
+variable "oauth_oidc_client_id" {
   type = string
 }
 
-variable "okta_client_secret_timestamp" {
+variable "oauth_oidc_client_secret_timestamp" {
   type = string
 }
 

@@ -23,10 +23,10 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	clientSecret, err := awssecretsmanager.CachedSecret(
 		secretsmanager.New(sess),
 		fmt.Sprintf(
-			"OktaClientSecret-%s",
-			event.StageVariables["OktaClientID"],
+			"OAuthOIDCClientSecret-%s",
+			event.StageVariables["OAuthOIDCClientID"],
 		),
-		event.StageVariables["OktaClientSecretTimestamp"],
+		event.StageVariables["OAuthOIDCClientSecretTimestamp"],
 	)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	c := oauthoidc.NewClient(
 		event.StageVariables["OktaHostname"],
 		oauthoidc.OktaPathQualifier("/oauth2/default"),
-		event.StageVariables["OktaClientID"],
+		event.StageVariables["OAuthOIDCClientID"],
 		clientSecret,
 	)
 
