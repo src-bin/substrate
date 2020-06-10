@@ -19,6 +19,7 @@ import (
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -29,13 +30,13 @@ import (
 )
 
 const (
-	Domain                            = "admin"
-	Environment                       = "admin"
-	IntranetDNSDomainNameFile         = "substrate.intranet-dns-domain-name"
-	OktaClientIdFilename              = "substrate.okta-client-id"
-	OktaClientSecretTimestampFilename = "substrate.okta-client-secret-timestamp"
-	OktaHostnameFilename              = "substrate.okta-hostname"
-	OktaMetadataFilename              = "substrate.okta.xml"
+	Domain                                 = "admin"
+	Environment                            = "admin"
+	IntranetDNSDomainNameFile              = "substrate.intranet-dns-domain-name"
+	OAuthOIDCClientIdFilename              = "substrate.okta-client-id"
+	OAuthOIDCClientSecretTimestampFilename = "substrate.okta-client-secret-timestamp"
+	OAuthOIDCHostnameFilename              = "substrate.okta-hostname"
+	SAMLMetadataFilename                   = "substrate.saml-metadata.xml"
 )
 
 func main() {
@@ -52,17 +53,32 @@ func main() {
 		ui.Fatalf(`-quality"%s" is not a valid quality for an admin account in your organization`, *quality)
 	}
 
+	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{})
+	if err != nil {
+		ui.Print("unable to assume the OrganizationAdministrator role, which means this is probably your first time creating an admin account; please provide an access key from your master AWS account")
+		accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
+		ui.Printf("using access key %s", accessKeyId)
+		sess, err = awssessions.InMasterAccount(
+			roles.OrganizationAdministrator,
+			awssessions.Config{
+				AccessKeyId:     accessKeyId,
+				SecretAccessKey: secretAccessKey,
+			},
+		)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	lines, err := ui.EditFile(
-		OktaMetadataFilename,
+		SAMLMetadataFilename,
 		"here is your current identity provider metadata XML:",
-		"paste your identity provider metadata XML from Okta",
+		"paste the XML metadata from your identity provider",
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 	metadata := strings.Join(lines, "\n") + "\n" // ui.EditFile is line-oriented but this instance isn't
-
-	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{}))
 
 	// Ensure the account exists.
 	ui.Spin("finding or creating the admin account")
@@ -73,7 +89,7 @@ func main() {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
-	okta(sess, account, metadata)
+	idp(sess, account, metadata)
 
 	admin.EnsureAdministratorRolesAndPolicies(sess)
 
@@ -81,9 +97,11 @@ func main() {
 	// the intranet can configure itself.  It's possible to do this entirely
 	// programmatically but there's a lot of UI surface area involved in doing
 	// a really good job.
-	ui.Print("visit <https://console.aws.amazon.com/route53/home#DomainListing:> and buy or transfer a domain into this account")
-	ui.Print("or visit <https://console.aws.amazon.com/route53/home#hosted-zones:> and create a hosted zone you've delegated from elsewhere")
-	ui.Prompt("when you've finished, press <enter> to continue")
+	if true { // TODO if IntranetDNSDomainNameFile doesn't exist
+		ui.Print("visit <https://console.aws.amazon.com/route53/home#DomainListing:> and buy or transfer a domain into this account")
+		ui.Print("or visit <https://console.aws.amazon.com/route53/home#hosted-zones:> and create a hosted zone you've delegated from elsewhere")
+		ui.Prompt("when you've finished, press <enter> to continue")
+	}
 	dnsDomainName, err := ui.PromptFile(
 		IntranetDNSDomainNameFile,
 		"what DNS domain name (the one you just bought, transferred, or shared) will you use for your organization's intranet?",
@@ -92,27 +110,38 @@ func main() {
 		log.Fatal(err)
 	}
 	ui.Printf("using DNS domain name %s for your organization's intranet", dnsDomainName)
-	ui.Spinf("waiting for a hosted zone to appear for %s", dnsDomainName)
+	ui.Spinf("waiting for a hosted zone to appear for %s.", dnsDomainName)
 	for {
-		zone, err := awsroute53.FindHostedZone(route53.New(sess), dnsDomainName+".")
-		if err == nil {
-			ui.Stopf("hosted zone %s", zone.Id)
-			break
+		zone, err := awsroute53.FindHostedZone(
+			route53.New(
+				awssessions.AssumeRole(sess, aws.StringValue(account.Id), Administrator),
+				&aws.Config{},
+			),
+			dnsDomainName+".",
+		)
+		if _, ok := err.(awsroute53.HostedZoneNotFoundError); ok {
+			time.Sleep(1e9) // TODO exponential backoff
+			continue
 		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		ui.Stopf("hosted zone %s", zone.Id)
+		break
 	}
 
 	hostname, err := ui.PromptFile(
-		OktaHostnameFilename,
+		OAuthOIDCHostnameFilename,
 		"paste the hostname of your Okta installation:",
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Printf("using Okta hostname %s", hostname)
+	ui.Printf("using OAuthOIDC hostname %s", hostname)
 
 	clientId, err := ui.PromptFile(
-		OktaClientIdFilename,
-		"paste your Okta application's OAuth OIDC client ID:",
+		OAuthOIDCClientIdFilename,
+		"paste your OAuth OIDC client ID:",
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -120,11 +149,11 @@ func main() {
 	ui.Printf("using OAuth OIDC client ID %s", clientId)
 
 	var clientSecret string
-	b, _ := fileutil.ReadFile(OktaClientSecretTimestampFilename)
+	b, _ := fileutil.ReadFile(OAuthOIDCClientSecretTimestampFilename)
 	clientSecretTimestamp := strings.Trim(string(b), "\r\n")
 	if clientSecretTimestamp == "" {
 		clientSecretTimestamp = time.Now().Format(time.RFC3339)
-		clientSecret, err = ui.Prompt("paste your Okta application's OAuth OIDC client secret:")
+		clientSecret, err = ui.Prompt("paste your OAuth OIDC client secret:")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -216,16 +245,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Store the Okta client secret in AWS Secrets Manager.
+	// Store the OAuth OIDC client secret in AWS Secrets Manager.
 	if clientSecret != "" {
-		ui.Spin("storing your Okta OAuth OIDC client secret in AWS Secrets Manager")
+		ui.Spin("storing your OAuth OIDC client secret in AWS Secrets Manager")
 		for _, region := range regions.Selected() {
 			if _, err := awssecretsmanager.EnsureSecret(
 				secretsmanager.New(
-					awssessions.AssumeRole(sess, aws.StringValue(account.Id), "Administrator"),
+					awssessions.AssumeRole(sess, aws.StringValue(account.Id), Administrator),
 					&aws.Config{Region: aws.String(region)},
 				),
-				fmt.Sprintf("OktaClientSecret-%s", clientId),
+				fmt.Sprintf("OAuthOIDCClientSecret-%s", clientId),
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
 					roles.Arn(aws.StringValue(account.Id), "substrate-okta-authenticator"), // must match intranet/global/substrate_okta_authenticator.tf
 					roles.Arn(aws.StringValue(account.Id), "substrate-okta-authorizer"),    // must match intranet/global/substrate_okta_authorizer.tf
@@ -236,11 +265,11 @@ func main() {
 				log.Fatal(err)
 			}
 		}
-		if err := ioutil.WriteFile(OktaClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666); err != nil {
+		if err := ioutil.WriteFile(OAuthOIDCClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666); err != nil {
 			log.Fatal(err)
 		}
 		ui.Stop("ok")
-		ui.Printf("wrote %s, which you should commit to version control", OktaClientSecretTimestampFilename)
+		ui.Printf("wrote %s, which you should commit to version control", OAuthOIDCClientSecretTimestampFilename)
 	}
 
 }

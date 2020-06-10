@@ -55,6 +55,6 @@ your Organization.  Here are the account numbers and roles you'll need:
 +--------------+----------------+---------------------------+----------------------------------------------------------+
 
 There's also at least one admin account where you'll land when you get an
-instance from the instance factory or login to the AWS Console via Okta.
+instance from the instance factory or login to the AWS Console.
 `
 }

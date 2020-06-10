@@ -17,7 +17,13 @@ func FindHostedZone(svc *route53.Route53, name string) (*route53.HostedZone, err
 			return zone, nil
 		}
 	}
-	return nil, fmt.Errorf("%s not found", name)
+	return nil, HostedZoneNotFoundError(name)
+}
+
+type HostedZoneNotFoundError string
+
+func (err HostedZoneNotFoundError) Error() string {
+	return fmt.Sprintf("HostedZoneNotFoundError: %s not found", string(err))
 }
 
 func ListHostedZones(svc *route53.Route53) (zones []*route53.HostedZone, err error) {
