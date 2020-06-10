@@ -26,19 +26,16 @@ func EnablePolicyType(svc *organizations.Organizations, policyType PolicyType) e
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("%+v", root)
 		for _, pt := range root.PolicyTypes {
 			if aws.StringValue(pt.Status) == "ENABLED" && aws.StringValue(pt.Type) == string(policyType) {
 				return nil
 			}
 		}
-		if out, err := svc.EnablePolicyType(&organizations.EnablePolicyTypeInput{
+		if _, err := svc.EnablePolicyType(&organizations.EnablePolicyTypeInput{
 			PolicyType: aws.String(string(policyType)),
 			RootId:     root.Id,
 		}); err != nil {
 			return err
-		} else {
-			log.Printf("%+v", out)
 		}
 		time.Sleep(1e9) // TODO exponential backoff
 	}
