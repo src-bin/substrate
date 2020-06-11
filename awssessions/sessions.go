@@ -26,14 +26,16 @@ import (
 // service/*.New clients so we don't have to keep awkwardly bouncing around.
 
 type Config struct {
-	AccessKeyId, SecretAccessKey string
-	Region                       string
+	AccessKeyId, SecretAccessKey, SessionToken string
+	Region                                     string
 }
 
 func (c Config) AWS() aws.Config {
 	var a aws.Config
 
-	if c.AccessKeyId != "" && c.SecretAccessKey != "" {
+	if c.AccessKeyId != "" && c.SecretAccessKey != "" && c.SessionToken != "" {
+		a.Credentials = credentials.NewStaticCredentials(c.AccessKeyId, c.SecretAccessKey, c.SessionToken)
+	} else if c.AccessKeyId != "" && c.SecretAccessKey != "" {
 		a.Credentials = credentials.NewStaticCredentials(c.AccessKeyId, c.SecretAccessKey, "")
 	}
 	if c.AccessKeyId != "" && c.SecretAccessKey == "" {

@@ -37,6 +37,16 @@ func GetCallerIdentity(svc *sts.STS) (*sts.GetCallerIdentityOutput, error) {
 	return svc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 }
 
+func GetSessionToken(svc *sts.STS) (*sts.Credentials, error) {
+	out, err := svc.GetSessionToken(&sts.GetSessionTokenInput{
+		DurationSeconds: aws.Int64(3600), // maximum for root credentials
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out.Credentials, nil
+}
+
 func MustGetCallerIdentity(svc *sts.STS) *sts.GetCallerIdentityOutput {
 	callerIdentity, err := GetCallerIdentity(svc)
 	if err != nil {
