@@ -19,6 +19,8 @@ import (
 //go:generate go run ../../tools/template/main.go -name loginTemplate -package main login.html
 //go:generate go run ../../tools/template/main.go -name redirectTemplate -package main redirect.html
 
+const maxAge = 43200
+
 func errorResponse(err error, s string) *events.APIGatewayProxyResponse {
 	log.Printf("%+v", err)
 	return &events.APIGatewayProxyResponse{
@@ -40,19 +42,25 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	clientSecret, err := awssecretsmanager.CachedSecret(
 		secretsmanager.New(sess),
 		fmt.Sprintf(
-			"OAuthOIDCClientSecret-%s",
-			event.StageVariables["OAuthOIDCClientID"],
+			"%s-%s",
+			oauthoidc.OAuthOIDCClientSecret,
+			event.StageVariables[oauthoidc.OAuthOIDCClientID],
 		),
-		event.StageVariables["OAuthOIDCClientSecretTimestamp"],
+		event.StageVariables[oauthoidc.OAuthOIDCClientSecretTimestamp],
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	var pathQualifier oauthoidc.PathQualifier
+	if hostname := event.StageVariables[oauthoidc.OktaHostname]; hostname == "" {
+		pathQualifier = oauthoidc.GooglePathQualifier()
+	} else {
+		pathQualifier = oauthoidc.OktaPathQualifier(hostname, "default")
+	}
 	c := oauthoidc.NewClient(
-		event.StageVariables["OktaHostname"],
-		oauthoidc.OktaPathQualifier("/oauth2/default"),
-		event.StageVariables["OAuthOIDCClientID"],
+		pathQualifier,
+		event.StageVariables[oauthoidc.OAuthOIDCClientID],
 		clientSecret,
 	)
 	redirectURI := &url.URL{
@@ -72,34 +80,28 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		v.Add("grant_type", "authorization_code")
 		v.Add("redirect_uri", redirectURI.String())
 		doc := &oauthoidc.OktaTokenResponse{}
-		if _, err := c.Post(oauthoidc.TokenPath, v, doc); err != nil {
+		if _, err := c.Post(oauthoidc.Token, v, doc); err != nil {
 			return nil, err
 		}
 
-		accessToken := &oauthoidc.OktaAccessToken{}
-		if _, err := oauthoidc.ParseAndVerifyJWT(doc.AccessToken, c, accessToken); err != nil {
-			return errorResponse(err, doc.AccessToken), nil
-		}
 		idToken := &oauthoidc.OktaIDToken{}
 		if _, err := oauthoidc.ParseAndVerifyJWT(doc.IDToken, c, idToken); err != nil {
-			return errorResponse(err, doc.IDToken), nil
+			return errorResponse(err, "IDToken: "+doc.IDToken), nil
 		}
 		if idToken.Nonce != state.Nonce {
 			return errorResponse(oauthoidc.VerificationError{"nonce", idToken.Nonce, state.Nonce}, doc.IDToken), nil
 		}
 
 		var bodyV struct {
-			AccessToken *oauthoidc.OktaAccessToken
-			IDToken     *oauthoidc.OktaIDToken
-			Location    string
+			IDToken  *oauthoidc.OktaIDToken
+			Location string
 		}
-		bodyV.AccessToken = accessToken
 		bodyV.IDToken = idToken
 		multiValueHeaders := map[string][]string{
 			"Content-Type": []string{"text/html"},
 			"Set-Cookie": []string{
-				fmt.Sprintf("a=%s; HttpOnly; Max-Age=43200; Secure", doc.AccessToken),
-				fmt.Sprintf("id=%s; HttpOnly; Max-Age=43200; Secure", doc.IDToken),
+				fmt.Sprintf("a=%s; HttpOnly; Max-Age=%d; Secure", doc.AccessToken, maxAge),
+				fmt.Sprintf("id=%s; HttpOnly; Max-Age=%d; Secure", doc.IDToken, maxAge),
 			},
 		}
 		statusCode := http.StatusOK
@@ -129,7 +131,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	q.Add("nonce", nonce)
 	q.Add("redirect_uri", redirectURI.String())
 	q.Add("response_type", "code")
-	q.Add("scope", "openid profile") // TODO figure out how to get "preferred_username", too
+	q.Add("scope", "openid email profile")
 	state = &oauthoidc.State{
 		Next:  event.QueryStringParameters["next"],
 		Nonce: nonce,
@@ -140,7 +142,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	bodyV.ErrorDescription = event.QueryStringParameters["error_description"]
 	headers := map[string]string{"Content-Type": "text/html"}
 	statusCode := http.StatusOK
-	bodyV.Location = c.URL(oauthoidc.AuthorizePath, q).String()
+	bodyV.Location = c.URL(oauthoidc.Authorize, q).String()
 	if bodyV.ErrorDescription == "" {
 		headers["Location"] = bodyV.Location
 		statusCode = http.StatusFound

@@ -7,16 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/url"
 	"path"
 	"time"
 )
 
-const (
-	AuthorizePath = "v1/authorize"
-	IssuerPath    = ""
-	KeysPath      = "v1/keys"
-	TokenPath     = "v1/token"
-)
+const OktaHostname = "OktaHostname"
 
 type OktaAccessToken struct {
 	Audience string   `json:"aud"`
@@ -29,7 +25,6 @@ type OktaAccessToken struct {
 	Subject  string   `json:"sub"`
 	UserID   string   `json:"uid"`
 	Version  int      `json:"ver"`
-	WTF      []byte   // TODO remove
 }
 
 func (t *OktaAccessToken) JSONString() (string, error) {
@@ -44,7 +39,7 @@ func (t *OktaAccessToken) Verify(c *Client) error {
 	if t.ClientID != c.ClientID {
 		return VerificationError{"cid", t.ClientID, c.ClientID}
 	}
-	if actual, expected := t.Issuer, c.URL(IssuerPath, nil).String(); actual != expected {
+	if actual, expected := t.Issuer, c.URL(Issuer, nil).String(); actual != expected {
 		return VerificationError{"iss", actual, expected}
 	}
 	return nil
@@ -78,7 +73,6 @@ type OktaIDToken struct {
 	UpdatedAt             int64             `json:"updated_at"`
 	Version               int               `json:"ver"`
 	ZoneInfo              string            `json:"zoneinfo"`
-	WTF                   []byte            // TODO remove
 }
 
 func (t *OktaIDToken) JSONString() (string, error) {
@@ -100,7 +94,7 @@ func (t *OktaIDToken) Verify(c *Client) error {
 	if t.IssuedAt > now {
 		return InvalidJWTError(fmt.Sprintf("not issued until %d", t.IssuedAt))
 	}
-	if actual, expected := t.Issuer, c.URL(IssuerPath, nil).String(); actual != expected {
+	if actual, expected := t.Issuer, c.URL(Issuer, nil).String(); actual != expected {
 		return VerificationError{"iss", actual, expected}
 	}
 	return nil
@@ -141,9 +135,21 @@ type OktaKeysResponse struct {
 	Keys []*OktaKey `json:"keys"`
 }
 
-func OktaPathQualifier(basePath string) func(string) string {
-	return func(p string) string {
-		return path.Join(basePath, p)
+func OktaPathQualifier(hostname, authServerId string) PathQualifier {
+	// TODO dynamically construct this function based on <https://${yourOktaDomain}/.well-known/openid-configuration>
+	// or <https://${yourOktaDomain}/oauth2/${authServerId}/.well-known/openid-configuration>
+	// per <https://developer.okta.com/docs/reference/api/oidc/>
+	return func(p UnqualifiedPath) *url.URL {
+		u := &url.URL{
+			Scheme: "https",
+			Host:   hostname,
+		}
+		if p == Issuer {
+			u.Path = path.Join("/oauth2", authServerId)
+		} else {
+			u.Path = path.Join("/oauth2", authServerId, "v1", string(p))
+		}
+		return u
 	}
 }
 

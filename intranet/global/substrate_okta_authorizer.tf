@@ -1,6 +1,6 @@
 data "aws_iam_policy_document" "substrate-okta-authorizer" {
   statement {
-    actions   = ["sts:GetCallerIdentity"]
+    actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
     resources = ["*"]
   }
 }

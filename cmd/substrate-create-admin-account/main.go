@@ -183,24 +183,27 @@ func main() {
 	intranet.Push(module)
 	for _, region := range regions.Selected() {
 		tags.Region = region
+		arguments := map[string]terraform.Value{
+			"apigateway_role_arn":                   terraform.U(module.Ref(), ".apigateway_role_arn"),
+			"dns_domain_name":                       terraform.Q(dnsDomainName),
+			"oauth_oidc_client_id":                  terraform.Q(clientId),
+			"oauth_oidc_client_secret_timestamp":    terraform.Q(clientSecretTimestamp),
+			"selected_regions":                      terraform.QSlice(regions.Selected()),
+			"stage_name":                            terraform.Q(*quality),
+			"substrate_credential_factory_role_arn": terraform.U(module.Ref(), ".substrate_credential_factory_role_arn"),
+			"substrate_instance_factory_role_arn":   terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
+			"substrate_okta_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_okta_authenticator_role_arn"),
+			"substrate_okta_authorizer_role_arn":    terraform.U(module.Ref(), ".substrate_okta_authorizer_role_arn"),
+			"validation_fqdn":                       terraform.U(module.Ref(), ".validation_fqdn"),
+		}
+		if hostname != "" {
+			arguments["okta_hostname"] = terraform.Q(hostname)
+		}
 		intranet.Push(terraform.Module{
-			Arguments: map[string]terraform.Value{
-				"apigateway_role_arn":                   terraform.U(module.Ref(), ".apigateway_role_arn"),
-				"dns_domain_name":                       terraform.Q(dnsDomainName),
-				"oauth_oidc_client_id":                  terraform.Q(clientId),
-				"oauth_oidc_client_secret_timestamp":    terraform.Q(clientSecretTimestamp),
-				"okta_hostname":                         terraform.Q(hostname),
-				"selected_regions":                      terraform.QSlice(regions.Selected()),
-				"stage_name":                            terraform.Q(*quality),
-				"substrate_credential_factory_role_arn": terraform.U(module.Ref(), ".substrate_credential_factory_role_arn"),
-				"substrate_instance_factory_role_arn":   terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
-				"substrate_okta_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_okta_authenticator_role_arn"),
-				"substrate_okta_authorizer_role_arn":    terraform.U(module.Ref(), ".substrate_okta_authorizer_role_arn"),
-				"validation_fqdn":                       terraform.U(module.Ref(), ".validation_fqdn"),
-			},
-			Label:    terraform.Label(tags),
-			Provider: terraform.ProviderAliasFor(region),
-			Source:   terraform.Q("../intranet/regional"),
+			Arguments: arguments,
+			Label:     terraform.Label(tags),
+			Provider:  terraform.ProviderAliasFor(region),
+			Source:    terraform.Q("../intranet/regional"),
 		})
 	}
 	if err := intranet.Write(path.Join(dirname, "intranet.tf")); err != nil {

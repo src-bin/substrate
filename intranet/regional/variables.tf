@@ -15,7 +15,8 @@ variable "oauth_oidc_client_secret_timestamp" {
 }
 
 variable "okta_hostname" {
-  type = string
+  default = ""
+  type    = string
 }
 
 variable "selected_regions" {

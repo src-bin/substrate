@@ -47,7 +47,7 @@ output "validation_fqdn" {
 `,
 		"substrate_okta_authenticator.tf": `data "aws_iam_policy_document" "substrate-okta-authenticator" {
   statement {
-    actions   = ["sts:GetCallerIdentity"]
+    actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
     resources = ["*"]
   }
 }
@@ -60,7 +60,7 @@ module "substrate-okta-authenticator" {
 `,
 		"substrate_okta_authorizer.tf":    `data "aws_iam_policy_document" "substrate-okta-authorizer" {
   statement {
-    actions   = ["sts:GetCallerIdentity"]
+    actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
     resources = ["*"]
   }
 }

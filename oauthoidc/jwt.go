@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -30,12 +31,6 @@ func ParseAndVerifyJWT(s string, c *Client, p JWTPayload) (*JWT, error) {
 
 func ParseJWT(s string, p JWTPayload) (*JWT, error) {
 	slice := strings.Split(s, ".")
-	if len(slice) != 3 {
-		return nil, MalformedJWTError(fmt.Sprintf(
-			"JWTs should have 3 parts but %d found",
-			len(slice),
-		))
-	}
 
 	jwt := &JWT{}
 	var err error
@@ -46,6 +41,13 @@ func ParseJWT(s string, p JWTPayload) (*JWT, error) {
 	jwt.Payload, err = parseJWTPayload(slice[1], p)
 	if err != nil {
 		return nil, err
+	}
+	if len(slice) != 3 {
+		return nil, MalformedJWTError(fmt.Sprintf(
+			"JWTs should have 3 parts but %d found (so far: %+v)",
+			len(slice),
+			jwt,
+		))
 	}
 	jwt.Signature, err = parseJWTSignature(slice[2])
 	if err != nil {
@@ -85,7 +87,7 @@ func (jwt *JWT) Verify(c *Client) error {
 
 func (jwt *JWT) findKey(c *Client) (*OktaKey, error) {
 	doc := &OktaKeysResponse{}
-	if _, err := c.Get(KeysPath, nil, doc); err != nil {
+	if _, err := c.Get(Keys, nil, doc); err != nil {
 		return nil, err
 	}
 	for _, key := range doc.Keys {
@@ -102,7 +104,9 @@ type JWTHeader struct {
 }
 
 func parseJWTHeader(s string) (*JWTHeader, error) {
+	log.Printf("parseJWTHeader s: %#v", s)
 	b, err := base64.RawURLEncoding.DecodeString(s)
+	log.Printf("parseJWTHeader b: %#v, err: %v", b, err)
 	if err != nil {
 		return nil, err
 	}
@@ -124,14 +128,6 @@ func parseJWTPayload(s string, p JWTPayload) (JWTPayload, error) {
 	}
 	if err := json.Unmarshal(b, p); err != nil {
 		return nil, err
-	}
-
-	// TODO remove
-	if a, ok := p.(*OktaAccessToken); ok {
-		a.WTF = b
-	}
-	if id, ok := p.(*OktaIDToken); ok {
-		id.WTF = b
 	}
 
 	return p, nil

@@ -9,7 +9,7 @@ func loginTemplate() string {
 <title>Intranet</title>
 <body>
 <h1>Intranet</h1>
-<p>Hello, <a href="mailto:{{.AccessToken.Subject}}">{{.AccessToken.Subject}}</a>!</p>
+<p>Hello, <a href="mailto:{{.IDToken.Email}}">{{.IDToken.Email}}</a>!</p>
 {{- if .Location}}
 <p>Redirecting to <a href="{{.Location}}">{{.Location}}</a>.</p>
 {{- end}}

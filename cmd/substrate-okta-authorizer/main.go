@@ -23,23 +23,29 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	clientSecret, err := awssecretsmanager.CachedSecret(
 		secretsmanager.New(sess),
 		fmt.Sprintf(
-			"OAuthOIDCClientSecret-%s",
-			event.StageVariables["OAuthOIDCClientID"],
+			"%s-%s",
+			oauthoidc.OAuthOIDCClientSecret,
+			event.StageVariables[oauthoidc.OAuthOIDCClientID],
 		),
-		event.StageVariables["OAuthOIDCClientSecretTimestamp"],
+		event.StageVariables[oauthoidc.OAuthOIDCClientSecretTimestamp],
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	var pathQualifier oauthoidc.PathQualifier
+	if hostname := event.StageVariables[oauthoidc.OktaHostname]; hostname == "" {
+		pathQualifier = oauthoidc.GooglePathQualifier()
+	} else {
+		pathQualifier = oauthoidc.OktaPathQualifier(hostname, "default")
+	}
 	c := oauthoidc.NewClient(
-		event.StageVariables["OktaHostname"],
-		oauthoidc.OktaPathQualifier("/oauth2/default"),
-		event.StageVariables["OAuthOIDCClientID"],
+		pathQualifier,
+		event.StageVariables[oauthoidc.OAuthOIDCClientID],
 		clientSecret,
 	)
 
-	accessToken := &oauthoidc.OktaAccessToken{}
+	var accessToken string
 	idToken := &oauthoidc.OktaIDToken{}
 	req := &http.Request{Header: http.Header{
 		"Cookie": event.MultiValueHeaders["cookie"], // beware the case-sensitivity
@@ -47,9 +53,7 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	for _, cookie := range req.Cookies() {
 		switch cookie.Name {
 		case "a":
-			if _, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, c, accessToken); err != nil {
-				return nil, err
-			}
+			accessToken = cookie.Value
 		case "id":
 			if _, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, c, idToken); err != nil {
 				return nil, err
@@ -58,9 +62,7 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	}
 
 	context := map[string]interface{}{}
-	if context["AccessToken"], err = accessToken.JSONString(); err != nil {
-		return nil, err
-	}
+	context["AccessToken"] = accessToken
 	if context["IDToken"], err = idToken.JSONString(); err != nil {
 		return nil, err
 	}
@@ -76,7 +78,7 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 			},
 			Version: "2012-10-17",
 		},
-		PrincipalID: accessToken.Subject,
+		PrincipalID: idToken.Email,
 	}, nil
 }
 

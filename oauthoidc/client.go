@@ -10,24 +10,24 @@ import (
 	"strings"
 )
 
+const (
+	OAuthOIDCClientID              = "OAuthOIDCClientID"
+	OAuthOIDCClientSecret          = "OAuthOIDCClientSecret"
+	OAuthOIDCClientSecretTimestamp = "OAuthOIDCClientSecretTimestamp"
+)
+
 type Client struct {
 	ClientID      string
-	baseURL       url.URL // not a pointer to force copying
 	clientSecret  string
-	pathQualifier func(string) string
+	pathQualifier PathQualifier
 }
 
 func NewClient(
-	host string,
-	pathQualifier func(string) string,
+	pathQualifier PathQualifier,
 	clientID, clientSecret string,
 ) *Client {
 	return &Client{
-		ClientID: clientID,
-		baseURL: url.URL{
-			Scheme: "https",
-			Host:   host,
-		},
+		ClientID:      clientID,
 		clientSecret:  clientSecret,
 		pathQualifier: pathQualifier,
 	}
@@ -37,7 +37,7 @@ func NewClient(
 // host and unmarshals the JSON response body into the given interface{}.  It
 // returns the *http.Response, though its Body field is not usable, and an
 // error, if any.
-func (c *Client) Get(path string, query url.Values, i interface{}) (*http.Response, error) {
+func (c *Client) Get(path UnqualifiedPath, query url.Values, i interface{}) (*http.Response, error) {
 	u := c.URL(path, query)
 	resp, err := http.DefaultClient.Do(c.request("GET", u))
 	if err != nil {
@@ -50,7 +50,7 @@ func (c *Client) Get(path string, query url.Values, i interface{}) (*http.Respon
 // client's host and unmarshals the JSON response body into the given
 // interface{}.  It returns the *http.Response, though its Body field is not
 // usable, and an error, if any.
-func (c *Client) Post(path string, body url.Values, i interface{}) (*http.Response, error) {
+func (c *Client) Post(path UnqualifiedPath, body url.Values, i interface{}) (*http.Response, error) {
 	u := c.URL(path, nil)
 	req := c.request("POST", u)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -62,17 +62,12 @@ func (c *Client) Post(path string, body url.Values, i interface{}) (*http.Respon
 	return resp, unmarshalJSON(resp, i)
 }
 
-func (c *Client) URL(path string, query url.Values) *url.URL {
-	u := c.baseURL // copy
-	path = c.pathQualifier(path)
-	if len(path) != 0 && path[0] != '/' {
-		path = "/" + path
-	}
-	u.Path = path
+func (c *Client) URL(path UnqualifiedPath, query url.Values) *url.URL {
+	u := c.pathQualifier(path)
 	if query != nil {
 		u.RawQuery = query.Encode()
 	}
-	return &u
+	return u
 }
 
 func (c *Client) request(method string, u *url.URL) *http.Request {
@@ -118,3 +113,16 @@ func unmarshalJSON(resp *http.Response, i interface{}) error {
 	}
 	return nil
 }
+
+type PathQualifier func(UnqualifiedPath) *url.URL
+
+type UnqualifiedPath string
+
+// Names of well-known URLs in the OAuth OIDC flow.  PathQualifiers will turn
+// these into the actual fully-qualified URLs used by supported IdPs.
+const (
+	Authorize UnqualifiedPath = "authorize"
+	Issuer    UnqualifiedPath = "issuer"
+	Keys      UnqualifiedPath = "keys"
+	Token     UnqualifiedPath = "token"
+)
