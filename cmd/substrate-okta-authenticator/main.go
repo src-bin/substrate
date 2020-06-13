@@ -89,7 +89,11 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			return errorResponse(err, "IDToken: "+doc.IDToken), nil
 		}
 		if idToken.Nonce != state.Nonce {
-			return errorResponse(oauthoidc.VerificationError{"nonce", idToken.Nonce, state.Nonce}, doc.IDToken), nil
+			return errorResponse(oauthoidc.VerificationError{
+				Field:    "nonce",
+				Actual:   idToken.Nonce,
+				Expected: state.Nonce,
+			}, doc.IDToken), nil
 		}
 
 		var bodyV struct {

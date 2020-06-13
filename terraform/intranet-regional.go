@@ -4,26 +4,92 @@ package terraform
 
 func intranetRegionalTemplate() map[string]string {
 	return map[string]string{
-		"outputs.tf":                      `
+		"variables.tf":                    `variable "apigateway_role_arn" {
+  type = string
+}
+
+variable "dns_domain_name" {
+  type = string
+}
+
+variable "oauth_oidc_client_id" {
+  type = string
+}
+
+variable "oauth_oidc_client_secret_timestamp" {
+  type = string
+}
+
+variable "okta_hostname" {
+  default = ""
+  type    = string
+}
+
+variable "selected_regions" {
+  type = list(string)
+}
+
+variable "stage_name" {
+  type = string
+}
+
+variable "substrate_credential_factory_role_arn" {
+  type = string
+}
+
+variable "substrate_instance_factory_role_arn" {
+  type = string
+}
+
+variable "substrate_okta_authenticator_role_arn" {
+  type = string
+}
+
+variable "substrate_okta_authorizer_role_arn" {
+  type = string
+}
+
+variable "validation_fqdn" {
+  type = string
+}
 `,
-		"substrate_okta_authenticator.tf": `module "substrate-okta-authenticator" {
+		"substrate_credential_factory.tf": `module "substrate-credential-factory" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-okta-authenticator.zip"
-  name                     = "substrate-okta-authenticator"
-  role_arn                 = var.substrate_okta_authenticator_role_arn
+  filename                 = "${path.module}/substrate-credential-factory.zip"
+  name                     = "substrate-credential-factory"
+  role_arn                 = var.substrate_credential_factory_role_arn
   source                   = "../../lambda-function/regional"
 }
 `,
-		"acm.tf":                          `resource "aws_acm_certificate" "intranet" {
-  domain_name       = var.dns_domain_name
-  validation_method = "DNS"
+		"route53.tf":                      `data "aws_route53_zone" "intranet" {
+  name         = "${var.dns_domain_name}."
+  private_zone = false
 }
 
-resource "aws_acm_certificate_validation" "intranet" {
-  certificate_arn = aws_acm_certificate.intranet.arn
-  #validation_record_fqdns = [aws_route53_record.validation.fqdn]
-  validation_record_fqdns = [var.validation_fqdn]
+resource "aws_route53_record" "intranet" {
+  alias {
+    evaluate_target_health = true
+    name                   = aws_api_gateway_domain_name.intranet.regional_domain_name
+    zone_id                = aws_api_gateway_domain_name.intranet.regional_zone_id
+  }
+  latency_routing_policy {
+    region = data.aws_region.current.name
+  }
+  name           = aws_api_gateway_domain_name.intranet.domain_name
+  set_identifier = data.aws_region.current.name
+  type           = "A"
+  zone_id        = data.aws_route53_zone.intranet.id
 }
+`,
+		"substrate_instance_factory.tf":   `module "substrate-instance-factory" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-instance-factory.zip"
+  name                     = "substrate-instance-factory"
+  role_arn                 = var.substrate_instance_factory_role_arn
+  source                   = "../../lambda-function/regional"
+}
+`,
+		"outputs.tf":                      `
 `,
 		"apigateway.tf":                   `resource "aws_api_gateway_account" "current" {
   cloudwatch_role_arn = var.apigateway_role_arn
@@ -255,92 +321,22 @@ resource "aws_cloudwatch_log_group" "apigateway-welcome" {
   }
 }
 `,
-		"variables.tf":                    `variable "apigateway_role_arn" {
-  type = string
+		"acm.tf":                          `resource "aws_acm_certificate" "intranet" {
+  domain_name       = var.dns_domain_name
+  validation_method = "DNS"
 }
 
-variable "dns_domain_name" {
-  type = string
-}
-
-variable "oauth_oidc_client_id" {
-  type = string
-}
-
-variable "oauth_oidc_client_secret_timestamp" {
-  type = string
-}
-
-variable "okta_hostname" {
-  default = ""
-  type    = string
-}
-
-variable "selected_regions" {
-  type = list(string)
-}
-
-variable "stage_name" {
-  type = string
-}
-
-variable "substrate_credential_factory_role_arn" {
-  type = string
-}
-
-variable "substrate_instance_factory_role_arn" {
-  type = string
-}
-
-variable "substrate_okta_authenticator_role_arn" {
-  type = string
-}
-
-variable "substrate_okta_authorizer_role_arn" {
-  type = string
-}
-
-variable "validation_fqdn" {
-  type = string
+resource "aws_acm_certificate_validation" "intranet" {
+  certificate_arn = aws_acm_certificate.intranet.arn
+  #validation_record_fqdns = [aws_route53_record.validation.fqdn]
+  validation_record_fqdns = [var.validation_fqdn]
 }
 `,
-		"data.tf":                         `data "aws_caller_identity" "current" {}
-
-data "aws_region" "current" {}
-`,
-		"route53.tf":                      `data "aws_route53_zone" "intranet" {
-  name         = "${var.dns_domain_name}."
-  private_zone = false
-}
-
-resource "aws_route53_record" "intranet" {
-  alias {
-    evaluate_target_health = true
-    name                   = aws_api_gateway_domain_name.intranet.regional_domain_name
-    zone_id                = aws_api_gateway_domain_name.intranet.regional_zone_id
-  }
-  latency_routing_policy {
-    region = data.aws_region.current.name
-  }
-  name           = aws_api_gateway_domain_name.intranet.domain_name
-  set_identifier = data.aws_region.current.name
-  type           = "A"
-  zone_id        = data.aws_route53_zone.intranet.id
-}
-`,
-		"substrate_credential_factory.tf": `module "substrate-credential-factory" {
+		"substrate_okta_authenticator.tf": `module "substrate-okta-authenticator" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-credential-factory.zip"
-  name                     = "substrate-credential-factory"
-  role_arn                 = var.substrate_credential_factory_role_arn
-  source                   = "../../lambda-function/regional"
-}
-`,
-		"substrate_instance_factory.tf":   `module "substrate-instance-factory" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-instance-factory.zip"
-  name                     = "substrate-instance-factory"
-  role_arn                 = var.substrate_instance_factory_role_arn
+  filename                 = "${path.module}/substrate-okta-authenticator.zip"
+  name                     = "substrate-okta-authenticator"
+  role_arn                 = var.substrate_okta_authenticator_role_arn
   source                   = "../../lambda-function/regional"
 }
 `,
@@ -354,6 +350,10 @@ resource "aws_route53_record" "intranet" {
   role_arn                 = var.substrate_okta_authorizer_role_arn
   source                   = "../../lambda-function/regional"
 }
+`,
+		"data.tf":                         `data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
 `,
 	}
 }

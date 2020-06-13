@@ -4,6 +4,18 @@ package terraform
 
 func lambdaFunctionGlobalTemplate() map[string]string {
 	return map[string]string{
+		"variables.tf": `variable "name" {
+  type = string
+}
+
+variable "policy" {
+  type = string
+}
+`,
+		"outputs.tf":   `output "role_arn" {
+  value = aws_iam_role.role.arn
+}
+`,
 		"iam.tf":       `data "aws_iam_policy_document" "lambda-trust" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -32,18 +44,6 @@ resource "aws_iam_role_policy_attachment" "policy" {
 resource "aws_iam_role_policy_attachment" "cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
   role       = aws_iam_role.role.name
-}
-`,
-		"outputs.tf":   `output "role_arn" {
-  value = aws_iam_role.role.arn
-}
-`,
-		"variables.tf": `variable "name" {
-  type = string
-}
-
-variable "policy" {
-  type = string
 }
 `,
 	}
