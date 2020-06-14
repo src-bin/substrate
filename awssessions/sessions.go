@@ -53,9 +53,9 @@ func (c Config) AWS() aws.Config {
 }
 
 func AssumeRole(sess *session.Session, accountId, rolename string) *session.Session {
-	return sess.Copy(&aws.Config{
-		Credentials: stscreds.NewCredentials(sess, roles.Arn(accountId, rolename)),
-	})
+	arn := roles.Arn(accountId, rolename)
+	ui.Printf("assuming role %s", arn)
+	return sess.Copy(&aws.Config{Credentials: stscreds.NewCredentials(sess, arn)})
 }
 
 func AssumeRoleMaster(sess *session.Session, rolename string) (*session.Session, error) {
@@ -199,6 +199,7 @@ func NewSession(config Config) (*session.Session, error) {
 
 	// If we're not using root credentials, we're done.
 	if !strings.HasSuffix(aws.StringValue(callerIdentity.Arn), ":root") {
+		ui.Printf("starting AWS session as %s", callerIdentity.Arn)
 		return sess, nil
 	}
 
