@@ -4,13 +4,10 @@ import (
 	"flag"
 	"log"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/src-bin/substrate/awsiam"
+	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
@@ -45,21 +42,15 @@ func main() {
 	ui.Stopf("account %s", account.Id)
 	log.Printf("%+v", account)
 
-	// Allow any role in this account to assume the OrganizationReader role in
-	// the master account.
-	svc := iam.New(sess)
-	role, err := awsiam.GetRole(svc, roles.OrganizationReader)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := role.AddPrincipal(svc, &policies.Principal{
-		AWS: []string{aws.StringValue(account.Id)},
-	}); err != nil {
-		log.Fatal(err)
-	}
+	admin.EnsureAdministratorRolesAndPolicies(sess)
 
 	// TODO more?
 
-	// TODO next steps?
+	ui.Printf(
+		"next, commit %s-%s-%s-account/ to version control, then write Terraform code there to define the rest of your infrastructure or run substrate-create-account again for other domains, environments, and/or qualities",
+		*domain,
+		*environment,
+		*quality,
+	)
 
 }

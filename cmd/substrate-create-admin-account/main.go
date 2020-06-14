@@ -278,4 +278,10 @@ func main() {
 		ui.Printf("wrote %s, which you should commit to version control", OAuthOIDCClientSecretTimestampFilename)
 	}
 
+	ui.Printf(
+		"next, commit %s-%s-account/ to version control, then run substrate-create-account for your various domains",
+		Domain,
+		*quality,
+	)
+
 }
