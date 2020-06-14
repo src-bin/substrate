@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -184,17 +185,17 @@ func main() {
 	for _, region := range regions.Selected() {
 		tags.Region = region
 		arguments := map[string]terraform.Value{
-			"apigateway_role_arn":                   terraform.U(module.Ref(), ".apigateway_role_arn"),
-			"dns_domain_name":                       terraform.Q(dnsDomainName),
-			"oauth_oidc_client_id":                  terraform.Q(clientId),
-			"oauth_oidc_client_secret_timestamp":    terraform.Q(clientSecretTimestamp),
-			"selected_regions":                      terraform.QSlice(regions.Selected()),
-			"stage_name":                            terraform.Q(*quality),
-			"substrate_credential_factory_role_arn": terraform.U(module.Ref(), ".substrate_credential_factory_role_arn"),
-			"substrate_instance_factory_role_arn":   terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
-			"substrate_okta_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_okta_authenticator_role_arn"),
-			"substrate_okta_authorizer_role_arn":    terraform.U(module.Ref(), ".substrate_okta_authorizer_role_arn"),
-			"validation_fqdn":                       terraform.U(module.Ref(), ".validation_fqdn"),
+			"apigateway_role_arn":                         terraform.U(module.Ref(), ".apigateway_role_arn"),
+			"dns_domain_name":                             terraform.Q(dnsDomainName),
+			"oauth_oidc_client_id":                        terraform.Q(clientId),
+			"oauth_oidc_client_secret_timestamp":          terraform.Q(clientSecretTimestamp),
+			"selected_regions":                            terraform.QSlice(regions.Selected()),
+			"stage_name":                                  terraform.Q(*quality),
+			"substrate_credential_factory_role_arn":       terraform.U(module.Ref(), ".substrate_credential_factory_role_arn"),
+			"substrate_instance_factory_role_arn":         terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
+			"substrate_apigateway_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_apigateway_authenticator_role_arn"),
+			"substrate_apigateway_authorizer_role_arn":    terraform.U(module.Ref(), ".substrate_apigateway_authorizer_role_arn"),
+			"validation_fqdn":                             terraform.U(module.Ref(), ".validation_fqdn"),
 		}
 		if hostname != "" {
 			arguments["okta_hostname"] = terraform.Q(hostname)
@@ -216,10 +217,14 @@ func main() {
 	if err := intranetGlobalModule.Write("intranet/global"); err != nil {
 		log.Fatal(err)
 	}
+	os.Remove("intranet/global/substrate_okta_authenticator.tf") // TODO remove at version 2020.08
+	os.Remove("intranet/global/substrate_okta_authorizer.tf")    // TODO remove at version 2020.08
 	intranetRegionalModule := terraform.IntranetRegionalModule()
 	if err := intranetRegionalModule.Write("intranet/regional"); err != nil {
 		log.Fatal(err)
 	}
+	os.Remove("intranet/regional/substrate_okta_authenticator.tf") // TODO remove at version 2020.08
+	os.Remove("intranet/regional/substrate_okta_authorizer.tf")    // TODO remove at version 2020.08
 	lambdaFunctionGlobalModule := terraform.LambdaFunctionGlobalModule()
 	if err := lambdaFunctionGlobalModule.Write("lambda-function/global"); err != nil {
 		log.Fatal(err)
@@ -241,7 +246,7 @@ func main() {
 
 	// Generate a Makefile in the root Terraform module then apply the generated
 	// Terraform code.
-	if err := terraform.Makefile(dirname); err != nil {
+	if err := terraform.Root(dirname); err != nil {
 		log.Fatal(err)
 	}
 	if err := terraform.Init(dirname); err != nil {
@@ -262,8 +267,8 @@ func main() {
 				),
 				fmt.Sprintf("OAuthOIDCClientSecret-%s", clientId),
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
-					roles.Arn(aws.StringValue(account.Id), "substrate-okta-authenticator"), // must match intranet/global/substrate_okta_authenticator.tf
-					roles.Arn(aws.StringValue(account.Id), "substrate-okta-authorizer"),    // must match intranet/global/substrate_okta_authorizer.tf
+					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authenticator"), // must match intranet/global/substrate_apigateway_authenticator.tf
+					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authorizer"),    // must match intranet/global/substrate_apigateway_authorizer.tf
 				}}),
 				clientSecretTimestamp,
 				clientSecret,

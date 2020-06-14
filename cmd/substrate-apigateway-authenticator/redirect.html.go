@@ -13,7 +13,7 @@ func redirectTemplate() string {
 <p class="error">{{.ErrorDescription}}</p>
 <p><a href="{{.Location}}">Try again</a>.</p>
 {{- else}}
-<p>Redirecting to <a href="{{.Location}}">Okta</a>.</p>
+<p>Redirecting to <a href="{{.Location}}">your identity provider</a>.</p>
 {{- end}}
 </body>
 </html>

@@ -4,7 +4,7 @@ package terraform
 
 func intranetRegionalTemplate() map[string]string {
 	return map[string]string{
-		"variables.tf":                    `variable "apigateway_role_arn" {
+		"variables.tf":                          `variable "apigateway_role_arn" {
   type = string
 }
 
@@ -41,11 +41,11 @@ variable "substrate_instance_factory_role_arn" {
   type = string
 }
 
-variable "substrate_okta_authenticator_role_arn" {
+variable "substrate_apigateway_authenticator_role_arn" {
   type = string
 }
 
-variable "substrate_okta_authorizer_role_arn" {
+variable "substrate_apigateway_authorizer_role_arn" {
   type = string
 }
 
@@ -53,7 +53,7 @@ variable "validation_fqdn" {
   type = string
 }
 `,
-		"substrate_credential_factory.tf": `module "substrate-credential-factory" {
+		"substrate_credential_factory.tf":       `module "substrate-credential-factory" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-credential-factory.zip"
   name                     = "substrate-credential-factory"
@@ -61,7 +61,7 @@ variable "validation_fqdn" {
   source                   = "../../lambda-function/regional"
 }
 `,
-		"route53.tf":                      `data "aws_route53_zone" "intranet" {
+		"route53.tf":                            `data "aws_route53_zone" "intranet" {
   name         = "${var.dns_domain_name}."
   private_zone = false
 }
@@ -81,7 +81,7 @@ resource "aws_route53_record" "intranet" {
   zone_id        = data.aws_route53_zone.intranet.id
 }
 `,
-		"substrate_instance_factory.tf":   `module "substrate-instance-factory" {
+		"substrate_instance_factory.tf":         `module "substrate-instance-factory" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-instance-factory.zip"
   name                     = "substrate-instance-factory"
@@ -89,18 +89,26 @@ resource "aws_route53_record" "intranet" {
   source                   = "../../lambda-function/regional"
 }
 `,
-		"outputs.tf":                      `
+		"outputs.tf":                            `
 `,
-		"apigateway.tf":                   `resource "aws_api_gateway_account" "current" {
+		"substrate_apigateway_authenticator.tf": `module "substrate-apigateway-authenticator" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-apigateway-authenticator.zip"
+  name                     = "substrate-apigateway-authenticator"
+  role_arn                 = var.substrate_apigateway_authenticator_role_arn
+  source                   = "../../lambda-function/regional"
+}
+`,
+		"apigateway.tf":                         `resource "aws_api_gateway_account" "current" {
   cloudwatch_role_arn = var.apigateway_role_arn
 }
 
-resource "aws_api_gateway_authorizer" "okta" {
+resource "aws_api_gateway_authorizer" "substrate" {
   authorizer_credentials           = var.apigateway_role_arn
   authorizer_result_ttl_in_seconds = 1 # TODO longer once we know it's working; default 300
-  authorizer_uri                   = module.substrate-okta-authorizer.invoke_arn
+  authorizer_uri                   = module.substrate-apigateway-authorizer.invoke_arn
   identity_source                  = "method.request.header.Cookie"
-  name                             = "Okta"
+  name                             = "Substrate"
   rest_api_id                      = aws_api_gateway_rest_api.intranet.id
   type                             = "REQUEST"
 }
@@ -119,7 +127,7 @@ resource "aws_api_gateway_deployment" "intranet" {
   stage_name  = var.stage_name
   triggers = {
     redeployment = sha1(join(",", list(
-      jsonencode(aws_api_gateway_authorizer.okta),
+      jsonencode(aws_api_gateway_authorizer.substrate),
       jsonencode(aws_api_gateway_integration.GET-credential-factory),
       jsonencode(aws_api_gateway_integration.GET-instance-factory),
       jsonencode(aws_api_gateway_integration.GET-login),
@@ -184,7 +192,7 @@ resource "aws_api_gateway_integration" "GET-login" {
   resource_id             = aws_api_gateway_resource.login.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-okta-authenticator.invoke_arn
+  uri                     = module.substrate-apigateway-authenticator.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-credential-factory" {
@@ -217,12 +225,12 @@ resource "aws_api_gateway_integration" "POST-login" {
   resource_id             = aws_api_gateway_resource.login.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-okta-authenticator.invoke_arn
+  uri                     = module.substrate-apigateway-authenticator.invoke_arn
 }
 
 resource "aws_api_gateway_method" "GET-credential-factory" {
   authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.okta.id
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "GET"
   resource_id   = aws_api_gateway_resource.credential-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
@@ -230,7 +238,7 @@ resource "aws_api_gateway_method" "GET-credential-factory" {
 
 resource "aws_api_gateway_method" "GET-instance-factory" {
   authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.okta.id
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "GET"
   resource_id   = aws_api_gateway_resource.instance-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
@@ -245,7 +253,7 @@ resource "aws_api_gateway_method" "GET-login" {
 
 resource "aws_api_gateway_method" "POST-credential-factory" {
   authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.okta.id
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "POST"
   resource_id   = aws_api_gateway_resource.credential-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
@@ -253,7 +261,7 @@ resource "aws_api_gateway_method" "POST-credential-factory" {
 
 resource "aws_api_gateway_method" "POST-instance-factory" {
   authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.okta.id
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "POST"
   resource_id   = aws_api_gateway_resource.instance-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
@@ -321,7 +329,7 @@ resource "aws_cloudwatch_log_group" "apigateway-welcome" {
   }
 }
 `,
-		"acm.tf":                          `resource "aws_acm_certificate" "intranet" {
+		"acm.tf":                                `resource "aws_acm_certificate" "intranet" {
   domain_name       = var.dns_domain_name
   validation_method = "DNS"
 }
@@ -332,26 +340,18 @@ resource "aws_acm_certificate_validation" "intranet" {
   validation_record_fqdns = [var.validation_fqdn]
 }
 `,
-		"substrate_okta_authenticator.tf": `module "substrate-okta-authenticator" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-okta-authenticator.zip"
-  name                     = "substrate-okta-authenticator"
-  role_arn                 = var.substrate_okta_authenticator_role_arn
-  source                   = "../../lambda-function/regional"
-}
-`,
-		"substrate_okta_authorizer.tf":    `module "substrate-okta-authorizer" {
+		"substrate_apigateway_authorizer.tf":    `module "substrate-apigateway-authorizer" {
   #apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::*"
-  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::/restapis/${aws_api_gateway_rest_api.intranet.id}/authorizers/${aws_api_gateway_authorizer.okta.id}"
+  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::/restapis/${aws_api_gateway_rest_api.intranet.id}/authorizers/${aws_api_gateway_authorizer.substrate.id}"
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
-  filename                 = "${path.module}/substrate-okta-authorizer.zip"
-  name                     = "substrate-okta-authorizer"
-  role_arn                 = var.substrate_okta_authorizer_role_arn
+  filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
+  name                     = "substrate-apigateway-authorizer"
+  role_arn                 = var.substrate_apigateway_authorizer_role_arn
   source                   = "../../lambda-function/regional"
 }
 `,
-		"data.tf":                         `data "aws_caller_identity" "current" {}
+		"data.tf":                               `data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 `,

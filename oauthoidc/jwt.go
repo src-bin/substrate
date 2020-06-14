@@ -85,8 +85,8 @@ func (jwt *JWT) Verify(c *Client) error {
 	return nil
 }
 
-func (jwt *JWT) findKey(c *Client) (*OktaKey, error) {
-	doc := &OktaKeysResponse{}
+func (jwt *JWT) findKey(c *Client) (*Key, error) {
+	doc := &KeysResponse{}
 	if _, err := c.Get(Keys, nil, doc); err != nil {
 		return nil, err
 	}

@@ -79,12 +79,12 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		v.Add("code", code)
 		v.Add("grant_type", "authorization_code")
 		v.Add("redirect_uri", redirectURI.String())
-		doc := &oauthoidc.OktaTokenResponse{}
+		doc := &oauthoidc.TokenResponse{}
 		if _, err := c.Post(oauthoidc.Token, v, doc); err != nil {
 			return nil, err
 		}
 
-		idToken := &oauthoidc.OktaIDToken{}
+		idToken := &oauthoidc.IDToken{}
 		if _, err := oauthoidc.ParseAndVerifyJWT(doc.IDToken, c, idToken); err != nil {
 			return errorResponse(err, "IDToken: "+doc.IDToken), nil
 		}
@@ -97,7 +97,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		}
 
 		var bodyV struct {
-			IDToken  *oauthoidc.OktaIDToken
+			IDToken  *oauthoidc.IDToken
 			Location string
 		}
 		bodyV.IDToken = idToken

@@ -115,7 +115,7 @@ func main() {
 
 	// Generate a Makefile in the root Terraform module then apply the generated
 	// Terraform code.
-	if err := terraform.Makefile(TerraformDirname); err != nil {
+	if err := terraform.Root(TerraformDirname); err != nil {
 		log.Fatal(err)
 	}
 	if err := terraform.Init(TerraformDirname); err != nil {

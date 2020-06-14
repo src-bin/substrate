@@ -2,12 +2,12 @@ resource "aws_api_gateway_account" "current" {
   cloudwatch_role_arn = var.apigateway_role_arn
 }
 
-resource "aws_api_gateway_authorizer" "okta" {
+resource "aws_api_gateway_authorizer" "substrate" {
   authorizer_credentials           = var.apigateway_role_arn
   authorizer_result_ttl_in_seconds = 1 # TODO longer once we know it's working; default 300
-  authorizer_uri                   = module.substrate-okta-authorizer.invoke_arn
+  authorizer_uri                   = module.substrate-apigateway-authorizer.invoke_arn
   identity_source                  = "method.request.header.Cookie"
-  name                             = "Okta"
+  name                             = "Substrate"
   rest_api_id                      = aws_api_gateway_rest_api.intranet.id
   type                             = "REQUEST"
 }
@@ -26,7 +26,7 @@ resource "aws_api_gateway_deployment" "intranet" {
   stage_name  = var.stage_name
   triggers = {
     redeployment = sha1(join(",", list(
-      jsonencode(aws_api_gateway_authorizer.okta),
+      jsonencode(aws_api_gateway_authorizer.substrate),
       jsonencode(aws_api_gateway_integration.GET-credential-factory),
       jsonencode(aws_api_gateway_integration.GET-instance-factory),
       jsonencode(aws_api_gateway_integration.GET-login),
@@ -91,7 +91,7 @@ resource "aws_api_gateway_integration" "GET-login" {
   resource_id             = aws_api_gateway_resource.login.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-okta-authenticator.invoke_arn
+  uri                     = module.substrate-apigateway-authenticator.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-credential-factory" {
@@ -124,12 +124,12 @@ resource "aws_api_gateway_integration" "POST-login" {
   resource_id             = aws_api_gateway_resource.login.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-okta-authenticator.invoke_arn
+  uri                     = module.substrate-apigateway-authenticator.invoke_arn
 }
 
 resource "aws_api_gateway_method" "GET-credential-factory" {
   authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.okta.id
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "GET"
   resource_id   = aws_api_gateway_resource.credential-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
@@ -137,7 +137,7 @@ resource "aws_api_gateway_method" "GET-credential-factory" {
 
 resource "aws_api_gateway_method" "GET-instance-factory" {
   authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.okta.id
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "GET"
   resource_id   = aws_api_gateway_resource.instance-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
@@ -152,7 +152,7 @@ resource "aws_api_gateway_method" "GET-login" {
 
 resource "aws_api_gateway_method" "POST-credential-factory" {
   authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.okta.id
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "POST"
   resource_id   = aws_api_gateway_resource.credential-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
@@ -160,7 +160,7 @@ resource "aws_api_gateway_method" "POST-credential-factory" {
 
 resource "aws_api_gateway_method" "POST-instance-factory" {
   authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.okta.id
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "POST"
   resource_id   = aws_api_gateway_resource.instance-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id

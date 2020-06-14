@@ -46,7 +46,7 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	)
 
 	var accessToken string
-	idToken := &oauthoidc.OktaIDToken{}
+	idToken := &oauthoidc.IDToken{}
 	req := &http.Request{Header: http.Header{
 		"Cookie": event.MultiValueHeaders["cookie"], // beware the case-sensitivity
 	}}

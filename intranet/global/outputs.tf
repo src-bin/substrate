@@ -10,12 +10,12 @@ output "substrate_instance_factory_role_arn" {
   value = module.substrate-instance-factory.role_arn
 }
 
-output "substrate_okta_authenticator_role_arn" {
-  value = module.substrate-okta-authenticator.role_arn
+output "substrate_apigateway_authenticator_role_arn" {
+  value = module.substrate-apigateway-authenticator.role_arn
 }
 
-output "substrate_okta_authorizer_role_arn" {
-  value = module.substrate-okta-authorizer.role_arn
+output "substrate_apigateway_authorizer_role_arn" {
+  value = module.substrate-apigateway-authorizer.role_arn
 }
 
 output "validation_fqdn" {

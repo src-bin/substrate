@@ -4,11 +4,11 @@ package terraform
 
 func intranetGlobalTemplate() map[string]string {
 	return map[string]string{
-		"variables.tf":                    `variable "dns_domain_name" {
+		"variables.tf":                          `variable "dns_domain_name" {
   type = string
 }
 `,
-		"substrate_credential_factory.tf": `data "aws_iam_policy_document" "substrate-credential-factory" {
+		"substrate_credential_factory.tf":       `data "aws_iam_policy_document" "substrate-credential-factory" {
   statement {
     actions = [
       "sts:AssumeRole",
@@ -27,7 +27,7 @@ module "substrate-credential-factory" {
   source = "../../lambda-function/global"
 }
 `,
-		"route53.tf":                      `data "aws_route53_zone" "intranet" {
+		"route53.tf":                            `data "aws_route53_zone" "intranet" {
   name         = "${var.dns_domain_name}."
   private_zone = false
 }
@@ -40,7 +40,7 @@ resource "aws_route53_record" "validation" {
   zone_id = data.aws_route53_zone.intranet.zone_id
 }
 `,
-		"substrate_instance_factory.tf":   `data "aws_iam_policy_document" "substrate-instance-factory" {
+		"substrate_instance_factory.tf":         `data "aws_iam_policy_document" "substrate-instance-factory" {
   statement {
     actions = [
       "ec2:DescribeInstanceTypeOfferings",
@@ -60,7 +60,7 @@ module "substrate-instance-factory" {
   source = "../../lambda-function/global"
 }
 `,
-		"outputs.tf":                      `output "apigateway_role_arn" {
+		"outputs.tf":                            `output "apigateway_role_arn" {
   value = aws_iam_role.apigateway.arn
 }
 
@@ -72,19 +72,32 @@ output "substrate_instance_factory_role_arn" {
   value = module.substrate-instance-factory.role_arn
 }
 
-output "substrate_okta_authenticator_role_arn" {
-  value = module.substrate-okta-authenticator.role_arn
+output "substrate_apigateway_authenticator_role_arn" {
+  value = module.substrate-apigateway-authenticator.role_arn
 }
 
-output "substrate_okta_authorizer_role_arn" {
-  value = module.substrate-okta-authorizer.role_arn
+output "substrate_apigateway_authorizer_role_arn" {
+  value = module.substrate-apigateway-authorizer.role_arn
 }
 
 output "validation_fqdn" {
   value = aws_route53_record.validation.fqdn
 }
 `,
-		"acm.tf":                          `resource "aws_acm_certificate" "intranet" {
+		"substrate_apigateway_authenticator.tf": `data "aws_iam_policy_document" "substrate-apigateway-authenticator" {
+  statement {
+    actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
+    resources = ["*"]
+  }
+}
+
+module "substrate-apigateway-authenticator" {
+  name   = "substrate-apigateway-authenticator"
+  policy = data.aws_iam_policy_document.substrate-apigateway-authenticator.json
+  source = "../../lambda-function/global"
+}
+`,
+		"acm.tf":                                `resource "aws_acm_certificate" "intranet" {
   domain_name       = var.dns_domain_name
   validation_method = "DNS"
 }
@@ -94,20 +107,20 @@ resource "aws_acm_certificate_validation" "intranet" {
   validation_record_fqdns = [aws_route53_record.validation.fqdn]
 }
 `,
-		"substrate_okta_authenticator.tf": `data "aws_iam_policy_document" "substrate-okta-authenticator" {
+		"substrate_apigateway_authorizer.tf":    `data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   statement {
     actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
     resources = ["*"]
   }
 }
 
-module "substrate-okta-authenticator" {
-  name   = "substrate-okta-authenticator"
-  policy = data.aws_iam_policy_document.substrate-okta-authenticator.json
+module "substrate-apigateway-authorizer" {
+  name   = "substrate-apigateway-authorizer"
+  policy = data.aws_iam_policy_document.substrate-apigateway-authorizer.json
   source = "../../lambda-function/global"
 }
 `,
-		"iam.tf":                          `data "aws_iam_policy_document" "apigateway" {
+		"iam.tf":                                `data "aws_iam_policy_document" "apigateway" {
   statement {
     actions   = ["lambda:InvokeFunction"]
     resources = ["*"]
@@ -142,19 +155,6 @@ resource "aws_iam_role_policy_attachment" "apigateway" {
 resource "aws_iam_role_policy_attachment" "apigateway-cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
   role       = aws_iam_role.apigateway.name
-}
-`,
-		"substrate_okta_authorizer.tf":    `data "aws_iam_policy_document" "substrate-okta-authorizer" {
-  statement {
-    actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
-    resources = ["*"]
-  }
-}
-
-module "substrate-okta-authorizer" {
-  name   = "substrate-okta-authorizer"
-  policy = data.aws_iam_policy_document.substrate-okta-authorizer.json
-  source = "../../lambda-function/global"
 }
 `,
 	}

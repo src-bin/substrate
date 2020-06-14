@@ -35,11 +35,11 @@ variable "substrate_instance_factory_role_arn" {
   type = string
 }
 
-variable "substrate_okta_authenticator_role_arn" {
+variable "substrate_apigateway_authenticator_role_arn" {
   type = string
 }
 
-variable "substrate_okta_authorizer_role_arn" {
+variable "substrate_apigateway_authorizer_role_arn" {
   type = string
 }
 
