@@ -2,13 +2,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"path"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
 )
@@ -43,6 +47,30 @@ func main() {
 	log.Printf("%+v", account)
 
 	admin.EnsureAdministratorRolesAndPolicies(sess)
+
+	dirname := fmt.Sprintf("%s-%s-%s-account", *domain, *environment, *quality)
+
+	// Write (or rewrite) some Terraform providers to make everything usable.
+	providers := terraform.Provider{
+		AccountId:   aws.StringValue(account.Id),
+		RoleName:    roles.Administrator,
+		SessionName: "Terraform",
+	}.AllRegions()
+	if err := providers.Write(path.Join(dirname, "providers.tf")); err != nil {
+		log.Fatal(err)
+	}
+
+	// Generate a Makefile in the root Terraform module then apply the generated
+	// Terraform code.
+	if err := terraform.Root(dirname); err != nil {
+		log.Fatal(err)
+	}
+	if err := terraform.Init(dirname); err != nil {
+		log.Fatal(err)
+	}
+	if err := terraform.Apply(dirname); err != nil {
+		log.Fatal(err)
+	}
 
 	// TODO more?
 
