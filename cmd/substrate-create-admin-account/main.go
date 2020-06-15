@@ -199,6 +199,8 @@ func main() {
 		}
 		if hostname != "" {
 			arguments["okta_hostname"] = terraform.Q(hostname)
+		} else {
+			arguments["okta_hostname"] = terraform.Q("unused-by-Google-IDP")
 		}
 		intranet.Push(terraform.Module{
 			Arguments: arguments,
