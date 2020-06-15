@@ -72,12 +72,10 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 		roles.OrganizationAdministrator,
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: adminPrincipals}),
 		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
+			Statement: []policies.Statement{{
+				Action:   []string{"*"},
+				Resource: []string{"*"},
+			}},
 		},
 	)
 	if err != nil {
@@ -98,12 +96,10 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 		roles.OrganizationReader,
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: allAccountIds}),
 		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"organizations:ListAccounts"},
-					Resource: []string{"*"},
-				},
-			},
+			Statement: []policies.Statement{{
+				Action:   []string{"organizations:ListAccounts"},
+				Resource: []string{"*"},
+			}},
 		},
 	)
 	if err != nil {
@@ -129,12 +125,10 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 		roles.DeployAdministrator,
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: adminPrincipals}),
 		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
+			Statement: []policies.Statement{{
+				Action:   []string{"*"},
+				Resource: []string{"*"},
+			}},
 		},
 	)
 	if err != nil {
@@ -156,12 +150,10 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 		roles.NetworkAdministrator,
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: adminPrincipals}),
 		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
+			Statement: []policies.Statement{{
+				Action:   []string{"*"},
+				Resource: []string{"*"},
+			}},
 		},
 	)
 	if err != nil {

@@ -1,18 +1,10 @@
-data "aws_iam_policy_document" "substrate-credential-factory" {
-  statement {
-    actions = [
-      "sts:AssumeRole",
-    ]
-    resources = [data.aws_iam_role.admin.arn]
-  }
-}
-
 data "aws_iam_role" "admin" {
   name = "Administrator"
 }
 
-module "substrate-credential-factory" {
-  name   = "substrate-credential-factory"
-  policy = data.aws_iam_policy_document.substrate-credential-factory.json
-  source = "../../lambda-function/global"
+# Hoisted out of ../../lambda-function/global to allow logging while still
+# running the Credential Factory directly as the Administrator role.
+resource "aws_iam_role_policy_attachment" "cloudwatch" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+  role       = data.aws_iam_role.admin.name
 }

@@ -15,12 +15,10 @@ type Document struct {
 
 func AssumeRolePolicyDocument(principal *Principal) *Document {
 	doc := &Document{
-		Statement: []Statement{
-			Statement{
-				Principal: principal,
-				Action:    []string{"sts:AssumeRole"},
-			},
-		},
+		Statement: []Statement{{
+			Principal: principal,
+			Action:    []string{"sts:AssumeRole"},
+		}},
 	}
 
 	// Infer from the type of principal whether we additionally need a condition on this statement per

@@ -53,7 +53,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 
 	var pathQualifier oauthoidc.PathQualifier
-	if hostname := event.StageVariables[oauthoidc.OktaHostname]; hostname == "" {
+	if hostname := event.StageVariables[oauthoidc.OktaHostname]; hostname == oauthoidc.OktaHostnameValueForGoogleIDP {
 		pathQualifier = oauthoidc.GooglePathQualifier()
 	} else {
 		pathQualifier = oauthoidc.OktaPathQualifier(hostname, "default")

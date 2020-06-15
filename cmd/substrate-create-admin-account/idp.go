@@ -59,17 +59,12 @@ func idp(sess *session.Session, account *organizations.Account, metadata string)
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				AWS: []string{
 					aws.StringValue(org.MasterAccountId),
-					/*
-						roles.Arn(
-							aws.StringValue(account.Id),
-							"substrate-credential-factory",
-						),
-					*/
 					users.Arn(
 						aws.StringValue(org.MasterAccountId),
 						users.OrganizationAdministrator,
 					),
 				},
+				Service: []string{"lambda.amazonaws.com"},
 			}).Statement[0],
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				Federated: []string{saml.Arn},
@@ -81,12 +76,10 @@ func idp(sess *session.Session, account *organizations.Account, metadata string)
 		Administrator,
 		assumeRolePolicyDocument,
 		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
+			Statement: []policies.Statement{{
+				Action:   []string{"*"},
+				Resource: []string{"*"},
+			}},
 		},
 	)
 	if err != nil {
@@ -97,30 +90,28 @@ func idp(sess *session.Session, account *organizations.Account, metadata string)
 		Auditor, // TODO allow it to assume roles but set a permission boundary to keep it read-only
 		assumeRolePolicyDocument,
 		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action: []string{
-						"cloudformation:GetTemplate",
-						"dynamodb:BatchGetItem",
-						"dynamodb:GetItem",
-						"dynamodb:Query",
-						"dynamodb:Scan",
-						"ec2:GetConsoleOutput",
-						"ec2:GetConsoleScreenshot",
-						"ecr:BatchGetImage",
-						"ecr:GetAuthorizationToken",
-						"ecr:GetDownloadUrlForLayer",
-						"kinesis:Get*",
-						"lambda:GetFunction",
-						"logs:GetLogEvents",
-						"s3:GetObject",
-						"sdb:Select*",
-						"sqs:ReceiveMessage",
-					},
-					Effect:   policies.Deny, // <https://alestic.com/2015/10/aws-iam-readonly-too-permissive/>
-					Resource: []string{"*"},
+			Statement: []policies.Statement{{
+				Action: []string{
+					"cloudformation:GetTemplate",
+					"dynamodb:BatchGetItem",
+					"dynamodb:GetItem",
+					"dynamodb:Query",
+					"dynamodb:Scan",
+					"ec2:GetConsoleOutput",
+					"ec2:GetConsoleScreenshot",
+					"ecr:BatchGetImage",
+					"ecr:GetAuthorizationToken",
+					"ecr:GetDownloadUrlForLayer",
+					"kinesis:Get*",
+					"lambda:GetFunction",
+					"logs:GetLogEvents",
+					"s3:GetObject",
+					"sdb:Select*",
+					"sqs:ReceiveMessage",
 				},
-			},
+				Effect:   policies.Deny, // <https://alestic.com/2015/10/aws-iam-readonly-too-permissive/>
+				Resource: []string{"*"},
+			}},
 		},
 	)
 	if err != nil {
@@ -156,12 +147,10 @@ func idp(sess *session.Session, account *organizations.Account, metadata string)
 			svc,
 			Okta,
 			&policies.Document{
-				Statement: []policies.Statement{
-					policies.Statement{
-						Action:   []string{"iam:ListAccountAliases", "iam:ListRoles"},
-						Resource: []string{"*"},
-					},
-				},
+				Statement: []policies.Statement{{
+					Action:   []string{"iam:ListAccountAliases", "iam:ListRoles"},
+					Resource: []string{"*"},
+				}},
 			},
 		)
 		if err != nil {

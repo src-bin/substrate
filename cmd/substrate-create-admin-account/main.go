@@ -22,6 +22,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -200,7 +201,7 @@ func main() {
 		if hostname != "" {
 			arguments["okta_hostname"] = terraform.Q(hostname)
 		} else {
-			arguments["okta_hostname"] = terraform.Q("unused-by-Google-IDP")
+			arguments["okta_hostname"] = terraform.Q(oauthoidc.OktaHostnameValueForGoogleIDP)
 		}
 		intranet.Push(terraform.Module{
 			Arguments: arguments,

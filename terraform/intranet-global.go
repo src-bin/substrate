@@ -8,25 +8,16 @@ func intranetGlobalTemplate() map[string]string {
   type = string
 }
 `,
-		"substrate_credential_factory.tf":       `data "aws_iam_policy_document" "substrate-credential-factory" {
-  statement {
-    actions = [
-      "sts:AssumeRole",
-    ]
-    resources = [data.aws_iam_role.admin.arn]
-  }
-}
-
-data "aws_iam_role" "admin" {
+		"substrate_credential_factory.tf":       `data "aws_iam_role" "admin" {
   name = "Administrator"
 }
 
-module "substrate-credential-factory" {
-  name   = "substrate-credential-factory"
-  policy = data.aws_iam_policy_document.substrate-credential-factory.json
-  source = "../../lambda-function/global"
-}
-`,
+# Hoisted out of ../../lambda-function/global to allow logging while still
+# running the Credential Factory directly as the Administrator role.
+resource "aws_iam_role_policy_attachment" "cloudwatch" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+  role       = data.aws_iam_role.admin.name
+}`,
 		"route53.tf":                            `data "aws_route53_zone" "intranet" {
   name         = "${var.dns_domain_name}."
   private_zone = false
@@ -65,7 +56,7 @@ module "substrate-instance-factory" {
 }
 
 output "substrate_credential_factory_role_arn" {
-  value = module.substrate-credential-factory.role_arn
+  value = data.aws_iam_role.admin.arn
 }
 
 output "substrate_instance_factory_role_arn" {

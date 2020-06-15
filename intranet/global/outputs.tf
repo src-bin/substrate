@@ -3,7 +3,7 @@ output "apigateway_role_arn" {
 }
 
 output "substrate_credential_factory_role_arn" {
-  value = module.substrate-credential-factory.role_arn
+  value = data.aws_iam_role.admin.arn
 }
 
 output "substrate_instance_factory_role_arn" {

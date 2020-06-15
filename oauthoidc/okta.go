@@ -6,7 +6,10 @@ import (
 	"path"
 )
 
-const OktaHostname = "OktaHostname"
+const (
+	OktaHostname                  = "OktaHostname"
+	OktaHostnameValueForGoogleIDP = "unused-by-Google-IDP"
+)
 
 type OktaAccessToken struct {
 	Audience string   `json:"aud"`
