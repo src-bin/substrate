@@ -286,9 +286,6 @@ func main() {
 
 	ui.Print("next, commit substrate.* to version control, then run substrate-bootstrap-network-account")
 
-	//ui.Print("until we get you an EC2 instance profile, here's your way into the ops account (good for one hour)")
-	//awssts.Export(awssts.AssumeRole(sts.New(sess), roles.Arn(aws.StringValue(opsAccount.Id), roles.OrganizationAccountAccessRole)))
-
 	// At the very, very end, when we're exceedingly confident in the
 	// capabilities of the other accounts, detach the FullAWSAccess policy
 	// from the master account.
