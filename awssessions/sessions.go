@@ -116,6 +116,15 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 
 	// Nope.
 	sess = AssumeRole(sess, masterAccountId, rolename)
+
+	// Now force it to actually assume the role so that, if we fail, we fail
+	// at a sensible time instead of "later."
+	callerIdentity, err = awssts.GetCallerIdentity(sts.New(sess))
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", callerIdentity)
+
 	return sess, nil
 }
 
