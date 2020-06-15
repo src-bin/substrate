@@ -75,33 +75,7 @@ func InAccount(
 	domain, environment, quality, rolename string,
 	config Config,
 ) (*session.Session, error) {
-	sess, err := NewSession(config)
-	if err != nil {
-		return nil, err
-	}
-
-	masterSess, err := AssumeRoleMaster(sess, roles.OrganizationReader)
-	if err != nil {
-		return nil, err
-	}
-	account, err := awsorgs.FindAccount(organizations.New(masterSess), domain, environment, quality)
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", account)
-
-	// Maybe we're already in the desired role.
-	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", callerIdentity)
-	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
-		return sess, nil
-	}
-
-	// Nope.
-	return AssumeRole(sess, aws.StringValue(account.Id), rolename), nil
+	return inAccountByName(awsorgs.NameFor(domain, environment, quality), rolename, config)
 }
 
 // InMasterAccount returns a session in the organization's master account in
@@ -141,7 +115,8 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	}
 
 	// Nope.
-	return AssumeRoleMaster(sess, rolename)
+	sess = AssumeRole(sess, masterAccountId, rolename)
+	return sess, nil
 }
 
 // InSpecialAccount returns a session in the given special account (by name)
@@ -150,33 +125,7 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 // credentials in the master account, or any role in any account in the
 // organization that can assume the given role.
 func InSpecialAccount(name, rolename string, config Config) (*session.Session, error) {
-	sess, err := NewSession(config)
-	if err != nil {
-		return nil, err
-	}
-
-	masterSess, err := AssumeRoleMaster(sess, roles.OrganizationReader)
-	if err != nil {
-		return nil, err
-	}
-	account, err := awsorgs.FindSpecialAccount(organizations.New(masterSess), name)
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", account)
-
-	// Maybe we're already in the desired role.
-	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", callerIdentity)
-	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
-		return sess, nil
-	}
-
-	// Nope.
-	return AssumeRole(sess, aws.StringValue(account.Id), rolename), nil
+	return inAccountByName(name, rolename, config)
 }
 
 func Must(sess *session.Session, err error) *session.Session {
@@ -192,12 +141,11 @@ func Must(sess *session.Session, err error) *session.Session {
 func NewSession(config Config) (*session.Session, error) {
 	sess, err := session.NewSessionWithOptions(options(config.AWS()))
 
+	// If we're not using root credentials, we're done.
 	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
 	if err != nil {
 		return nil, err
 	}
-
-	// If we're not using root credentials, we're done.
 	if !strings.HasSuffix(aws.StringValue(callerIdentity.Arn), ":root") {
 		ui.Printf("starting AWS session as %s", callerIdentity.Arn)
 		return sess, nil
@@ -277,6 +225,36 @@ func NewSession(config Config) (*session.Session, error) {
 	ui.Stopf("switched to access key %s", accessKey.AccessKeyId)
 
 	return sess, nil
+}
+
+func inAccountByName(name, rolename string, config Config) (*session.Session, error) {
+	sess, err := NewSession(config)
+	if err != nil {
+		return nil, err
+	}
+
+	masterSess, err := AssumeRoleMaster(sess, roles.OrganizationReader)
+	if err != nil {
+		return nil, err
+	}
+	account, err := awsorgs.FindSpecialAccount(organizations.New(masterSess), name)
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", account)
+
+	// Maybe we're already in the desired role.
+	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", callerIdentity)
+	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
+		return sess, nil
+	}
+
+	// Nope.
+	return AssumeRole(sess, aws.StringValue(account.Id), rolename), nil
 }
 
 func options(config aws.Config) session.Options {

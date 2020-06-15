@@ -38,12 +38,12 @@ func EnsureAccount(
 ) (*organizations.Account, error) {
 	return ensureAccount(
 		svc,
-		nameFor(domain, environment, quality),
+		NameFor(domain, environment, quality),
 		map[string]string{
 			tags.Domain:           domain,
 			tags.Environment:      environment,
 			tags.Manager:          tags.Substrate,
-			tags.Name:             nameFor(domain, environment, quality),
+			tags.Name:             NameFor(domain, environment, quality),
 			tags.Quality:          quality,
 			tags.SubstrateVersion: version.Version,
 		},
@@ -66,7 +66,7 @@ func FindAccount(
 	svc *organizations.Organizations,
 	domain, environment, quality string,
 ) (*organizations.Account, error) {
-	return findAccount(svc, nameFor(domain, environment, quality))
+	return FindAccountByName(svc, NameFor(domain, environment, quality))
 }
 
 func FindAccountsByDomain(
@@ -90,8 +90,21 @@ func FindAccountsByDomain(
 	return accounts, nil
 }
 
+func FindAccountByName(svc *organizations.Organizations, name string) (*organizations.Account, error) {
+	accounts, err := ListAccounts(svc)
+	if err != nil {
+		return nil, err
+	}
+	for _, account := range accounts {
+		if aws.StringValue(account.Name) == name {
+			return account, nil
+		}
+	}
+	return nil, fmt.Errorf("%s account not found", name)
+}
+
 func FindSpecialAccount(svc *organizations.Organizations, name string) (*organizations.Account, error) {
-	return findAccount(svc, name)
+	return FindAccountByName(svc, name)
 }
 
 func ListAccounts(svc *organizations.Organizations) (accounts []*organizations.Account, err error) {
@@ -108,6 +121,13 @@ func ListAccounts(svc *organizations.Organizations) (accounts []*organizations.A
 		}
 	}
 	return
+}
+
+func NameFor(domain, environment, quality string) string {
+	if domain == environment {
+		return fmt.Sprintf("%s-%s", environment, quality)
+	}
+	return fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 }
 
 func RegisterDelegatedAdministrator(svc *organizations.Organizations, accountId, service string) error {
@@ -211,7 +231,7 @@ func ensureAccount(
 	}
 	var accountId string
 	if reason := aws.StringValue(status.FailureReason); reason == EMAIL_ALREADY_EXISTS {
-		account, err := findAccount(svc, name) // confirms name matches in addition to email
+		account, err := FindAccountByName(svc, name) // confirms name matches in addition to email
 		if err != nil {
 			return nil, err
 		}
@@ -225,24 +245,4 @@ func ensureAccount(
 	}
 
 	return DescribeAccount(svc, accountId)
-}
-
-func findAccount(svc *organizations.Organizations, name string) (*organizations.Account, error) {
-	accounts, err := ListAccounts(svc)
-	if err != nil {
-		return nil, err
-	}
-	for _, account := range accounts {
-		if aws.StringValue(account.Name) == name {
-			return account, nil
-		}
-	}
-	return nil, fmt.Errorf("%s account not found", name)
-}
-
-func nameFor(domain, environment, quality string) string {
-	if domain == environment {
-		return fmt.Sprintf("%s-%s", environment, quality)
-	}
-	return fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 }
