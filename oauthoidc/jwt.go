@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -104,9 +103,7 @@ type JWTHeader struct {
 }
 
 func parseJWTHeader(s string) (*JWTHeader, error) {
-	log.Printf("parseJWTHeader s: %#v", s)
 	b, err := base64.RawURLEncoding.DecodeString(s)
-	log.Printf("parseJWTHeader b: %#v, err: %v", b, err)
 	if err != nil {
 		return nil, err
 	}
