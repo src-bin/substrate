@@ -234,7 +234,7 @@ func main() {
 		{"L-45FE3B85", "vpc"}, // Egress-Only Internet Gateways per region
 		{"L-A4707A72", "vpc"}, // Internet Gateways per region
 		{"L-FE5A380F", "vpc"}, // NAT Gateways per availability zone
-		// {"L-0263D0A3", "ec2"}, // EIPs per VPC
+		{"L-0263D0A3", "ec2"}, // EIPs per VPC
 	} {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 			sess,
