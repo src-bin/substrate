@@ -151,11 +151,6 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		headers["Location"] = bodyV.Location
 		statusCode = http.StatusFound
 	}
-	return &events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Hi, Casey!\n%+v\n", bodyV),
-		Headers:    map[string]string{"Content-Type": "text/plain"},
-		StatusCode: 200,
-	}, nil
 	body, err := lambdautil.RenderHTML(redirectTemplate(), bodyV)
 	if err != nil {
 		return nil, err
