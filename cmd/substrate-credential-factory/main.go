@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -39,10 +41,23 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			return nil, err
 		}
 
-		assumedRole, err := awssts.AssumeRole(svc, roles.Arn(
-			aws.StringValue(callerIdentity.Account),
-			roles.Administrator,
-		))
+		principalId, ok := event.RequestContext.Authorizer["principalId"]
+		if !ok {
+			return nil, errors.New("could not read princpalId from Lambda request context")
+		}
+		sessionName, ok := principalId.(string)
+		if !ok {
+			return nil, fmt.Errorf("princpalId is %T not string", principalId)
+		}
+
+		assumedRole, err := awssts.AssumeRole(
+			svc,
+			roles.Arn(
+				aws.StringValue(callerIdentity.Account),
+				roles.Administrator,
+			),
+			sessionName,
+		)
 		if err != nil {
 			return lambdautil.ErrorResponse(err)
 		}

@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
+	"os/user"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -60,8 +62,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//log.Printf("%+v", account)
+	creds := out.Credentials
 
-	awssts.Export(awssts.AssumeRole(sts.New(sess), roles.Arn(aws.StringValue(account.Id), *rolename)))
+	if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(creds.AccessKeyId)); err != nil {
+		log.Fatal(err)
+	}
+	if err := os.Setenv("AWS_SECRET_ACCESS_KEY", aws.StringValue(creds.SecretAccessKey)); err != nil {
+		log.Fatal(err)
+	}
+	if err := os.Setenv("AWS_SESSION_TOKEN", aws.StringValue(creds.SessionToken)); err != nil {
+		log.Fatal(err)
+	}
+
+	awssts.Export(out, nil)
 
 }
