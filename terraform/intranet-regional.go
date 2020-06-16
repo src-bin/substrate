@@ -313,6 +313,14 @@ resource "aws_api_gateway_rest_api" "intranet" {
   }
 }
 
+// TODO manage both of these such that they can't fail with errors like this:
+//
+//     Error: Creating CloudWatch Log Group failed: OperationAbortedException:
+//     A conflicting operation is currently in progress against this resource.
+//     Please try again. 'API-Gateway-Execution-Logs_f04hdz7znj/alpha'
+//
+// <https://src-bin.slack.com/archives/C015H14T9UY/p1592264271050400>
+/*
 resource "aws_cloudwatch_log_group" "apigateway" {
   name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.intranet.id}/${aws_api_gateway_deployment.intranet.stage_name}"
   retention_in_days = 1
@@ -328,6 +336,7 @@ resource "aws_cloudwatch_log_group" "apigateway-welcome" {
     Manager = "Terraform"
   }
 }
+*/
 `,
 		"acm.tf":                                `resource "aws_acm_certificate" "intranet" {
   domain_name       = var.dns_domain_name
