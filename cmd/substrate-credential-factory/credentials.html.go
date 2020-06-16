@@ -34,7 +34,9 @@ func credentialsTemplate() string {
 <p>Or, paste this into a shell to set environment variables (taking care to preserve the leading space):</p>
 <p><kbd>&nbsp;export AWS_ACCESS_KEY_ID="{{.AccessKeyId}}" AWS_SECRET_ACCESS_KEY="{{.SecretAccessKey}}" AWS_SESSION_TOKEN="{{.SessionToken}}"</kbd></p>
 {{- end}}
-<p>OK, I have them, <a href="credential-factory">go back</a></p>
+<form method="POST">
+<p>OK, I have them, <a href="credential-factory">go back</a>, or <input type="submit" value="Mint new AWS credentials"> which will expire in one hour</p>
+</form>
 <hr>
 <pre>{{.Debug}}</pre>
 </body>
