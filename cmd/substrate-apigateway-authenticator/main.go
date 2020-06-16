@@ -69,12 +69,6 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		Path:   event.Path,
 	}
 
-	return &events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Hi, Casey!\n%s\n", redirectURI),
-		Headers:    map[string]string{"Content-Type": "text/plain"},
-		StatusCode: 200,
-	}, nil
-
 	code := event.QueryStringParameters["code"]
 	state, err := oauthoidc.ParseState(event.QueryStringParameters["state"])
 	if err != nil {
@@ -147,6 +141,12 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		Nonce: nonce,
 	}
 	q.Add("state", state.String())
+
+	return &events.APIGatewayProxyResponse{
+		Body:       fmt.Sprintf("Hi, Casey!\n%+v\n", q),
+		Headers:    map[string]string{"Content-Type": "text/plain"},
+		StatusCode: 200,
+	}, nil
 
 	var bodyV struct{ ErrorDescription, Location string }
 	bodyV.ErrorDescription = event.QueryStringParameters["error_description"]
