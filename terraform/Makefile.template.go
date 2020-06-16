@@ -3,8 +3,12 @@ package terraform
 // managed by go generate; do not edit by hand
 
 func makefileTemplate() string {
-	return `AUTO_APPROVE=
+	return `# managed by Substrate; do not edit by hand
+
+AUTO_APPROVE=
 #AUTO_APPROVE=-auto-approve
+
+GOBIN={{.GOBIN}}
 
 all:
 

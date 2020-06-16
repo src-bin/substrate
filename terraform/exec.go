@@ -18,8 +18,7 @@ func Destroy(dirname string) error {
 }
 
 func Fmt() error {
-	ui.Spin("formatting Terraform source files")
-	defer ui.Stop("done")
+	ui.Print("formatting Terraform source files")
 	return execlp("terraform", "fmt", "-recursive")
 }
 

@@ -3,6 +3,7 @@ package terraform
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"text/template"
 )
 
@@ -48,5 +49,13 @@ func makefile(dirname string) error {
 	if err != nil {
 		return err
 	}
-	return tmpl.Execute(f, nil)
+
+	// Find out what GOBIN should be set to so that callers don't have to worry
+	// about setting it themselves.
+	pathname, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	return tmpl.Execute(f, struct{ GOBIN string }{filepath.Dir(pathname)})
 }
