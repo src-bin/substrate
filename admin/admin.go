@@ -97,7 +97,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) error {
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: allAccountIds}),
 		&policies.Document{
 			Statement: []policies.Statement{{
-				Action:   []string{"organizations:ListAccounts"},
+				Action:   []string{"organizations:DescribeOrganization", "organizations:ListAccounts"},
 				Resource: []string{"*"},
 			}},
 		},

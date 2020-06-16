@@ -29,8 +29,9 @@ func Export(out *sts.AssumeRoleOutput, err error) {
 		ui.Print(err)
 		return
 	}
+	ui.Print("paste this into a shell to set environment variables (taking care to preserve the leading space):")
 	ui.Printf(
-		`export AWS_ACCESS_KEY_ID=%#v AWS_SECRET_ACCESS_KEY=%#v AWS_SESSION_TOKEN=%#v`,
+		" export AWS_ACCESS_KEY_ID=%q AWS_SECRET_ACCESS_KEY=%q AWS_SESSION_TOKEN=%q",
 		aws.StringValue(out.Credentials.AccessKeyId),
 		aws.StringValue(out.Credentials.SecretAccessKey),
 		aws.StringValue(out.Credentials.SessionToken),

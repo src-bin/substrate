@@ -22,43 +22,51 @@ func main() {
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")
 	quality := flag.String("quality", "", "quality of an AWS account in which to assume a role")
 	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "master" or "network"`)
+	master := flag.Bool("master", false, "assume a role in the organization's master AWS account")
 	rolename := flag.String("role", "", "name of the IAM role to assume")
 	flag.Parse()
 	if *admin {
 		*domain, *environment = "admin", "admin"
 	}
-	if (*domain == "" || *environment == "" || *quality == "") && *special == "" {
-		ui.Fatal(`one of -domain="..." -environment="..." -quality"..." or -special="..." is required`)
+	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*master {
+		ui.Fatal(`one of -domain="..." -environment="..." -quality"..." or -special="..." or -master is required`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *special != "" {
 		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -special="..."`)
+	}
+	if (*domain != "" || *environment != "" || *quality != "") && *master {
+		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -master`)
+	}
+	if *special != "" && *master {
+		ui.Fatal(`can't mix -special="..." with -master`)
 	}
 	if *rolename == "" {
 		ui.Fatal(`-role="..." is required`)
 	}
 
-	sess, err := awssessions.NewSession(awssessions.Config{})
-	/*
+	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationReader, awssessions.Config{}))
+	svc := organizations.New(sess)
+	var accountId string
+	if *master {
+		org, err := awsorgs.DescribeOrganization(svc)
 		if err != nil {
-			ui.Printf("unable to assume the role, which may mean this program is running outside of AWS; please provide an access key")
-			accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
-			ui.Printf("using access key %s", accessKeyId)
-			sess, err = awssessions.NewSession(awssessions.Config{
-				AccessKeyId:     accessKeyId,
-				SecretAccessKey: secretAccessKey,
-			})
+			log.Fatal(err)
 		}
-	*/
+		accountId = aws.StringValue(org.MasterAccountId)
+	} else if *special != "" {
+		accountId = aws.StringValue(awsorgs.Must(awsorgs.FindSpecialAccount(svc, *special)).Id)
+	} else {
+		accountId = aws.StringValue(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id)
+	}
+
+	u, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var account *organizations.Account
-	if *special != "" {
-		account, err = awsorgs.FindSpecialAccount(organizations.New(sess), *special)
-	} else {
-		account, err = awsorgs.FindAccount(organizations.New(sess), *domain, *environment, *quality)
-	}
+	sess = awssessions.Must(awssessions.NewSession(awssessions.Config{}))
+
+	out, err := awssts.AssumeRole(sts.New(sess), roles.Arn(accountId, *rolename), u.Username)
 	if err != nil {
 		log.Fatal(err)
 	}

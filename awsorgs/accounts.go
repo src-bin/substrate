@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -121,6 +122,13 @@ func ListAccounts(svc *organizations.Organizations) (accounts []*organizations.A
 		}
 	}
 	return
+}
+
+func Must(account *organizations.Account, err error) *organizations.Account {
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return account
 }
 
 func NameFor(domain, environment, quality string) string {

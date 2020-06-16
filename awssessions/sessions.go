@@ -207,6 +207,9 @@ func NewSession(config Config) (*session.Session, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Override the environment and any discovered credentials for all child
+	// processes, which smooths out Terraform runs initiated by this process.
 	if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(accessKey.AccessKeyId)); err != nil {
 		return nil, err
 	}
