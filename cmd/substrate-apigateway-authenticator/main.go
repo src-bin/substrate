@@ -32,6 +32,12 @@ func errorResponse(err error, s string) *events.APIGatewayProxyResponse {
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
+	return &events.APIGatewayProxyResponse{
+		Body:       "Hi, Casey!\n",
+		Headers:    map[string]string{"Content-Type": "text/plain"},
+		StatusCode: 200,
+	}, nil
+
 	// TODO logout per <https://developer.okta.com/docs/reference/api/oidc/#logout>
 
 	sess, err := awssessions.NewSession(awssessions.Config{})
