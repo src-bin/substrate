@@ -227,14 +227,13 @@ func main() {
 	ui.Print("raising the VPC, Internet, Egress-Only Internet, and NAT Gateway, and EIP service quotas in all your regions (this could take days, unfortunately; this program is safe to re-run)")
 	desiredValue := float64(len(netDoc.FindAll(&networks.Network{Region: regions.Selected()[0]})) + // networks for existing (environment, quality) pairs
 		len(qualities) + // plus room to add another environment
-		1 + // plus the ops network
 		1) // plus the default VPC
 	for _, quota := range [][2]string{
 		{"L-F678F1CE", "vpc"}, // VPCs per region
 		{"L-45FE3B85", "vpc"}, // Egress-Only Internet Gateways per region
 		{"L-A4707A72", "vpc"}, // Internet Gateways per region
 		{"L-FE5A380F", "vpc"}, // NAT Gateways per availability zone
-		{"L-0263D0A3", "ec2"}, // EIPs per VPC
+		// {"L-0263D0A3", "ec2"}, // EIPs per VPC
 	} {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 			sess,
