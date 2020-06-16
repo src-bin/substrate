@@ -59,7 +59,7 @@ func EnsureServiceQuota(
 		}
 		if status := aws.StringValue(change.Status); status == "PENDING" || status == "CASE_OPENED" {
 			ui.Printf(
-				"found a previous request to increase service quota %s in %s to %.0f",
+				"found a previous request to increase service quota %s in %s to %.0f; waiting for it to be resolved",
 				quotaCode,
 				aws.StringValue(svc.Client.Config.Region),
 				aws.Float64Value(change.DesiredValue),
@@ -79,7 +79,7 @@ func EnsureServiceQuota(
 			return err
 		}
 		ui.Printf(
-			"requested an increase to service quota %s in %s to %.0f",
+			"requested an increase to service quota %s in %s to %.0f; waiting for it to be resolved",
 			quotaCode,
 			aws.StringValue(svc.Client.Config.Region),
 			desiredValue,
