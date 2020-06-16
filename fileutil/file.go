@@ -22,6 +22,11 @@ func Edit(pathname string) error {
 	return cmd.Run()
 }
 
+func Exists(pathname string) bool {
+	_, err := os.Stat(pathname)
+	return err == nil
+}
+
 func FromLines(ss []string) []byte {
 	return []byte(strings.Join(ss, "\n") + "\n")
 }

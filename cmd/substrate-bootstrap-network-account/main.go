@@ -251,7 +251,11 @@ func main() {
 	// TODO confirmation between steps
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		dirname := path.Join(TerraformDirname, eq.Environment, eq.Quality)
-		if err := terraform.Root(dirname); err != nil {
+		if err := terraform.Root(dirname, awssessions.Must(awssessions.InSpecialAccount(
+			accounts.Deploy,
+			roles.DeployAdministrator,
+			awssessions.Config{},
+		))); err != nil {
 			log.Fatal(err)
 		}
 		if err := terraform.Init(dirname); err != nil {

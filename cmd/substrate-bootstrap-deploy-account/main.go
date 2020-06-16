@@ -13,10 +13,10 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/s3config"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 )
@@ -47,7 +47,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	prefix := s3config.Prefix()
+	prefix := choices.Prefix()
 
 	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
 	accountId := aws.StringValue(callerIdentity.Account)
@@ -115,7 +115,7 @@ func main() {
 
 	// Generate a Makefile in the root Terraform module then apply the generated
 	// Terraform code.
-	if err := terraform.Root(TerraformDirname); err != nil {
+	if err := terraform.Root(TerraformDirname, sess); err != nil {
 		log.Fatal(err)
 	}
 	if err := terraform.Init(TerraformDirname); err != nil {

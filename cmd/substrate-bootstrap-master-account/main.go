@@ -20,17 +20,15 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/policies"
-	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/s3config"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
 const (
-	CloudTrailRegionFilename = "substrate.CloudTrail-region"
 	ServiceControlPolicyName = "SubstrateServiceControlPolicy"
 	TagPolicyName            = "SubstrateTaggingPolicy"
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
@@ -42,19 +40,9 @@ func main() {
 	accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
 	ui.Printf("using access key %s", accessKeyId)
 
-	prefix := s3config.Prefix()
+	prefix := choices.Prefix()
 
-	region, err := ui.PromptFile(
-		CloudTrailRegionFilename,
-		"what region should host the S3 bucket that stores your CloudTrail logs?",
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if !regions.IsRegion(region) {
-		log.Fatalf("%s is not an AWS region", region)
-	}
-	ui.Printf("using region %s", region)
+	region := choices.DefaultRegion()
 
 	sess, err := awssessions.NewSession(awssessions.Config{
 		AccessKeyId:     accessKeyId,
@@ -139,7 +127,7 @@ func main() {
 		region,
 		&policies.Document{
 			Statement: []policies.Statement{
-				policies.Statement{
+				{
 					Principal: &policies.Principal{AWS: []string{aws.StringValue(auditAccount.Id)}},
 					Action:    []string{"s3:*"},
 					Resource: []string{
@@ -147,7 +135,7 @@ func main() {
 						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
 					},
 				},
-				policies.Statement{
+				{
 					Principal: &policies.Principal{Service: []string{"cloudtrail.amazonaws.com"}},
 					Action:    []string{"s3:GetBucketAcl", "s3:PutObject"},
 					Resource: []string{
@@ -155,17 +143,15 @@ func main() {
 						fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
 					},
 				},
-				/*
-					policies.Statement{
-						Principal: &policies.Principal{AWS: []string{"*"}},
-						Action:    []string{"s3:GetObject", "s3:ListBucket"},
-						Resource: []string{
-							fmt.Sprintf("arn:aws:s3:::%s", bucketName),
-							fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
-						},
-						Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
+				{
+					Principal: &policies.Principal{AWS: []string{"*"}},
+					Action:    []string{"s3:GetObject", "s3:ListBucket"},
+					Resource: []string{
+						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
 					},
-				*/
+					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
+				},
 			},
 		},
 	); err != nil {
