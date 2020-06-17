@@ -5,6 +5,7 @@ import (
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/src-bin/substrate/awsorgs"
 )
 
 const (
@@ -19,7 +20,7 @@ const (
 
 func CheatSheet(
 	org *organizations.Organization,
-	auditAccount, deployAccount, networkAccount *organizations.Account,
+	auditAccount, deployAccount, networkAccount *awsorgs.Account,
 	// TODO adminAccounts []*organizations.Account,
 ) error {
 	f, err := os.Create(Filename)
@@ -33,7 +34,7 @@ func CheatSheet(
 	}
 	return tmpl.Execute(f, struct {
 		Organization                                *organizations.Organization
-		AuditAccount, DeployAccount, NetworkAccount *organizations.Account
+		AuditAccount, DeployAccount, NetworkAccount *awsorgs.Account
 	}{org, auditAccount, deployAccount, networkAccount})
 }
 

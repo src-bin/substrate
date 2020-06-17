@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -21,7 +22,16 @@ const (
 
 const FinalizingOrganizationException = "FinalizingOrganizationException"
 
-func DescribeAccount(svc *organizations.Organizations, accountId string) (*organizations.Account, error) {
+type Account struct {
+	organizations.Account
+	Tags map[string]string
+}
+
+func (a *Account) String() string {
+	return jsonutil.MustString(a)
+}
+
+func DescribeAccount(svc *organizations.Organizations, accountId string) (*Account, error) {
 	in := &organizations.DescribeAccountInput{
 		AccountId: aws.String(accountId),
 	}
@@ -30,13 +40,17 @@ func DescribeAccount(svc *organizations.Organizations, accountId string) (*organ
 		return nil, err
 	}
 	//log.Printf("%+v", out)
-	return out.Account, nil
+	tags, err := listTagsForResource(svc, accountId)
+	if err != nil {
+		return nil, err
+	}
+	return &Account{Account: *out.Account, Tags: tags}, nil
 }
 
 func EnsureAccount(
 	svc *organizations.Organizations,
 	domain, environment, quality string,
-) (*organizations.Account, error) {
+) (*Account, error) {
 	return ensureAccount(
 		svc,
 		NameFor(domain, environment, quality),
@@ -54,7 +68,7 @@ func EnsureAccount(
 func EnsureSpecialAccount(
 	svc *organizations.Organizations,
 	name string,
-) (*organizations.Account, error) {
+) (*Account, error) {
 	return ensureAccount(svc, name, map[string]string{
 		tags.Manager:                 tags.Substrate,
 		tags.Name:                    name,
@@ -66,32 +80,27 @@ func EnsureSpecialAccount(
 func FindAccount(
 	svc *organizations.Organizations,
 	domain, environment, quality string,
-) (*organizations.Account, error) {
+) (*Account, error) {
 	return FindAccountByName(svc, NameFor(domain, environment, quality))
 }
 
 func FindAccountsByDomain(
 	svc *organizations.Organizations,
 	domain string,
-) (accounts []*organizations.Account, err error) {
+) (accounts []*Account, err error) {
 	allAccounts, err := ListAccounts(svc)
 	if err != nil {
 		return nil, err
 	}
 	for _, account := range allAccounts {
-
-		// TODO a more formal and foolproof way to implement this is using
-		// ListTagsForResource to fetch the tags for each account to directly
-		// compare the Domain tag to the given domain.
-		if strings.HasPrefix(aws.StringValue(account.Name), fmt.Sprintf("%s-", domain)) {
+		if account.Tags[tags.Domain] == domain {
 			accounts = append(accounts, account)
 		}
-
 	}
 	return accounts, nil
 }
 
-func FindAccountByName(svc *organizations.Organizations, name string) (*organizations.Account, error) {
+func FindAccountByName(svc *organizations.Organizations, name string) (*Account, error) {
 	accounts, err := ListAccounts(svc)
 	if err != nil {
 		return nil, err
@@ -104,11 +113,11 @@ func FindAccountByName(svc *organizations.Organizations, name string) (*organiza
 	return nil, fmt.Errorf("%s account not found", name)
 }
 
-func FindSpecialAccount(svc *organizations.Organizations, name string) (*organizations.Account, error) {
+func FindSpecialAccount(svc *organizations.Organizations, name string) (*Account, error) {
 	return FindAccountByName(svc, name)
 }
 
-func ListAccounts(svc *organizations.Organizations) (accounts []*organizations.Account, err error) {
+func ListAccounts(svc *organizations.Organizations) (accounts []*Account, err error) {
 	var nextToken *string
 	for {
 		in := &organizations.ListAccountsInput{NextToken: nextToken}
@@ -116,7 +125,13 @@ func ListAccounts(svc *organizations.Organizations) (accounts []*organizations.A
 		if err != nil {
 			return nil, err
 		}
-		accounts = append(accounts, out.Accounts...)
+		for _, rawAccount := range out.Accounts {
+			tags, err := listTagsForResource(svc, aws.StringValue(rawAccount.Id))
+			if err != nil {
+				return nil, err
+			}
+			accounts = append(accounts, &Account{Account: *rawAccount, Tags: tags})
+		}
 		if nextToken = out.NextToken; nextToken == nil {
 			break
 		}
@@ -124,7 +139,7 @@ func ListAccounts(svc *organizations.Organizations) (accounts []*organizations.A
 	return
 }
 
-func Must(account *organizations.Account, err error) *organizations.Account {
+func Must(account *Account, err error) *Account {
 	if err != nil {
 		ui.Fatal(err)
 	}
@@ -138,16 +153,11 @@ func NameFor(domain, environment, quality string) string {
 	return fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 }
 
-func RegisterDelegatedAdministrator(svc *organizations.Organizations, accountId, service string) error {
-	in := &organizations.RegisterDelegatedAdministratorInput{
-		AccountId:        aws.String(accountId),
-		ServicePrincipal: aws.String(service),
-	}
-	_, err := svc.RegisterDelegatedAdministrator(in)
-	return err
-}
-
-func Tag(svc *organizations.Organizations, accountId string, tags map[string]string) error {
+func Tag(
+	svc *organizations.Organizations,
+	accountId string,
+	tags map[string]string,
+) error {
 	tagStructs := make([]*organizations.Tag, 0, len(tags))
 	for key, value := range tags {
 		tagStructs = append(tagStructs, &organizations.Tag{
@@ -226,7 +236,7 @@ func ensureAccount(
 	svc *organizations.Organizations,
 	name string,
 	tags map[string]string,
-) (*organizations.Account, error) {
+) (*Account, error) {
 
 	email, err := emailFor(svc, name)
 	if err != nil {
@@ -253,4 +263,29 @@ func ensureAccount(
 	}
 
 	return DescribeAccount(svc, accountId)
+}
+
+func listTagsForResource(
+	svc *organizations.Organizations,
+	accountId string,
+) (map[string]string, error) {
+	var nextToken *string
+	tags := make(map[string]string)
+	for {
+		in := &organizations.ListTagsForResourceInput{
+			NextToken:  nextToken,
+			ResourceId: aws.String(accountId),
+		}
+		out, err := svc.ListTagsForResource(in)
+		if err != nil {
+			return nil, err
+		}
+		for _, tag := range out.Tags {
+			tags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
+		}
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return tags, nil
 }

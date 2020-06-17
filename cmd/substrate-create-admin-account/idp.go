@@ -24,7 +24,7 @@ const (
 	Okta          = "Okta"
 )
 
-func idp(sess *session.Session, account *organizations.Account, metadata string) (name string) {
+func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name string) {
 	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
 	if err != nil {
 		log.Fatal(err)
@@ -53,6 +53,11 @@ func idp(sess *session.Session, account *organizations.Account, metadata string)
 	//log.Printf("%+v", saml)
 
 	// Give Okta some entrypoints in the Admin account.
+	//
+	// TODO if Administrator roles in other accounts develop a need to assume
+	// the Administrator role in this accout, move this code to the admin
+	// package and include every admin account in every Administrator role's
+	// principals.
 	ui.Spinf("finding or creating roles for %s to use in this admin account", name)
 	assumeRolePolicyDocument := &policies.Document{
 		Statement: []policies.Statement{
