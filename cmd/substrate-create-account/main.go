@@ -45,9 +45,9 @@ func main() {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", account.Id)
-	log.Printf("%+v", account)
+	//log.Printf("%+v", account)
 
-	admin.EnsureAdministratorRolesAndPolicies(sess)
+	admin.EnsureAdminRolesAndPolicies(sess)
 
 	dirname := fmt.Sprintf("%s-%s-%s-account", *domain, *environment, *quality)
 

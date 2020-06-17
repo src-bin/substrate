@@ -93,7 +93,7 @@ func main() {
 
 	idpName := idp(sess, account, metadata)
 
-	admin.EnsureAdministratorRolesAndPolicies(sess)
+	admin.EnsureAdminRolesAndPolicies(sess)
 
 	// Make arrangements for a hosted zone to appear in this account so that
 	// the intranet can configure itself.  It's possible to do this entirely
@@ -116,7 +116,7 @@ func main() {
 	for {
 		zone, err := awsroute53.FindHostedZone(
 			route53.New(
-				awssessions.AssumeRole(sess, aws.StringValue(account.Id), Administrator),
+				awssessions.AssumeRole(sess, aws.StringValue(account.Id), roles.Administrator),
 				&aws.Config{},
 			),
 			dnsDomainName+".",
@@ -269,10 +269,10 @@ func main() {
 		for _, region := range regions.Selected() {
 			if _, err := awssecretsmanager.EnsureSecret(
 				secretsmanager.New(
-					awssessions.AssumeRole(sess, aws.StringValue(account.Id), Administrator),
+					awssessions.AssumeRole(sess, aws.StringValue(account.Id), roles.Administrator),
 					&aws.Config{Region: aws.String(region)},
 				),
-				fmt.Sprintf("OAuthOIDCClientSecret-%s", clientId),
+				fmt.Sprintf("%s-%s", oauthoidc.OAuthOIDCClientSecret, clientId),
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
 					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authenticator"), // must match intranet/global/substrate_apigateway_authenticator.tf
 					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authorizer"),    // must match intranet/global/substrate_apigateway_authorizer.tf

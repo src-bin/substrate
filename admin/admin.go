@@ -12,7 +12,6 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
@@ -48,14 +47,14 @@ func AdminPrincipals(svc *organizations.Organizations) (*policies.Principal, err
 // accounts to move fairly freely throughout the organization.  The given
 // session must be for the OrganizationAdministrator user or role in the master
 // account.
-func EnsureAdministratorRolesAndPolicies(sess *session.Session) {
+func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	svc := organizations.New(sess)
 
 	// Gather lists of accounts.  These are used below in configuring policies
 	// to allow cross-account access.  On the first run they're basically
 	// no-ops but on subsequent runs this is key to not undoing the work of
 	// substrate-create-account and substrate-create-admin-account.
-	adminPrincipal, err := AdminPrincipals(svc)
+	adminPrincipals, err := AdminPrincipals(svc)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +71,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) {
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationAdministrator,
-		policies.AssumeRolePolicyDocument(adminPrincipal),
+		policies.AssumeRolePolicyDocument(adminPrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -102,6 +101,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) {
 				Action: []string{
 					"organizations:DescribeOrganization",
 					"organizations:ListAccounts",
+					"organizations:ListTagsForResource",
 				},
 				Resource: []string{"*"},
 			}},
@@ -129,7 +129,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.DeployAdministrator,
-		policies.AssumeRolePolicyDocument(adminPrincipal),
+		policies.AssumeRolePolicyDocument(adminPrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -154,7 +154,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.NetworkAdministrator,
-		policies.AssumeRolePolicyDocument(adminPrincipal),
+		policies.AssumeRolePolicyDocument(adminPrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -172,6 +172,7 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) {
 
 	// Loop through every non-admin, non-special account and authorize all the
 	// Administrator roles to assume roles there.
+	ui.Spinf("finding or creating Administrator and Auditor roles in all other accounts")
 	accounts, err := awsorgs.ListAccounts(svc)
 	if err != nil {
 		log.Fatal(err)
@@ -183,9 +184,61 @@ func EnsureAdministratorRolesAndPolicies(sess *session.Session) {
 		if account.Tags[tags.SubstrateSpecialAccount] != "" {
 			continue
 		}
-		log.Print(jsonutil.MustString(account))
+		//log.Print(jsonutil.MustString(account))
+		svc := iam.New(awssessions.AssumeRole(
+			sess,
+			aws.StringValue(account.Id),
+			roles.OrganizationAccountAccessRole,
+		))
+		if _, err := EnsureAdministratorRole(svc, policies.AssumeRolePolicyDocument(adminPrincipals)); err != nil {
+			log.Fatal(err)
+		}
+		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(adminPrincipals)); err != nil {
+			log.Fatal(err)
+		}
 	}
+	ui.Stop("ok")
 
+}
+
+// EnsureAdministratorRole creates the Administrator role in the account
+// referenced by the given IAM client.  The only restrictions on the APIs
+// this role may call are set by the organization's service control policies.
+func EnsureAdministratorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document) (*awsiam.Role, error) {
+	return awsiam.EnsureRoleWithPolicy(
+		svc,
+		roles.Administrator,
+		assumeRolePolicyDocument,
+		&policies.Document{
+			Statement: []policies.Statement{{
+				Action:   []string{"*"},
+				Resource: []string{"*"},
+			}},
+		},
+	)
+}
+
+// EnsureAuditorRole creates the Auditor role in the account referenced by the
+// given IAM client.  This role will be allowed to call all read-only APIs as
+// defined by the AWS-managed ReadOnlyAccess policy except the list of
+// sensitive read-only APIs identified by Alestic and captured in
+// DenySensitiveReadsPolicyDocument.
+func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document) (*awsiam.Role, error) {
+	role, err := awsiam.EnsureRoleWithPolicy(
+		svc,
+		roles.Auditor, // TODO allow it to assume roles (even non-Auditor roles) but set a permission boundary to keep it read-only
+		assumeRolePolicyDocument,
+		DenySensitiveReadsPolicyDocument,
+	)
+	if err != nil {
+		return nil, err
+	}
+	err = awsiam.AttachRolePolicy(
+		svc,
+		roles.Auditor,
+		"arn:aws:iam::aws:policy/ReadOnlyAccess",
+	)
+	return role, err
 }
 
 func OrgAccountPrincipals(svc *organizations.Organizations) (*policies.Principal, error) {

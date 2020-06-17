@@ -268,7 +268,7 @@ func main() {
 	}
 	ui.Stop("ok")
 
-	admin.EnsureAdministratorRolesAndPolicies(sess)
+	admin.EnsureAdminRolesAndPolicies(sess)
 
 	ui.Print("next, commit substrate.* to version control, then run substrate-bootstrap-network-account")
 
