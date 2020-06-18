@@ -13,18 +13,23 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsdynamodb"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awss3"
+	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 )
 
 //go:generate go run ../tools/template/main.go -name gitignoreTemplate gitignore.template
 //go:generate go run ../tools/template/main.go -name makefileTemplate Makefile.template
 //go:generate go run ../tools/template/main.go -name terraformBackendTemplate terraform.tf
+
+const DynamoDBTableName = "terraform-state-locks"
 
 // Root sets up the given directory as a root Terraform module by creating a
 // few local files and AWS resources.
@@ -42,6 +47,10 @@ func Root(dirname string, sess *session.Session) error {
 		return err
 	}
 	return nil
+}
+
+func S3BucketName() string {
+	return fmt.Sprintf("%s-terraform-state", choices.Prefix())
 }
 
 func gitignore(dirname string) error {
@@ -89,24 +98,30 @@ func terraformBackend(dirname string, sess *session.Session) error {
 		return err
 	}
 
-	prefix := choices.Prefix()
+	deployAccount, err := awsorgs.FindSpecialAccount(
+		organizations.New(awssessions.Must(awssessions.AssumeRoleMaster(
+			sess,
+			roles.OrganizationReader,
+		))),
+		accounts.Deploy,
+	)
+	if err != nil {
+		return err
+	}
 	v := struct {
-		Bucket, DynamoDBTable, Key, Region string
+		Bucket, DynamoDBTable, Key, Region, RoleArn string
 	}{
-		Bucket:        fmt.Sprintf("%s-terraform-state", prefix),
-		DynamoDBTable: fmt.Sprintf("%s-terraform-state-locks", prefix),
+		Bucket:        S3BucketName(),
+		DynamoDBTable: DynamoDBTableName,
 		Key:           dirname,
 		Region:        choices.DefaultRegion(),
+		RoleArn:       roles.Arn(aws.StringValue(deployAccount.Id), roles.TerraformStateManager),
 	}
 
 	// Ensure the DynamoDB table and S3 bucket exist before configuring
 	// Terraform to use them for remote state.
 	ui.Spin("finding or creating an S3 bucket for storing Terraform state")
 	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
-	if err != nil {
-		return err
-	}
-	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
 	if err != nil {
 		return err
 	}
@@ -123,15 +138,6 @@ func terraformBackend(dirname string, sess *session.Session) error {
 						fmt.Sprintf("arn:aws:s3:::%s", v.Bucket),
 						fmt.Sprintf("arn:aws:s3:::%s/*", v.Bucket),
 					},
-				},
-				{
-					Principal: &policies.Principal{AWS: []string{"*"}},
-					Action:    []string{"s3:GetObject", "s3:ListBucket", "s3:PutObject"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", v.Bucket),
-						fmt.Sprintf("arn:aws:s3:::%s/*", v.Bucket),
-					},
-					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
 				},
 			},
 		},

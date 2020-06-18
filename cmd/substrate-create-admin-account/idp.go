@@ -62,7 +62,7 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 			}).Statement[0],
 		},
 	}
-	log.Printf("%+v", assumeRolePolicyDocument)
+	//log.Printf("%+v", assumeRolePolicyDocument)
 	if _, err := admin.EnsureAdministratorRole(svc, assumeRolePolicyDocument); err != nil {
 		log.Fatal(err)
 	}

@@ -12,6 +12,7 @@ const (
 	OrganizationAccountAccessRole = "OrganizationAccountAccessRole"
 	OrganizationAdministrator     = "OrganizationAdministrator"
 	OrganizationReader            = "OrganizationReader"
+	TerraformStateManager         = "TerraformStateManager"
 )
 
 func Arn(accountId, rolename string) string {

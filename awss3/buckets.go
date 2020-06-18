@@ -17,28 +17,10 @@ const (
 	NotSignedUp             = "NotSignedUp"
 )
 
-func CreateBucket(svc *s3.S3, name, region string) (err error) {
-	in := &s3.CreateBucketInput{
-		ACL:    aws.String("private"), // the default but let's be explicit
-		Bucket: aws.String(name),
-		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
-			LocationConstraint: aws.String(region),
-		},
-	}
-	for {
-		_, err = svc.CreateBucket(in)
-		if !awsutil.ErrorCodeIs(err, NotSignedUp) {
-			break
-		}
-		time.Sleep(1e9) // TODO exponential backoff
-	}
-	return
-}
-
 func EnsureBucket(svc *s3.S3, name, region string, doc *policies.Document) error {
 
 	for {
-		err := CreateBucket(svc, name, region)
+		err := createBucket(svc, name, region)
 		if awsutil.ErrorCodeIs(err, NotSignedUp) {
 			time.Sleep(1e9) // TODO exponential backoff
 			continue
@@ -105,4 +87,22 @@ func EnsureBucket(svc *s3.S3, name, region string, doc *policies.Document) error
 	}
 
 	return nil
+}
+
+func createBucket(svc *s3.S3, name, region string) (err error) {
+	in := &s3.CreateBucketInput{
+		ACL:    aws.String("private"), // the default but let's be explicit
+		Bucket: aws.String(name),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String(region),
+		},
+	}
+	for {
+		_, err = svc.CreateBucket(in)
+		if !awsutil.ErrorCodeIs(err, NotSignedUp) {
+			break
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
+	return
 }

@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"fmt"
 	"log"
 	"sort"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 )
@@ -115,8 +117,8 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 
 	// TODO Auditor role in the audit account.
 
-	// Ensure all admin accounts and the master account can get into the
-	// deploy and network accounts in the same manner.
+	// Ensure all admin accounts and the master account can administer the
+	// deploy and network accounts.
 	ui.Spin("finding or creating a role to allow admin accounts to administer your deploy artifacts")
 	deployAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Deploy)
 	if err != nil {
@@ -168,23 +170,40 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
-	// TODO maybe bring Administrator and Auditor for admin accounts in here, too
+	// TODO maybe bring Administrator and Auditor for admin accounts in here, too (they're not quite the same because of SAML)
 
 	// Loop through every non-admin, non-special account and authorize all the
 	// Administrator roles to assume roles there.
 	ui.Spinf("finding or creating Administrator and Auditor roles in all other accounts")
-	accounts, err := awsorgs.ListAccounts(svc)
+	allAccounts, err := awsorgs.ListAccounts(svc)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, account := range accounts {
+	terraformPrincipals := make([]string, 0, len(allAccounts))
+	for _, account := range allAccounts {
+
+		// Special accounts have special administrator role names but, still,
+		// some of them should be allowed to run Terraform.
+		if account.Tags[tags.SubstrateSpecialAccount] != "" {
+			switch account.Tags[tags.SubstrateSpecialAccount] {
+			case accounts.Deploy:
+				terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.StringValue(account.Id), roles.DeployAdministrator))
+			case accounts.Network:
+				terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.StringValue(account.Id), roles.NetworkAdministrator))
+			}
+			continue
+		}
+
+		// Every other account uses the role name "Administrator" and uses it
+		// to run Terraform.
+		terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.StringValue(account.Id), roles.Administrator))
+
+		// But the Administrator role in admin accounts is created during IdP
+		// configuration so there's nothing more for us to do here.
 		if account.Tags[tags.Domain] == "admin" {
 			continue
 		}
-		if account.Tags[tags.SubstrateSpecialAccount] != "" {
-			continue
-		}
-		//log.Print(jsonutil.MustString(account))
+
 		svc := iam.New(awssessions.AssumeRole(
 			sess,
 			aws.StringValue(account.Id),
@@ -198,6 +217,44 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 		}
 	}
 	ui.Stop("ok")
+
+	// Ensure every account can run Terraform with remote state centralized
+	// in the deploy account.
+	ui.Spin("finding or creating an IAM role for Terraform to use to manage remote state")
+	sort.Strings(terraformPrincipals) // to avoid spurious policy diffs
+	log.Printf("%+v", terraformPrincipals)
+	bucketName := terraform.S3BucketName()
+	role, err = awsiam.EnsureRoleWithPolicy(
+		iam.New(awssessions.AssumeRole(
+			sess,
+			aws.StringValue(deployAccount.Id),
+			roles.OrganizationAccountAccessRole,
+		)),
+		roles.TerraformStateManager,
+		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: terraformPrincipals}),
+		&policies.Document{
+			Statement: []policies.Statement{
+				{
+					Action: []string{"dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"},
+					Resource: []string{
+						fmt.Sprintf("arn:aws:dynamodb:*:*:table/%s", terraform.DynamoDBTableName),
+					},
+				},
+				{
+					Action: []string{"s3:GetObject", "s3:ListBucket", "s3:PutObject"},
+					Resource: []string{
+						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+					},
+				},
+			},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", role.Name)
+	//log.Printf("%+v", role)
 
 }
 
