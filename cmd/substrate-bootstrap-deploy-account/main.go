@@ -12,7 +12,6 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
-	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -25,24 +24,7 @@ const TerraformDirname = "deploy-account"
 
 func main() {
 
-	sess, err := awssessions.InSpecialAccount(
-		accounts.Deploy,
-		roles.DeployAdministrator,
-		awssessions.Config{},
-	)
-	if err != nil {
-		ui.Print("unable to assume the DeployAdministrator role, which means this is probably your first time configuring your deploy account; please provide an access key from your master AWS account")
-		accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
-		ui.Printf("using access key %s", accessKeyId)
-		sess, err = awssessions.InSpecialAccount(
-			accounts.Deploy,
-			roles.DeployAdministrator,
-			awssessions.Config{
-				AccessKeyId:     accessKeyId,
-				SecretAccessKey: secretAccessKey,
-			},
-		)
-	}
+	sess, err := awssessions.InSpecialAccount(accounts.Deploy, roles.DeployAdministrator, awssessions.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}

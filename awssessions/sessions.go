@@ -2,6 +2,7 @@ package awssessions
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ import (
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 )
+
+const NoCredentialProviders = "NoCredentialProviders"
 
 // TODO make a Session type here that lazily constructs and caches all the
 // service/*.New clients so we don't have to keep awkwardly bouncing around.
@@ -52,6 +55,7 @@ func (c Config) AWS() aws.Config {
 	return a
 }
 
+// TODO AssumeRoleArn(sess, roleArn) variant?
 func AssumeRole(sess *session.Session, accountId, rolename string) *session.Session {
 	arn := roles.Arn(accountId, rolename)
 	ui.Printf("assuming role %s", arn)
@@ -75,7 +79,7 @@ func InAccount(
 	domain, environment, quality, rolename string,
 	config Config,
 ) (*session.Session, error) {
-	return inAccountByName(awsorgs.NameFor(domain, environment, quality), rolename, config)
+	return InSpecialAccount(awsorgs.NameFor(domain, environment, quality), rolename, config)
 }
 
 // InMasterAccount returns a session in the organization's master account in
@@ -88,25 +92,25 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
 	if err != nil {
 		return nil, err
 	}
-	//log.Printf("%+v", callerIdentity)
 
+	// Figure out the master account ID.  If there isn't even an organization
+	// yet, it's this account's ID.
 	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
-	//log.Printf("%+v", org)
-	//log.Printf("%+v", err)
-	var masterAccountId string
 	if awsutil.ErrorCodeIs(err, awsorgs.AWSOrganizationsNotInUseException) {
 		err = nil
-		masterAccountId = aws.StringValue(callerIdentity.Account)
-	} else {
-		masterAccountId = aws.StringValue(org.MasterAccountId)
 	}
 	if err != nil {
 		return nil, err
+	}
+	var masterAccountId string
+	if org == nil {
+		masterAccountId = aws.StringValue(callerIdentity.Account)
+	} else {
+		masterAccountId = aws.StringValue(org.MasterAccountId)
 	}
 
 	// Maybe we're already in the desired role.
@@ -119,11 +123,15 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 
 	// Now force it to actually assume the role so that, if we fail, we fail
 	// at a sensible time instead of "later."
-	callerIdentity, err = awssts.GetCallerIdentity(sts.New(sess))
-	if err != nil {
+	if _, err := awssts.GetCallerIdentity(sts.New(sess)); err != nil {
+
+		// Offer one (and only one) more shot via root credentials.
+		if config.AccessKeyId == "" {
+			return InMasterAccount(rolename, configWithRootCredentials(rolename, config))
+		}
+
 		return nil, err
 	}
-	//log.Printf("%+v", callerIdentity)
 
 	return sess, nil
 }
@@ -134,7 +142,52 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 // credentials in the master account, or any role in any account in the
 // organization that can assume the given role.
 func InSpecialAccount(name, rolename string, config Config) (*session.Session, error) {
-	return inAccountByName(name, rolename, config)
+	sess, err := NewSession(config)
+	if err != nil {
+		return nil, err
+	}
+
+	masterSess, err := AssumeRoleMaster(sess, roles.OrganizationReader)
+	if err != nil {
+
+		// But if we never even got started, and we haven't already asked, ask
+		// for root credentials and try again.
+		if config.AccessKeyId == "" {
+			return InSpecialAccount(name, rolename, configWithRootCredentials(rolename, config))
+		}
+
+		return nil, err
+	}
+	account, err := awsorgs.FindSpecialAccount(organizations.New(masterSess), name)
+	if err != nil {
+		return nil, err
+	}
+
+	// Maybe we're already in the desired role.
+	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
+	if err != nil {
+		return nil, err
+	}
+	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
+		return sess, nil
+	}
+
+	// Nope.
+	sess = AssumeRole(sess, aws.StringValue(account.Id), rolename)
+
+	// Now force it to actually assume the role so that, if we fail, we fail
+	// at a sensible time instead of "later."
+	if _, err := awssts.GetCallerIdentity(sts.New(sess)); err != nil {
+
+		// Offer one (and only one) more shot via root credentials.
+		if config.AccessKeyId == "" {
+			return InSpecialAccount(name, rolename, configWithRootCredentials(rolename, config))
+		}
+
+		return nil, err
+	}
+
+	return sess, nil
 }
 
 func Must(sess *session.Session, err error) *session.Session {
@@ -152,6 +205,15 @@ func NewSession(config Config) (*session.Session, error) {
 
 	// If we're not using root credentials, we're done.
 	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
+	if awsutil.ErrorCodeIs(err, NoCredentialProviders) {
+
+		// But if we never even got started, and we haven't already asked, ask
+		// for root credentials and try again.
+		if config.AccessKeyId == "" {
+			return NewSession(configWithRootCredentials("", config))
+		}
+
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +272,7 @@ func NewSession(config Config) (*session.Session, error) {
 
 	// Override the environment and any discovered credentials for all child
 	// processes, which smooths out Terraform runs initiated by this process.
+	// TODO factor this out and also do it in configWithRootCredentials
 	if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(accessKey.AccessKeyId)); err != nil {
 		return nil, err
 	}
@@ -234,39 +297,29 @@ func NewSession(config Config) (*session.Session, error) {
 	}
 	time.Sleep(5e9) // even when the loop above ends, we still might have to wait
 
-	ui.Stopf("switched to access key %s", accessKey.AccessKeyId)
+	ui.Stopf("switched to access key ID %s", accessKey.AccessKeyId)
 
 	return sess, nil
 }
 
-func inAccountByName(name, rolename string, config Config) (*session.Session, error) {
-	sess, err := NewSession(config)
-	if err != nil {
-		return nil, err
+func configWithRootCredentials(rolename string, config Config) Config {
+	if rolename == "" {
+		ui.Printf(
+			"unable to find any AWS credentials, which means this is probably your first time running %s",
+			filepath.Base(os.Args[0]),
+		)
+	} else {
+		ui.Printf(
+			"unable to assume the %s role, which means this is probably your first time running %s",
+			rolename,
+			filepath.Base(os.Args[0]),
+		)
 	}
-
-	masterSess, err := AssumeRoleMaster(sess, roles.OrganizationReader)
-	if err != nil {
-		return nil, err
-	}
-	account, err := awsorgs.FindSpecialAccount(organizations.New(masterSess), name)
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", account)
-
-	// Maybe we're already in the desired role.
-	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", callerIdentity)
-	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
-		return sess, nil
-	}
-
-	// Nope.
-	return AssumeRole(sess, aws.StringValue(account.Id), rolename), nil
+	ui.Print("please provide an access key from your master AWS account")
+	config.AccessKeyId, config.SecretAccessKey = awsutil.ReadAccessKeyFromStdin()
+	config.SessionToken = ""
+	ui.Printf("using access key ID %s", config.AccessKeyId)
+	return config
 }
 
 func options(config aws.Config) session.Options {

@@ -14,7 +14,6 @@ import (
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
-	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -31,24 +30,7 @@ const (
 
 func main() {
 
-	sess, err := awssessions.InSpecialAccount(
-		accounts.Network,
-		roles.NetworkAdministrator,
-		awssessions.Config{},
-	)
-	if err != nil {
-		ui.Print("unable to assume the NetworkAdministrator role, which means this is probably your first time configuring your networks; please provide an access key from your master AWS account")
-		accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
-		ui.Printf("using access key %s", accessKeyId)
-		sess, err = awssessions.InSpecialAccount(
-			accounts.Network,
-			roles.NetworkAdministrator,
-			awssessions.Config{
-				AccessKeyId:     accessKeyId,
-				SecretAccessKey: secretAccessKey,
-			},
-		)
-	}
+	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}

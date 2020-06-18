@@ -20,7 +20,6 @@ import (
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
@@ -56,18 +55,6 @@ func main() {
 	}
 
 	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{})
-	if err != nil {
-		ui.Print("unable to assume the OrganizationAdministrator role, which means this is probably your first time creating an admin account; please provide an access key from your master AWS account")
-		accessKeyId, secretAccessKey := awsutil.ReadAccessKeyFromStdin()
-		ui.Printf("using access key %s", accessKeyId)
-		sess, err = awssessions.InMasterAccount(
-			roles.OrganizationAdministrator,
-			awssessions.Config{
-				AccessKeyId:     accessKeyId,
-				SecretAccessKey: secretAccessKey,
-			},
-		)
-	}
 	if err != nil {
 		log.Fatal(err)
 	}
