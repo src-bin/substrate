@@ -45,6 +45,15 @@ func CreateRole(
 	return roleFromAPI(out.Role)
 }
 
+func DeleteRolePolicy(svc *iam.IAM, rolename string) error {
+	in := &iam.DeleteRolePolicyInput{
+		PolicyName: aws.String(SubstrateManaged),
+		RoleName:   aws.String(rolename),
+	}
+	_, err := svc.DeleteRolePolicy(in)
+	return err
+}
+
 func EnsureRole(
 	svc *iam.IAM,
 	rolename string,

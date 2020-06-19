@@ -115,7 +115,36 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
-	// TODO Auditor role in the audit account.
+	// Ensure admin accounts can get into the audit account to look at
+	// CloudTrail logs.  It's unfortunate that we can't grant admin accounts
+	// direct access to the CloudTrail S3 bucket but, since the objects are
+	// unavoidably owned by CloudTrail and merely grant access to the bucket
+	// owner, bucket policy is powerless to delegate s3:GetObject to the rest
+	// of the organization.  Per
+	// - <https://aws.amazon.com/premiumsupport/knowledge-center/s3-cross-account-access-denied/>
+	// - <https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-owner-access/>
+	// there is no affordance for making CloudTrail do what I want.  Oh well.
+	ui.Spin("finding or creating a role to allow admin accounts to audit your organization")
+	auditAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Audit)
+	if err != nil {
+		log.Fatal(err)
+	}
+	{
+		svc := iam.New(awssessions.AssumeRole(
+			sess,
+			aws.StringValue(auditAccount.Id),
+			roles.OrganizationAccountAccessRole,
+		))
+		role, err = awsiam.EnsureRole(svc, roles.Auditor, policies.AssumeRolePolicyDocument(adminPrincipals))
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := awsiam.AttachRolePolicy(svc, roles.Auditor, "arn:aws:iam::aws:policy/ReadOnlyAccess"); err != nil {
+			log.Fatal(err)
+		}
+	}
+	ui.Stopf("role %s", role.Name)
+	//log.Printf("%+v", role)
 
 	// Ensure all admin accounts and the master account can administer the
 	// deploy and network accounts.

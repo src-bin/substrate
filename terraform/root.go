@@ -130,16 +130,14 @@ func terraformBackend(dirname string, sess *session.Session) error {
 		v.Bucket,
 		v.Region,
 		&policies.Document{
-			Statement: []policies.Statement{
-				{
-					Principal: &policies.Principal{AWS: []string{aws.StringValue(callerIdentity.Account)}},
-					Action:    []string{"s3:*"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", v.Bucket),
-						fmt.Sprintf("arn:aws:s3:::%s/*", v.Bucket),
-					},
+			Statement: []policies.Statement{{
+				Principal: &policies.Principal{AWS: []string{aws.StringValue(callerIdentity.Account)}},
+				Action:    []string{"s3:*"},
+				Resource: []string{
+					fmt.Sprintf("arn:aws:s3:::%s", v.Bucket),
+					fmt.Sprintf("arn:aws:s3:::%s/*", v.Bucket),
 				},
-			},
+			}},
 		},
 	); err != nil {
 		return err

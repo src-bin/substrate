@@ -137,15 +137,6 @@ func main() {
 						fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
 					},
 				},
-				{
-					Principal: &policies.Principal{AWS: []string{"*"}},
-					Action:    []string{"s3:GetObject", "s3:ListBucket"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
-						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
-					},
-					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
-				},
 			},
 		},
 	); err != nil {

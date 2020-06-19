@@ -80,7 +80,7 @@ func EnsureBucket(svc *s3.S3, name, region string, doc *policies.Document) error
 			BlockPublicAcls:       aws.Bool(true),
 			BlockPublicPolicy:     aws.Bool(true),
 			IgnorePublicAcls:      aws.Bool(true),
-			RestrictPublicBuckets: aws.Bool(false), // true would prevent cross-account access
+			RestrictPublicBuckets: aws.Bool(true),
 		},
 	}); err != nil {
 		return err
