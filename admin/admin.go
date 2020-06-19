@@ -222,7 +222,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	// in the deploy account.
 	ui.Spin("finding or creating an IAM role for Terraform to use to manage remote state")
 	sort.Strings(terraformPrincipals) // to avoid spurious policy diffs
-	log.Printf("%+v", terraformPrincipals)
+	//log.Printf("%+v", terraformPrincipals)
 	bucketName := terraform.S3BucketName()
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(awssessions.AssumeRole(
@@ -241,7 +241,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 					},
 				},
 				{
-					Action: []string{"s3:GetObject", "s3:ListBucket", "s3:PutObject"},
+					Action: []string{"s3:DeleteObject", "s3:GetObject", "s3:ListBucket", "s3:PutObject"},
 					Resource: []string{
 						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
 						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
