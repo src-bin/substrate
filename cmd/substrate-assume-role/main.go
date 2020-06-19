@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/exec"
 	"os/user"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -72,16 +73,32 @@ func main() {
 	}
 	creds := out.Credentials
 
-	if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(creds.AccessKeyId)); err != nil {
-		log.Fatal(err)
-	}
-	if err := os.Setenv("AWS_SECRET_ACCESS_KEY", aws.StringValue(creds.SecretAccessKey)); err != nil {
-		log.Fatal(err)
-	}
-	if err := os.Setenv("AWS_SESSION_TOKEN", aws.StringValue(creds.SessionToken)); err != nil {
-		log.Fatal(err)
-	}
-
+	// Print the credentials for the user to copy into their environment.
 	awssts.Export(out, nil)
+
+	// Execute a command with the credentials in its environment.  We use
+	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
+	// other environment variables in case they're relevant to the command.
+	if args := flag.Args(); len(args) > 0 {
+		if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(creds.AccessKeyId)); err != nil {
+			log.Fatal(err)
+		}
+		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", aws.StringValue(creds.SecretAccessKey)); err != nil {
+			log.Fatal(err)
+		}
+		if err := os.Setenv("AWS_SESSION_TOKEN", aws.StringValue(creds.SessionToken)); err != nil {
+			log.Fatal(err)
+		}
+		cmd := exec.Command(flag.Args()[0], flag.Args()[1:]...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				os.Exit(exitErr.ExitCode())
+			}
+			os.Exit(1)
+		}
+	}
 
 }

@@ -94,21 +94,17 @@ func CheatSheet(svc *organizations.Organizations) error {
 			})
 		}
 	}
-	if len(adminAccountsCells) > 1 {
-		sort.Slice(adminAccountsCells[1:], func(i, j int) bool {
-			return adminAccountsCells[i+1][0] < adminAccountsCells[j+1][0]
-		})
-	}
-	if len(otherAccountsCells) > 1 {
-		sort.Slice(otherAccountsCells[1:], func(i, j int) bool {
-			for k := 0; k <= 2; k++ {
-				if otherAccountsCells[i+1][k] != otherAccountsCells[j+1][k] {
-					return otherAccountsCells[i+1][k] < otherAccountsCells[j+1][k]
-				}
+	sort.Slice(adminAccountsCells[1:], func(i, j int) bool {
+		return adminAccountsCells[i+1][0] < adminAccountsCells[j+1][0]
+	})
+	sort.Slice(otherAccountsCells[1:], func(i, j int) bool {
+		for k := 0; k <= 2; k++ {
+			if otherAccountsCells[i+1][k] != otherAccountsCells[j+1][k] {
+				return otherAccountsCells[i+1][k] < otherAccountsCells[j+1][k]
 			}
-			return false
-		})
-	}
+		}
+		return false
+	})
 
 	fmt.Fprint(f, "Welcome to your Substrate-managed AWS organization!\n")
 	fmt.Fprint(f, "\n")
