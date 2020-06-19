@@ -71,8 +71,12 @@ func main() {
 
 	// Ensure the account exists.
 	ui.Spin("finding or creating the admin account")
-	account, err := awsorgs.EnsureAccount(organizations.New(sess), accounts.Admin, accounts.Admin, *quality)
+	svc := organizations.New(sess)
+	account, err := awsorgs.EnsureAccount(svc, accounts.Admin, accounts.Admin, *quality)
 	if err != nil {
+		log.Fatal(err)
+	}
+	if err := accounts.CheatSheet(svc); err != nil {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", account.Id)

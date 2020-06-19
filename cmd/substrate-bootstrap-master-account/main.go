@@ -169,12 +169,7 @@ func main() {
 
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
-	if err := accounts.CheatSheet(
-		org,
-		auditAccount,
-		deployAccount,
-		networkAccount,
-	); err != nil {
+	if err := accounts.CheatSheet(svc); err != nil {
 		log.Fatal(err)
 	}
 

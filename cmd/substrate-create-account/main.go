@@ -40,8 +40,12 @@ func main() {
 	}
 
 	ui.Spin("finding or creating the account")
-	account, err := awsorgs.EnsureAccount(organizations.New(sess), *domain, *environment, *quality)
+	svc := organizations.New(sess)
+	account, err := awsorgs.EnsureAccount(svc, *domain, *environment, *quality)
 	if err != nil {
+		log.Fatal(err)
+	}
+	if err := accounts.CheatSheet(svc); err != nil {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", account.Id)
