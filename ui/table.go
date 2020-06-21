@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -19,13 +18,11 @@ func Ftable(w io.Writer, cells [][]string) {
 	widths := make([]int, len(cells[0]))
 	for _, row := range cells {
 		for i, cell := range row {
-			log.Print(cell)
 			if len(cell) > widths[i] {
 				widths[i] = len(cell)
 			}
 		}
 	}
-	log.Print(widths)
 	delim, format := "+", "|"
 	for _, width := range widths {
 		delim += strings.Repeat("-", width+2) + "+"
@@ -33,7 +30,6 @@ func Ftable(w io.Writer, cells [][]string) {
 	}
 	delim += "\n"
 	format += "\n"
-	log.Print(format)
 
 	fmt.Fprint(w, delim)
 	for i, row := range cells {
