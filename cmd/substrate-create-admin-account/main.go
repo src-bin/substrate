@@ -20,6 +20,7 @@ import (
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
@@ -33,7 +34,6 @@ import (
 const (
 	Domain                                 = "admin"
 	Environment                            = "admin"
-	IntranetDNSDomainNameFile              = "substrate.intranet-dns-domain-name"
 	OAuthOIDCClientIdFilename              = "substrate.oauth-oidc-client-id"
 	OAuthOIDCClientSecretTimestampFilename = "substrate.oauth-oidc-client-secret-timestamp"
 	OktaHostnameFilename                   = "substrate.okta-hostname"
@@ -96,7 +96,7 @@ func main() {
 		ui.Prompt("when you've finished, press <enter> to continue")
 	}
 	dnsDomainName, err := ui.PromptFile(
-		IntranetDNSDomainNameFile,
+		choices.IntranetDNSDomainNameFilename,
 		"what DNS domain name (the one you just bought, transferred, or shared) will you use for your organization's intranet?",
 	)
 	if err != nil {

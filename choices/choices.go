@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	CloudTrailRegionFilename = "substrate.CloudTrail-region"
-	DefaultRegionFilename    = "substrate.default-region"
-	PrefixFilename           = "substrate.prefix"
+	CloudTrailRegionFilename      = "substrate.CloudTrail-region"
+	DefaultRegionFilename         = "substrate.default-region"
+	IntranetDNSDomainNameFilename = "substrate.intranet-dns-domain-name"
+	PrefixFilename                = "substrate.prefix"
 )
 
 func DefaultRegion() string {
