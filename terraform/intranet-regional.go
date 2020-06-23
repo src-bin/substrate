@@ -4,6 +4,8 @@ package terraform
 
 func intranetRegionalTemplate() map[string]string {
 	return map[string]string{
+		".gitignore":                            `*.zip
+`,
 		"variables.tf":                          `variable "apigateway_role_arn" {
   type = string
 }
