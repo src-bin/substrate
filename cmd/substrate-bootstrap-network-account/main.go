@@ -346,6 +346,7 @@ func vpcAccoutrements(
 			Tags:                tags,
 			VpcId:               terraform.U(vpc.Ref(), ".id"),
 		}
+		s.Tags.Connectivity = "public"
 		s.Tags.Name = vpc.Tags.Name + "-public-" + az
 		file.Push(s)
 		file.Push(terraform.ResourceAssociation{
@@ -377,6 +378,7 @@ func vpcAccoutrements(
 			Tags:             tags,
 			VpcId:            terraform.U(vpc.Ref(), ".id"),
 		}
+		s.Tags.Connectivity = "private"
 		s.Tags.Name = vpc.Tags.Name + "-private-" + az
 		file.Push(s)
 		file.Push(terraform.ResourceAssociation{

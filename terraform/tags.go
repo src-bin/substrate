@@ -7,6 +7,7 @@ import (
 )
 
 type Tags struct {
+	Connectivity                 string // "public" or "private"; used only by subnets
 	Domain, Environment, Quality string
 	Name                         string
 	Region, AvailabilityZone     string
@@ -22,6 +23,9 @@ func (t Tags) Value() Value {
 	s := "\t{"
 	if t.AvailabilityZone != "" {
 		s += fmt.Sprintf(format, "AvailabilityZone", t.AvailabilityZone)
+	}
+	if t.Connectivity != "" {
+		s += fmt.Sprintf(format, "Connectivity", t.Connectivity)
 	}
 	if t.Domain != "" {
 		s += fmt.Sprintf(format, "Domain", t.Domain)
