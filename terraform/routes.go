@@ -15,24 +15,24 @@ func (r Route) Ref() Value {
 func (Route) Template() string {
 	return `resource "aws_route" {{.Label.Value}} {
 {{- if .DestinationIPv4}}
-	destination_cidr_block = {{.DestinationIPv4.Value}}
+  destination_cidr_block      = {{.DestinationIPv4.Value}}
 {{- end}}
 {{- if .DestinationIPv6}}
-	destination_ipv6_cidr_block = {{.DestinationIPv6.Value}}
+  destination_ipv6_cidr_block = {{.DestinationIPv6.Value}}
 {{- end}}
 {{- if .EgressOnlyInternetGatewayId}}
-	egress_only_gateway_id = {{.EgressOnlyInternetGatewayId.Value}}
+  egress_only_gateway_id      = {{.EgressOnlyInternetGatewayId.Value}}
 {{- end}}
 {{- if .InternetGatewayId}}
-	gateway_id = {{.InternetGatewayId.Value}}
+  gateway_id                  = {{.InternetGatewayId.Value}}
 {{- end}}
 {{- if .NATGatewayId}}
-	nat_gateway_id = {{.NATGatewayId.Value}}
+  nat_gateway_id              = {{.NATGatewayId.Value}}
 {{- end}}
-	provider = {{.Provider}}
-	route_table_id = {{.RouteTableId.Value}}
+  provider = {{.Provider}}
+  route_table_id              = {{.RouteTableId.Value}}
 {{- if .TransitGatewayId}}
-	transit_gateway_id = {{.TransitGatewayId.Value}}
+  transit_gateway_id          = {{.TransitGatewayId.Value}}
 {{- end}}
 }`
 }
@@ -50,9 +50,9 @@ func (rt RouteTable) Ref() Value {
 
 func (RouteTable) Template() string {
 	return `resource "aws_route_table" {{.Label.Value}} {
-	provider = {{.Provider}}
-	tags = {{.Tags.Value}}
-	vpc_id = {{.VpcId.Value}}
+  provider = {{.Provider}}
+  tags     = {{.Tags.Value}}
+  vpc_id   = {{.VpcId.Value}}
 }`
 }
 
@@ -68,8 +68,8 @@ func (rta RouteTableAssociation) Ref() Value {
 
 func (RouteTableAssociation) Template() string {
 	return `resource "aws_route_table_association" {{.Label.Value}} {
-	provider = {{.Provider}}
-	route_table_id = {{.RouteTableId.Value}}
-	subnet_id = {{.SubnetId.Value}}
+  provider       = {{.Provider}}
+  route_table_id = {{.RouteTableId.Value}}
+  subnet_id      = {{.SubnetId.Value}}
 }`
 }

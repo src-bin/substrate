@@ -14,22 +14,22 @@ func (b S3Bucket) Ref() Value {
 
 func (S3Bucket) Template() string {
 	return `resource "aws_s3_bucket" {{.Label.Value}} {
-	bucket = {{.Bucket.Value}}
+  bucket   = {{.Bucket.Value}}
 {{- if .Policy}}
-	policy = {{.Policy.Value}}
+  policy   = {{.Policy.Value}}
 {{- end}}
-	provider = {{.Provider}}
-	tags = {{.Tags.Value}}
-	versioning {
-		enabled = true
-	}
+  provider = {{.Provider}}
+  tags     = {{.Tags.Value}}
+  versioning {
+    enabled = true
+  }
 }
 resource "aws_s3_bucket_public_access_block" {{.Label.Value}} {
-	block_public_acls = true
-	block_public_policy = true
-	bucket = {{.Ref.Value}}.bucket
-	ignore_public_acls = true
-	provider = {{.Provider}}
-	restrict_public_buckets = false // true would prevent cross-account access
+  block_public_acls       = true
+  block_public_policy     = true
+  bucket                  = {{.Ref.Value}}.bucket
+  ignore_public_acls      = true
+  provider                = {{.Provider}}
+  restrict_public_buckets = true
 }`
 }

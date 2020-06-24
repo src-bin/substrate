@@ -19,8 +19,8 @@ func (Tags) Manager() string { return "Terraform" }
 func (Tags) SubstrateVersion() string { return version.Version }
 
 func (t Tags) Value() Value {
-	format := "\n\t\t%q = %q"
-	s := "\t{"
+	format := "\n    %q = %q"
+	s := "  {"
 	if t.AvailabilityZone != "" {
 		s += fmt.Sprintf(format, "AvailabilityZone", t.AvailabilityZone)
 	}
@@ -47,6 +47,6 @@ func (t Tags) Value() Value {
 		//s += fmt.Sprintf(format, "Special", t.Special)
 	}
 	s += fmt.Sprintf(format, "SubstrateVersion", t.SubstrateVersion())
-	s += "\n\t}"
+	s += "\n  }"
 	return U(s)
 }

@@ -76,6 +76,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Format all the Terraform code you can possibly find.
+	if err := terraform.Fmt(); err != nil {
+		log.Fatal(err)
+	}
+
 	// Generate a Makefile in the root Terraform module then apply the generated
 	// Terraform code.
 	if err := terraform.Root(dirname, awssessions.Must(awssessions.InSpecialAccount(

@@ -3,7 +3,7 @@ package terraform
 // managed by go generate; do not edit by hand
 
 func terraformBackendTemplate() string {
-	return `# managed by Substrate; do not edit by hand
+	return `#	managed	by	Substrate;	do	not	edit	by	hand
 
 terraform {
   backend "s3" {

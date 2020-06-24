@@ -14,12 +14,12 @@ func (m Module) Ref() Value {
 func (Module) Template() string {
 	return `module {{.Label.Value}} {
 {{- range $k, $v := .Arguments }}
-	{{$k}} = {{$v.Value}}
+  {{$k}} = {{$v.Value}}
 {{- end}}
 
-	providers = {
-		aws = {{.Provider}}
-	}
-	source = {{.Source.Value}}
+  providers = {
+    aws = {{.Provider}}
+  }
+  source = {{.Source.Value}}
 }`
 }

@@ -13,9 +13,9 @@ func (eip EIP) Ref() Value {
 
 func (EIP) Template() string {
 	return `resource "aws_eip" {{.Label.Value}} {
-	depends_on = [{{.InternetGatewayRef}}]
-	provider = {{.Provider}}
-	tags = {{.Tags.Value}}
-	vpc = true # who knows what this actually means
+  depends_on = [{{.InternetGatewayRef}}]
+  provider   = {{.Provider}}
+  tags       = {{.Tags.Value}}
+  vpc        = true # who knows what this actually means
 }`
 }

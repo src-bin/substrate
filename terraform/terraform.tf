@@ -1,4 +1,4 @@
-# managed by Substrate; do not edit by hand
+#	managed	by	Substrate;	do	not	edit	by	hand
 
 terraform {
   backend "s3" {
