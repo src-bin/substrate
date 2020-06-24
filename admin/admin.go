@@ -124,6 +124,8 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	// - <https://aws.amazon.com/premiumsupport/knowledge-center/s3-cross-account-access-denied/>
 	// - <https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-owner-access/>
 	// there is no affordance for making CloudTrail do what I want.  Oh well.
+	// This is not simply EnsureAuditorRole because in the audit account we
+	// actually do want auditors to be able to read from S3, etc.
 	ui.Spin("finding or creating a role to allow admin accounts to audit your organization")
 	auditAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Audit)
 	if err != nil {
@@ -198,6 +200,19 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	}
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
+	ui.Spin("finding or creating a role to allow admin accounts to audit your networks (mostly for discovery in Terraform code)")
+	role, err = EnsureAuditorRole(
+		iam.New(awssessions.AssumeRole(
+			sess,
+			aws.StringValue(networkAccount.Id),
+			roles.OrganizationAccountAccessRole,
+		)),
+		policies.AssumeRolePolicyDocument(adminPrincipals),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", role.Name)
 
 	// TODO maybe bring Administrator and Auditor for admin accounts in here, too (they're not quite the same because of SAML)
 

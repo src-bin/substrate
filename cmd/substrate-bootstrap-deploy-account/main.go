@@ -39,12 +39,26 @@ func main() {
 	}
 
 	// Write (or rewrite) some Terraform providers to make everything usable.
-	providers := terraform.Provider{
+	providersFile := terraform.NewFile()
+	providersFile.PushAll(terraform.Provider{
 		AccountId:   accountId,
 		RoleName:    roles.DeployAdministrator,
 		SessionName: "Terraform",
-	}.AllRegions()
-	if err := providers.Write(path.Join(TerraformDirname, "providers.tf")); err != nil {
+	}.AllRegionsAndGlobal())
+	networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InMasterAccount(
+		roles.OrganizationReader,
+		awssessions.Config{},
+	))), accounts.Network)
+	if err != nil {
+		log.Fatal(err)
+	}
+	providersFile.PushAll(terraform.Provider{
+		AccountId:   aws.StringValue(networkAccount.Id),
+		AliasSuffix: "network",
+		RoleName:    roles.Auditor,
+		SessionName: "Terraform",
+	}.AllRegions())
+	if err := providersFile.Write(path.Join(TerraformDirname, "providers.tf")); err != nil {
 		log.Fatal(err)
 	}
 

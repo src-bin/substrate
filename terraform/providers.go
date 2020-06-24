@@ -7,9 +7,9 @@ import (
 )
 
 type Provider struct {
-	AccountId, RoleName, SessionName, ExternalId string
-	Alias                                        string
-	Region                                       string
+	Alias, AliasPrefix, AliasSuffix, Region string // if unset, Alias is constructed from the other thre
+	AccountId, RoleName                     string // for constructing the role ARN; possibly should just be RoleArn
+	SessionName, ExternalId                 string
 }
 
 // AllRegions creates a provider block for every AWS region.  It purposely
@@ -19,18 +19,20 @@ type Provider struct {
 func (p Provider) AllRegions() *File {
 	file := NewFile()
 	for _, region := range regions.All() {
-		p.Alias = region
 		p.Region = region
 		file.Push(p)
 	}
+	return file
+}
 
-	// Add a provider with a well-known name to use for global services like
-	// CloudFront and IAM.  Use us-east-1 becuase services like Lambda@Edge
-	// must use that region without exception.
+// AllRegionsAndGlobal does everything AllRegions does plus adds a provider
+// called aws.global in us-east-1 to be used by services which are global, like
+// CloudFront or IAM, or rooted in us-east-1, like Lambda@Edge.
+func (p Provider) AllRegionsAndGlobal() *File {
+	file := p.AllRegions()
 	p.Alias = "global"
 	p.Region = "us-east-1"
 	file.Push(p)
-
 	return file
 }
 
@@ -40,7 +42,11 @@ func (p Provider) Ref() Value {
 
 func (Provider) Template() string {
 	return `provider "aws" {
+{{- if .Alias}}
 	alias = "{{.Alias}}"
+{{- else}}
+	alias = "{{if .AliasPrefix}}{{.AliasPrefix}}-{{end}}{{.Region}}{{if .AliasSuffix}}-{{.AliasSuffix}}{{end}}"
+{{- end}}
 	assume_role {
 {{- if .ExternalId}}
 		external_id  = "{{.ExternalId}}"

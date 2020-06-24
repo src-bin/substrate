@@ -122,11 +122,18 @@ func main() {
 
 	// Write (or rewrite) some Terraform providers to make everything usable.
 	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
-	providers := terraform.Provider{
+	providersFile := terraform.NewFile()
+	providersFile.PushAll(terraform.Provider{
 		AccountId:   aws.StringValue(callerIdentity.Account),
 		RoleName:    roles.NetworkAdministrator,
 		SessionName: "Terraform",
-	}.AllRegions()
+	}.AllRegionsAndGlobal())
+	providersFile.PushAll(terraform.Provider{
+		AccountId:   aws.StringValue(callerIdentity.Account),
+		AliasSuffix: "network",
+		RoleName:    roles.Auditor,
+		SessionName: "Terraform",
+	}.AllRegions())
 
 	// Write (or rewrite) Terraform resources that create the various
 	// (environment, quality) networks.  Networks in the admin environment will
@@ -181,7 +188,7 @@ func main() {
 		if err := orgFile.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "organization.tf")); err != nil {
 			log.Fatal(err)
 		}
-		if err := providers.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
+		if err := providersFile.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
 			log.Fatal(err)
 		}
 		if err := file.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "vpc.tf")); err != nil {

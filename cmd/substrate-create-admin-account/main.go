@@ -157,6 +157,27 @@ func main() {
 
 	dirname := fmt.Sprintf("%s-%s-account", Domain, *quality)
 
+	// Write (or rewrite) some Terraform providers to make everything usable.
+	providersFile := terraform.NewFile()
+	providersFile.PushAll(terraform.Provider{
+		AccountId:   aws.StringValue(account.Id),
+		RoleName:    roles.Administrator,
+		SessionName: "Terraform",
+	}.AllRegionsAndGlobal())
+	networkAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Network)
+	if err != nil {
+		log.Fatal(err)
+	}
+	providersFile.PushAll(terraform.Provider{
+		AccountId:   aws.StringValue(networkAccount.Id),
+		AliasSuffix: "network",
+		RoleName:    roles.Auditor,
+		SessionName: "Terraform",
+	}.AllRegions())
+	if err := providersFile.Write(path.Join(dirname, "providers.tf")); err != nil {
+		log.Fatal(err)
+	}
+
 	// Write (or rewrite) Terraform resources that create the Intranet in this
 	// admin account.
 	intranet := terraform.NewFile()
@@ -225,16 +246,6 @@ func main() {
 	}
 	lambdaFunctionRegionalModule := terraform.LambdaFunctionRegionalModule()
 	if err := lambdaFunctionRegionalModule.Write("lambda-function/regional"); err != nil {
-		log.Fatal(err)
-	}
-
-	// Write (or rewrite) some Terraform providers to make everything usable.
-	providers := terraform.Provider{
-		AccountId:   aws.StringValue(account.Id),
-		RoleName:    roles.Administrator,
-		SessionName: "Terraform",
-	}.AllRegions()
-	if err := providers.Write(path.Join(dirname, "providers.tf")); err != nil {
 		log.Fatal(err)
 	}
 

@@ -56,12 +56,23 @@ func main() {
 	dirname := fmt.Sprintf("%s-%s-%s-account", *domain, *environment, *quality)
 
 	// Write (or rewrite) some Terraform providers to make everything usable.
-	providers := terraform.Provider{
+	providersFile := terraform.NewFile()
+	providersFile.PushAll(terraform.Provider{
 		AccountId:   aws.StringValue(account.Id),
 		RoleName:    roles.Administrator,
 		SessionName: "Terraform",
-	}.AllRegions()
-	if err := providers.Write(path.Join(dirname, "providers.tf")); err != nil {
+	}.AllRegionsAndGlobal())
+	networkAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Network)
+	if err != nil {
+		log.Fatal(err)
+	}
+	providersFile.PushAll(terraform.Provider{
+		AccountId:   aws.StringValue(networkAccount.Id),
+		AliasSuffix: "network",
+		RoleName:    roles.Auditor,
+		SessionName: "Terraform",
+	}.AllRegions())
+	if err := providersFile.Write(path.Join(dirname, "providers.tf")); err != nil {
 		log.Fatal(err)
 	}
 
