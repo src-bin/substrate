@@ -60,9 +60,11 @@ func (Provider) Template() string {
 
 type ProviderAlias string
 
-func GlobalProviderAlias() ProviderAlias {
-	return ProviderAlias("aws.global")
-}
+const (
+	DefaultProviderAlias = ProviderAlias("aws")
+	GlobalProviderAlias  = ProviderAlias("aws.global")
+	NetworkProviderAlias = ProviderAlias("aws.network")
+)
 
 func ProviderAliasFor(region string) ProviderAlias {
 	return ProviderAlias(fmt.Sprintf("aws.%s", region))

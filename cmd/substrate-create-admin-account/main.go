@@ -191,7 +191,7 @@ func main() {
 			"dns_domain_name": terraform.Q(dnsDomainName),
 		},
 		Label:    terraform.Label(tags),
-		Provider: terraform.GlobalProviderAlias(),
+		Provider: terraform.GlobalProviderAlias,
 		Source:   terraform.Q("../intranet/global"),
 	}
 	intranetFile.Push(module)
