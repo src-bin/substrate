@@ -180,7 +180,7 @@ func main() {
 
 	// Write (or rewrite) Terraform resources that create the Intranet in this
 	// admin account.
-	intranet := terraform.NewFile()
+	intranetFile := terraform.NewFile()
 	tags := terraform.Tags{
 		Domain:      Domain,
 		Environment: Environment,
@@ -194,7 +194,7 @@ func main() {
 		Provider: terraform.GlobalProviderAlias(),
 		Source:   terraform.Q("../intranet/global"),
 	}
-	intranet.Push(module)
+	intranetFile.Push(module)
 	for _, region := range regions.Selected() {
 		tags.Region = region
 		arguments := map[string]terraform.Value{
@@ -215,7 +215,7 @@ func main() {
 		} else {
 			arguments["okta_hostname"] = terraform.Q(oauthoidc.OktaHostnameValueForGoogleIDP)
 		}
-		intranet.Push(terraform.Module{
+		intranetFile.Push(terraform.Module{
 			Arguments: arguments,
 			Label:     terraform.Label(tags),
 			Provider:  terraform.ProviderAliasFor(region),
