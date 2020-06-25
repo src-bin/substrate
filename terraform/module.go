@@ -4,6 +4,7 @@ type Module struct {
 	Arguments map[string]Value
 	Label     Value
 	Provider  ProviderAlias
+	Providers map[ProviderAlias]ProviderAlias
 	Source    Value
 }
 
@@ -15,10 +16,15 @@ func (Module) Template() string {
 	return `module {{.Label.Value}} {
 {{- range $k, $v := .Arguments }}
   {{$k}} = {{$v.Value}}
-{{- end}}
 
+{{- end}}
   providers = {
+{{- if .Provider}}
     aws = {{.Provider}}
+{{- end}}
+{{- range $k, $v := .Providers }}
+  {{$k}} = {{$v}}
+{{- end}}
   }
   source = {{.Source.Value}}
 }`

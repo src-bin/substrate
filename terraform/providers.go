@@ -47,6 +47,9 @@ func (Provider) Template() string {
 {{- else}}
 	alias = "{{if .AliasPrefix}}{{.AliasPrefix}}-{{end}}{{.Region}}{{if .AliasSuffix}}-{{.AliasSuffix}}{{end}}"
 {{- end}}
+{{- if .AccountId}}
+{{- if .RoleName}}
+{{- if .SessionName}}
 	assume_role {
 {{- if .ExternalId}}
 		external_id  = "{{.ExternalId}}"
@@ -54,7 +57,12 @@ func (Provider) Template() string {
 		role_arn     = "arn:aws:iam::{{.AccountId}}:role/{{.RoleName}}"
 		session_name = "{{.SessionName}}"
 	}
+{{- end}}
+{{- end}}
+{{- end}}
+{{- if .Region}}
 	region = "{{.Region}}"
+{{- end}}
 }`
 }
 

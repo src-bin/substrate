@@ -226,6 +226,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Generate the files and directory structure needed to get the user
+	// started writing their own Terraform code.
+	if err := terraform.Scaffold(dirname); err != nil {
+		log.Fatal(err)
+	}
+
 	// Write (or rewrite) the Terraform modules we referenced (even indirectly)
 	// just above.
 	intranetGlobalModule := terraform.IntranetGlobalModule()

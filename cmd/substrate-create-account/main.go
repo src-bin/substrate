@@ -76,6 +76,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Generate the files and directory structure needed to get the user
+	// started writing their own Terraform code.
+	if err := terraform.Scaffold(dirname); err != nil {
+		log.Fatal(err)
+	}
+
 	// Format all the Terraform code you can possibly find.
 	if err := terraform.Fmt(); err != nil {
 		log.Fatal(err)
