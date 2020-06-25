@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -185,13 +185,13 @@ func main() {
 			ui.Stop(n.IPv4)
 		}
 
-		if err := orgFile.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "organization.tf")); err != nil {
+		if err := orgFile.Write(filepath.Join(TerraformDirname, eq.Environment, eq.Quality, "organization.tf")); err != nil {
 			log.Fatal(err)
 		}
-		if err := providersFile.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
+		if err := providersFile.Write(filepath.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
 			log.Fatal(err)
 		}
-		if err := file.Write(path.Join(TerraformDirname, eq.Environment, eq.Quality, "vpc.tf")); err != nil {
+		if err := file.Write(filepath.Join(TerraformDirname, eq.Environment, eq.Quality, "vpc.tf")); err != nil {
 			log.Fatal(err)
 		}
 
@@ -239,7 +239,7 @@ func main() {
 	// environments, all quality-by-quality with a pause in between.
 	// TODO confirmation between steps
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
-		dirname := path.Join(TerraformDirname, eq.Environment, eq.Quality)
+		dirname := filepath.Join(TerraformDirname, eq.Environment, eq.Quality)
 		if err := terraform.Root(dirname, awssessions.Must(awssessions.InSpecialAccount(
 			accounts.Deploy,
 			roles.DeployAdministrator,

@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -75,7 +74,7 @@ func main() {
 				"\t\t%q: %s%s,\n",
 				filename,
 				strings.Repeat(" ", max-len(filename)),
-				readFile(path.Join(flag.Arg(0), filename)),
+				readFile(filepath.Join(flag.Arg(0), filename)),
 			)
 		}
 		content += "\t}"

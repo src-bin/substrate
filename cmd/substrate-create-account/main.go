@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"path"
+	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -72,7 +72,7 @@ func main() {
 		RoleName:    roles.Auditor,
 		SessionName: "Terraform",
 	}.AllRegions())
-	if err := providersFile.Write(path.Join(dirname, "providers.tf")); err != nil {
+	if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 		log.Fatal(err)
 	}
 

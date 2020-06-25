@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
-	"path"
+	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -58,7 +58,7 @@ func main() {
 		RoleName:    roles.Auditor,
 		SessionName: "Terraform",
 	}.AllRegions())
-	if err := providersFile.Write(path.Join(TerraformDirname, "providers.tf")); err != nil {
+	if err := providersFile.Write(filepath.Join(TerraformDirname, "providers.tf")); err != nil {
 		log.Fatal(err)
 	}
 
@@ -100,7 +100,7 @@ func main() {
 			Tags:     tags,
 		})
 	}
-	if err := file.Write(path.Join(TerraformDirname, "s3.tf")); err != nil {
+	if err := file.Write(filepath.Join(TerraformDirname, "s3.tf")); err != nil {
 		log.Fatal(err)
 	}
 

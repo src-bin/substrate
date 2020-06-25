@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -174,7 +174,7 @@ func main() {
 		RoleName:    roles.Auditor,
 		SessionName: "Terraform",
 	}.AllRegions())
-	if err := providersFile.Write(path.Join(dirname, "providers.tf")); err != nil {
+	if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 		log.Fatal(err)
 	}
 
@@ -222,7 +222,7 @@ func main() {
 			Source:    terraform.Q("../intranet/regional"),
 		})
 	}
-	if err := intranet.Write(path.Join(dirname, "intranet.tf")); err != nil {
+	if err := intranetFile.Write(filepath.Join(dirname, "intranet.tf")); err != nil {
 		log.Fatal(err)
 	}
 

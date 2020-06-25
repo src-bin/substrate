@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/src-bin/substrate/ui"
 )
@@ -55,7 +55,7 @@ Error:
 	if err := fp.Close(); err != nil {
 		log.Print(err)
 	}
-	pathname := path.Join(dirname, filename)
+	pathname := filepath.Join(dirname, filename)
 	if err == nil {
 		err = os.Rename(fp.Name(), pathname)
 	} else {

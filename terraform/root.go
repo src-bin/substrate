@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"text/template"
 
@@ -54,7 +53,7 @@ func S3BucketName() string {
 }
 
 func gitignore(dirname string) error {
-	f, err := os.Create(path.Join(dirname, ".gitignore"))
+	f, err := os.Create(filepath.Join(dirname, ".gitignore"))
 	if err != nil {
 		return err
 	}
@@ -67,7 +66,7 @@ func gitignore(dirname string) error {
 }
 
 func makefile(dirname string) error {
-	f, err := os.Create(path.Join(dirname, "Makefile"))
+	f, err := os.Create(filepath.Join(dirname, "Makefile"))
 	if err != nil {
 		return err
 	}
@@ -88,7 +87,7 @@ func makefile(dirname string) error {
 }
 
 func terraformBackend(dirname string, sess *session.Session) error {
-	f, err := os.Create(path.Join(dirname, "terraform.tf"))
+	f, err := os.Create(filepath.Join(dirname, "terraform.tf"))
 	if err != nil {
 		return err
 	}
