@@ -19,3 +19,13 @@ func LambdaFunctionGlobalModule() *Directory {
 func LambdaFunctionRegionalModule() *Directory {
 	return &Directory{lambdaFunctionRegionalTemplate()}
 }
+
+//go:generate go run ../tools/template/main.go -name substrateGlobalTemplate -o substrate-global.go modules/substrate/global
+func SubstrateGlobalModule() *Directory {
+	return &Directory{substrateGlobalTemplate()}
+}
+
+//go:generate go run ../tools/template/main.go -name substrateRegionalTemplate -o substrate-regional.go modules/substrate/regional
+func SubstrateRegionalModule() *Directory {
+	return &Directory{substrateRegionalTemplate()}
+}
