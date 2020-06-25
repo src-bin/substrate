@@ -66,6 +66,10 @@ func Promptf(format string, args ...interface{}) (string, error) {
 	return Prompt(fmt.Sprintf(format, args...))
 }
 
+func Quiet() {
+	op(opQuiet, "")
+}
+
 func Spin(args ...interface{}) {
 	dereference(args)
 	op(opSpin, fmt.Sprint(args...))

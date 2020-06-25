@@ -25,6 +25,7 @@ func main() {
 	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "master" or "network"`)
 	master := flag.Bool("master", false, "assume a role in the organization's master AWS account")
 	rolename := flag.String("role", "", "name of the IAM role to assume")
+	quiet := flag.Bool("quiet", false, "do not write anything to standard output before forking the child command")
 	flag.Parse()
 	if *admin {
 		*domain, *environment = "admin", "admin"
@@ -43,6 +44,9 @@ func main() {
 	}
 	if *rolename == "" {
 		ui.Fatal(`-role="..." is required`)
+	}
+	if *quiet {
+		ui.Quiet()
 	}
 
 	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationReader, awssessions.Config{}))
