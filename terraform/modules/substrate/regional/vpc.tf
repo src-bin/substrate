@@ -1,4 +1,5 @@
 data "aws_subnet_ids" "private" {
+  count    = module.global.tags.environment == "admin" ? 0 : 1
   provider = aws.network
   tags = {
     Connectivity = "private"

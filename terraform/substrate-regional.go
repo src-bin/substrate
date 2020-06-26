@@ -13,7 +13,7 @@ provider "aws" { alias = "network" }
 }
 
 output "private_subnet_ids" {
-  value = data.aws_subnet_ids.private.ids
+  value = module.global.tags.environment == "admin" ? [] : data.aws_subnet_ids.private[0].ids
 }
 
 output "public_subnet_ids" {
@@ -25,6 +25,7 @@ output "vpc_id" {
 }
 `,
 		"vpc.tf":       `data "aws_subnet_ids" "private" {
+  count    = module.global.tags.environment == "admin" ? 0 : 1
   provider = aws.network
   tags = {
     Connectivity = "private"
