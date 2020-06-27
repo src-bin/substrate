@@ -7,11 +7,11 @@ GOBIN={{.GOBIN}}
 
 all:
 
-apply: init
+apply:
 	aws sts get-caller-identity
 	terraform apply $(AUTO_APPROVE)
 
-destroy: init
+destroy:
 	aws sts get-caller-identity
 	terraform destroy $(AUTO_APPROVE)
 
