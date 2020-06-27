@@ -42,6 +42,7 @@ const (
 
 func main() {
 	quality := flag.String("quality", "", "quality for this new AWS account")
+	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	flag.Parse()
 	if *quality == "" {
 		ui.Fatal(`-quality"..." is required`)
@@ -272,8 +273,12 @@ func main() {
 	if err := terraform.Init(dirname); err != nil {
 		log.Fatal(err)
 	}
-	if err := terraform.Apply(dirname); err != nil {
-		log.Fatal(err)
+	if *noApply {
+		ui.Print("-no-apply given so not invoking `terraform apply`")
+	} else {
+		if err := terraform.Apply(dirname); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// Store the OAuth OIDC client secret in AWS Secrets Manager.

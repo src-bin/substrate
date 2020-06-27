@@ -103,7 +103,7 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 		}
 		ui.Stopf("user %s", user.UserName)
 		//log.Printf("%+v", user)
-		if ok, err := ui.Confirm("do you need to configure Okta's AWS integration? (yes or no)"); err != nil {
+		if ok, err := ui.Confirm("do you need to configure Okta's AWS integration? (yes/no)"); err != nil {
 			log.Fatal(err)
 		} else if ok {
 			ui.Spin("deleting existing access keys and creating a new one")

@@ -22,6 +22,7 @@ func main() {
 	domain := flag.String("domain", "", "domain for this new AWS account")
 	environment := flag.String("environment", "", "environment for this new AWS account")
 	quality := flag.String("quality", "", "quality for this new AWS account")
+	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	flag.Parse()
 	if *domain == "" || *environment == "" || *quality == "" {
 		ui.Fatal(`-domain="..." -environment="..." -quality"..." are required`)
@@ -99,8 +100,12 @@ func main() {
 	if err := terraform.Init(dirname); err != nil {
 		log.Fatal(err)
 	}
-	if err := terraform.Apply(dirname); err != nil {
-		log.Fatal(err)
+	if *noApply {
+		ui.Print("-no-apply given so not invoking `terraform apply`")
+	} else {
+		if err := terraform.Apply(dirname); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// TODO more?

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -23,6 +24,8 @@ import (
 const TerraformDirname = "deploy-account"
 
 func main() {
+	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
+	flag.Parse()
 
 	sess, err := awssessions.InSpecialAccount(accounts.Deploy, roles.DeployAdministrator, awssessions.Config{})
 	if err != nil {
@@ -117,8 +120,12 @@ func main() {
 	if err := terraform.Init(TerraformDirname); err != nil {
 		log.Fatal(err)
 	}
-	if err := terraform.Apply(TerraformDirname); err != nil {
-		log.Fatal(err)
+	if *noApply {
+		ui.Print("-no-apply given so not invoking `terraform apply`")
+	} else {
+		if err := terraform.Apply(TerraformDirname); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	ui.Print("next, commit deploy-account/ to version control, then run substrate-create-admin-account")

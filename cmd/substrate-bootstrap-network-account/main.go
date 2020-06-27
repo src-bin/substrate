@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -29,6 +30,8 @@ const (
 )
 
 func main() {
+	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
+	flag.Parse()
 
 	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{})
 	if err != nil {
@@ -73,7 +76,7 @@ func main() {
 	for _, environment := range environments {
 		for _, quality := range qualities {
 			if !veqpDoc.Valid(environment, quality) {
-				ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment?`, quality, environment)
+				ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -237,7 +240,8 @@ func main() {
 	// Generate a Makefile in each root Terraform module then apply the generated
 	// Terraform code.  Start with the ops networks, then move on to the
 	// environments, all quality-by-quality with a pause in between.
-	// TODO confirmation between steps
+	ui.Print("this tool can affect multiple environments and qualities in rapid succession")
+	ui.Print("for safety's sake, it will pause for confirmation before proceeding with each enviornment and quality")
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		dirname := filepath.Join(TerraformDirname, eq.Environment, eq.Quality)
 		if err := terraform.Root(dirname, awssessions.Must(awssessions.InSpecialAccount(
@@ -250,8 +254,18 @@ func main() {
 		if err := terraform.Init(dirname); err != nil {
 			log.Fatal(err)
 		}
-		if err := terraform.Apply(dirname); err != nil {
-			log.Fatal(err)
+		if *noApply {
+			ui.Printf("-no-apply given so not invoking `terraform apply` in %s", dirname)
+		} else {
+			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if ok {
+				if err := terraform.Apply(dirname); err != nil {
+					log.Fatal(err)
+				}
+			}
 		}
 	}
 
