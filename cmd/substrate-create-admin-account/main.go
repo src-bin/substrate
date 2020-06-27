@@ -91,7 +91,7 @@ func main() {
 	// the intranet can configure itself.  It's possible to do this entirely
 	// programmatically but there's a lot of UI surface area involved in doing
 	// a really good job.
-	if true { // TODO if IntranetDNSDomainNameFile doesn't exist
+	if !fileutil.Exists(choices.IntranetDNSDomainNameFilename) {
 		ui.Print("visit <https://console.aws.amazon.com/route53/home#DomainListing:> and buy or transfer a domain into this account")
 		ui.Print("or visit <https://console.aws.amazon.com/route53/home#hosted-zones:> and create a hosted zone you've delegated from elsewhere")
 		ui.Prompt("when you've finished, press <enter> to continue")
