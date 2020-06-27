@@ -200,6 +200,8 @@ func main() {
 
 	}
 
+	// TODO setup global and regional modules just like in other accounts
+
 	// Write to substrate.admin-networks.json and substrate.networks.json once
 	// more so that, even if no changes were made, formatting changes and
 	// SubstrateVersion are changed.

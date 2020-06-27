@@ -79,7 +79,7 @@ func main() {
 
 	// Generate the files and directory structure needed to get the user
 	// started writing their own Terraform code.
-	if err := terraform.Scaffold(dirname); err != nil {
+	if err := terraform.Scaffold(*domain, dirname); err != nil {
 		log.Fatal(err)
 	}
 

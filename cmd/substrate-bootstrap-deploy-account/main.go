@@ -107,6 +107,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// TODO setup global and regional modules just like in other accounts
+
 	// Format all the Terraform code you can possibly find.
 	if err := terraform.Fmt(); err != nil {
 		log.Fatal(err)
