@@ -30,13 +30,11 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_integration.GET-credential-factory),
       jsonencode(aws_api_gateway_integration.GET-instance-factory),
       jsonencode(aws_api_gateway_integration.GET-login),
-      jsonencode(aws_api_gateway_integration.POST-credential-factory),
       jsonencode(aws_api_gateway_integration.POST-instance-factory),
       jsonencode(aws_api_gateway_integration.POST-login),
       jsonencode(aws_api_gateway_method.GET-credential-factory),
       jsonencode(aws_api_gateway_method.GET-instance-factory),
       jsonencode(aws_api_gateway_method.GET-login),
-      jsonencode(aws_api_gateway_method.POST-credential-factory),
       jsonencode(aws_api_gateway_method.POST-instance-factory),
       jsonencode(aws_api_gateway_method.POST-login),
       jsonencode(aws_api_gateway_resource.credential-factory),
@@ -94,6 +92,7 @@ resource "aws_api_gateway_integration" "GET-login" {
   uri                     = module.substrate-apigateway-authenticator.invoke_arn
 }
 
+// TODO remove after Casey's applied the change that removes the dependency
 resource "aws_api_gateway_integration" "POST-credential-factory" {
   credentials             = var.apigateway_role_arn
   http_method             = aws_api_gateway_method.POST-credential-factory.http_method
@@ -150,6 +149,7 @@ resource "aws_api_gateway_method" "GET-login" {
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
 }
 
+// TODO remove after Casey's applied the change that removes the dependency
 resource "aws_api_gateway_method" "POST-credential-factory" {
   authorization = "CUSTOM"
   authorizer_id = aws_api_gateway_authorizer.substrate.id

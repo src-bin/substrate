@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -18,77 +17,42 @@ import (
 )
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
-//go:generate go run ../../tools/template/main.go -name credentialsTemplate -package main credentials.html
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
-	// Serialize the event to make it available in the browser for debugging.
-	b, err := json.MarshalIndent(event, "", "\t")
+	sess, err := awssessions.NewSession(awssessions.Config{})
+	if err != nil {
+		return nil, err
+	}
+	svc := sts.New(sess)
+
+	callerIdentity, err := awssts.GetCallerIdentity(svc)
 	if err != nil {
 		return nil, err
 	}
 
-	if event.HTTPMethod == "POST" {
-
-		sess, err := awssessions.NewSession(awssessions.Config{})
-		if err != nil {
-			return nil, err
-		}
-		svc := sts.New(sess)
-
-		callerIdentity, err := awssts.GetCallerIdentity(svc)
-		if err != nil {
-			return nil, err
-		}
-
-		principalId, ok := event.RequestContext.Authorizer["principalId"]
-		if !ok {
-			return nil, errors.New("could not read princpalId from Lambda request context")
-		}
-		sessionName, ok := principalId.(string)
-		if !ok {
-			return nil, fmt.Errorf("princpalId is %T not string", principalId)
-		}
-
-		assumedRole, err := awssts.AssumeRole(
-			svc,
-			roles.Arn(
-				aws.StringValue(callerIdentity.Account),
-				roles.Administrator,
-			),
-			sessionName,
-		)
-		if err != nil {
-			return lambdautil.ErrorResponse(err)
-		}
-
-		v := struct {
-			Credentials *sts.Credentials
-			Debug       string
-			Error       error
-		}{
-			Credentials: assumedRole.Credentials,
-			Debug:       string(b),
-		}
-		body, err := lambdautil.RenderHTML(credentialsTemplate(), v)
-		if err != nil {
-			return nil, err
-		}
-
-		return &events.APIGatewayProxyResponse{
-			Body:       body,
-			Headers:    map[string]string{"Content-Type": "text/html"},
-			StatusCode: http.StatusOK,
-		}, nil
+	principalId, ok := event.RequestContext.Authorizer["principalId"]
+	if !ok {
+		return nil, errors.New("could not read princpalId from Lambda request context")
+	}
+	sessionName, ok := principalId.(string)
+	if !ok {
+		return nil, fmt.Errorf("princpalId is %T not string", principalId)
 	}
 
-	v := struct {
-		Debug string
-		Error error
-	}{
-		Debug: string(b),
+	assumedRole, err := awssts.AssumeRole(
+		svc,
+		roles.Arn(
+			aws.StringValue(callerIdentity.Account),
+			roles.Administrator,
+		),
+		sessionName,
+	)
+	if err != nil {
+		return lambdautil.ErrorResponse(err)
 	}
-	body, err := lambdautil.RenderHTML(indexTemplate(), v)
+
+	body, err := lambdautil.RenderHTML(indexTemplate(), assumedRole.Credentials)
 	if err != nil {
 		return nil, err
 	}
