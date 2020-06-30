@@ -9,9 +9,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/availabilityzones"
+	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
@@ -26,7 +28,6 @@ import (
 const (
 	EnvironmentsFilename = "substrate.environments"
 	QualitiesFilename    = "substrate.qualities"
-	TerraformDirname     = "network-account"
 )
 
 func main() {
@@ -52,8 +53,7 @@ func main() {
 		found = found || environment == "admin"
 	}
 	if !found {
-		ui.Print(`you must include "admin" in your list of environments`)
-		return
+		ui.Fatal(`you must include "admin" in your list of environments`)
 	}
 	ui.Printf("using environments %s", strings.Join(environments, ", "))
 	qualities, err := ui.EditFile(
@@ -64,6 +64,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if len(qualities) == 0 {
+		ui.Fatal("you must name at least one quality")
+	}
 	ui.Printf("using qualities %s", strings.Join(qualities, ", "))
 
 	// Combine all environments and qualities.  If a given combination doesn't
@@ -73,15 +76,25 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, environment := range environments {
-		for _, quality := range qualities {
-			if !veqpDoc.Valid(environment, quality) {
-				ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
-				if err != nil {
-					log.Fatal(err)
-				}
-				if ok {
-					veqpDoc.Ensure(environment, quality)
+	ui.Print("you currently allow the following combinations of environment and quality in your Substrate-managed infrastructure:")
+	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
+		ui.Printf("\t%-12s %s", eq.Environment, eq.Quality)
+	}
+	ok, err := ui.Confirm("is this correct? (yes/no)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !ok {
+		for _, environment := range environments {
+			for _, quality := range qualities {
+				if !veqpDoc.Valid(environment, quality) {
+					ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
+					if err != nil {
+						log.Fatal(err)
+					}
+					if ok {
+						veqpDoc.Ensure(environment, quality)
+					}
 				}
 			}
 		}
@@ -91,7 +104,6 @@ func main() {
 	}
 	//log.Printf("%+v", veqpDoc)
 
-	// Select or confirm which regions to use.
 	if _, err := regions.Select(); err != nil {
 		log.Fatal(err)
 	}
@@ -115,36 +127,12 @@ func main() {
 	}
 	//log.Printf("%+v", netDoc)
 
-	// Provide every Terraform module with a reference to the organization.
-	orgFile := terraform.NewFile()
-	org := terraform.Organization{
-		Label:    terraform.Q("current"),
-		Provider: terraform.ProviderAliasFor(regions.Selected()[0]),
-	}
-	orgFile.Push(org)
-
-	// Write (or rewrite) some Terraform providers to make everything usable.
-	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
-	providersFile := terraform.NewFile()
-	providersFile.PushAll(terraform.Provider{
-		AccountId:   aws.StringValue(callerIdentity.Account),
-		RoleName:    roles.NetworkAdministrator,
-		SessionName: "Terraform",
-	}.AllRegionsAndGlobal())
-	providersFile.PushAll(terraform.Provider{
-		AccountId:   aws.StringValue(callerIdentity.Account),
-		AliasSuffix: "network",
-		RoleName:    roles.Auditor,
-		SessionName: "Terraform",
-	}.AllRegions())
-
 	// Write (or rewrite) Terraform resources that create the various
 	// (environment, quality) networks.  Networks in the admin environment will
 	// be created in the 192.168.0.0/16 CIDR block managed by adminNetDoc.
 	ui.Printf("configuring networks for every environment and quality in %d regions", len(regions.Selected()))
+	accountId := aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
-		file := terraform.NewFile()
-
 		for _, region := range regions.Selected() {
 			ui.Spinf(
 				"finding or assigning an IP address range to the %s %s network in %s",
@@ -152,7 +140,6 @@ func main() {
 				eq.Quality,
 				region,
 			)
-
 			var doc *networks.Document
 			if eq.Environment == "admin" {
 				doc = adminNetDoc
@@ -168,7 +155,16 @@ func main() {
 				log.Fatal(err)
 			}
 			//log.Printf("%+v", net)
+			ui.Stop(n.IPv4)
 
+			dirname := filepath.Join(terraform.RootModulesDirname, accounts.Network, eq.Environment, eq.Quality, region)
+
+			file := terraform.NewFile()
+			org := terraform.Organization{
+				Label:    terraform.Q("current"),
+				Provider: terraform.GlobalProviderAlias,
+			}
+			file.Push(org)
 			tags := terraform.Tags{
 				Environment: eq.Environment,
 				Name:        fmt.Sprintf("%s-%s", eq.Environment, eq.Quality),
@@ -182,25 +178,13 @@ func main() {
 				Tags:      tags,
 			}
 			file.Push(vpc)
-
 			vpcAccoutrements(sess, region, org, vpc, file)
+			if err := file.Write(filepath.Join(dirname, "vpc.tf")); err != nil {
+				log.Fatal(err)
+			}
 
-			ui.Stop(n.IPv4)
 		}
-
-		if err := orgFile.Write(filepath.Join(TerraformDirname, eq.Environment, eq.Quality, "organization.tf")); err != nil {
-			log.Fatal(err)
-		}
-		if err := providersFile.Write(filepath.Join(TerraformDirname, eq.Environment, eq.Quality, "providers.tf")); err != nil {
-			log.Fatal(err)
-		}
-		if err := file.Write(filepath.Join(TerraformDirname, eq.Environment, eq.Quality, "vpc.tf")); err != nil {
-			log.Fatal(err)
-		}
-
 	}
-
-	// TODO setup global and regional modules just like in other accounts
 
 	// Write to substrate.admin-networks.json and substrate.networks.json once
 	// more so that, even if no changes were made, formatting changes and
@@ -209,11 +193,6 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := netDoc.Write(); err != nil {
-		log.Fatal(err)
-	}
-
-	// Format all the Terraform code you can possibly find.
-	if err := terraform.Fmt(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -242,36 +221,68 @@ func main() {
 	// Generate a Makefile in each root Terraform module then apply the generated
 	// Terraform code.  Start with the ops networks, then move on to the
 	// environments, all quality-by-quality with a pause in between.
-	ui.Print("this tool can affect multiple environments and qualities in rapid succession")
-	ui.Print("for safety's sake, it will pause for confirmation before proceeding with each enviornment and quality")
+	if !*noApply {
+		ui.Print("this tool can affect multiple environments and qualities in rapid succession")
+		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each enviornment and quality")
+	}
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
-		dirname := filepath.Join(TerraformDirname, eq.Environment, eq.Quality)
-		if err := terraform.Root(dirname, awssessions.Must(awssessions.InSpecialAccount(
-			accounts.Deploy,
-			roles.DeployAdministrator,
-			awssessions.Config{},
-		))); err != nil {
-			log.Fatal(err)
-		}
-		if err := terraform.Init(dirname); err != nil {
-			log.Fatal(err)
-		}
-		if *noApply {
-			ui.Printf("-no-apply given so not invoking `terraform apply` in %s", dirname)
-		} else {
-			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
+		for _, region := range regions.Selected() {
+			dirname := filepath.Join(terraform.RootModulesDirname, accounts.Network, eq.Environment, eq.Quality, region)
+
+			// TODO setup global and regional modules just like in other accounts
+
+			providersFile := terraform.NewFile()
+			providersFile.Push(terraform.ProviderFor(
+				region,
+				roles.Arn(accountId, roles.NetworkAdministrator),
+			))
+			providersFile.Push(terraform.GlobalProvider(
+				roles.Arn(accountId, roles.NetworkAdministrator),
+			))
+			networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InMasterAccount(
+				roles.OrganizationReader,
+				awssessions.Config{},
+			))), accounts.Network)
 			if err != nil {
 				log.Fatal(err)
 			}
-			if ok {
-				if err := terraform.Apply(dirname); err != nil {
+			providersFile.Push(terraform.NetworkProviderFor(
+				region,
+				roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
+			))
+			if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+				log.Fatal(err)
+			}
+
+			if err := terraform.Root(dirname, region); err != nil {
+				log.Fatal(err)
+			}
+
+			if err := terraform.Init(dirname); err != nil {
+				log.Fatal(err)
+			}
+
+			if *noApply {
+				err = terraform.Plan(dirname)
+			} else {
+				ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
+				if err != nil {
 					log.Fatal(err)
 				}
+				if ok {
+					err = terraform.Apply(dirname)
+				}
+			}
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
 	}
+	if *noApply {
+		ui.Print("-no-apply given so not invoking `terraform apply`")
+	}
 
-	ui.Print("next, commit substrate.* and network-account/ to version control, then run substrate-bootstrap-deploy-account")
+	ui.Print("next, commit substrate.* and root-modules/network/ to version control, then run substrate-bootstrap-deploy-account")
 }
 
 func vpcAccoutrements(
