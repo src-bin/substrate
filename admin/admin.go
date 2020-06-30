@@ -37,7 +37,7 @@ func AdminPrincipals(svc *organizations.Organizations) (*policies.Principal, err
 	adminPrincipals[len(adminPrincipals)-2] = aws.StringValue(org.MasterAccountId)
 	adminPrincipals[len(adminPrincipals)-1] = users.Arn(
 		aws.StringValue(org.MasterAccountId),
-		roles.OrganizationAdministrator,
+		users.OrganizationAdministrator,
 	)
 	sort.Strings(adminPrincipals) // to avoid spurious policy diffs
 	//log.Printf("%+v", adminPrincipals)
@@ -232,6 +232,12 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			switch account.Tags[tags.SubstrateSpecialAccount] {
 			case accounts.Deploy:
 				terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.StringValue(account.Id), roles.DeployAdministrator))
+			case accounts.Master:
+				terraformPrincipals = append(
+					terraformPrincipals,
+					roles.Arn(aws.StringValue(account.Id), roles.OrganizationAdministrator),
+					users.Arn(aws.StringValue(account.Id), users.OrganizationAdministrator),
+				)
 			case accounts.Network:
 				terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.StringValue(account.Id), roles.NetworkAdministrator))
 			}
