@@ -16,6 +16,8 @@ const (
 	PrefixFilename                = "substrate.prefix"
 )
 
+var printedDefaultRegion, printedPrefix bool
+
 func DefaultRegion() string {
 
 	// Migrate from the former filename if possible.
@@ -44,7 +46,10 @@ func DefaultRegion() string {
 	if !regions.IsRegion(region) {
 		log.Fatalf("%s is not an AWS region", region)
 	}
-	ui.Printf("using region %s", region)
+	if !printedDefaultRegion {
+		ui.Printf("using region %s as your default", region)
+		printedDefaultRegion = true
+	}
 	return region
 }
 
@@ -56,6 +61,9 @@ func Prefix() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Printf("using prefix %s", prefix)
+	if !printedPrefix {
+		ui.Printf("using prefix %s", prefix)
+		printedPrefix = true
+	}
 	return prefix
 }
