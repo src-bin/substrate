@@ -21,8 +21,6 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-const TerraformDirname = "deploy"
-
 func main() {
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	flag.Parse()
@@ -32,18 +30,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
-	accountId := aws.StringValue(callerIdentity.Account)
+	accountId := aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
 	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
 	if err != nil {
 		log.Fatal(err)
 	}
 	prefix := choices.Prefix()
 
-	ui.Print("this tool can affect every AWS region in rapid succession")
-	ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
+	if !*noApply {
+		ui.Print("this tool can affect every AWS region in rapid succession")
+		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
+	}
 	for _, region := range regions.Selected() {
-		dirname := filepath.Join(terraform.RootModulesDirname, TerraformDirname, region)
+		dirname := filepath.Join(terraform.RootModulesDirname, accounts.Deploy, region)
 
 		// TODO setup global and regional modules just like in other accounts
 
@@ -135,5 +134,5 @@ func main() {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
 	}
 
-	ui.Print("next, commit deploy-account/ to version control, then run substrate-create-admin-account")
+	ui.Print("next, commit root-modules/deploy/ to version control, then run substrate-create-admin-account")
 }
