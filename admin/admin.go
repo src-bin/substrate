@@ -261,10 +261,16 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		))
 		if _, err := EnsureAdministratorRole(svc, policies.AssumeRolePolicyDocument(adminPrincipals)); err != nil {
-			log.Fatal(err)
+			ui.Printf(
+				"could not create the Administrator role in account %s; it might be because this account has only half-joined the organization",
+				account.Id,
+			)
 		}
 		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(adminPrincipals)); err != nil {
-			log.Fatal(err)
+			ui.Printf(
+				"could not create the Auditor role in account %s; it might be because this account has only half-joined the organization",
+				account.Id,
+			)
 		}
 	}
 	ui.Stop("ok")
