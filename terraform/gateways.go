@@ -14,19 +14,7 @@ func (egw EgressOnlyInternetGateway) Ref() Value {
 func (EgressOnlyInternetGateway) Template() string {
 	return `resource "aws_egress_only_internet_gateway" {{.Label.Value}} {
   provider = {{.Provider}}
-  tags     = {
-{{- if .Tags.Environment}}
-    "Environment" = "{{.Tags.Environment}}"
-{{- end}}
-    "Manager" = "{{.Tags.Manager}}"
-{{- if .Tags.Name}}
-    "Name" = "{{.Tags.Name}}"
-{{- end}}
-{{- if .Tags.Quality}}
-    "Quality" = "{{.Tags.Quality}}"
-{{- end}}
-    "SubstrateVersion" = "{{.Tags.SubstrateVersion}}"
-  }
+  tags     = {{.Tags.Value}}
   vpc_id   = {{.VpcId.Value}}
 }`
 }
@@ -45,19 +33,7 @@ func (igw InternetGateway) Ref() Value {
 func (InternetGateway) Template() string {
 	return `resource "aws_internet_gateway" {{.Label.Value}} {
   provider = {{.Provider}}
-  tags     = {
-{{- if .Tags.Environment}}
-    Environment      = "{{.Tags.Environment}}"
-{{- end}}
-    Manager          = "{{.Tags.Manager}}"
-{{- if .Tags.Name}}
-    Name             = "{{.Tags.Name}}"
-{{- end}}
-{{- if .Tags.Quality}}
-    Quality          = "{{.Tags.Quality}}"
-{{- end}}
-    SubstrateVersion = "{{.Tags.SubstrateVersion}}"
-  }
+  tags     = {{.Tags.Value}}
   vpc_id   = {{.VpcId.Value}}
 }`
 }
@@ -77,8 +53,8 @@ func (ngw NATGateway) Ref() Value {
 func (NATGateway) Template() string {
 	return `resource "aws_nat_gateway" {{.Label.Value}} {
   allocation_id = aws_eip.{{.Label}}.id
-  provider = {{.Provider}}
-  subnet_id = {{.SubnetId.Value}}
-  tags = {{.Tags.Value}}
+  provider      = {{.Provider}}
+  subnet_id     = {{.SubnetId.Value}}
+  tags          = {{.Tags.Value}}
 }`
 }

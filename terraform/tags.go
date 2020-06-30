@@ -19,7 +19,7 @@ func (Tags) Manager() string { return "Terraform" }
 func (Tags) SubstrateVersion() string { return version.Version }
 
 func (t Tags) Value() Value {
-	format := "\n    %q = %q"
+	format := "\n    %s = %q"
 	s := "  {"
 	if t.AvailabilityZone != "" {
 		s += fmt.Sprintf(format, "AvailabilityZone", t.AvailabilityZone)
