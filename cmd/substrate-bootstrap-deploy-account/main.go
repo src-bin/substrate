@@ -108,7 +108,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if err := terraform.Root(dirname, region, sess); err != nil {
+		if err := terraform.Root(dirname, region); err != nil {
 			log.Fatal(err)
 		}
 

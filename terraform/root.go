@@ -36,7 +36,15 @@ const DynamoDBTableName = "terraform-state-locks"
 // - .gitignore, to avoid committing providers and Lambda zip files.
 // - terraform.tf, for configuring DynamoDB/S3-backed Terraform state files.
 // TODO factor all the code generation of providers, the shared-between-accounts module for a domain, etc. into a RootModule type
-func Root(dirname, region string, sess *session.Session) error {
+func Root(dirname, region string) error {
+	sess, err := awssessions.InSpecialAccount(
+		accounts.Deploy,
+		roles.DeployAdministrator,
+		awssessions.Config{},
+	)
+	if err != nil {
+		return err
+	}
 	if err := gitignore(dirname); err != nil {
 		return err
 	}
