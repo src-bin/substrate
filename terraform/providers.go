@@ -2,38 +2,49 @@ package terraform
 
 import (
 	"fmt"
-
-	"github.com/src-bin/substrate/regions"
 )
 
 type Provider struct {
-	Alias, AliasPrefix, AliasSuffix, Region string // if unset, Alias is constructed from the other thre
-	AccountId, RoleName                     string // for constructing the role ARN; possibly should just be RoleArn
+	Alias, AliasPrefix, AliasSuffix, Region string // if unset, Alias is constructed from the other three
+	RoleArn                                 string
 	SessionName, ExternalId                 string
 }
 
-// AllRegions creates a provider block for every AWS region.  It purposely
-// includes regions we're avoiding because if a region is added to that list
-// after resource blocks that reference it are added to Terraform, the
-// provider will be necessary in order to destroy those resources.
-func (p Provider) AllRegions() *File {
-	file := NewFile()
-	for _, region := range regions.All() {
-		p.Region = region
-		file.Push(p)
+// GlobalProvider returns a Terraform provider that assumes the Administrator
+// role in sess's account in us-east-1.  It's functionally equivalent to
+// ProviderFor(sess, "us-east-1") but sets the provider's alias to "global"
+// so it may be easily distinguished.  It chooses us-east-1 to accommodate
+// global services like Lambda@Edge which, in addition to being global, may
+// only be configured in us-east-1.
+func GlobalProvider(roleArn string) Provider {
+	return Provider{
+		Alias:       "global",
+		Region:      "us-east-1",
+		RoleArn:     roleArn,
+		SessionName: "Terraform",
 	}
-	return file
 }
 
-// AllRegionsAndGlobal does everything AllRegions does plus adds a provider
-// called aws.global in us-east-1 to be used by services which are global, like
-// CloudFront or IAM, or rooted in us-east-1, like Lambda@Edge.
-func (p Provider) AllRegionsAndGlobal() *File {
-	file := p.AllRegions()
-	p.Alias = "global"
-	p.Region = "us-east-1"
-	file.Push(p)
-	return file
+// NetworkProviderFor returns a Terraform provider for discovering the VPCs and
+// subnets in the given region's network.  The given sess must be in the master
+// account (in any role).
+func NetworkProviderFor(region, roleArn string) Provider {
+	return Provider{
+		AliasSuffix: "network",
+		Region:      region,
+		RoleArn:     roleArn,
+		SessionName: "Terraform",
+	}
+}
+
+// ProviderFor returns a Terraform provider that assumes the Administrator role
+// in sess's account in the given region.
+func ProviderFor(region, roleArn string) Provider {
+	return Provider{
+		Region:      region,
+		RoleArn:     roleArn,
+		SessionName: "Terraform",
+	}
 }
 
 func (p Provider) Ref() Value {
@@ -47,17 +58,15 @@ func (Provider) Template() string {
 {{- else}}
 	alias = "{{if .AliasPrefix}}{{.AliasPrefix}}-{{end}}{{.Region}}{{if .AliasSuffix}}-{{.AliasSuffix}}{{end}}"
 {{- end}}
-{{- if .AccountId}}
-{{- if .RoleName}}
+{{- if .RoleArn}}
 {{- if .SessionName}}
 	assume_role {
 {{- if .ExternalId}}
 		external_id  = "{{.ExternalId}}"
 {{- end}}
-		role_arn     = "arn:aws:iam::{{.AccountId}}:role/{{.RoleName}}"
+		role_arn     = "{{.RoleArn}}"
 		session_name = "{{.SessionName}}"
 	}
-{{- end}}
 {{- end}}
 {{- end}}
 {{- if .Region}}

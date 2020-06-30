@@ -93,9 +93,11 @@ func createBucket(svc *s3.S3, name, region string) (err error) {
 	in := &s3.CreateBucketInput{
 		ACL:    aws.String("private"), // the default but let's be explicit
 		Bucket: aws.String(name),
-		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+	}
+	if region != "us-east-1" { // can't specify this, can only let it default to this
+		in.CreateBucketConfiguration = &s3.CreateBucketConfiguration{
 			LocationConstraint: aws.String(region),
-		},
+		}
 	}
 	for {
 		_, err = svc.CreateBucket(in)

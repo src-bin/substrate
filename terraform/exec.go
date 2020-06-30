@@ -17,9 +17,9 @@ func Destroy(dirname string) error {
 	return execlp("make", "-C", dirname, "destroy", "AUTO_APPROVE=-auto-approve")
 }
 
-func Fmt() error {
+func Fmt(dirname string) error {
 	ui.Print("formatting Terraform source files")
-	return execlp("terraform", "fmt", "-recursive")
+	return execlp("terraform", "fmt", "-recursive", dirname)
 }
 
 func Init(dirname string) error {

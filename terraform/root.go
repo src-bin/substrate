@@ -35,21 +35,22 @@ const DynamoDBTableName = "terraform-state-locks"
 // - Makefile, a convenience for running Terraform from other directories.
 // - .gitignore, to avoid committing providers and Lambda zip files.
 // - terraform.tf, for configuring DynamoDB/S3-backed Terraform state files.
-func Root(dirname string, sess *session.Session) error {
+// TODO factor all the code generation of providers, the shared-between-accounts module for a domain, etc. into a RootModule type
+func Root(dirname, region string, sess *session.Session) error {
 	if err := gitignore(dirname); err != nil {
 		return err
 	}
 	if err := makefile(dirname); err != nil {
 		return err
 	}
-	if err := terraformBackend(dirname, sess); err != nil {
+	if err := terraformBackend(dirname, region, sess); err != nil {
 		return err
 	}
 	return nil
 }
 
-func S3BucketName() string {
-	return fmt.Sprintf("%s-terraform-state", choices.Prefix())
+func S3BucketName(region string) string {
+	return fmt.Sprintf("%s-terraform-state-%s", choices.Prefix(), region)
 }
 
 func gitignore(dirname string) error {
@@ -86,7 +87,7 @@ func makefile(dirname string) error {
 	return tmpl.Execute(f, struct{ GOBIN string }{filepath.Dir(pathname)})
 }
 
-func terraformBackend(dirname string, sess *session.Session) error {
+func terraformBackend(dirname, region string, sess *session.Session) error {
 	f, err := os.Create(filepath.Join(dirname, "terraform.tf"))
 	if err != nil {
 		return err
@@ -110,10 +111,11 @@ func terraformBackend(dirname string, sess *session.Session) error {
 	v := struct {
 		Bucket, DynamoDBTable, Key, Region, RoleArn string
 	}{
-		Bucket:        S3BucketName(),
+
+		Bucket:        S3BucketName(region),
 		DynamoDBTable: DynamoDBTableName,
-		Key:           dirname,
-		Region:        choices.DefaultRegion(),
+		Key:           filepath.Join(dirname, "terraform.tfstate"),
+		Region:        region,
 		RoleArn:       roles.Arn(aws.StringValue(deployAccount.Id), roles.TerraformStateManager),
 	}
 

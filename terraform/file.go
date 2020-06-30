@@ -13,6 +13,11 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
+const (
+	ModulesDirname     = "modules"
+	RootModulesDirname = "root-modules"
+)
+
 type File struct {
 	blocks []Block
 }
@@ -102,6 +107,7 @@ Error:
 			log.Print(err)
 		}
 	}
+	err = Fmt(dirname)
 	ui.Printf("wrote %s", pathname)
 	return
 }

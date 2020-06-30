@@ -14,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/terraform"
@@ -273,7 +274,15 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	ui.Spin("finding or creating an IAM role for Terraform to use to manage remote state")
 	sort.Strings(terraformPrincipals) // to avoid spurious policy diffs
 	//log.Printf("%+v", terraformPrincipals)
-	bucketName := terraform.S3BucketName()
+	var resources []string
+	for _, region := range regions.All() { // we can't use regions.Selected() in the first substrate-bootstrap-master-account
+		bucketName := terraform.S3BucketName(region)
+		resources = append(
+			resources,
+			fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+			fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+		)
+	}
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(awssessions.AssumeRole(
 			sess,
@@ -291,11 +300,8 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 					},
 				},
 				{
-					Action: []string{"s3:DeleteObject", "s3:GetObject", "s3:ListBucket", "s3:PutObject"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
-						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
-					},
+					Action:   []string{"s3:DeleteObject", "s3:GetObject", "s3:ListBucket", "s3:PutObject"},
+					Resource: resources,
 				},
 			},
 		},

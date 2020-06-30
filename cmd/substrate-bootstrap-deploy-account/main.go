@@ -21,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-const TerraformDirname = "deploy-account"
+const TerraformDirname = "deploy"
 
 func main() {
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
@@ -32,44 +32,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	prefix := choices.Prefix()
-
 	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
 	accountId := aws.StringValue(callerIdentity.Account)
 	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
 	if err != nil {
 		log.Fatal(err)
 	}
+	prefix := choices.Prefix()
 
-	// Write (or rewrite) some Terraform providers to make everything usable.
-	providersFile := terraform.NewFile()
-	providersFile.PushAll(terraform.Provider{
-		AccountId:   accountId,
-		RoleName:    roles.DeployAdministrator,
-		SessionName: "Terraform",
-	}.AllRegionsAndGlobal())
-	networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InMasterAccount(
-		roles.OrganizationReader,
-		awssessions.Config{},
-	))), accounts.Network)
-	if err != nil {
-		log.Fatal(err)
-	}
-	providersFile.PushAll(terraform.Provider{
-		AccountId:   aws.StringValue(networkAccount.Id),
-		AliasSuffix: "network",
-		RoleName:    roles.Auditor,
-		SessionName: "Terraform",
-	}.AllRegions())
-	if err := providersFile.Write(filepath.Join(TerraformDirname, "providers.tf")); err != nil {
-		log.Fatal(err)
-	}
-
-	// Write (or rewrite) Terraform resources that creates the S3 bucket we
-	// will use to shuttle artifacts between environments and qualities.
-	file := terraform.NewFile()
+	ui.Print("this tool can affect every AWS region in rapid succession")
+	ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
 	for _, region := range regions.Selected() {
-		name := fmt.Sprintf("%s-deploy-artifacts-%s", prefix, region) // including region because S3 bucket names are still global
+		dirname := filepath.Join(terraform.RootModulesDirname, TerraformDirname, region)
+
+		// TODO setup global and regional modules just like in other accounts
+
+		file := terraform.NewFile()
+		name := fmt.Sprintf("%s-deploy-artifacts-%s", prefix, region) // S3 bucket names are still global
 		policy := &policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{
@@ -102,32 +81,58 @@ func main() {
 			Provider: terraform.ProviderAliasFor(region),
 			Tags:     tags,
 		})
-	}
-	if err := file.Write(filepath.Join(TerraformDirname, "s3.tf")); err != nil {
-		log.Fatal(err)
-	}
+		if err := file.Write(filepath.Join(dirname, "s3.tf")); err != nil {
+			log.Fatal(err)
+		}
 
-	// TODO setup global and regional modules just like in other accounts
+		providersFile := terraform.NewFile()
+		providersFile.Push(terraform.ProviderFor(
+			region,
+			roles.Arn(accountId, roles.DeployAdministrator),
+		))
+		providersFile.Push(terraform.GlobalProvider(
+			roles.Arn(accountId, roles.DeployAdministrator),
+		))
+		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InMasterAccount(
+			roles.OrganizationReader,
+			awssessions.Config{},
+		))), accounts.Network)
+		if err != nil {
+			log.Fatal(err)
+		}
+		providersFile.Push(terraform.NetworkProviderFor(
+			region,
+			roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
+		))
+		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
 
-	// Format all the Terraform code you can possibly find.
-	if err := terraform.Fmt(); err != nil {
-		log.Fatal(err)
-	}
+		if err := terraform.Root(dirname, region, sess); err != nil {
+			log.Fatal(err)
+		}
 
-	// Generate a Makefile in the root Terraform module then apply the generated
-	// Terraform code.
-	if err := terraform.Root(TerraformDirname, sess); err != nil {
-		log.Fatal(err)
-	}
-	if err := terraform.Init(TerraformDirname); err != nil {
-		log.Fatal(err)
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
+
+		if *noApply {
+			err = terraform.Plan(dirname)
+		} else {
+			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if ok {
+				err = terraform.Apply(dirname)
+			}
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	if *noApply {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
-	} else {
-		if err := terraform.Apply(TerraformDirname); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	ui.Print("next, commit deploy-account/ to version control, then run substrate-create-admin-account")
