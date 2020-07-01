@@ -80,7 +80,7 @@ func main() {
 			Provider: terraform.ProviderAliasFor(region),
 			Tags:     tags,
 		})
-		if err := file.Write(filepath.Join(dirname, "s3.tf")); err != nil {
+		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 			log.Fatal(err)
 		}
 

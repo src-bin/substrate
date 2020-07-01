@@ -179,7 +179,7 @@ func main() {
 			}
 			file.Push(vpc)
 			vpcAccoutrements(sess, region, org, vpc, file)
-			if err := file.Write(filepath.Join(dirname, "vpc.tf")); err != nil {
+			if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 				log.Fatal(err)
 			}
 

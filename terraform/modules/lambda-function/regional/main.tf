@@ -8,7 +8,16 @@ data "external" "gobin" {
   program = ["/bin/sh", "-c", "echo \"{\\\"GOBIN\\\":\\\"$GOBIN\\\"}\""]
 }
 
+resource "aws_cloudwatch_log_group" "lambda" {
+  name              = "/aws/lambda/${var.name}"
+  retention_in_days = 1
+  tags = {
+    Manager = "Terraform"
+  }
+}
+
 resource "aws_lambda_function" "function" {
+  depends_on       = [aws_cloudwatch_log_group.lambda]
   filename         = var.filename
   function_name    = var.name
   handler          = var.name

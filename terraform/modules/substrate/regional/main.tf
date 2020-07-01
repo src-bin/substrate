@@ -26,3 +26,8 @@ data "aws_vpc" "network" {
     Quality     = module.global.tags.quality
   }
 }
+
+module "global" {
+  providers = { aws.global = aws.global }
+  source    = "../global"
+}
