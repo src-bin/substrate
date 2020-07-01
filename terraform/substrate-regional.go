@@ -24,7 +24,7 @@ output "vpc_id" {
   value = data.aws_vpc.network.id
 }
 `,
-		"vpc.tf":       `data "aws_subnet_ids" "private" {
+		"main.tf":      `data "aws_subnet_ids" "private" {
   count    = module.global.tags.environment == "admin" ? 0 : 1
   provider = aws.network
   tags = {
@@ -52,8 +52,8 @@ data "aws_vpc" "network" {
     Quality     = module.global.tags.quality
   }
 }
-`,
-		"global.tf":    `module "global" {
+
+module "global" {
   providers = { aws.global = aws.global }
   source    = "../global"
 }

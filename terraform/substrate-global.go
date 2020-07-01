@@ -14,6 +14,6 @@ func substrateGlobalTemplate() map[string]string {
   }
 }
 `,
-		"tags.tf":      "data \"aws_caller_identity\" \"current\" {}\n\ndata \"external\" \"tags\" {\n  program = [\n    \"substrate-assume-role\", \"-master\", \"-quiet\", \"-role=OrganizationReader\",\n    \"aws\", \"organizations\", \"list-tags-for-resource\",\n    \"--resource-id\", data.aws_caller_identity.current.account_id,\n    \"--query\", \"{Domain:Tags[?Key==`Domain`].Value|[0],Environment:Tags[?Key==`Environment`].Value|[0],Quality:Tags[?Key==`Quality`].Value|[0]}\",\n  ]\n}\n",
+		"main.tf":      "data \"aws_caller_identity\" \"current\" {}\n\ndata \"external\" \"tags\" {\n  program = [\n    \"substrate-assume-role\", \"-master\", \"-quiet\", \"-role=OrganizationReader\",\n    \"aws\", \"organizations\", \"list-tags-for-resource\",\n    \"--resource-id\", data.aws_caller_identity.current.account_id,\n    \"--query\", \"{Domain:Tags[?Key==`Domain`].Value|[0],Environment:Tags[?Key==`Environment`].Value|[0],Quality:Tags[?Key==`Quality`].Value|[0]}\",\n  ]\n}\n",
 	}
 }

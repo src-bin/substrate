@@ -16,7 +16,7 @@ variable "policy" {
   value = aws_iam_role.role.arn
 }
 `,
-		"iam.tf":       `data "aws_iam_policy_document" "lambda-trust" {
+		"main.tf":      `data "aws_iam_policy_document" "lambda-trust" {
   statement {
     actions = ["sts:AssumeRole"]
     principals {

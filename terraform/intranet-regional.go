@@ -4,9 +4,9 @@ package terraform
 
 func intranetRegionalTemplate() map[string]string {
 	return map[string]string{
-		".gitignore":                            `*.zip
+		".gitignore":   `*.zip
 `,
-		"variables.tf":                          `variable "apigateway_role_arn" {
+		"variables.tf": `variable "apigateway_role_arn" {
   type = string
 }
 
@@ -55,53 +55,65 @@ variable "validation_fqdn" {
   type = string
 }
 `,
-		"substrate_credential_factory.tf":       `module "substrate-credential-factory" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-credential-factory.zip"
-  name                     = "substrate-credential-factory"
-  role_arn                 = var.substrate_credential_factory_role_arn
-  source                   = "../../lambda-function/regional"
-}
+		"outputs.tf":   `
 `,
-		"route53.tf":                            `data "aws_route53_zone" "intranet" {
+		"main.tf":      `data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
+data "aws_route53_zone" "intranet" {
   name         = "${var.dns_domain_name}."
   private_zone = false
 }
 
-resource "aws_route53_record" "intranet" {
-  alias {
-    evaluate_target_health = true
-    name                   = aws_api_gateway_domain_name.intranet.regional_domain_name
-    zone_id                = aws_api_gateway_domain_name.intranet.regional_zone_id
-  }
-  latency_routing_policy {
-    region = data.aws_region.current.name
-  }
-  name           = aws_api_gateway_domain_name.intranet.domain_name
-  set_identifier = data.aws_region.current.name
-  type           = "A"
-  zone_id        = data.aws_route53_zone.intranet.id
-}
-`,
-		"substrate_instance_factory.tf":         `module "substrate-instance-factory" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-instance-factory.zip"
-  name                     = "substrate-instance-factory"
-  role_arn                 = var.substrate_instance_factory_role_arn
-  source                   = "../../lambda-function/regional"
-}
-`,
-		"outputs.tf":                            `
-`,
-		"substrate_apigateway_authenticator.tf": `module "substrate-apigateway-authenticator" {
+module "substrate-apigateway-authenticator" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-apigateway-authenticator.zip"
   name                     = "substrate-apigateway-authenticator"
   role_arn                 = var.substrate_apigateway_authenticator_role_arn
   source                   = "../../lambda-function/regional"
 }
-`,
-		"apigateway.tf":                         `resource "aws_api_gateway_account" "current" {
+
+module "substrate-apigateway-authorizer" {
+  #apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::*"
+  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::/restapis/${aws_api_gateway_rest_api.intranet.id}/authorizers/${aws_api_gateway_authorizer.substrate.id}"
+  apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
+  filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
+  name                     = "substrate-apigateway-authorizer"
+  role_arn                 = var.substrate_apigateway_authorizer_role_arn
+  source                   = "../../lambda-function/regional"
+}
+
+module "substrate-credential-factory" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-credential-factory.zip"
+  name                     = "substrate-credential-factory"
+  role_arn                 = var.substrate_credential_factory_role_arn
+  source                   = "../../lambda-function/regional"
+}
+
+module "substrate-instance-factory" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-instance-factory.zip"
+  name                     = "substrate-instance-factory"
+  role_arn                 = var.substrate_instance_factory_role_arn
+  source                   = "../../lambda-function/regional"
+}
+
+resource "aws_acm_certificate" "intranet" {
+  domain_name       = var.dns_domain_name
+  validation_method = "DNS"
+}
+
+resource "aws_acm_certificate_validation" "intranet" {
+  certificate_arn = aws_acm_certificate.intranet.arn
+  #validation_record_fqdns = [aws_route53_record.validation.fqdn]
+  validation_record_fqdns = [var.validation_fqdn]
+}
+
+resource "aws_api_gateway_account" "current" {
+  depends_on          = [aws_cloudwatch_log_group.apigateway-welcome]
   cloudwatch_role_arn = var.apigateway_role_arn
 }
 
@@ -315,7 +327,7 @@ resource "aws_api_gateway_rest_api" "intranet" {
   }
 }
 
-// TODO manage both of these such that they can't fail with errors like this:
+// TODO manage this such that it can't fail with errors like this:
 //
 //     Error: Creating CloudWatch Log Group failed: OperationAbortedException:
 //     A conflicting operation is currently in progress against this resource.
@@ -330,6 +342,7 @@ resource "aws_cloudwatch_log_group" "apigateway" {
     Manager = "Terraform"
   }
 }
+*/
 
 resource "aws_cloudwatch_log_group" "apigateway-welcome" {
   name              = "/aws/apigateway/welcome"
@@ -338,33 +351,21 @@ resource "aws_cloudwatch_log_group" "apigateway-welcome" {
     Manager = "Terraform"
   }
 }
-*/
-`,
-		"acm.tf":                                `resource "aws_acm_certificate" "intranet" {
-  domain_name       = var.dns_domain_name
-  validation_method = "DNS"
-}
 
-resource "aws_acm_certificate_validation" "intranet" {
-  certificate_arn = aws_acm_certificate.intranet.arn
-  #validation_record_fqdns = [aws_route53_record.validation.fqdn]
-  validation_record_fqdns = [var.validation_fqdn]
+resource "aws_route53_record" "intranet" {
+  alias {
+    evaluate_target_health = true
+    name                   = aws_api_gateway_domain_name.intranet.regional_domain_name
+    zone_id                = aws_api_gateway_domain_name.intranet.regional_zone_id
+  }
+  latency_routing_policy {
+    region = data.aws_region.current.name
+  }
+  name           = aws_api_gateway_domain_name.intranet.domain_name
+  set_identifier = data.aws_region.current.name
+  type           = "A"
+  zone_id        = data.aws_route53_zone.intranet.id
 }
-`,
-		"substrate_apigateway_authorizer.tf":    `module "substrate-apigateway-authorizer" {
-  #apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::*"
-  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::/restapis/${aws_api_gateway_rest_api.intranet.id}/authorizers/${aws_api_gateway_authorizer.substrate.id}"
-  apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
-  filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
-  name                     = "substrate-apigateway-authorizer"
-  role_arn                 = var.substrate_apigateway_authorizer_role_arn
-  source                   = "../../lambda-function/regional"
-}
-`,
-		"data.tf":                               `data "aws_caller_identity" "current" {}
-
-data "aws_region" "current" {}
 `,
 	}
 }
