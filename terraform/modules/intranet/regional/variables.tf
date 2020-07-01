@@ -1,7 +1,3 @@
-variable "apigateway_role_arn" {
-  type = string
-}
-
 variable "dns_domain_name" {
   type = string
 }
@@ -24,22 +20,6 @@ variable "selected_regions" {
 }
 
 variable "stage_name" {
-  type = string
-}
-
-variable "substrate_credential_factory_role_arn" {
-  type = string
-}
-
-variable "substrate_instance_factory_role_arn" {
-  type = string
-}
-
-variable "substrate_apigateway_authenticator_role_arn" {
-  type = string
-}
-
-variable "substrate_apigateway_authorizer_role_arn" {
   type = string
 }
 

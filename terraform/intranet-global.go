@@ -4,11 +4,11 @@ package terraform
 
 func intranetGlobalTemplate() map[string]string {
 	return map[string]string{
-		"variables.tf": `variable "dns_domain_name" {
+		"variables.tf":    `variable "dns_domain_name" {
   type = string
 }
 `,
-		"outputs.tf":   `output "apigateway_role_arn" {
+		"outputs.tf":      `output "apigateway_role_arn" {
   value = aws_iam_role.apigateway.arn
 }
 
@@ -38,7 +38,7 @@ output "validation_fqdn" {
   value = aws_route53_record.validation.fqdn
 }
 `,
-		"main.tf":      `data "aws_iam_policy_document" "apigateway" {
+		"main.tf":         `data "aws_iam_policy_document" "apigateway" {
   statement {
     actions   = ["lambda:InvokeFunction"]
     resources = ["*"]

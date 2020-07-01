@@ -6,11 +6,7 @@ func intranetRegionalTemplate() map[string]string {
 	return map[string]string{
 		".gitignore":   `*.zip
 `,
-		"variables.tf": `variable "apigateway_role_arn" {
-  type = string
-}
-
-variable "dns_domain_name" {
+		"variables.tf": `variable "dns_domain_name" {
   type = string
 }
 
@@ -35,22 +31,6 @@ variable "stage_name" {
   type = string
 }
 
-variable "substrate_credential_factory_role_arn" {
-  type = string
-}
-
-variable "substrate_instance_factory_role_arn" {
-  type = string
-}
-
-variable "substrate_apigateway_authenticator_role_arn" {
-  type = string
-}
-
-variable "substrate_apigateway_authorizer_role_arn" {
-  type = string
-}
-
 variable "validation_fqdn" {
   type = string
 }
@@ -58,6 +38,26 @@ variable "validation_fqdn" {
 		"outputs.tf":   `
 `,
 		"main.tf":      `data "aws_caller_identity" "current" {}
+
+data "aws_iam_role" "admin" {
+  name = "Administrator"
+}
+
+data "aws_iam_role" "apigateway" {
+  name = "IntranetAPIGateway"
+}
+
+data "aws_iam_role" "substrate-apigateway-authenticator" {
+  name = "substrate-apigateway-authenticator"
+}
+
+data "aws_iam_role" "substrate-apigateway-authorizer" {
+  name = "substrate-apigateway-authorizer"
+}
+
+data "aws_iam_role" "substrate-instance-factory" {
+  name = "substrate-instance-factory"
+}
 
 data "aws_region" "current" {}
 
@@ -70,7 +70,7 @@ module "substrate-apigateway-authenticator" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-apigateway-authenticator.zip"
   name                     = "substrate-apigateway-authenticator"
-  role_arn                 = var.substrate_apigateway_authenticator_role_arn
+  role_arn                 = data.aws_iam_role.substrate-apigateway-authenticator.arn
   source                   = "../../lambda-function/regional"
 }
 
@@ -81,7 +81,7 @@ module "substrate-apigateway-authorizer" {
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
   filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
   name                     = "substrate-apigateway-authorizer"
-  role_arn                 = var.substrate_apigateway_authorizer_role_arn
+  role_arn                 = data.aws_iam_role.substrate-apigateway-authorizer.arn
   source                   = "../../lambda-function/regional"
 }
 
@@ -89,7 +89,7 @@ module "substrate-credential-factory" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-credential-factory.zip"
   name                     = "substrate-credential-factory"
-  role_arn                 = var.substrate_credential_factory_role_arn
+  role_arn                 = data.aws_iam_role.admin.arn
   source                   = "../../lambda-function/regional"
 }
 
@@ -97,7 +97,7 @@ module "substrate-instance-factory" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-instance-factory.zip"
   name                     = "substrate-instance-factory"
-  role_arn                 = var.substrate_instance_factory_role_arn
+  role_arn                 = data.aws_iam_role.substrate-instance-factory.arn
   source                   = "../../lambda-function/regional"
 }
 
@@ -107,18 +107,17 @@ resource "aws_acm_certificate" "intranet" {
 }
 
 resource "aws_acm_certificate_validation" "intranet" {
-  certificate_arn = aws_acm_certificate.intranet.arn
-  #validation_record_fqdns = [aws_route53_record.validation.fqdn]
+  certificate_arn         = aws_acm_certificate.intranet.arn
   validation_record_fqdns = [var.validation_fqdn]
 }
 
 resource "aws_api_gateway_account" "current" {
   depends_on          = [aws_cloudwatch_log_group.apigateway-welcome]
-  cloudwatch_role_arn = var.apigateway_role_arn
+  cloudwatch_role_arn = data.aws_iam_role.apigateway.arn
 }
 
 resource "aws_api_gateway_authorizer" "substrate" {
-  authorizer_credentials           = var.apigateway_role_arn
+  authorizer_credentials           = data.aws_iam_role.apigateway.arn
   authorizer_result_ttl_in_seconds = 1 # TODO longer once we know it's working; default 300
   authorizer_uri                   = module.substrate-apigateway-authorizer.invoke_arn
   identity_source                  = "method.request.header.Cookie"
@@ -155,6 +154,7 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_resource.credential-factory),
       jsonencode(aws_api_gateway_resource.instance-factory),
       jsonencode(aws_api_gateway_resource.login),
+      jsonencode(aws_cloudwatch_log_group.apigateway),
     )))
   }
   variables = {
@@ -175,7 +175,7 @@ resource "aws_api_gateway_domain_name" "intranet" {
 }
 
 resource "aws_api_gateway_integration" "GET-credential-factory" {
-  credentials             = var.apigateway_role_arn
+  credentials             = data.aws_iam_role.apigateway.arn
   http_method             = aws_api_gateway_method.GET-credential-factory.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -186,7 +186,7 @@ resource "aws_api_gateway_integration" "GET-credential-factory" {
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {
-  credentials             = var.apigateway_role_arn
+  credentials             = data.aws_iam_role.apigateway.arn
   http_method             = aws_api_gateway_method.GET-instance-factory.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -197,7 +197,7 @@ resource "aws_api_gateway_integration" "GET-instance-factory" {
 }
 
 resource "aws_api_gateway_integration" "GET-login" {
-  credentials             = var.apigateway_role_arn
+  credentials             = data.aws_iam_role.apigateway.arn
   http_method             = aws_api_gateway_method.GET-login.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -207,20 +207,8 @@ resource "aws_api_gateway_integration" "GET-login" {
   uri                     = module.substrate-apigateway-authenticator.invoke_arn
 }
 
-// TODO remove after Casey's applied the change that removes the dependency
-resource "aws_api_gateway_integration" "POST-credential-factory" {
-  credentials             = var.apigateway_role_arn
-  http_method             = aws_api_gateway_method.POST-credential-factory.http_method
-  integration_http_method = "POST"
-  passthrough_behavior    = "NEVER"
-  resource_id             = aws_api_gateway_resource.credential-factory.id
-  rest_api_id             = aws_api_gateway_rest_api.intranet.id
-  type                    = "AWS_PROXY"
-  uri                     = module.substrate-credential-factory.invoke_arn
-}
-
 resource "aws_api_gateway_integration" "POST-instance-factory" {
-  credentials             = var.apigateway_role_arn
+  credentials             = data.aws_iam_role.apigateway.arn
   http_method             = aws_api_gateway_method.POST-instance-factory.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -231,7 +219,7 @@ resource "aws_api_gateway_integration" "POST-instance-factory" {
 }
 
 resource "aws_api_gateway_integration" "POST-login" {
-  credentials             = var.apigateway_role_arn
+  credentials             = data.aws_iam_role.apigateway.arn
   http_method             = aws_api_gateway_method.POST-login.http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
@@ -261,15 +249,6 @@ resource "aws_api_gateway_method" "GET-login" {
   authorization = "NONE"
   http_method   = "GET"
   resource_id   = aws_api_gateway_resource.login.id
-  rest_api_id   = aws_api_gateway_rest_api.intranet.id
-}
-
-// TODO remove after Casey's applied the change that removes the dependency
-resource "aws_api_gateway_method" "POST-credential-factory" {
-  authorization = "CUSTOM"
-  authorizer_id = aws_api_gateway_authorizer.substrate.id
-  http_method   = "POST"
-  resource_id   = aws_api_gateway_resource.credential-factory.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
 }
 
@@ -327,22 +306,13 @@ resource "aws_api_gateway_rest_api" "intranet" {
   }
 }
 
-// TODO manage this such that it can't fail with errors like this:
-//
-//     Error: Creating CloudWatch Log Group failed: OperationAbortedException:
-//     A conflicting operation is currently in progress against this resource.
-//     Please try again. 'API-Gateway-Execution-Logs_f04hdz7znj/alpha'
-//
-// <https://src-bin.slack.com/archives/C015H14T9UY/p1592264271050400>
-/*
 resource "aws_cloudwatch_log_group" "apigateway" {
-  name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.intranet.id}/${aws_api_gateway_deployment.intranet.stage_name}"
+  name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.intranet.id}/${var.stage_name}"
   retention_in_days = 1
   tags = {
     Manager = "Terraform"
   }
 }
-*/
 
 resource "aws_cloudwatch_log_group" "apigateway-welcome" {
   name              = "/aws/apigateway/welcome"
