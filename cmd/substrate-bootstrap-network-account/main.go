@@ -222,7 +222,7 @@ func main() {
 	// Generate a Makefile in each root Terraform module then apply the generated
 	// Terraform code.  Start with the ops networks, then move on to the
 	// environments, all quality-by-quality with a pause in between.
-	if !*noApply {
+	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect multiple environments and qualities in rapid succession")
 		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each enviornment and quality")
 	}

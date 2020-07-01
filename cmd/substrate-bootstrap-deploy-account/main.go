@@ -38,7 +38,7 @@ func main() {
 	}
 	prefix := choices.Prefix()
 
-	if !*noApply {
+	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect every AWS region in rapid succession")
 		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
 	}
