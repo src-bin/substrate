@@ -31,6 +31,7 @@ const (
 )
 
 func main() {
+	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	flag.Parse()
 
@@ -264,6 +265,8 @@ func main() {
 
 			if *noApply {
 				err = terraform.Plan(dirname)
+			} else if *autoApprove {
+				err = terraform.Apply(dirname)
 			} else {
 				ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
 				if err != nil {
