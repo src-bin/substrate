@@ -45,6 +45,9 @@ func Root(dirname, region string) error {
 	if err != nil {
 		return err
 	}
+	if err := os.MkdirAll(dirname, 0777); err != nil {
+		return err
+	}
 	if err := gitignore(dirname); err != nil {
 		return err
 	}
