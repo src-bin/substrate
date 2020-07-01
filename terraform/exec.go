@@ -19,7 +19,7 @@ func Destroy(dirname string) error {
 
 func Fmt(dirname string) error {
 	ui.Print("formatting Terraform source files")
-	return execlp("terraform", "fmt", "-recursive", dirname)
+	return execlp("terraform", "fmt", dirname)
 }
 
 func Init(dirname string) error {
