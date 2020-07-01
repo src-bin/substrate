@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -42,6 +41,7 @@ const (
 
 func main() {
 	quality := flag.String("quality", "", "quality for this new AWS account")
+	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	flag.Parse()
 	if *quality == "" {
@@ -156,129 +156,196 @@ func main() {
 		}
 	}
 
-	dirname := fmt.Sprintf("%s-%s-account", Domain, *quality)
-
-	// Write (or rewrite) some Terraform providers to make everything usable.
-	providersFile := terraform.NewFile()
-	providersFile.PushAll(terraform.Provider{
-		AccountId:   aws.StringValue(account.Id),
-		RoleName:    roles.Administrator,
-		SessionName: "Terraform",
-	}.AllRegionsAndGlobal())
-	networkAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Network)
-	if err != nil {
+	// Copy module dependencies that are embedded in this binary into the
+	// user's source tree.
+	intranetGlobalModule := terraform.IntranetGlobalModule()
+	if err := intranetGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/global")); err != nil {
 		log.Fatal(err)
 	}
-	providersFile.PushAll(terraform.Provider{
-		AccountId:   aws.StringValue(networkAccount.Id),
-		AliasSuffix: "network",
-		RoleName:    roles.Auditor,
-		SessionName: "Terraform",
-	}.AllRegions())
-	if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+	intranetRegionalModule := terraform.IntranetRegionalModule()
+	if err := intranetRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional")); err != nil {
+		log.Fatal(err)
+	}
+	lambdaFunctionGlobalModule := terraform.LambdaFunctionGlobalModule()
+	if err := lambdaFunctionGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/global")); err != nil {
+		log.Fatal(err)
+	}
+	lambdaFunctionRegionalModule := terraform.LambdaFunctionRegionalModule()
+	if err := lambdaFunctionRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/regional")); err != nil {
 		log.Fatal(err)
 	}
 
-	// Write (or rewrite) Terraform resources that create the Intranet in this
-	// admin account.
-	intranetFile := terraform.NewFile()
+	// Leave the user a place to put their own Terraform code that can be
+	// shared between admin accounts of different qualities.
+	/*
+		if err := terraform.Scaffold(Domain, dirname); err != nil {
+			log.Fatal(err)
+		}
+	*/
+
+	if !*autoApprove && !*noApply {
+		ui.Print("this tool can affect every AWS region in rapid succession")
+		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
+	}
 	tags := terraform.Tags{
 		Domain:      Domain,
 		Environment: Environment,
 		Quality:     *quality,
 	}
-	module := terraform.Module{
-		Arguments: map[string]terraform.Value{
-			"dns_domain_name": terraform.Q(dnsDomainName),
-		},
-		Label:    terraform.Label(tags),
-		Provider: terraform.GlobalProviderAlias,
-		Source:   terraform.Q("../intranet/global"),
+	{
+		dirname := filepath.Join(terraform.RootModulesDirname, Domain, *quality, "global")
+		region := "us-east-1"
+
+		file := terraform.NewFile()
+		module := terraform.Module{
+			Arguments: map[string]terraform.Value{
+				"dns_domain_name": terraform.Q(dnsDomainName),
+			},
+			Label:  terraform.Q("intranet"),
+			Source: terraform.Q("../../../../modules/intranet/global"),
+		}
+		file.Push(module)
+		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		outputsFile := terraform.NewFile()
+		outputsFile.Push(terraform.Output{
+			Label: terraform.Q("validation_fqdn"), // because there is no aws_route53_record data source
+			Value: terraform.U(module.Ref(), ".validation_fqdn"),
+		})
+		if err := outputsFile.Write(filepath.Join(dirname, "outputs.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		providersFile := terraform.NewFile()
+		providersFile.Push(terraform.ProviderFor(
+			region,
+			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+		))
+		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := terraform.Root(dirname, region); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
+
+		if *noApply {
+			err = terraform.Plan(dirname)
+		} else if *autoApprove {
+			err = terraform.Apply(dirname)
+		} else {
+			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if ok {
+				err = terraform.Apply(dirname)
+			}
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	intranetFile.Push(module)
 	for _, region := range regions.Selected() {
-		tags.Region = region
+		dirname := filepath.Join(terraform.RootModulesDirname, Domain, *quality, region)
+
+		file := terraform.NewFile()
+		deployAccount, err := awsorgs.FindSpecialAccount(
+			organizations.New(awssessions.Must(awssessions.AssumeRoleMaster(
+				sess,
+				roles.OrganizationReader,
+			))),
+			accounts.Deploy,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		file.Push(terraform.RemoteState{
+			Config: terraform.RemoteStateConfig{
+				Bucket:        terraform.S3BucketName("us-east-1"),
+				DynamoDBTable: terraform.DynamoDBTableName,
+				Key:           filepath.Join(terraform.RootModulesDirname, Domain, *quality, "global/terraform.tfstate"),
+				Region:        "us-east-1",
+				RoleArn:       roles.Arn(aws.StringValue(deployAccount.Id), roles.TerraformStateManager),
+			},
+			Label: terraform.Q("global"),
+		})
 		arguments := map[string]terraform.Value{
-			"apigateway_role_arn":                         terraform.U(module.Ref(), ".apigateway_role_arn"),
-			"dns_domain_name":                             terraform.Q(dnsDomainName),
-			"oauth_oidc_client_id":                        terraform.Q(clientId),
-			"oauth_oidc_client_secret_timestamp":          terraform.Q(clientSecretTimestamp),
-			"selected_regions":                            terraform.QSlice(regions.Selected()),
-			"stage_name":                                  terraform.Q(*quality),
-			"substrate_credential_factory_role_arn":       terraform.U(module.Ref(), ".substrate_credential_factory_role_arn"),
-			"substrate_instance_factory_role_arn":         terraform.U(module.Ref(), ".substrate_instance_factory_role_arn"),
-			"substrate_apigateway_authenticator_role_arn": terraform.U(module.Ref(), ".substrate_apigateway_authenticator_role_arn"),
-			"substrate_apigateway_authorizer_role_arn":    terraform.U(module.Ref(), ".substrate_apigateway_authorizer_role_arn"),
-			"validation_fqdn":                             terraform.U(module.Ref(), ".validation_fqdn"),
+			"dns_domain_name":                    terraform.Q(dnsDomainName),
+			"oauth_oidc_client_id":               terraform.Q(clientId),
+			"oauth_oidc_client_secret_timestamp": terraform.Q(clientSecretTimestamp),
+			"selected_regions":                   terraform.QSlice(regions.Selected()),
+			"stage_name":                         terraform.Q(*quality),
+			"validation_fqdn":                    terraform.U("data.terraform_remote_state.global.outputs.validation_fqdn"),
 		}
 		if hostname != "" {
 			arguments["okta_hostname"] = terraform.Q(hostname)
 		} else {
 			arguments["okta_hostname"] = terraform.Q(oauthoidc.OktaHostnameValueForGoogleIDP)
 		}
-		intranetFile.Push(terraform.Module{
+		tags.Region = region
+		file.Push(terraform.Module{
 			Arguments: arguments,
-			Label:     terraform.Label(tags),
-			Provider:  terraform.ProviderAliasFor(region),
-			Source:    terraform.Q("../intranet/regional"),
+			Label:     terraform.Q("intranet"),
+			Source:    terraform.Q("../../../../modules/intranet/regional"),
 		})
-	}
-	if err := intranetFile.Write(filepath.Join(dirname, "intranet.tf")); err != nil {
-		log.Fatal(err)
-	}
+		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
+			log.Fatal(err)
+		}
 
-	// Generate the files and directory structure needed to get the user
-	// started writing their own Terraform code.
-	if err := terraform.Scaffold(Domain, dirname); err != nil {
-		log.Fatal(err)
-	}
+		providersFile := terraform.NewFile()
+		providersFile.Push(terraform.ProviderFor(
+			region,
+			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+		))
+		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InMasterAccount(
+			roles.OrganizationReader,
+			awssessions.Config{},
+		))), accounts.Network)
+		if err != nil {
+			log.Fatal(err)
+		}
+		providersFile.Push(terraform.NetworkProviderFor(
+			region,
+			roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
+		))
+		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
 
-	// Write (or rewrite) the Terraform modules we referenced (even indirectly)
-	// just above.
-	intranetGlobalModule := terraform.IntranetGlobalModule()
-	if err := intranetGlobalModule.Write("intranet/global"); err != nil {
-		log.Fatal(err)
-	}
-	os.Remove("intranet/global/substrate_okta_authenticator.tf") // TODO remove at version 2020.08
-	os.Remove("intranet/global/substrate_okta_authorizer.tf")    // TODO remove at version 2020.08
-	intranetRegionalModule := terraform.IntranetRegionalModule()
-	if err := intranetRegionalModule.Write("intranet/regional"); err != nil {
-		log.Fatal(err)
-	}
-	os.Remove("intranet/regional/substrate_okta_authenticator.tf") // TODO remove at version 2020.08
-	os.Remove("intranet/regional/substrate_okta_authorizer.tf")    // TODO remove at version 2020.08
-	lambdaFunctionGlobalModule := terraform.LambdaFunctionGlobalModule()
-	if err := lambdaFunctionGlobalModule.Write("lambda-function/global"); err != nil {
-		log.Fatal(err)
-	}
-	lambdaFunctionRegionalModule := terraform.LambdaFunctionRegionalModule()
-	if err := lambdaFunctionRegionalModule.Write("lambda-function/regional"); err != nil {
-		log.Fatal(err)
-	}
+		if err := terraform.Root(dirname, region); err != nil {
+			log.Fatal(err)
+		}
 
-	// Format all the Terraform code you can possibly find.
-	if err := terraform.Fmt(); err != nil {
-		log.Fatal(err)
-	}
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
 
-	// Generate a Makefile in the root Terraform module then apply the generated
-	// Terraform code.
-	if err := terraform.Root(dirname, awssessions.Must(awssessions.InSpecialAccount(
-		accounts.Deploy,
-		roles.DeployAdministrator,
-		awssessions.Config{},
-	))); err != nil {
-		log.Fatal(err)
-	}
-	if err := terraform.Init(dirname); err != nil {
-		log.Fatal(err)
+		if *noApply {
+			err = terraform.Plan(dirname)
+		} else if *autoApprove {
+			err = terraform.Apply(dirname)
+		} else {
+			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if ok {
+				err = terraform.Apply(dirname)
+			}
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	if *noApply {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
-	} else {
-		if err := terraform.Apply(dirname); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	// Store the OAuth OIDC client secret in AWS Secrets Manager.
@@ -292,8 +359,8 @@ func main() {
 				),
 				fmt.Sprintf("%s-%s", oauthoidc.OAuthOIDCClientSecret, clientId),
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
-					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authenticator"), // must match intranet/global/substrate_apigateway_authenticator.tf
-					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authorizer"),    // must match intranet/global/substrate_apigateway_authorizer.tf
+					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authenticator"), // must match intranet/global/main.tf
+					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authorizer"),    // must match intranet/global/main.tf
 				}}),
 				clientSecretTimestamp,
 				clientSecret,
@@ -309,9 +376,10 @@ func main() {
 	}
 
 	ui.Printf(
-		"next, commit %s-%s-account/ to version control, then run substrate-create-account for your various domains",
+		"next, commit modules/intranet/, modules/lambda-function/, modules/substrate/, and root-modules/%s/%s/ to version control, then run substrate-create-account as many times as you need",
 		Domain,
 		*quality,
 	)
+	ui.Printf("you should also start using <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
 
 }
