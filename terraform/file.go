@@ -107,7 +107,10 @@ Error:
 			log.Print(err)
 		}
 	}
-	err = Fmt(dirname)
+	if err != nil {
+		return
+	}
 	ui.Printf("wrote %s", pathname)
+	err = Fmt(dirname)
 	return
 }
