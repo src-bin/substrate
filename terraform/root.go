@@ -116,10 +116,7 @@ func terraformBackend(dirname, region string, sess *session.Session) error {
 	if err != nil {
 		return err
 	}
-	v := struct {
-		Bucket, DynamoDBTable, Key, Region, RoleArn string
-	}{
-
+	v := RemoteStateConfig{
 		Bucket:        S3BucketName(region),
 		DynamoDBTable: DynamoDBTableName,
 		Key:           filepath.Join(dirname, "terraform.tfstate"),
