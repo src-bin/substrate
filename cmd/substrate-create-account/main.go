@@ -2,16 +2,15 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
@@ -22,6 +21,7 @@ func main() {
 	domain := flag.String("domain", "", "domain for this new AWS account")
 	environment := flag.String("environment", "", "environment for this new AWS account")
 	quality := flag.String("quality", "", "quality for this new AWS account")
+	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	flag.Parse()
 	if *domain == "" || *environment == "" || *quality == "" {
@@ -54,64 +54,52 @@ func main() {
 
 	admin.EnsureAdminRolesAndPolicies(sess)
 
-	dirname := fmt.Sprintf("%s-%s-%s-account", *domain, *environment, *quality)
+	// Leave the user a place to put their own Terraform code that can be
+	// shared between admin accounts of different qualities.
+	/*
+		if err := terraform.Scaffold(*domain, dirname); err != nil {
+			log.Fatal(err)
+		}
+	*/
 
-	// Write (or rewrite) some Terraform providers to make everything usable.
-	providersFile := terraform.NewFile()
-	providersFile.PushAll(terraform.Provider{
-		AccountId:   aws.StringValue(account.Id),
-		RoleName:    roles.Administrator,
-		SessionName: "Terraform",
-	}.AllRegionsAndGlobal())
-	networkAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Network)
-	if err != nil {
-		log.Fatal(err)
+	if !*autoApprove && !*noApply {
+		ui.Print("this tool can affect every AWS region in rapid succession")
+		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
 	}
-	providersFile.PushAll(terraform.Provider{
-		AccountId:   aws.StringValue(networkAccount.Id),
-		AliasSuffix: "network",
-		RoleName:    roles.Auditor,
-		SessionName: "Terraform",
-	}.AllRegions())
-	if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-		log.Fatal(err)
-	}
+	for _, region := range regions.Selected() {
+		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, region)
 
-	// Generate the files and directory structure needed to get the user
-	// started writing their own Terraform code.
-	if err := terraform.Scaffold(*domain, dirname); err != nil {
-		log.Fatal(err)
-	}
+		if err := terraform.Root(dirname, region); err != nil {
+			log.Fatal(err)
+		}
 
-	// Format all the Terraform code you can possibly find.
-	if err := terraform.Fmt(); err != nil {
-		log.Fatal(err)
-	}
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
 
-	// Generate a Makefile in the root Terraform module then apply the generated
-	// Terraform code.
-	if err := terraform.Root(dirname, awssessions.Must(awssessions.InSpecialAccount(
-		accounts.Deploy,
-		roles.DeployAdministrator,
-		awssessions.Config{},
-	))); err != nil {
-		log.Fatal(err)
-	}
-	if err := terraform.Init(dirname); err != nil {
-		log.Fatal(err)
-	}
-	if *noApply {
-		ui.Print("-no-apply given so not invoking `terraform apply`")
-	} else {
-		if err := terraform.Apply(dirname); err != nil {
+		if *noApply {
+			err = terraform.Plan(dirname)
+		} else if *autoApprove {
+			err = terraform.Apply(dirname)
+		} else {
+			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if ok {
+				err = terraform.Apply(dirname)
+			}
+		}
+		if err != nil {
 			log.Fatal(err)
 		}
 	}
-
-	// TODO more?
+	if *noApply {
+		ui.Print("-no-apply given so not invoking `terraform apply`")
+	}
 
 	ui.Printf(
-		"next, commit %s-%s-%s-account/ to version control, then write Terraform code there to define the rest of your infrastructure or run substrate-create-account again for other domains, environments, and/or qualities",
+		"next, commit modules/substrate/ and root-modules/%s/%s/%s/ to version control, then write Terraform code there to define the rest of your infrastructure or run substrate-create-account again for other domains, environments, and/or qualities",
 		*domain,
 		*environment,
 		*quality,
