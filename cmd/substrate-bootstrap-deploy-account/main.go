@@ -75,11 +75,10 @@ func main() {
 			Region: region,
 		}
 		file.Push(terraform.S3Bucket{
-			Bucket:   terraform.Q(tags.Name),
-			Label:    terraform.Label(tags),
-			Policy:   terraform.Q(policy.MustMarshal()),
-			Provider: terraform.ProviderAliasFor(region),
-			Tags:     tags,
+			Bucket: terraform.Q(tags.Name),
+			Label:  terraform.Label(tags),
+			Policy: terraform.Q(policy.MustMarshal()),
+			Tags:   tags,
 		})
 		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 			log.Fatal(err)

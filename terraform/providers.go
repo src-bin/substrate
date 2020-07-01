@@ -30,7 +30,7 @@ func GlobalProvider(roleArn string) Provider {
 // account (in any role).
 func NetworkProviderFor(region, roleArn string) Provider {
 	return Provider{
-		AliasSuffix: "network",
+		Alias:       "network",
 		Region:      region,
 		RoleArn:     roleArn,
 		SessionName: "Terraform",
@@ -55,8 +55,6 @@ func (Provider) Template() string {
 	return `provider "aws" {
 {{- if .Alias}}
 	alias = "{{.Alias}}"
-{{- else}}
-	alias = "{{if .AliasPrefix}}{{.AliasPrefix}}-{{end}}{{.Region}}{{if .AliasSuffix}}-{{.AliasSuffix}}{{end}}"
 {{- end}}
 {{- if .RoleArn}}
 {{- if .SessionName}}

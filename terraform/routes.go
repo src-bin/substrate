@@ -29,7 +29,9 @@ func (Route) Template() string {
 {{- if .NATGatewayId}}
   nat_gateway_id              = {{.NATGatewayId.Value}}
 {{- end}}
+{{- if .Provider}}
   provider = {{.Provider}}
+{{- end}}
   route_table_id              = {{.RouteTableId.Value}}
 {{- if .TransitGatewayId}}
   transit_gateway_id          = {{.TransitGatewayId.Value}}
@@ -50,7 +52,9 @@ func (rt RouteTable) Ref() Value {
 
 func (RouteTable) Template() string {
 	return `resource "aws_route_table" {{.Label.Value}} {
+{{- if .Provider}}
   provider = {{.Provider}}
+{{- end}}
   tags     = {{.Tags.Value}}
   vpc_id   = {{.VpcId.Value}}
 }`
@@ -68,7 +72,9 @@ func (rta RouteTableAssociation) Ref() Value {
 
 func (RouteTableAssociation) Template() string {
 	return `resource "aws_route_table_association" {{.Label.Value}} {
+{{- if .Provider}}
   provider       = {{.Provider}}
+{{- end}}
   route_table_id = {{.RouteTableId.Value}}
   subnet_id      = {{.SubnetId.Value}}
 }`

@@ -26,7 +26,9 @@ func (Subnet) Template() string {
   cidr_block                      = {{.CidrBlock.Value}}
   ipv6_cidr_block                 = {{.IPv6CidrBlock.Value}}
   map_public_ip_on_launch         = {{.MapPublicIPOnLaunch}}
+{{- if .Provider}}
   provider                        = {{.Provider}}
+{{- end}}
   tags                            = {{.Tags.Value}}
   vpc_id                          = {{.VpcId.Value}}
 }`
@@ -57,7 +59,9 @@ func (VPC) Template() string {
   cidr_block                       = {{.CidrBlock.Value}}
   enable_dns_hostnames             = true
   enable_dns_support               = true
+{{- if .Provider}}
   provider                         = {{.Provider}}
+{{- end}}
   tags                             = {{.Tags.Value}}
 }`
 }

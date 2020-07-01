@@ -11,6 +11,8 @@ func (o Organization) Ref() Value {
 
 func (Organization) Template() string {
 	return `data "aws_organizations_organization" {{.Label.Value}} {
+{{- if .Provider}}
   provider = {{.Provider}}
+{{- end}}
 }`
 }
