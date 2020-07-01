@@ -60,9 +60,9 @@ func (Provider) Template() string {
 {{- if .SessionName}}
 	assume_role {
 {{- if .ExternalId}}
-		external_id  = "{{.ExternalId}}"
+		external_id = "{{.ExternalId}}"
 {{- end}}
-		role_arn     = "{{.RoleArn}}"
+		role_arn = "{{.RoleArn}}"
 		session_name = "{{.SessionName}}"
 	}
 {{- end}}

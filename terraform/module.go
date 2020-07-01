@@ -16,8 +16,9 @@ func (Module) Template() string {
 	return `module {{.Label.Value}} {
 {{- range $k, $v := .Arguments }}
   {{$k}} = {{$v.Value}}
-
 {{- end}}
+
+{{- if and .Provider .Providers}}
   providers = {
 {{- if .Provider}}
     aws = {{.Provider}}
@@ -26,6 +27,7 @@ func (Module) Template() string {
   {{$k}} = {{$v}}
 {{- end}}
   }
+{{- end}}
   source = {{.Source.Value}}
 }`
 }

@@ -16,8 +16,8 @@ func (EgressOnlyInternetGateway) Template() string {
 {{- if .Provider}}
   provider = {{.Provider}}
 {{- end}}
-  tags     = {{.Tags.Value}}
-  vpc_id   = {{.VpcId.Value}}
+  tags = {{.Tags.Value}}
+  vpc_id = {{.VpcId.Value}}
 }`
 }
 
@@ -37,8 +37,8 @@ func (InternetGateway) Template() string {
 {{- if .Provider}}
   provider = {{.Provider}}
 {{- end}}
-  tags     = {{.Tags.Value}}
-  vpc_id   = {{.VpcId.Value}}
+  tags = {{.Tags.Value}}
+  vpc_id = {{.VpcId.Value}}
 }`
 }
 
@@ -58,9 +58,9 @@ func (NATGateway) Template() string {
 	return `resource "aws_nat_gateway" {{.Label.Value}} {
   allocation_id = aws_eip.{{.Label}}.id
 {{- if .Provider}}
-  provider      = {{.Provider}}
+  provider = {{.Provider}}
 {{- end}}
-  subnet_id     = {{.SubnetId.Value}}
-  tags          = {{.Tags.Value}}
+  subnet_id = {{.SubnetId.Value}}
+  tags = {{.Tags.Value}}
 }`
 }

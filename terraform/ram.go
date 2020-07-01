@@ -12,9 +12,9 @@ func (pa PrincipalAssociation) Ref() Value {
 
 func (PrincipalAssociation) Template() string {
 	return `resource "aws_ram_principal_association" {{.Label.Value}} {
-  principal          = {{.Principal.Value}}
+  principal = {{.Principal.Value}}
 {{- if .Provider}}
-  provider           = {{.Provider}}
+  provider = {{.Provider}}
 {{- end}}
   resource_share_arn = {{.ResourceShareArn.Value}}
 }`
@@ -33,9 +33,9 @@ func (ra ResourceAssociation) Ref() Value {
 func (ResourceAssociation) Template() string {
 	return `resource "aws_ram_resource_association" {{.Label.Value}} {
 {{- if .Provider}}
-  provider           = {{.Provider}}
+  provider = {{.Provider}}
 {{- end}}
-  resource_arn       = {{.ResourceArn.Value}}
+  resource_arn = {{.ResourceArn.Value}}
   resource_share_arn = {{.ResourceShareArn.Value}}
 }`
 }
@@ -53,10 +53,10 @@ func (rs ResourceShare) Ref() Value {
 func (ResourceShare) Template() string {
 	return `resource "aws_ram_resource_share" {{.Label.Value}} {
   allow_external_principals = false
-  name                      = {{.Label.Value}}
+  name = {{.Label.Value}}
 {{- if .Provider}}
-  provider                  = {{.Provider}}
+  provider = {{.Provider}}
 {{- end}}
-  tags                      = {{.Tags.Value}}
+  tags = {{.Tags.Value}}
 }`
 }
