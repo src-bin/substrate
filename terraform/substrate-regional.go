@@ -4,9 +4,7 @@ package terraform
 
 func substrateRegionalTemplate() map[string]string {
 	return map[string]string{
-		"providers.tf": `provider "aws" { alias = "global" }
-
-provider "aws" { alias = "network" }
+		"providers.tf": `provider "aws" { alias = "network" }
 `,
 		"outputs.tf":   `output "tags" {
   value = module.global.tags
@@ -54,8 +52,7 @@ data "aws_vpc" "network" {
 }
 
 module "global" {
-  providers = { aws.global = aws.global }
-  source    = "../global"
+  source = "../global"
 }
 `,
 	}

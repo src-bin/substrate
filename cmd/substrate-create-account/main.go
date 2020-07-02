@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
@@ -55,19 +56,97 @@ func main() {
 	admin.EnsureAdminRolesAndPolicies(sess)
 
 	// Leave the user a place to put their own Terraform code that can be
-	// shared between admin accounts of different qualities.
-	/*
-		if err := terraform.Scaffold(*domain, dirname); err != nil {
-			log.Fatal(err)
-		}
-	*/
+	// shared between all of a domain's accounts.
+	if err := terraform.Scaffold(*domain); err != nil {
+		log.Fatal(err)
+	}
 
 	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect every AWS region in rapid succession")
 		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
 	}
+	{
+		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, "global")
+		region := "us-east-1"
+
+		file := terraform.NewFile()
+		file.Push(terraform.Module{
+			Label:  terraform.Q(*domain),
+			Source: terraform.Q("../../../../../modules/", *domain, "/global"),
+		})
+		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		providersFile := terraform.NewFile()
+		providersFile.Push(terraform.ProviderFor(
+			region,
+			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+		))
+		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := terraform.Root(dirname, region); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
+
+		if *noApply {
+			err = terraform.Plan(dirname)
+		} else if *autoApprove {
+			err = terraform.Apply(dirname)
+		} else {
+			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if ok {
+				err = terraform.Apply(dirname)
+			}
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, region)
+
+		file := terraform.NewFile()
+		file.Push(terraform.Module{
+			Label: terraform.Q(*domain),
+			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
+				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
+				terraform.NetworkProviderAlias: terraform.NetworkProviderAlias,
+			},
+			Source: terraform.Q("../../../../../modules/", *domain, "/regional"),
+		})
+		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		providersFile := terraform.NewFile()
+		providersFile.Push(terraform.ProviderFor(
+			region,
+			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+		))
+		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InMasterAccount(
+			roles.OrganizationReader,
+			awssessions.Config{},
+		))), accounts.Network)
+		if err != nil {
+			log.Fatal(err)
+		}
+		providersFile.Push(terraform.NetworkProviderFor(
+			region,
+			roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
+		))
+		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
 
 		if err := terraform.Root(dirname, region); err != nil {
 			log.Fatal(err)
