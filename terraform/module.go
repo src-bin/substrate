@@ -18,7 +18,7 @@ func (Module) Template() string {
   {{$k}} = {{$v.Value}}
 {{- end}}
 
-{{- if and .Provider .Providers}}
+{{- if or .Provider .Providers}}
   providers = {
 {{- if .Provider}}
     aws = {{.Provider}}
