@@ -28,6 +28,7 @@ import (
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
+	"github.com/src-bin/substrate/version"
 )
 
 const (
@@ -44,6 +45,7 @@ func main() {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	flag.Parse()
+	version.Flag()
 	if *quality == "" {
 		ui.Fatal(`-quality"..." is required`)
 	}

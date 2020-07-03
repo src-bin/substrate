@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"strings"
 
@@ -12,9 +13,12 @@ import (
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
+	"github.com/src-bin/substrate/version"
 )
 
 func main() {
+	flag.Parse()
+	version.Flag()
 
 	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{}))
 

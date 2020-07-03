@@ -12,6 +12,7 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/version"
 )
 
 type StringSliceFlag []string
@@ -32,8 +33,8 @@ func main() {
 	flag.Var(principals, "principal", "principal ARN to be allowed to GetSecretValue (if any are provided, the secret's policy will be updated to allow exactly and only those principals given)")
 	stage := flag.String("stage", "", "identifier for this stage (or version) of the secret (to be provided when fetching it later)")
 	value := flag.String("value", "", "secret value to associate with -name (does not overwrite prior versions)") // XXX do this with a prompt instead!
-
 	flag.Parse()
+	version.Flag()
 	if *name == "" {
 		ui.Fatal("-name is required")
 	}

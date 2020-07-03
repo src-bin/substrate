@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 
@@ -35,6 +36,8 @@ const (
 )
 
 func main() {
+	flag.Parse()
+	version.Flag()
 
 	prefix := choices.Prefix()
 

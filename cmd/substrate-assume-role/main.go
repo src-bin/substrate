@@ -15,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/version"
 )
 
 func main() {
@@ -27,6 +28,7 @@ func main() {
 	rolename := flag.String("role", "", "name of the IAM role to assume")
 	quiet := flag.Bool("quiet", false, "do not write anything to standard output before forking the child command")
 	flag.Parse()
+	version.Flag()
 	if *admin {
 		*domain, *environment = "admin", "admin"
 	}

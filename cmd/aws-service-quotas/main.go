@@ -12,6 +12,7 @@ import (
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/regions"
+	"github.com/src-bin/substrate/version"
 )
 
 func main() {
@@ -25,9 +26,8 @@ func main() {
 	quotaCode := flag.String("quota-code", "", "quota code to pass to AWS")
 	serviceCode := flag.String("service-code", "", "quota code to pass to AWS")
 	desiredValue := flag.Float64("desired-value", 0, "minimum desired value for the service quota")
-
 	flag.Parse()
-
+	version.Flag()
 	if !*allRegions && !regions.IsRegion(*region) {
 		log.Fatal("one of -all-regions or a valid -region is required")
 	}
