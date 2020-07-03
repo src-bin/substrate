@@ -76,7 +76,7 @@ func main() {
 			Label:  terraform.Q(*domain),
 			Source: terraform.Q("../../../../../modules/", *domain, "/global"),
 		})
-		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
+		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
 			log.Fatal(err)
 		}
 
@@ -126,7 +126,7 @@ func main() {
 			},
 			Source: terraform.Q("../../../../../modules/", *domain, "/regional"),
 		})
-		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
+		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
 			log.Fatal(err)
 		}
 
