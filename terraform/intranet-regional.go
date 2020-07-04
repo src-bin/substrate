@@ -39,10 +39,6 @@ variable "validation_fqdn" {
 `,
 		"main.tf":      `data "aws_caller_identity" "current" {}
 
-data "aws_iam_role" "admin" {
-  name = "Administrator"
-}
-
 data "aws_iam_role" "apigateway" {
   name = "IntranetAPIGateway"
 }
@@ -53,6 +49,10 @@ data "aws_iam_role" "substrate-apigateway-authenticator" {
 
 data "aws_iam_role" "substrate-apigateway-authorizer" {
   name = "substrate-apigateway-authorizer"
+}
+
+data "aws_iam_role" "substrate-credential-factory" {
+  name = "substrate-credential-factory"
 }
 
 data "aws_iam_role" "substrate-instance-factory" {
@@ -89,7 +89,7 @@ module "substrate-credential-factory" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-credential-factory.zip"
   name                     = "substrate-credential-factory"
-  role_arn                 = data.aws_iam_role.admin.arn
+  role_arn                 = data.aws_iam_role.substrate-credential-factory.arn
   source                   = "../../lambda-function/regional"
 }
 

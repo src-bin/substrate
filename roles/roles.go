@@ -12,6 +12,7 @@ const (
 	OrganizationAccountAccessRole = "OrganizationAccountAccessRole"
 	OrganizationAdministrator     = "OrganizationAdministrator"
 	OrganizationReader            = "OrganizationReader"
+	SubstrateCredentialFactory    = "substrate-credential-factory"
 	TerraformStateManager         = "TerraformStateManager"
 )
 

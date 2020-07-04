@@ -15,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/users"
 )
 
 const (
@@ -54,9 +55,14 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 	assumeRolePolicyDocument := &policies.Document{
 		Statement: []policies.Statement{
 			policies.AssumeRolePolicyDocument(adminPrincipals).Statement[0],
-			policies.AssumeRolePolicyDocument(&policies.Principal{
-				Service: []string{"lambda.amazonaws.com"},
-			}).Statement[0],
+			policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{roles.Arn(
+				aws.StringValue(account.Id),
+				roles.SubstrateCredentialFactory,
+			)}}).Statement[0],
+			policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{users.Arn(
+				aws.StringValue(account.Id),
+				users.CredentialFactory,
+			)}}).Statement[0],
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				Federated: []string{saml.Arn},
 			}).Statement[0],

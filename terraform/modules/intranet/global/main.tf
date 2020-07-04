@@ -24,14 +24,14 @@ data "aws_iam_policy_document" "credential-factory" {
 
 data "aws_iam_policy_document" "substrate-apigateway-authenticator" {
   statement {
-    actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
+    actions   = ["secretsmanager:GetSecretValue"]
     resources = ["*"]
   }
 }
 
 data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   statement {
-    actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
+    actions   = ["secretsmanager:GetSecretValue"]
     resources = ["*"]
   }
 }
@@ -40,6 +40,10 @@ data "aws_iam_policy_document" "substrate-credential-factory" {
   statement {
     actions   = ["iam:CreateAccessKey", "iam:DeleteAccessKey"]
     resources = ["*"]
+  }
+  statement {
+    actions   = ["sts:AssumeRole"]
+    resources = [data.aws_iam_role.admin.arn]
   }
 }
 
