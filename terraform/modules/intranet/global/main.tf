@@ -15,6 +15,13 @@ data "aws_iam_policy_document" "apigateway-trust" {
   }
 }
 
+data "aws_iam_policy_document" "credential-factory" {
+  statement {
+    actions   = ["sts:AssumeRole"]
+    resources = [data.aws_iam_role.admin.arn]
+  }
+}
+
 data "aws_iam_policy_document" "substrate-apigateway-authenticator" {
   statement {
     actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
@@ -25,6 +32,13 @@ data "aws_iam_policy_document" "substrate-apigateway-authenticator" {
 data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   statement {
     actions   = ["secretsmanager:GetSecretValue", "sts:GetCallerIdentity"]
+    resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "substrate-credential-factory" {
+  statement {
+    actions   = ["iam:CreateAccessKey", "iam:DeleteAccessKey"]
     resources = ["*"]
   }
 }
@@ -64,6 +78,12 @@ module "substrate-apigateway-authorizer" {
   source = "../../lambda-function/global"
 }
 
+module "substrate-credential-factory" {
+  name   = "substrate-credential-factory"
+  policy = data.aws_iam_policy_document.substrate-credential-factory.json
+  source = "../../lambda-function/global"
+}
+
 module "substrate-instance-factory" {
   name   = "substrate-instance-factory"
   policy = data.aws_iam_policy_document.substrate-instance-factory.json
@@ -83,6 +103,11 @@ resource "aws_acm_certificate_validation" "intranet" {
 resource "aws_iam_policy" "apigateway" {
   name   = "IntranetAPIGateway"
   policy = data.aws_iam_policy_document.apigateway.json
+}
+
+resource "aws_iam_policy" "credential-factory" {
+  name   = "CredentialFactory"
+  policy = data.aws_iam_policy_document.credential-factory.json
 }
 
 resource "aws_iam_role" "apigateway" {
@@ -105,6 +130,15 @@ resource "aws_iam_role_policy_attachment" "apigateway-cloudwatch" {
 resource "aws_iam_role_policy_attachment" "admin-cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
   role       = data.aws_iam_role.admin.name
+}
+
+resource "aws_iam_user" "credential-factory" {
+  name = "CredentialFactory"
+}
+
+resource "aws_iam_user_policy_attachment" "credential-factory" {
+  policy_arn = aws_iam_policy.credential-factory.arn
+  user       = aws_iam_user.credential-factory.name
 }
 
 resource "aws_route53_record" "validation" {
