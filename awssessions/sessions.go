@@ -36,10 +36,8 @@ type Config struct {
 func (c Config) AWS() aws.Config {
 	var a aws.Config
 
-	if c.AccessKeyId != "" && c.SecretAccessKey != "" && c.SessionToken != "" {
+	if c.AccessKeyId != "" && c.SecretAccessKey != "" {
 		a.Credentials = credentials.NewStaticCredentials(c.AccessKeyId, c.SecretAccessKey, c.SessionToken)
-	} else if c.AccessKeyId != "" && c.SecretAccessKey != "" {
-		a.Credentials = credentials.NewStaticCredentials(c.AccessKeyId, c.SecretAccessKey, "")
 	}
 	if c.AccessKeyId != "" && c.SecretAccessKey == "" {
 		ui.Print("ignoring access key ID without secret access key")
