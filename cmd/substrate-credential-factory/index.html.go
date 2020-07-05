@@ -31,7 +31,7 @@ func indexTemplate() string {
 </tr>
 </table>
 <form method="GET">
-<p><input type="submit" value="Mint new AWS credentials"> which will expire in another hour</p>
+<p><input type="submit" value="Mint new AWS credentials"> which will expire in 12 hours</p>
 </form>
 </body>
 </html>

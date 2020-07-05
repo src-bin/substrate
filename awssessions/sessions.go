@@ -23,7 +23,10 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-const NoCredentialProviders = "NoCredentialProviders"
+const (
+	NewSessionTries       = 10
+	NoCredentialProviders = "NoCredentialProviders"
+)
 
 // TODO make a Session type here that lazily constructs and caches all the
 // service/*.New clients so we don't have to keep awkwardly bouncing around.
@@ -201,20 +204,33 @@ func Must(sess *session.Session, err error) *session.Session {
 func NewSession(config Config) (*session.Session, error) {
 	sess, err := session.NewSessionWithOptions(options(config.AWS()))
 
-	// If we're not using root credentials, we're done.
-	callerIdentity, err := awssts.GetCallerIdentity(sts.New(sess))
-	if awsutil.ErrorCodeIs(err, NoCredentialProviders) {
+	// Take a bounded amount of time to let newly-minted credentials become
+	// valid but don't spin forever because it may genuinely be the case that
+	// the credentials are invalid.
+	var callerIdentity *sts.GetCallerIdentityOutput
+	for i := 0; i < NewSessionTries; i++ {
+		callerIdentity, err = awssts.GetCallerIdentity(sts.New(sess))
+		if awsutil.ErrorCodeIs(err, awssts.InvalidClientTokenId) {
+			time.Sleep(1e9) // TODO exponential backoff
+			continue
+		}
+		if awsutil.ErrorCodeIs(err, NoCredentialProviders) {
 
-		// But if we never even got started, and we haven't already asked, ask
-		// for root credentials and try again.
-		if config.AccessKeyId == "" {
-			return NewSession(configWithRootCredentials("", config))
+			// In this case the AWS SDK couldn't find any credentials so let's
+			// ask for some and try again.
+			if config.AccessKeyId == "" {
+				return NewSession(configWithRootCredentials("", config))
+			}
+
 		}
 
+		break
 	}
 	if err != nil {
 		return nil, err
 	}
+
+	// If we're not using root credentials, we're done.
 	if !strings.HasSuffix(aws.StringValue(callerIdentity.Arn), ":root") {
 		ui.Printf("starting AWS session as %s", callerIdentity.Arn)
 		return sess, nil

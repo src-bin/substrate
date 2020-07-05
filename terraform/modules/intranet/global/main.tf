@@ -38,7 +38,11 @@ data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
 
 data "aws_iam_policy_document" "substrate-credential-factory" {
   statement {
-    actions   = ["iam:CreateAccessKey", "iam:DeleteAccessKey"]
+    actions = [
+      "iam:CreateAccessKey",
+      "iam:DeleteAccessKey",
+      "iam:ListAccessKeys",
+    ]
     resources = ["*"]
   }
   statement {
