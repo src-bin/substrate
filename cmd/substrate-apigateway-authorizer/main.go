@@ -11,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/oauthoidc"
+	"github.com/src-bin/substrate/policies"
 )
 
 func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequestTypeRequest) (*events.APIGatewayCustomAuthorizerResponse, error) {
@@ -45,7 +46,10 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 		clientSecret,
 	)
 
-	var accessToken string
+	context := map[string]interface{}{
+		"Location": "/login?next=" + event.Path, // where API Gateway will send the browser when unauthorized
+	}
+
 	idToken := &oauthoidc.IDToken{}
 	req := &http.Request{Header: http.Header{
 		"Cookie": event.MultiValueHeaders["cookie"], // beware the case-sensitivity
@@ -53,18 +57,22 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	for _, cookie := range req.Cookies() {
 		switch cookie.Name {
 		case "a":
-			accessToken = cookie.Value
+			context["AccessToken"] = cookie.Value
 		case "id":
 			if _, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, c, idToken); err != nil {
+				context["Error"] = err
+				idToken = &oauthoidc.IDToken{} // revert to zero-value and thus to denying access
+				continue
+			}
+			if context["IDToken"], err = idToken.JSONString(); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	context := map[string]interface{}{}
-	context["AccessToken"] = accessToken
-	if context["IDToken"], err = idToken.JSONString(); err != nil {
-		return nil, err
+	effect := policies.Deny
+	if idToken.Email != "" {
+		effect = policies.Allow
 	}
 	return &events.APIGatewayCustomAuthorizerResponse{
 		Context: context,
@@ -72,7 +80,7 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 			Statement: []events.IAMPolicyStatement{
 				{
 					Action:   []string{"execute-api:Invoke"},
-					Effect:   "Allow",
+					Effect:   string(effect),
 					Resource: []string{event.MethodArn},
 				},
 			},

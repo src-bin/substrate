@@ -66,6 +66,18 @@ data "aws_route53_zone" "intranet" {
   private_zone = false
 }
 
+locals {
+  response_parameters = {
+    "gatewayresponse.header.Location" = "'https://${var.dns_domain_name}/login?next=/credential-factory'" # a last resort
+    #"gatewayresponse.header.Location"                  = "context.authorizer.Location" # use the authorizer for expensive string concatenation
+    "gatewayresponse.header.Strict-Transport-Security" = "'max-age=31536000; includeSubDomains; preload'"
+  }
+  response_templates = {
+    "application/json" = "{\"TODO\":\"$context.authorizer.Location\"}"
+    "text/html"        = "TODO<br>$context.authorizer.Location"
+  }
+}
+
 module "substrate-apigateway-authenticator" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-apigateway-authenticator.zip"
@@ -118,9 +130,9 @@ resource "aws_api_gateway_account" "current" {
 
 resource "aws_api_gateway_authorizer" "substrate" {
   authorizer_credentials           = data.aws_iam_role.apigateway.arn
-  authorizer_result_ttl_in_seconds = 1 # TODO longer once we know it's working; default 300
+  authorizer_result_ttl_in_seconds = 0 # disabled because we need the authorizer to calculate context.authorizer.Location
   authorizer_uri                   = module.substrate-apigateway-authorizer.invoke_arn
-  identity_source                  = "method.request.header.Cookie"
+  identity_source                  = "method.request.header.Host" # force the authorizer to run every time because this header is present every time
   name                             = "Substrate"
   rest_api_id                      = aws_api_gateway_rest_api.intranet.id
   type                             = "REQUEST"
@@ -154,6 +166,8 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_resource.credential-factory),
       jsonencode(aws_api_gateway_resource.instance-factory),
       jsonencode(aws_api_gateway_resource.login),
+      jsonencode(aws_api_gateway_gateway_response.ACCESS_DENIED),
+      jsonencode(aws_api_gateway_gateway_response.UNAUTHORIZED),
       jsonencode(aws_cloudwatch_log_group.apigateway),
     )))
   }
@@ -172,6 +186,25 @@ resource "aws_api_gateway_domain_name" "intranet" {
   }
   regional_certificate_arn = aws_acm_certificate_validation.intranet.certificate_arn
   security_policy          = "TLS_1_2"
+}
+
+# TODO add this header to every response, which doesn't seem possible to do with a GatewayResponse.
+# "gatewayresponse.header.Strict-Transport-Security" = "'max-age=31536000; includeSubDomains; preload'"
+
+resource "aws_api_gateway_gateway_response" "ACCESS_DENIED" {
+  response_parameters = local.response_parameters
+  response_templates  = local.response_templates
+  response_type       = "ACCESS_DENIED"
+  rest_api_id         = aws_api_gateway_rest_api.intranet.id
+  status_code         = "302"
+}
+
+resource "aws_api_gateway_gateway_response" "UNAUTHORIZED" {
+  response_parameters = local.response_parameters
+  response_templates  = local.response_templates
+  response_type       = "UNAUTHORIZED"
+  rest_api_id         = aws_api_gateway_rest_api.intranet.id
+  status_code         = "302"
 }
 
 resource "aws_api_gateway_integration" "GET-credential-factory" {
