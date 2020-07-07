@@ -46,6 +46,14 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 	ui.Stopf("provider %s", saml.Arn)
 	//log.Printf("%+v", saml)
 
+	// Pre-create this user so that it may be referenced in policies attached to
+	// the Administrator user.  Terraform will attach policies to it later.
+	/*
+		if _, err := awsiam.EnsureUser(svc, users.CredentialFactory); err != nil {
+			log.Fatal(err)
+		}
+	*/
+
 	// Give Okta some entrypoints in the Admin account.
 	ui.Spinf("finding or creating roles for %s to use in this admin account", name)
 	adminPrincipals, err := admin.AdminPrincipals(organizations.New(sess))
@@ -55,14 +63,10 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 	assumeRolePolicyDocument := &policies.Document{
 		Statement: []policies.Statement{
 			policies.AssumeRolePolicyDocument(adminPrincipals).Statement[0],
-			policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{roles.Arn(
-				aws.StringValue(account.Id),
-				roles.SubstrateCredentialFactory,
-			)}}).Statement[0],
 			policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{users.Arn(
 				aws.StringValue(account.Id),
 				users.CredentialFactory,
-			)}}).Statement[0],
+			)}}).Statement[0], // FIXME chicken and egg with the Terraform code later in substrate-create-admin-account
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				Federated: []string{saml.Arn},
 			}).Statement[0],
