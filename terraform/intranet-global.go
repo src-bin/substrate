@@ -114,11 +114,9 @@ data "aws_route53_zone" "intranet" {
   private_zone = false
 }
 
-/*
 data "aws_iam_user" "credential-factory" {
-  name = "CredentialFactory"
+  user_name = "CredentialFactory"
 }
-*/
 
 module "substrate-apigateway-authenticator" {
   name   = "substrate-apigateway-authenticator"
@@ -186,13 +184,10 @@ resource "aws_iam_role_policy_attachment" "admin-cloudwatch" {
   role       = data.aws_iam_role.admin.name
 }
 
-/*
 resource "aws_iam_user_policy_attachment" "credential-factory" {
   policy_arn = aws_iam_policy.credential-factory.arn
-  user       = data.aws_iam_user.credential-factory.name
-  #user = aws_iam_user.credential-factory.name
+  user       = data.aws_iam_user.credential-factory.user_name
 }
-*/
 
 resource "aws_route53_record" "validation" {
   name    = aws_acm_certificate.intranet.domain_validation_options.0.resource_record_name

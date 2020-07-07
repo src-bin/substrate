@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -48,11 +49,13 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 
 	// Pre-create this user so that it may be referenced in policies attached to
 	// the Administrator user.  Terraform will attach policies to it later.
-	/*
-		if _, err := awsiam.EnsureUser(svc, users.CredentialFactory); err != nil {
-			log.Fatal(err)
-		}
-	*/
+	ui.Spin("finding or creating an IAM user for your Credential Factory, so it can get 12-hour credentials")
+	user, err := awsiam.EnsureUser(svc, users.CredentialFactory)
+	if err != nil {
+		log.Fatal(err)
+	}
+	time.Sleep(5e9) // TODO wait only just long enough for IAM to become consistent, and probably do it in EnsureUser
+	ui.Stopf("user %s", user.UserName)
 
 	// Give Okta some entrypoints in the Admin account.
 	ui.Spinf("finding or creating roles for %s to use in this admin account", name)
@@ -66,7 +69,7 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 			policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{users.Arn(
 				aws.StringValue(account.Id),
 				users.CredentialFactory,
-			)}}).Statement[0], // FIXME chicken and egg with the Terraform code later in substrate-create-admin-account
+			)}}).Statement[0],
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				Federated: []string{saml.Arn},
 			}).Statement[0],
