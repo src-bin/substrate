@@ -73,8 +73,8 @@ locals {
     "gatewayresponse.header.Strict-Transport-Security" = "'max-age=31536000; includeSubDomains; preload'"
   }
   response_templates = {
-    "application/json" = "{\"TODO\":\"$context.authorizer.Location\"}"
-    "text/html"        = "TODO<br>$context.authorizer.Location"
+    "application/json" = "{\"Location\":\"https://${var.dns_domain_name}/login?next=/credential-factory\"}" # a last resort
+    #"application/json" = "{\"Location\":\"$context.authorizer.Location\"}"
   }
 }
 
