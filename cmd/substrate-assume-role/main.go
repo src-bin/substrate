@@ -25,6 +25,7 @@ func main() {
 	quality := flag.String("quality", "", "quality of an AWS account in which to assume a role")
 	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "master" or "network"`)
 	master := flag.Bool("master", false, "assume a role in the organization's master AWS account")
+	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
 	rolename := flag.String("role", "", "name of the IAM role to assume")
 	quiet := flag.Bool("quiet", false, "do not write anything to standard output before forking the child command")
 	flag.Parse()
@@ -32,8 +33,8 @@ func main() {
 	if *admin {
 		*domain, *environment = "admin", "admin"
 	}
-	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*master {
-		ui.Fatal(`one of -domain="..." -environment="..." -quality"..." or -special="..." or -master is required`)
+	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*master && *number == "" {
+		ui.Fatal(`one of -domain="..." -environment="..." -quality"..." or -special="..." or -master or -number="..." is required`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *special != "" {
 		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -special="..."`)
@@ -41,8 +42,17 @@ func main() {
 	if (*domain != "" || *environment != "" || *quality != "") && *master {
 		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -master`)
 	}
+	if (*domain != "" || *environment != "" || *quality != "") && *number != "" {
+		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -number="..."`)
+	}
 	if *special != "" && *master {
 		ui.Fatal(`can't mix -special="..." with -master`)
+	}
+	if *special != "" && *number != "" {
+		ui.Fatal(`can't mix -special="..." with -number="..."`)
+	}
+	if *master && *number != "" {
+		ui.Fatal(`can't mix -master with -number="..."`)
 	}
 	if *rolename == "" {
 		ui.Fatal(`-role="..." is required`)
@@ -54,7 +64,9 @@ func main() {
 	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationReader, awssessions.Config{}))
 	svc := organizations.New(sess)
 	var accountId string
-	if *master {
+	if *number != "" {
+		accountId = *number
+	} else if *master {
 		org, err := awsorgs.DescribeOrganization(svc)
 		if err != nil {
 			log.Fatal(err)
