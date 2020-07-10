@@ -31,7 +31,8 @@ import (
 const DynamoDBTableName = "terraform-state-locks"
 
 // Root sets up the given directory as a root Terraform module by creating a
-// few local files and AWS resources.
+// few local files and AWS resources.  Set it up to store remote Terraform
+// state in the given region.
 // - Makefile, a convenience for running Terraform from other directories.
 // - .gitignore, to avoid committing providers and Lambda zip files.
 // - terraform.tf, for configuring DynamoDB/S3-backed Terraform state files.
