@@ -217,9 +217,8 @@ func main() {
 		}
 	}
 
-	// Generate a Makefile in each root Terraform module then apply the generated
-	// Terraform code.  Start with the ops networks, then move on to the
-	// environments, all quality-by-quality with a pause in between.
+	// Define networks for each environment and quality.  No peering yet as
+	// it's difficult to reason about before all networks are created.
 	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect multiple environments and qualities in rapid succession")
 		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each enviornment and quality")
@@ -279,6 +278,61 @@ func main() {
 			}
 		}
 	}
+
+	// Now that all the networks exist, establish a fully-connected mesh of
+	// peering connections within each environment's qualities and regions.
+	peeringConnections := PeeringConnections{}
+	for _, eq0 := range veqpDoc.ValidEnvironmentQualityPairs {
+		for _, region0 := range regions.Selected() {
+			for _, eq1 := range veqpDoc.ValidEnvironmentQualityPairs {
+				if eq1.Environment != eq0.Environment {
+					continue
+				}
+				for _, region1 := range regions.Selected() {
+					if eq0.Quality == eq1.Quality && region0 == region1 || peeringConnections.Has(
+						eq0.Environment,
+						eq0.Quality,
+						region0,
+						eq1.Quality,
+						region1,
+					) {
+						continue
+					}
+					peeringConnections.Add(eq0.Environment, eq0.Quality, region0, eq1.Quality, region1)
+
+					log.Println(eq0.Environment, eq0.Quality, region0, eq1.Quality, region1)
+
+					/*
+						dirname := filepath.Join(terraform.RootModulesDirname, accounts.Network, eq.Environment0, "TODO")
+
+						file := terraform.NewFile()
+						if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
+							log.Fatal(err)
+						}
+
+						providersFile := terraform.NewFile()
+						providersFile.Push(terraform.ProviderFor(
+							region0,
+							roles.Arn(accountId, roles.NetworkAdministrator),
+						))
+						providersFile.Push(terraform.ProviderFor(
+							region1,
+							roles.Arn(accountId, roles.NetworkAdministrator),
+						))
+
+						// The choice of region0 here is arbitrary.
+						if err := terraform.Root(dirname, region0); err != nil {
+							log.Fatal(err)
+						}
+
+						// TODO Init, Plan, Apply
+					*/
+
+				}
+			}
+		}
+	}
+
 	if *noApply {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
 	}
