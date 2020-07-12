@@ -71,6 +71,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	time.Sleep(5e9) // give Organizations time to finish so that CreateAccount will work below (TODO do it gracefully)
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
@@ -105,9 +106,9 @@ func main() {
 	ui.Spin("finding or creating the audit account")
 	auditAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Audit)
 	if err != nil {
-		log.Fatal(err) // TODO Casey encountered what looked like a race here (TooManyRequestsException "because another request is already in progress")
+		log.Fatal(err)
 	}
-	time.Sleep(5e9) // TODO give IAM a moment with itself so the AssumeRole immediately below works
+	time.Sleep(5e9) // give IAM a moment with itself so the AssumeRole immediately below works (TODO do it gracefully)
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
