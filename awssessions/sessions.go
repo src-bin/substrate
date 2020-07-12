@@ -113,9 +113,16 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	} else {
 		masterAccountId = aws.StringValue(org.MasterAccountId)
 	}
+	callerIdentityArn := aws.StringValue(callerIdentity.Arn)
 
 	// Maybe we're already in the desired role.
-	if aws.StringValue(callerIdentity.Arn) == roles.Arn(masterAccountId, rolename) {
+	if callerIdentityArn == roles.Arn(masterAccountId, rolename) {
+		return sess, nil
+	}
+
+	// Or maybe we're trying to be role/OrganizationAdministrator but really
+	// user/OrganizationAdministrator will do.
+	if rolename == roles.OrganizationAdministrator && callerIdentityArn == users.Arn(masterAccountId, users.OrganizationAdministrator) {
 		return sess, nil
 	}
 
