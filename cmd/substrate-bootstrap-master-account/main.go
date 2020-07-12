@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -106,6 +107,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err) // TODO Casey encountered what looked like a race here (TooManyRequestsException "because another request is already in progress")
 	}
+	time.Sleep(5e9) // TODO give IAM a moment with itself so the AssumeRole immediately below works
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
@@ -143,7 +145,7 @@ func main() {
 			},
 		},
 	); err != nil {
-		log.Fatal(err) // TODO another race here
+		log.Fatal(err)
 	}
 	if err := awsorgs.EnableAWSServiceAccess(svc, "cloudtrail.amazonaws.com"); err != nil {
 		log.Fatal(err)
