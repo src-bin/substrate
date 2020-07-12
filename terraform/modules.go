@@ -20,6 +20,11 @@ func LambdaFunctionRegionalModule() *Directory {
 	return &Directory{lambdaFunctionRegionalTemplate()}
 }
 
+//go:generate go run ../tools/template/main.go -name peeringConnectionTemplate -o peering-connection.go modules/peering-connection
+func PeeringConnectionModule() *Directory {
+	return &Directory{peeringConnectionTemplate()}
+}
+
 //go:generate go run ../tools/template/main.go -name substrateGlobalTemplate -o substrate-global.go modules/substrate/global
 func SubstrateGlobalModule() *Directory {
 	return &Directory{substrateGlobalTemplate()}
