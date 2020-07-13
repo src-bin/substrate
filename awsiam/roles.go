@@ -3,6 +3,7 @@ package awsiam
 import (
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -42,6 +43,7 @@ func CreateRole(
 		return nil, err
 	}
 	//log.Printf("%+v", out)
+	time.Sleep(10e9) // give IAM time to become consistent (TODO do it gracefully)
 	return roleFromAPI(out.Role)
 }
 

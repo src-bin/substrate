@@ -216,6 +216,7 @@ func createAccount(
 		}
 		time.Sleep(1e9) // TODO exponential backoff
 	}
+	time.Sleep(10e9) // give it a moment with itself so an AssumeRole immediately after this function returns actually works (TODO do it gracefully)
 	return status, nil
 }
 

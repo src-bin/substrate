@@ -2,6 +2,7 @@ package awsorgs
 
 import (
 	"errors"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -21,6 +22,7 @@ func CreateOrganization(svc *organizations.Organizations) (*organizations.Organi
 	if err != nil {
 		return nil, err
 	}
+	time.Sleep(10e9) // give Organizations time to finish so that subsequent CreateAccount, etc. will work (TODO do it gracefully)
 	return out.Organization, nil
 }
 

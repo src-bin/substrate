@@ -1,6 +1,8 @@
 package awsiam
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/src-bin/substrate/awsutil"
@@ -29,6 +31,7 @@ func CreateUser(svc *iam.IAM, username string) (*iam.User, error) {
 		return nil, err
 	}
 	//log.Printf("%+v", out)
+	time.Sleep(10e9) // give IAM time to become consistent (TODO do it gracefully)
 	return out.User, nil
 }
 

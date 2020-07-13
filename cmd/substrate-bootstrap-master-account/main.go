@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -71,7 +70,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(5e9) // give Organizations time to finish so that CreateAccount will work below (TODO do it gracefully)
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
@@ -108,7 +106,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(5e9) // give IAM a moment with itself so the AssumeRole immediately below works (TODO do it gracefully)
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
