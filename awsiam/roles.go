@@ -62,7 +62,11 @@ func EnsureRole(
 	assumeRolePolicyDoc *policies.Document,
 ) (*Role, error) {
 
-	role, err := CreateRole(svc, rolename, assumeRolePolicyDoc)
+	role, err := CreateRole(
+		svc,
+		rolename,
+		policies.AssumeRolePolicyDocument(&policies.Principal{Service: []string{"ec2.amazonaws.com"}}), // harmless solution to chicken and egg problem
+	)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
 		role, err = GetRole(svc, rolename)
 	}
