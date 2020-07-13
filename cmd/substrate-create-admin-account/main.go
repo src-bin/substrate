@@ -157,6 +157,31 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	if clientSecret != "" {
+		ui.Spin("storing your OAuth OIDC client secret in AWS Secrets Manager")
+		for _, region := range regions.Selected() {
+			if _, err := awssecretsmanager.EnsureSecret(
+				secretsmanager.New(
+					awssessions.AssumeRole(sess, aws.StringValue(account.Id), roles.Administrator),
+					&aws.Config{Region: aws.String(region)},
+				),
+				fmt.Sprintf("%s-%s", oauthoidc.OAuthOIDCClientSecret, clientId),
+				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
+					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authenticator"), // must match intranet/global/main.tf
+					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authorizer"),    // must match intranet/global/main.tf
+				}}),
+				clientSecretTimestamp,
+				clientSecret,
+			); err != nil {
+				log.Fatal(err)
+			}
+		}
+		if err := ioutil.WriteFile(OAuthOIDCClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666); err != nil {
+			log.Fatal(err)
+		}
+		ui.Stop("ok")
+		ui.Printf("wrote %s, which you should commit to version control", OAuthOIDCClientSecretTimestampFilename)
+	}
 
 	// Copy module dependencies that are embedded in this binary into the
 	// user's source tree.
@@ -348,33 +373,6 @@ func main() {
 	}
 	if *noApply {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
-	}
-
-	// Store the OAuth OIDC client secret in AWS Secrets Manager.
-	if clientSecret != "" {
-		ui.Spin("storing your OAuth OIDC client secret in AWS Secrets Manager")
-		for _, region := range regions.Selected() {
-			if _, err := awssecretsmanager.EnsureSecret(
-				secretsmanager.New(
-					awssessions.AssumeRole(sess, aws.StringValue(account.Id), roles.Administrator),
-					&aws.Config{Region: aws.String(region)},
-				),
-				fmt.Sprintf("%s-%s", oauthoidc.OAuthOIDCClientSecret, clientId),
-				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
-					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authenticator"), // must match intranet/global/main.tf
-					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authorizer"),    // must match intranet/global/main.tf
-				}}),
-				clientSecretTimestamp,
-				clientSecret,
-			); err != nil {
-				log.Fatal(err)
-			}
-		}
-		if err := ioutil.WriteFile(OAuthOIDCClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666); err != nil {
-			log.Fatal(err)
-		}
-		ui.Stop("ok")
-		ui.Printf("wrote %s, which you should commit to version control", OAuthOIDCClientSecretTimestampFilename)
 	}
 
 	ui.Printf(
