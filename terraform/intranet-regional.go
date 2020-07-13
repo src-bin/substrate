@@ -6,37 +6,6 @@ func intranetRegionalTemplate() map[string]string {
 	return map[string]string{
 		".gitignore":   `*.zip
 `,
-		"variables.tf": `variable "dns_domain_name" {
-  type = string
-}
-
-variable "oauth_oidc_client_id" {
-  type = string
-}
-
-variable "oauth_oidc_client_secret_timestamp" {
-  type = string
-}
-
-variable "okta_hostname" {
-  default = ""
-  type    = string
-}
-
-variable "selected_regions" {
-  type = list(string)
-}
-
-variable "stage_name" {
-  type = string
-}
-
-variable "validation_fqdn" {
-  type = string
-}
-`,
-		"outputs.tf":   `
-`,
 		"main.tf":      `data "aws_caller_identity" "current" {}
 
 data "aws_iam_role" "apigateway" {
@@ -368,6 +337,37 @@ resource "aws_route53_record" "intranet" {
   set_identifier = data.aws_region.current.name
   type           = "A"
   zone_id        = data.aws_route53_zone.intranet.id
+}
+`,
+		"outputs.tf":   `
+`,
+		"variables.tf": `variable "dns_domain_name" {
+  type = string
+}
+
+variable "oauth_oidc_client_id" {
+  type = string
+}
+
+variable "oauth_oidc_client_secret_timestamp" {
+  type = string
+}
+
+variable "okta_hostname" {
+  default = ""
+  type    = string
+}
+
+variable "selected_regions" {
+  type = list(string)
+}
+
+variable "stage_name" {
+  type = string
+}
+
+variable "validation_fqdn" {
+  type = string
 }
 `,
 	}

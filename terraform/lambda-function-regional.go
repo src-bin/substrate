@@ -4,29 +4,7 @@ package terraform
 
 func lambdaFunctionRegionalTemplate() map[string]string {
 	return map[string]string{
-		"variables.tf":  `variable "apigateway_execution_arn" {
-  type = string
-}
-
-variable "filename" {
-  type = string
-}
-
-variable "name" {
-  type = string
-}
-
-variable "role_arn" {
-  type = string
-}
-`,
-		"outputs.tf":    `output "function_arn" {
-  value = aws_lambda_function.function.arn
-}
-
-output "invoke_arn" {
-  value = aws_lambda_function.function.invoke_arn
-}
+		"cloudwatch.tf": `
 `,
 		"main.tf":       `data "archive_file" "zip" {
   output_path = var.filename
@@ -69,7 +47,29 @@ resource "aws_lambda_permission" "permission" {
   #source_arn    = var.apigateway_execution_arn
 }
 `,
-		"cloudwatch.tf": `
+		"outputs.tf":    `output "function_arn" {
+  value = aws_lambda_function.function.arn
+}
+
+output "invoke_arn" {
+  value = aws_lambda_function.function.invoke_arn
+}
+`,
+		"variables.tf":  `variable "apigateway_execution_arn" {
+  type = string
+}
+
+variable "filename" {
+  type = string
+}
+
+variable "name" {
+  type = string
+}
+
+variable "role_arn" {
+  type = string
+}
 `,
 	}
 }

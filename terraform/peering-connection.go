@@ -4,22 +4,6 @@ package terraform
 
 func peeringConnectionTemplate() map[string]string {
 	return map[string]string{
-		"providers.tf": `provider "aws" { alias = "accepter" }
-
-provider "aws" { alias = "requester" }
-`,
-		"variables.tf": `variable "accepter_quality" {
-  type = string
-}
-
-variable "environment" {
-  type = string
-}
-
-variable "requester_quality" {
-  type = string
-}
-`,
 		"main.tf":      `data "aws_region" "accepter" {}
 
 /*
@@ -95,6 +79,22 @@ resource "aws_vpc_peering_connection_options" "requester" {
   }
   provider                  = aws.requester
   vpc_peering_connection_id = aws_vpc_peering_connection_accepter.accepter.id
+}
+`,
+		"providers.tf": `provider "aws" { alias = "accepter" }
+
+provider "aws" { alias = "requester" }
+`,
+		"variables.tf": `variable "accepter_quality" {
+  type = string
+}
+
+variable "environment" {
+  type = string
+}
+
+variable "requester_quality" {
+  type = string
 }
 `,
 	}

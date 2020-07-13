@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 )
@@ -53,6 +54,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		sort.Strings(filenames)
 		var max int
 		for _, filename := range filenames {
 			if i := len(filename); i > max {

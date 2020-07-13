@@ -4,40 +4,6 @@ package terraform
 
 func intranetGlobalTemplate() map[string]string {
 	return map[string]string{
-		"variables.tf": `variable "dns_domain_name" {
-  type = string
-}
-`,
-		"outputs.tf":   `output "apigateway_role_arn" {
-  value = aws_iam_role.apigateway.arn
-}
-
-# substrate_credential_factory_role_arn is set to Administrator because there's
-# a chicken-and-egg problem if we try to authorize a role specific to the
-# substrate-credential-factory Lambda function to assume the Administrator role
-# since its ARN is not known when the Administrator's assume role policy must
-# be set.  And, since the whole point is to assume the Administrator role, it's
-# no serious security compromise to jump straight to the Administrator role.
-output "substrate_credential_factory_role_arn" {
-  value = data.aws_iam_role.admin.arn
-}
-
-output "substrate_instance_factory_role_arn" {
-  value = module.substrate-instance-factory.role_arn
-}
-
-output "substrate_apigateway_authenticator_role_arn" {
-  value = module.substrate-apigateway-authenticator.role_arn
-}
-
-output "substrate_apigateway_authorizer_role_arn" {
-  value = module.substrate-apigateway-authorizer.role_arn
-}
-
-output "validation_fqdn" {
-  value = aws_route53_record.validation.fqdn
-}
-`,
 		"main.tf":      `data "aws_iam_policy_document" "apigateway" {
   statement {
     actions   = ["lambda:InvokeFunction"]
@@ -195,6 +161,40 @@ resource "aws_route53_record" "validation" {
   ttl     = 60
   type    = aws_acm_certificate.intranet.domain_validation_options.0.resource_record_type
   zone_id = data.aws_route53_zone.intranet.zone_id
+}
+`,
+		"outputs.tf":   `output "apigateway_role_arn" {
+  value = aws_iam_role.apigateway.arn
+}
+
+# substrate_credential_factory_role_arn is set to Administrator because there's
+# a chicken-and-egg problem if we try to authorize a role specific to the
+# substrate-credential-factory Lambda function to assume the Administrator role
+# since its ARN is not known when the Administrator's assume role policy must
+# be set.  And, since the whole point is to assume the Administrator role, it's
+# no serious security compromise to jump straight to the Administrator role.
+output "substrate_credential_factory_role_arn" {
+  value = data.aws_iam_role.admin.arn
+}
+
+output "substrate_instance_factory_role_arn" {
+  value = module.substrate-instance-factory.role_arn
+}
+
+output "substrate_apigateway_authenticator_role_arn" {
+  value = module.substrate-apigateway-authenticator.role_arn
+}
+
+output "substrate_apigateway_authorizer_role_arn" {
+  value = module.substrate-apigateway-authorizer.role_arn
+}
+
+output "validation_fqdn" {
+  value = aws_route53_record.validation.fqdn
+}
+`,
+		"variables.tf": `variable "dns_domain_name" {
+  type = string
 }
 `,
 	}
