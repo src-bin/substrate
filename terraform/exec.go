@@ -7,14 +7,20 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-func Apply(dirname string) error {
+func Apply(dirname string, autoApprove bool) error {
 	ui.Printf("applying Terraform changes in %s", dirname)
-	return execlp("make", "-C", dirname, "apply", "AUTO_APPROVE=-auto-approve")
+	if autoApprove {
+		return execlp("make", "-C", dirname, "apply", "AUTO_APPROVE=-auto-approve")
+	}
+	return execlp("make", "-C", dirname, "apply")
 }
 
-func Destroy(dirname string) error {
+func Destroy(dirname string, autoApprove bool) error {
 	ui.Printf("destroying Terraform-managed resources in %s", dirname)
-	return execlp("make", "-C", dirname, "destroy", "AUTO_APPROVE=-auto-approve")
+	if autoApprove {
+		return execlp("make", "-C", dirname, "destroy", "AUTO_APPROVE=-auto-approve")
+	}
+	return execlp("make", "-C", dirname, "destroy")
 }
 
 func Fmt(dirname string) error {

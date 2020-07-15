@@ -264,16 +264,8 @@ func main() {
 
 		if *noApply {
 			err = terraform.Plan(dirname)
-		} else if *autoApprove {
-			err = terraform.Apply(dirname)
 		} else {
-			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
-			if err != nil {
-				log.Fatal(err)
-			}
-			if ok {
-				err = terraform.Apply(dirname)
-			}
+			err = terraform.Apply(dirname, *autoApprove)
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -356,16 +348,8 @@ func main() {
 
 		if *noApply {
 			err = terraform.Plan(dirname)
-		} else if *autoApprove {
-			err = terraform.Apply(dirname)
 		} else {
-			ok, err := ui.Confirmf("apply Terraform changes in %s? (yes/no)", dirname)
-			if err != nil {
-				log.Fatal(err)
-			}
-			if ok {
-				err = terraform.Apply(dirname)
-			}
+			err = terraform.Apply(dirname, *autoApprove)
 		}
 		if err != nil {
 			log.Fatal(err)
