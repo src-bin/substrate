@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/availabilityzones"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
@@ -199,24 +200,34 @@ func main() {
 
 	// Ensure the VPCs-per-region service quota and a few others that  isn't going to get in the way.
 	ui.Print("raising the VPC, Internet, Egress-Only Internet, and NAT Gateway, and EIP service quotas in all your regions (this could take days, unfortunately; this program is safe to re-run)")
-	desiredValue := float64(len(netDoc.FindAll(&networks.Network{Region: regions.Selected()[0]})) + // networks for existing (environment, quality) pairs
-		len(qualities) + // plus room to add another environment
-		1) // plus the default VPC
+	adminNets := len(adminNetDoc.FindAll(&networks.Network{Region: regions.Selected()[0]})) // admin networks per region
+	nets := len(netDoc.FindAll(&networks.Network{Region: regions.Selected()[0]}))           // (environment, quality) pairs per region
 	for _, quota := range [][2]string{
 		{"L-F678F1CE", "vpc"}, // VPCs per region
 		{"L-45FE3B85", "vpc"}, // Egress-Only Internet Gateways per region
 		{"L-A4707A72", "vpc"}, // Internet Gateways per region
-		{"L-FE5A380F", "vpc"}, // NAT Gateways per availability zone
-		// {"L-0263D0A3", "ec2"}, // EIPs per VPC
 	} {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 			sess,
-			quota[0],
-			quota[1],
-			desiredValue,
+			quota[0], quota[1],
+			float64(adminNets+nets), // admin and non-admin VPCs per region, each with one of each type of Internet Gateway
 		); err != nil {
 			log.Fatal(err)
 		}
+	}
+	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
+		sess,
+		"L-FE5A380F", "vpc", // NAT Gateways per availability zone
+		float64(nets), // only non-admin networks get private subnets and thus NAT Gateways
+	); err != nil {
+		log.Fatal(err)
+	}
+	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
+		sess,
+		"L-0263D0A3", "ec2", // EIPs per region
+		float64(nets*availabilityzones.NumberPerNetwork), // NAT Gateways per AZ times the number of AZs per network
+	); err != nil {
+		log.Fatal(err)
 	}
 
 	// Define networks for each environment and quality.  No peering yet as

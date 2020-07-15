@@ -69,7 +69,7 @@ func vpcAccoutrements(
 
 	// Create a public and private subnet in each of (up to, and the newest)
 	// three availability zones in the region.
-	azs, err := availabilityzones.Select(sess, region, 3)
+	azs, err := availabilityzones.Select(sess, region, availabilityzones.NumberPerNetwork)
 	if err != nil {
 		log.Fatal(err)
 	}

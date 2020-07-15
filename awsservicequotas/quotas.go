@@ -80,11 +80,11 @@ func EnsureServiceQuota(
 		}
 		ui.Printf(
 			"requested an increase to service quota %s in %s to %.0f; waiting for it to be resolved",
-			quotaCode,
-			aws.StringValue(svc.Client.Config.Region),
-			desiredValue,
+			req.QuotaCode,
+			svc.Client.Config.Region,
+			aws.Float64Value(req.DesiredValue),
 		)
-		log.Printf("%+v", req)
+		//log.Printf("%+v", req)
 	}
 
 	for {

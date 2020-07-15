@@ -9,6 +9,8 @@ import (
 	"github.com/src-bin/substrate/awsec2"
 )
 
+const NumberPerNetwork = 3
+
 // Select returns a list of up to n availability zone names in the given
 // region, chosen in order from newest to oldest but returned in lexically
 // sorted order.
