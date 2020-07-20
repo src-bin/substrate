@@ -21,10 +21,10 @@ func (s Subnet) Ref() Value {
 
 func (Subnet) Template() string {
 	return `resource "aws_subnet" {{.Label.Value}} {
-  assign_ipv6_address_on_creation = true
+  #assign_ipv6_address_on_creation = true
   availability_zone = {{.AvailabilityZone.Value}}
   cidr_block = {{.CidrBlock.Value}}
-  ipv6_cidr_block = {{.IPv6CidrBlock.Value}}
+  #ipv6_cidr_block = {{.IPv6CidrBlock.Value}}
   map_public_ip_on_launch = {{.MapPublicIPOnLaunch}}
 {{- if .Provider}}
   provider = {{.Provider}}
@@ -55,7 +55,7 @@ func (vpc VPC) Ref() Value {
 
 func (VPC) Template() string {
 	return `resource "aws_vpc" {{.Label.Value}} {
-  assign_generated_ipv6_cidr_block = true
+  #assign_generated_ipv6_cidr_block = true
   cidr_block = {{.CidrBlock.Value}}
   enable_dns_hostnames = true
   enable_dns_support = true

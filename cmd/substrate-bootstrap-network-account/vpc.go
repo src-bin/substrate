@@ -48,12 +48,14 @@ func vpcAccoutrements(
 		Label:             terraform.Label(vpc.Tags, "public-internet-ipv4"),
 		RouteTableId:      terraform.U(vpc.Ref(), ".default_route_table_id"),
 	})
-	file.Push(terraform.Route{
-		DestinationIPv6:   terraform.Q("::/0"),
-		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
-		Label:             terraform.Label(vpc.Tags, "public-internet-ipv6"),
-		RouteTableId:      terraform.U(vpc.Ref(), ".default_route_table_id"),
-	})
+	/*
+		file.Push(terraform.Route{
+			DestinationIPv6:   terraform.Q("::/0"),
+			InternetGatewayId: terraform.U(igw.Ref(), ".id"),
+			Label:             terraform.Label(vpc.Tags, "public-internet-ipv6"),
+			RouteTableId:      terraform.U(vpc.Ref(), ".default_route_table_id"),
+		})
+	*/
 
 	// IPv6 Egress-Only Internet Gateway for the private subnets.  (The IPv4
 	// NAT Gateway comes later because it's per-subnet.  That is also where
@@ -171,12 +173,14 @@ func vpcAccoutrements(
 		})
 
 		// Associate the VPC's Egress-Only Internet Gateway for IPv6 traffic.
-		file.Push(terraform.Route{
-			DestinationIPv6:             terraform.Q("::/0"),
-			EgressOnlyInternetGatewayId: terraform.U(egw.Ref(), ".id"),
-			Label:                       terraform.Label(s.Tags, "private-internet-ipv6"),
-			RouteTableId:                terraform.U(rt.Ref(), ".id"),
-		})
+		/*
+			file.Push(terraform.Route{
+				DestinationIPv6:             terraform.Q("::/0"),
+				EgressOnlyInternetGatewayId: terraform.U(egw.Ref(), ".id"),
+				Label:                       terraform.Label(s.Tags, "private-internet-ipv6"),
+				RouteTableId:                terraform.U(rt.Ref(), ".id"),
+			})
+		*/
 
 	}
 
