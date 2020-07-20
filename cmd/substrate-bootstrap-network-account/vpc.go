@@ -100,6 +100,7 @@ func vpcAccoutrements(
 		}
 		s.Tags.Connectivity = "public"
 		s.Tags.Name = vpc.Tags.Name + "-public-" + az
+		s.Tags.KubernetesRole = "elb"
 		file.Push(s)
 		file.Push(terraform.ResourceAssociation{
 			Label:            s.Label,
@@ -129,6 +130,7 @@ func vpcAccoutrements(
 		}
 		s.Tags.Connectivity = "private"
 		s.Tags.Name = vpc.Tags.Name + "-private-" + az
+		s.Tags.KubernetesRole = "internal-elb"
 		file.Push(s)
 		file.Push(terraform.ResourceAssociation{
 			Label:            s.Label,
