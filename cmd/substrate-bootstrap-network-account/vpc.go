@@ -119,6 +119,10 @@ func vpcAccoutrements(
 			continue
 		}
 
+		// Save a reference to the public subnet in this availability zone
+		// so we know where to put the NAT Gateway.
+		natGatewaySubnetId := terraform.U(s.Ref(), ".id")
+
 		// Private subnet, also shared org-wide.
 		s = terraform.Subnet{
 			AvailabilityZone: terraform.Q(az),
@@ -162,7 +166,7 @@ func vpcAccoutrements(
 		file.Push(eip)
 		ngw := terraform.NATGateway{
 			Label:    terraform.Label(tags),
-			SubnetId: terraform.U(s.Ref(), ".id"),
+			SubnetId: natGatewaySubnetId,
 			Tags:     tags,
 		}
 		ngw.Tags.Name = vpc.Tags.Name + "-" + az
