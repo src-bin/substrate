@@ -41,7 +41,7 @@ func init() {
 	ch := make(chan instruction)
 	chInst = ch
 	stdin = bufio.NewReader(os.Stdin)
-	stdout := os.Stdout
+	stderr := os.Stderr
 	go func(ch <-chan instruction) {
 		dots, s, spinner := "", "", ""
 		tick := time.Tick(time.Second / hz)
@@ -63,22 +63,22 @@ func init() {
 					// demands special consideration.
 					if spinner != "" {
 						if isTerminal {
-							fmt.Fprint(stdout, "\r", s, " ", dots, ". (to be continued)\n")
+							fmt.Fprint(stderr, "\r", s, " ", dots, ". (to be continued)\n")
 						} else {
-							fmt.Fprintln(stdout, " (to be continued)")
+							fmt.Fprintln(stderr, " (to be continued)")
 						}
 						dots, s = "", "(continuing)"
 					}
 
-					fmt.Fprintln(stdout, inst.s) // TODO split on word boundaries to make long messages easy to read on narrow terminals
+					fmt.Fprintln(stderr, inst.s) // TODO split on word boundaries to make long messages easy to read on narrow terminals
 
 					// Per above, indicate that the spinning is resuming.
 					if spinner != "" {
-						fmt.Fprint(stdout, "(continuing)")
+						fmt.Fprint(stderr, "(continuing)")
 					}
 
 				case opQuiet:
-					stdout, err = os.Open(os.DevNull)
+					stderr, err = os.Open(os.DevNull)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -91,21 +91,21 @@ func init() {
 					if isTerminal {
 						i = len(inst.s) - len(inst.s)%width
 						if i > 0 {
-							fmt.Fprintln(stdout, inst.s[:i])
+							fmt.Fprintln(stderr, inst.s[:i])
 						}
 					}
 					dots, s, spinner = "", inst.s[i:], "-"
-					fmt.Fprint(stdout, s, " ", dots, spinner)
+					fmt.Fprint(stderr, s, " ", dots, spinner)
 
 				case opStop:
 
 					// No carriage returns if standard output is not a terminal.
 					if !isTerminal {
-						fmt.Fprint(stdout, " ", strings.TrimSuffix(inst.s, "\n"), "\n")
+						fmt.Fprint(stderr, " ", strings.TrimSuffix(inst.s, "\n"), "\n")
 						break
 					}
 
-					fmt.Fprint(stdout, "\r", s, " ", dots, ". ", strings.TrimSuffix(inst.s, "\n"), "\n")
+					fmt.Fprint(stderr, "\r", s, " ", dots, ". ", strings.TrimSuffix(inst.s, "\n"), "\n")
 					dots, s, spinner = "", "", ""
 				}
 				inst.ch <- struct{}{}
@@ -125,11 +125,11 @@ func init() {
 					// If the spinner is about to wrap, output a newline and
 					// align it to continue below.
 					if len(fmt.Sprint("\r", s, " ", dots)) > width {
-						fmt.Fprint(stdout, "\r", s, " ", dots, "\n")
+						fmt.Fprint(stderr, "\r", s, " ", dots, "\n")
 						dots, s = "", strings.Repeat(" ", len(s))
 					}
 
-					fmt.Fprint(stdout, "\r", s, " ", dots, spinner)
+					fmt.Fprint(stderr, "\r", s, " ", dots, spinner)
 				}
 				switch spinner {
 				case "-":

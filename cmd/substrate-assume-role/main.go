@@ -92,7 +92,9 @@ func main() {
 	creds := out.Credentials
 
 	// Print the credentials for the user to copy into their environment.
-	awssts.Export(out, nil)
+	if !*quiet {
+		awssts.Export(out, nil)
+	}
 
 	// Execute a command with the credentials in its environment.  We use
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
