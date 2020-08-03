@@ -4,6 +4,10 @@ deploy-account
 network-account
 ops-account
 *.stdin
+substrate-*-linux
+substrate-*-linux.tar.gz
+substrate-*-macos
+substrate-*-macos.tar.gz
 substrate.*
 *.swo
 *.swp
