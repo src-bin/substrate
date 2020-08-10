@@ -9,7 +9,6 @@ import (
 type Tags struct {
 	Connectivity                 string // "public" or "private"; used only by subnets
 	Domain, Environment, Quality string
-	KubernetesRole               string
 	Name                         string
 	Region, AvailabilityZone     string
 	Special                      string
@@ -48,9 +47,6 @@ func (t Tags) Value() Value {
 		//s += fmt.Sprintf(format, "Special", t.Special)
 	}
 	s += fmt.Sprintf(format, "SubstrateVersion", t.SubstrateVersion())
-	if t.KubernetesRole != "" {
-		s += fmt.Sprintf(format, fmt.Sprintf(`"kubernetes.io/role/%s"`, t.KubernetesRole), "1")
-	}
 	s += "\n  }"
 	return U(s)
 }
