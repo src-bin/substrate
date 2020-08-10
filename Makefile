@@ -1,4 +1,5 @@
-VERSION := $(shell date +%Y.%m)
+#VERSION := $(shell date +%Y.%m) # for normal releases
+VERSION := $(shell date +%Y.%m.%d) # for emergency releases
 COMMIT := $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
 
 all:
