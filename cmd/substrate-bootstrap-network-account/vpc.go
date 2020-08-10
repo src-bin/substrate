@@ -67,6 +67,19 @@ func vpcAccoutrements(
 		file.Push(egw)
 	}
 
+	// VPC Endpoint for S3, the one VPC Endpoint everyone's all but guaranteed to need.
+	vpce := terraform.VPCEndpoint{
+		Label: terraform.Label(vpc.Tags),
+		RouteTableIds: terraform.ValueSlice{
+			terraform.U(vpc.Ref(), ".default_route_table_id"),
+			// more will be appeneded before this function returns
+		},
+		ServiceName: terraform.Qf("com.amazonaws.%s.s3", region),
+		Tags:        vpc.Tags,
+		VpcId:       terraform.U(vpc.Ref(), ".id"),
+	}
+	file.Push(vpce)
+
 	// Create a public and private subnet in each of (up to, and the newest)
 	// three availability zones in the region.
 	azs, err := availabilityzones.Select(sess, region, availabilityzones.NumberPerNetwork)
@@ -139,7 +152,8 @@ func vpcAccoutrements(
 		})
 
 		// Private subnets need their own routing tables to keep their NAT
-		// Gateway traffic zonal.
+		// Gateway traffic zonal.  The VPC Endpoint we created for S3 needs
+		// to be made aware of this routing table, too.
 		rt := terraform.RouteTable{
 			Label: s.Label,
 			Tags:  s.Tags,
@@ -151,6 +165,7 @@ func vpcAccoutrements(
 			RouteTableId: terraform.U(rt.Ref(), ".id"),
 			SubnetId:     terraform.U(s.Ref(), ".id"),
 		})
+		vpce.RouteTableIds = append(vpce.RouteTableIds, terraform.U(rt.Ref(), ".id"))
 
 		// NAT Gateway for this private subnet.
 		eip := terraform.EIP{

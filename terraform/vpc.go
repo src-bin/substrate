@@ -66,6 +66,33 @@ func (VPC) Template() string {
 }`
 }
 
+type VPCEndpoint struct {
+	Label         Value
+	Provider      ProviderAlias
+	RouteTableIds ValueSlice
+	ServiceName   Value
+	Tags          Tags
+	VpcId         Value
+}
+
+func (vpce VPCEndpoint) Ref() Value {
+	return Uf("aws_vpc_endpoint.%s", vpce.Label)
+}
+
+func (VPCEndpoint) Template() string {
+	return `resource "aws_vpc_endpoint" {{.Label.Value}} {
+{{- if .Provider}}
+  provider = {{.Provider}}
+{{- end}}
+{{- if .RouteTableIds}}
+  route_table_ids = {{.RouteTableIds.Value}}
+{{- end}}
+  service_name = {{.ServiceName.Value}}
+  tags = {{.Tags.Value}}
+  vpc_id = {{.VpcId.Value}}
+}`
+}
+
 func cidrsubnet(prefix string, newbits, netnum int) Value {
 	if !strings.Contains(prefix, "aws_vpc.") {
 		prefix = fmt.Sprintf("%q", prefix)
