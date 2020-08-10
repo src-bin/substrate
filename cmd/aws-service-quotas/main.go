@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -103,6 +104,7 @@ func main() {
 				*quotaCode,
 				*serviceCode,
 				*desiredValue,
+				time.Time{},
 			); err != nil {
 				log.Fatal(err)
 			}
@@ -114,6 +116,7 @@ func main() {
 				*quotaCode,
 				*serviceCode,
 				*desiredValue,
+				time.Time{},
 			); err != nil {
 				log.Fatal(err)
 			}

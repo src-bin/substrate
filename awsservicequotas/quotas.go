@@ -1,6 +1,7 @@
 package awsservicequotas
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -14,10 +15,17 @@ import (
 
 const NoSuchResourceException = "NoSuchResourceException"
 
+type DeadlinePassed struct{ QuotaCode, ServiceCode string }
+
+func (err DeadlinePassed) Error() string {
+	return fmt.Sprintf("deadline passed raising quota %s %s; continuing", err.QuotaCode, err.ServiceCode)
+}
+
 func EnsureServiceQuota(
 	svc *servicequotas.ServiceQuotas,
 	quotaCode, serviceCode string,
 	desiredValue float64,
+	deadline time.Time,
 ) error {
 
 	quota, err := GetServiceQuota(
@@ -87,14 +95,17 @@ func EnsureServiceQuota(
 		//log.Printf("%+v", req)
 	}
 
+	var zero time.Time
 	for {
+		if deadline != zero && time.Now().After(deadline) {
+			return DeadlinePassed{quotaCode, serviceCode}
+		}
 		quota, err := GetServiceQuota(
 			svc,
 			quotaCode,
 			serviceCode,
 		)
 		if err != nil {
-			log.Print(aws.StringValue(svc.Client.Config.Region))
 			return err
 		}
 		//log.Printf("%+v", quota)
@@ -117,6 +128,7 @@ func EnsureServiceQuotaInAllRegions(
 	sess *session.Session,
 	quotaCode, serviceCode string,
 	desiredValue float64,
+	deadline time.Time,
 ) error {
 	ch := make(chan error, len(regions.Selected()))
 
@@ -125,9 +137,10 @@ func EnsureServiceQuotaInAllRegions(
 			svc *servicequotas.ServiceQuotas,
 			quotaCode, serviceCode string,
 			desiredValue float64,
+			deadline time.Time,
 			ch chan<- error,
 		) {
-			ch <- EnsureServiceQuota(svc, quotaCode, serviceCode, desiredValue)
+			ch <- EnsureServiceQuota(svc, quotaCode, serviceCode, desiredValue, deadline)
 		}(
 			servicequotas.New(
 				sess,
@@ -136,6 +149,7 @@ func EnsureServiceQuotaInAllRegions(
 			quotaCode,
 			serviceCode,
 			desiredValue,
+			deadline,
 			ch,
 		)
 	}

@@ -6,6 +6,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -32,6 +33,7 @@ const (
 
 func main() {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
+	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	flag.Parse()
 	version.Flag()
@@ -198,7 +200,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Ensure the VPCs-per-region service quota and a few others that  isn't going to get in the way.
+	// Ensure the VPCs-per-region service quota and a few others aren't going to get in the way.
+	var deadline time.Time
+	if *ignoreServiceQuotas {
+		deadline = time.Now()
+	}
 	ui.Print("raising the VPC, Internet, Egress-Only Internet, and NAT Gateway, and EIP service quotas in all your regions (this could take days, unfortunately; this program is safe to re-run)")
 	adminNets := len(adminNetDoc.FindAll(&networks.Network{Region: regions.Selected()[0]})) // admin networks per region
 	nets := len(netDoc.FindAll(&networks.Network{Region: regions.Selected()[0]}))           // (environment, quality) pairs per region
@@ -211,23 +217,38 @@ func main() {
 			sess,
 			quota[0], quota[1],
 			float64(adminNets+nets), // admin and non-admin VPCs per region, each with one of each type of Internet Gateway
+			deadline,
 		); err != nil {
-			log.Fatal(err)
+			if _, ok := err.(awsservicequotas.DeadlinePassed); ok {
+				ui.Print(err)
+			} else {
+				ui.Fatal(err)
+			}
 		}
 	}
 	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 		sess,
 		"L-FE5A380F", "vpc", // NAT Gateways per availability zone
 		float64(nets), // only non-admin networks get private subnets and thus NAT Gateways
+		deadline,
 	); err != nil {
-		log.Fatal(err)
+		if _, ok := err.(awsservicequotas.DeadlinePassed); ok {
+			ui.Print(err)
+		} else {
+			ui.Fatal(err)
+		}
 	}
 	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 		sess,
 		"L-0263D0A3", "ec2", // EIPs per region
 		float64(nets*availabilityzones.NumberPerNetwork), // NAT Gateways per AZ times the number of AZs per network
+		deadline,
 	); err != nil {
-		log.Fatal(err)
+		if _, ok := err.(awsservicequotas.DeadlinePassed); ok {
+			ui.Print(err)
+		} else {
+			ui.Fatal(err)
+		}
 	}
 
 	// Define networks for each environment and quality.  No peering yet as
