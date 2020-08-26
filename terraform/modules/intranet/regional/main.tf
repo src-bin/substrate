@@ -130,6 +130,7 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_gateway_response.ACCESS_DENIED),
       jsonencode(aws_api_gateway_gateway_response.UNAUTHORIZED),
       jsonencode(aws_cloudwatch_log_group.apigateway),
+      jsonencode(module.substrate),
     )))
   }
   variables = {
@@ -137,6 +138,7 @@ resource "aws_api_gateway_deployment" "intranet" {
     "OAuthOIDCClientSecretTimestamp" = var.oauth_oidc_client_secret_timestamp
     "OktaHostname"                   = var.okta_hostname
     "SelectedRegions"                = join(",", var.selected_regions)
+    "VpcId"                          = module.substrate.vpc_id
   }
 }
 

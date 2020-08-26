@@ -179,13 +179,22 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		InstanceType: instanceType,
 		Region:       region,
 	}
-	imageId, err := awsec2.LatestAmazonLinux2AMI(svc)
-	if err != nil {
-		v.Error = err
-	}
-	v.Error = fmt.Errorf("%+v", out)
 	/*
-		_, err := awsec2.RunInstances(svc)
+		image, err := awsec2.LatestAmazonLinux2AMI(svc, awsec2.X86_64)
+		if err != nil {
+			v.Error = err
+		}
+	*/
+	v.Error = fmt.Errorf("%+v", event.StageVariables["VpcId"])
+	/*
+		subnets, err := awsec2.DescribeSubnets(svc, event.StageVariables["VpcId"])
+		if err != nil {
+			v.Error = err
+		}
+		v.Error = fmt.Errorf("%+v", subnets)
+	*/
+	/*
+		_, err := awsec2.RunInstances(svc, aws.StringValue(image.ImageId))
 		if err != nil {
 			v.Error = err
 		}
