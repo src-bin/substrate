@@ -22,7 +22,11 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-func AdminPrincipals(svc *organizations.Organizations) (*policies.Principal, error) {
+// AdminPrincipals enumerates all the IAM principals that we consider
+// administrative.  If permissive is set, the scope is whole AWS accounts in
+// the admin domain; otherwise, the scope is the Administrator role within
+// those same AWS accounts.
+func AdminPrincipals(svc *organizations.Organizations, permissive bool) (*policies.Principal, error) {
 	adminAccounts, err := awsorgs.FindAccountsByDomain(svc, accounts.Admin)
 	if err != nil {
 		return nil, err
@@ -57,7 +61,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	// to allow cross-account access.  On the first run they're basically
 	// no-ops but on subsequent runs this is key to not undoing the work of
 	// substrate-create-account and substrate-create-admin-account.
-	adminPrincipals, err := AdminPrincipals(svc)
+	adminPrincipals, err := AdminPrincipals(svc, false)
 	if err != nil {
 		log.Fatal(err)
 	}
