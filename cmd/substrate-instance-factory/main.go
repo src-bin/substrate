@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"sort"
@@ -13,9 +14,11 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsec2"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/roles"
 )
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
@@ -71,14 +74,11 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		}, nil
 	}
 
-	sess, err := awssessions.NewSession(awssessions.Config{})
+	sess, err := awssessions.NewSession(awssessions.Config{Region: region})
 	if err != nil {
 		return nil, err
 	}
-	svc := ec2.New(
-		sess,
-		&aws.Config{Region: aws.String(region)},
-	)
+	svc := ec2.New(sess)
 
 	// We've got a region. Use it to enumerate all valid instance types.
 	offerings, err := awsec2.DescribeInstanceTypeOfferings(svc)
@@ -155,7 +155,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			Region:           region,
 		}
 		if instanceType != "" {
-			v.Error = fmt.Errorf("%s is either not a valid instance type in %s", instanceType, region)
+			v.Error = fmt.Errorf("%s is not a valid instance type in %s", instanceType, region)
 		}
 		body, err := lambdautil.RenderHTML(instanceTypeTemplate(), v)
 		if err != nil {
@@ -179,26 +179,32 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		InstanceType: instanceType,
 		Region:       region,
 	}
-	/*
-		image, err := awsec2.LatestAmazonLinux2AMI(svc, awsec2.X86_64)
-		if err != nil {
-			v.Error = err
-		}
-	*/
-	v.Error = fmt.Errorf("%+v", event.StageVariables["VpcId"])
-	/*
-		subnets, err := awsec2.DescribeSubnets(svc, event.StageVariables["VpcId"])
-		if err != nil {
-			v.Error = err
-		}
-		v.Error = fmt.Errorf("%+v", subnets)
-	*/
-	/*
-		_, err := awsec2.RunInstances(svc, aws.StringValue(image.ImageId))
-		if err != nil {
-			v.Error = err
-		}
-	*/
+	image, err := awsec2.LatestAmazonLinux2AMI(svc, awsec2.X86_64)
+	if err != nil {
+		return nil, err
+	}
+	// TODO security group
+	subnet, err := randomSubnet("admin", event.RequestContext.Stage, region)
+	if err != nil {
+		return nil, err
+	}
+	out, err := awsec2.RunInstances(
+		svc,
+		aws.StringValue(image.ImageId),
+		instanceType,
+		aws.StringValue(subnet.SubnetId),
+		[]*ec2.Tag{
+			&ec2.Tag{
+				Key:   aws.String("Manager"),
+				Value: aws.String("substrate-instance-factory"),
+			},
+		},
+	)
+	if err != nil {
+		v.Error = err
+	} else {
+		v.Error = fmt.Errorf("%+v", out)
+	}
 	body, err := lambdautil.RenderHTML(instanceTemplate(), v)
 	if err != nil {
 		return nil, err
@@ -213,4 +219,27 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 
 func main() {
 	lambda.Start(handle)
+}
+
+func randomSubnet(environment, quality, region string) (*ec2.Subnet, error) {
+	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.Auditor, awssessions.Config{Region: region})
+	if err != nil {
+		return nil, err
+	}
+	svc := ec2.New(sess)
+	vpcs, err := awsec2.DescribeVpcs(svc, environment, quality)
+	if err != nil {
+		return nil, err
+	}
+	if len(vpcs) != 1 {
+		return nil, fmt.Errorf("%s %s VPC not found in %s", environment, quality, region)
+	}
+	subnets, err := awsec2.DescribeSubnets(svc, aws.StringValue(vpcs[0].VpcId))
+	if err != nil {
+		return nil, err
+	}
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("no subnets in %s", aws.StringValue(vpcs[0].VpcId))
+	}
+	return subnets[rand.Intn(len(subnets))], nil
 }

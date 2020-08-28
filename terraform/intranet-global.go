@@ -66,6 +66,8 @@ data "aws_iam_policy_document" "substrate-instance-factory" {
       "ec2:DescribeSubnets",
       "ec2:RunInstances",
       "ec2:TerminateInstances",
+      "organizations:DescribeOrganization",
+      "sts:AssumeRole",
     ]
     resources = ["*"]
   }

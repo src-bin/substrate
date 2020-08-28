@@ -20,3 +20,25 @@ func DescribeSubnets(svc *ec2.EC2, vpcId string) ([]*ec2.Subnet, error) {
 	//log.Print(out)
 	return out.Subnets, nil
 }
+
+func DescribeVpcs(svc *ec2.EC2, environment, quality string) ([]*ec2.Vpc, error) {
+	in := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("tag:Environment"),
+				Values: []*string{aws.String(environment)},
+			},
+			&ec2.Filter{
+				Name:   aws.String("tag:Quality"),
+				Values: []*string{aws.String(quality)},
+			},
+		},
+	}
+	//log.Print(in)
+	out, err := svc.DescribeVpcs(in)
+	if err != nil {
+		return nil, err
+	}
+	//log.Print(out)
+	return out.Vpcs, nil
+}
