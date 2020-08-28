@@ -201,14 +201,6 @@ func main() {
 	if err := lambdaFunctionRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/regional")); err != nil {
 		log.Fatal(err)
 	}
-	substrateGlobalModule := terraform.SubstrateGlobalModule()
-	if err := substrateGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "substrate/global")); err != nil {
-		log.Fatal(err)
-	}
-	substrateRegionalModule := terraform.SubstrateRegionalModule()
-	if err := substrateRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "substrate/regional")); err != nil {
-		log.Fatal(err)
-	}
 
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between admin accounts of different qualities.
@@ -320,11 +312,7 @@ func main() {
 		file.Push(terraform.Module{
 			Arguments: arguments,
 			Label:     terraform.Q("intranet"),
-			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
-				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
-				terraform.NetworkProviderAlias: terraform.NetworkProviderAlias,
-			},
-			Source: terraform.Q("../../../../modules/intranet/regional"),
+			Source:    terraform.Q("../../../../modules/intranet/regional"),
 		})
 		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 			log.Fatal(err)
