@@ -76,6 +76,10 @@ func AssumeRoleMaster(sess *session.Session, rolename string) (*session.Session,
 // any reason.  It supports starting from the OrganizationAdministrator role,
 // root credentials in the master account, or any role in any account in the
 // organization that can assume the given role.
+//
+// The initial identity assumed first before assuming a role in the other
+// account must be allowed to call organizations:DescribeOrganization and
+// sts:AssumeRole.
 func InAccount(
 	domain, environment, quality, rolename string,
 	config Config,
@@ -88,6 +92,10 @@ func InAccount(
 // It supports starting from the desired role, root credentials in the master
 // account, or any role in any account in the organization that can assume the
 // given role.
+//
+// The initial identity assumed first before assuming a role in the master
+// account must be allowed to call organizations:DescribeOrganization and
+// sts:AssumeRole.
 func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	sess, err := NewSession(config)
 	if err != nil {
@@ -149,6 +157,10 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 // It supports starting from the OrganizationAdministrator role, root
 // credentials in the master account, or any role in any account in the
 // organization that can assume the given role.
+//
+// The initial identity assumed first before assuming a role in the other
+// account must be allowed to call organizations:DescribeOrganization and
+// sts:AssumeRole.
 func InSpecialAccount(name, rolename string, config Config) (*session.Session, error) {
 	sess, err := NewSession(config)
 	if err != nil {
