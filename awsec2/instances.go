@@ -53,17 +53,17 @@ func LatestAmazonLinux2AMI(svc *ec2.EC2, arch string) (*ec2.Image, error) {
 	return images[0], nil
 }
 
-func RunInstances(svc *ec2.EC2, imageId, instanceType, subnetId string, tags []*ec2.Tag) (*ec2.Reservation, error) {
+func RunInstances(svc *ec2.EC2, imageId, instanceType, securityGroupId, subnetId string, tags []*ec2.Tag) (*ec2.Reservation, error) {
 	in := &ec2.RunInstancesInput{
 		DryRun: aws.Bool(true), // XXX
 		//IamInstanceProfile
 		ImageId:      aws.String(imageId),
 		InstanceType: aws.String(instanceType),
 		//KeyName
-		MaxCount: aws.Int64(1),
-		MinCount: aws.Int64(1),
-		//SecurityGroupIds
-		SubnetId: aws.String(subnetId),
+		MaxCount:         aws.Int64(1),
+		MinCount:         aws.Int64(1),
+		SecurityGroupIds: []*string{aws.String(securityGroupId)},
+		SubnetId:         aws.String(subnetId),
 		TagSpecifications: []*ec2.TagSpecification{&ec2.TagSpecification{
 			ResourceType: aws.String("instance"),
 			Tags:         tags,

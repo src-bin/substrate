@@ -54,9 +54,11 @@ data "aws_iam_policy_document" "substrate-credential-factory" {
 data "aws_iam_policy_document" "substrate-instance-factory" {
   statement {
     actions = [
+      "ec2:CreateTags",
       "ec2:DescribeInstanceTypeOfferings",
       "ec2:DescribeImages",
       "ec2:DescribeInstances",
+      "ec2:DescribeSecurityGroups",
       "ec2:DescribeSubnets",
       "ec2:RunInstances",
       "ec2:TerminateInstances",

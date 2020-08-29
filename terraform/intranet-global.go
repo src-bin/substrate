@@ -60,9 +60,11 @@ data "aws_iam_policy_document" "substrate-credential-factory" {
 data "aws_iam_policy_document" "substrate-instance-factory" {
   statement {
     actions = [
+      "ec2:CreateTags",
       "ec2:DescribeInstanceTypeOfferings",
       "ec2:DescribeImages",
       "ec2:DescribeInstances",
+      "ec2:DescribeSecurityGroups",
       "ec2:DescribeSubnets",
       "ec2:RunInstances",
       "ec2:TerminateInstances",
@@ -193,6 +195,10 @@ output "substrate_apigateway_authorizer_role_arn" {
 
 output "validation_fqdn" {
   value = aws_route53_record.validation.fqdn
+}
+`,
+		"substrate.tf": `module "substrate" {
+  source = "../../substrate/global"
 }
 `,
 		"variables.tf": `variable "dns_domain_name" {

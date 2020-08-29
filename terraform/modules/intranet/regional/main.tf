@@ -330,3 +330,33 @@ resource "aws_route53_record" "intranet" {
   type           = "A"
   zone_id        = data.aws_route53_zone.intranet.id
 }
+
+resource "aws_security_group" "substrate-instance-factory" {
+  name        = "substrate-instance-factory"
+  description = "Allow inbound SSH access to instances managed by substrate-instance-factory"
+  vpc_id      = module.substrate.vpc_id
+  tags = {
+    Environment = module.substrate.tags.environment
+    Manager     = "Terraform"
+    Name        = "substrate-instance-factory"
+    Quality     = module.substrate.tags.quality
+  }
+}
+
+resource "aws_security_group_rule" "egress" {
+  cidr_blocks       = ["0.0.0.0/0"]
+  from_port         = 0
+  protocol          = "-1"
+  security_group_id = aws_security_group.substrate-instance-factory.id
+  to_port           = 0
+  type              = "egress"
+}
+
+resource "aws_security_group_rule" "ssh-ingress" {
+  cidr_blocks       = ["0.0.0.0/0"]
+  from_port         = 22
+  protocol          = "tcp"
+  security_group_id = aws_security_group.substrate-instance-factory.id
+  to_port           = 22
+  type              = "ingress"
+}

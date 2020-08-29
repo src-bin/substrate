@@ -183,15 +183,24 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	if err != nil {
 		return nil, err
 	}
-	// TODO security group
+	// TODO instance profile created by Terraform and looked up here
+	// TODO key name derived from SSO; offer an interstitial that accepts their public key if none is found
 	subnet, err := randomSubnet("admin", event.RequestContext.Stage, region)
 	if err != nil {
 		return nil, err
+	}
+	securityGroups, err := awsec2.DescribeSecurityGroups(svc, aws.StringValue(subnet.VpcId), "substrate-instance-factory")
+	if err != nil {
+		return nil, err
+	}
+	if len(securityGroups) != 1 {
+		return nil, fmt.Errorf("security group not found in %s", aws.StringValue(subnet.VpcId))
 	}
 	out, err := awsec2.RunInstances(
 		svc,
 		aws.StringValue(image.ImageId),
 		instanceType,
+		aws.StringValue(securityGroups[0].GroupId),
 		aws.StringValue(subnet.SubnetId),
 		[]*ec2.Tag{
 			&ec2.Tag{

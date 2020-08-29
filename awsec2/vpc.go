@@ -5,6 +5,28 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
+func DescribeSecurityGroups(svc *ec2.EC2, vpcId, name string) ([]*ec2.SecurityGroup, error) {
+	in := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("group-name"),
+				Values: []*string{aws.String(name)},
+			},
+			&ec2.Filter{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String(vpcId)},
+			},
+		},
+	}
+	//log.Print(in)
+	out, err := svc.DescribeSecurityGroups(in)
+	if err != nil {
+		return nil, err
+	}
+	//log.Print(out)
+	return out.SecurityGroups, nil
+}
+
 func DescribeSubnets(svc *ec2.EC2, vpcId string) ([]*ec2.Subnet, error) {
 	in := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{&ec2.Filter{
