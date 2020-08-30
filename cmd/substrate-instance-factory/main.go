@@ -24,6 +24,7 @@ import (
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
 //go:generate go run ../../tools/template/main.go -name instanceTypeTemplate -package main instance_type.html
 //go:generate go run ../../tools/template/main.go -name instanceTemplate -package main instance.html
+//go:generate go run ../../tools/template/main.go -name keyPairTemplate -package main key_pair.html
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
@@ -33,7 +34,8 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		return nil, err
 	}
 
-	var instanceType string
+	var instanceType, publicKeyMaterial string
+	principalId := event.RequestContext.Authorizer["principalId"].(string)
 	region := event.QueryStringParameters["region"]
 	selectedRegions := strings.Split(event.StageVariables["SelectedRegions"], ",")
 	if event.HTTPMethod == "POST" {
@@ -42,8 +44,8 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			return nil, err
 		}
 		instanceType = values.Get("instance_type")
+		publicKeyMaterial = values.Get("public_key_material")
 		region = values.Get("region")
-
 	}
 
 	// See if we've got a valid region or render the index page.
@@ -80,7 +82,38 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	svc := ec2.New(sess)
 
-	// We've got a region. Use it to enumerate all valid instance types.
+	// We've got a region. Ensure we've got a key pair in this region, too, or
+	// render the public key input page.
+	if publicKeyMaterial != "" {
+		if _, err := awsec2.ImportKeyPair(svc, principalId, publicKeyMaterial); err != nil {
+			return nil, err
+		}
+	}
+	keyPairs, err := awsec2.DescribeKeyPairs(svc, principalId)
+	if err != nil || len(keyPairs) != 1 {
+		v := struct {
+			Debug       string
+			Error       error
+			PrincipalId string
+			Region      string
+		}{
+			Debug:       string(b),
+			PrincipalId: principalId,
+			Region:      region,
+		}
+		body, err := lambdautil.RenderHTML(keyPairTemplate(), v)
+		if err != nil {
+			return nil, err
+		}
+		return &events.APIGatewayProxyResponse{
+			Body:       body,
+			Headers:    map[string]string{"Content-Type": "text/html"},
+			StatusCode: http.StatusOK,
+		}, nil
+	}
+
+	// We've got a region and a key pair. Use the region to enumerate all valid
+	// instance types.
 	offerings, err := awsec2.DescribeInstanceTypeOfferings(svc)
 	if err != nil {
 		return nil, err
@@ -136,7 +169,8 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		})
 	}
 
-	// See if we've got a valid instance type or render the instance type page.
+	// See if they've selected a valid instance type. If not, render the
+	// instance type selection page.
 	found = false
 	for _, instanceTypes := range instanceFamilies {
 		for _, i := range instanceTypes {
@@ -184,7 +218,6 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		return nil, err
 	}
 	// TODO instance profile created by Terraform and looked up here
-	// TODO key name derived from SSO; offer an interstitial that accepts their public key if none is found
 	subnet, err := randomSubnet("admin", event.RequestContext.Stage, region)
 	if err != nil {
 		return nil, err
@@ -200,6 +233,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		svc,
 		aws.StringValue(image.ImageId),
 		instanceType,
+		aws.StringValue(keyPairs[0].KeyName),
 		aws.StringValue(securityGroups[0].GroupId),
 		aws.StringValue(subnet.SubnetId),
 		[]*ec2.Tag{

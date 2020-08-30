@@ -39,6 +39,33 @@ func DescribeImages(svc *ec2.EC2, arch, name, owner string) ([]*ec2.Image, error
 	return out.Images, nil
 }
 
+func DescribeKeyPairs(svc *ec2.EC2, name string) ([]*ec2.KeyPairInfo, error) {
+	in := &ec2.DescribeKeyPairsInput{
+		KeyNames: []*string{aws.String(name)},
+	}
+	//log.Print(in)
+	out, err := svc.DescribeKeyPairs(in)
+	if err != nil {
+		return nil, err
+	}
+	//log.Print(out)
+	return out.KeyPairs, nil
+}
+
+func ImportKeyPair(svc *ec2.EC2, name, publicKeyMaterial string) (*ec2.ImportKeyPairOutput, error) {
+	in := &ec2.ImportKeyPairInput{
+		KeyName:           aws.String(name),
+		PublicKeyMaterial: []byte(publicKeyMaterial),
+	}
+	//log.Print(in)
+	out, err := svc.ImportKeyPair(in)
+	if err != nil {
+		return nil, err
+	}
+	//log.Print(out)
+	return out, nil
+}
+
 func LatestAmazonLinux2AMI(svc *ec2.EC2, arch string) (*ec2.Image, error) {
 	images, err := DescribeImages(svc, arch, AmazonLinux2, Amazon)
 	if err != nil {
@@ -53,13 +80,13 @@ func LatestAmazonLinux2AMI(svc *ec2.EC2, arch string) (*ec2.Image, error) {
 	return images[0], nil
 }
 
-func RunInstances(svc *ec2.EC2, imageId, instanceType, securityGroupId, subnetId string, tags []*ec2.Tag) (*ec2.Reservation, error) {
+func RunInstances(svc *ec2.EC2, imageId, instanceType, keyName, securityGroupId, subnetId string, tags []*ec2.Tag) (*ec2.Reservation, error) {
 	in := &ec2.RunInstancesInput{
 		DryRun: aws.Bool(true), // XXX
 		//IamInstanceProfile
-		ImageId:      aws.String(imageId),
-		InstanceType: aws.String(instanceType),
-		//KeyName
+		ImageId:          aws.String(imageId),
+		InstanceType:     aws.String(instanceType),
+		KeyName:          aws.String(keyName),
 		MaxCount:         aws.Int64(1),
 		MinCount:         aws.Int64(1),
 		SecurityGroupIds: []*string{aws.String(securityGroupId)},
