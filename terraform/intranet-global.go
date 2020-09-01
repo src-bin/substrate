@@ -75,6 +75,10 @@ data "aws_iam_policy_document" "substrate-instance-factory" {
     ]
     resources = ["*"]
   }
+  statement {
+    actions   = ["iam:PassRole"]
+    resources = [data.aws_iam_role.admin.arn]
+  }
 }
 
 data "aws_iam_role" "admin" {
@@ -122,6 +126,11 @@ resource "aws_acm_certificate" "intranet" {
 resource "aws_acm_certificate_validation" "intranet" {
   certificate_arn         = aws_acm_certificate.intranet.arn
   validation_record_fqdns = [aws_route53_record.validation.fqdn]
+}
+
+resource "aws_iam_instance_profile" "admin" {
+  name = "Administrator"
+  role = data.aws_iam_role.admin.name
 }
 
 resource "aws_iam_policy" "apigateway" {

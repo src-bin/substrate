@@ -231,6 +231,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	out, err := awsec2.RunInstances(
 		svc,
+		roles.Administrator, // there's an instance profile for this role with the same name
 		aws.StringValue(image.ImageId),
 		instanceType,
 		aws.StringValue(keyPairs[0].KeyName),
