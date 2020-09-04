@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssts"
@@ -68,6 +69,9 @@ func AssumeRoleMaster(sess *session.Session, rolename string) (*session.Session,
 	if err != nil {
 		return nil, err
 	}
+	if err := accounts.EnsureMasterAccountIdMatchesDisk(aws.StringValue(org.MasterAccountId)); err != nil {
+		return nil, err
+	}
 	return AssumeRole(sess, aws.StringValue(org.MasterAccountId), rolename), nil
 }
 
@@ -105,6 +109,7 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	//log.Printf("%+v", callerIdentity)
 
 	// Figure out the master account ID.  If there isn't even an organization
 	// yet, it's this account's ID.
@@ -120,6 +125,9 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 		masterAccountId = aws.StringValue(callerIdentity.Account)
 	} else {
 		masterAccountId = aws.StringValue(org.MasterAccountId)
+	}
+	if err := accounts.EnsureMasterAccountIdMatchesDisk(masterAccountId); err != nil {
+		return nil, err
 	}
 	callerIdentityArn := aws.StringValue(callerIdentity.Arn)
 

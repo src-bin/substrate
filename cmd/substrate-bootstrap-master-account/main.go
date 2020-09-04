@@ -70,6 +70,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err := accounts.WriteMasterAccountIdToDisk(aws.StringValue(org.MasterAccountId)); err != nil {
+		log.Fatal(err)
+	}
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
