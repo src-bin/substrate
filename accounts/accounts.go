@@ -2,12 +2,14 @@ package accounts
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
@@ -20,11 +22,12 @@ const (
 	Master  = "master"
 	Network = "network"
 
-	Filename = "substrate.accounts.txt"
+	CheatSheetFilename      = "substrate.accounts.txt"
+	MasterAccountIdFilename = "substrate.master-account-id"
 )
 
 func CheatSheet(svc *organizations.Organizations) error {
-	f, err := os.Create(Filename)
+	f, err := os.Create(CheatSheetFilename)
 	if err != nil {
 		return err
 	}
@@ -126,5 +129,36 @@ func CheatSheet(svc *organizations.Organizations) error {
 	fmt.Fprint(f, "\n")
 	ui.Ftable(f, adminAccountsCells)
 
+	return nil
+}
+
+func EnsureMasterAccountIdMatchesDisk(masterAccountId string) error {
+
+	// TODO remove this after the 2020.10 release when MasterAccountIdFilename
+	// will be presumed to exist in every Substrate installation.
+	if err := WriteMasterAccountIdToDisk(masterAccountId); err != nil {
+		return err
+	}
+
+	b, err := fileutil.ReadFile(MasterAccountIdFilename)
+	if err != nil {
+		return err
+	}
+	if diskMasterAccountId := fileutil.Tidy(b); masterAccountId != diskMasterAccountId {
+		return fmt.Errorf(
+			"the calling account's master account is %s but this directory's master account is %s",
+			masterAccountId,
+			diskMasterAccountId,
+		)
+	}
+	return nil
+}
+
+func WriteMasterAccountIdToDisk(masterAccountId string) error {
+	if !fileutil.Exists(MasterAccountIdFilename) {
+		if err := ioutil.WriteFile(MasterAccountIdFilename, []byte(fmt.Sprintln(masterAccountId)), 0666); err != nil {
+			return err
+		}
+	}
 	return nil
 }
