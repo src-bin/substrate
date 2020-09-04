@@ -44,7 +44,8 @@ func main() {
 	region := choices.DefaultRegion()
 
 	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{
-		Region: region,
+		BootstrappingMasterAccount: true,
+		Region:                     region,
 	})
 	if err != nil {
 		log.Fatal(err)

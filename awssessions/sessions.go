@@ -1,6 +1,7 @@
 package awssessions
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,6 +35,7 @@ const (
 
 type Config struct {
 	AccessKeyId, SecretAccessKey, SessionToken string
+	BootstrappingMasterAccount                 bool
 	Region                                     string
 }
 
@@ -123,6 +125,11 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	var masterAccountId string
 	if org == nil {
 		masterAccountId = aws.StringValue(callerIdentity.Account)
+		if !config.BootstrappingMasterAccount {
+			return nil, errors.New(
+				"the calling account is not a member of an organization and we're not bootstrapping an organization; this should never happen",
+			)
+		}
 	} else {
 		masterAccountId = aws.StringValue(org.MasterAccountId)
 	}
