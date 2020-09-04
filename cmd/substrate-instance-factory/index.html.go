@@ -24,9 +24,19 @@ func indexTemplate() string {
 <tr>
     <th>Hostname</th>
     <th>Availability Zone</th>
+    <th>Instance Type</th>
     <th>Provision Time</th>
     <th>&nbsp;</th>
 </tr>
+{{- range $i, $instance := .Instances}}
+<tr>
+    <td>{{$instance.PublicDnsName}}</td>
+    <td>{{$instance.Placement.AvailabilityZone}}</td>
+    <td>{{$instance.InstanceType}}</td>
+    <td>{{$instance.LaunchTime}}</td>
+    <td><input name="terminate" type="submit" value="{{$instance.InstanceId}}"></td>
+</tr>
+{{- end}}
 </table>
 <hr>
 <pre>{{.Debug}}</pre>

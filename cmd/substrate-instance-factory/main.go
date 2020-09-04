@@ -55,12 +55,14 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	if !found {
 		v := struct {
-			Debug   string
-			Error   error
-			Regions []string
+			Debug     string
+			Error     error
+			Instances []*ec2.Instance
+			Regions   []string
 		}{
-			Debug:   string(b),
-			Regions: selectedRegions,
+			Debug:     string(b),
+			Instances: nil, // TODO
+			Regions:   selectedRegions,
 		}
 		if region != "" {
 			v.Error = fmt.Errorf("%s is either not a valid region or is not in use in your organization", region)
