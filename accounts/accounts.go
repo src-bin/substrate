@@ -134,10 +134,9 @@ func CheatSheet(svc *organizations.Organizations) error {
 
 func EnsureMasterAccountIdMatchesDisk(masterAccountId string) error {
 
-	// TODO remove this after the 2020.10 release when MasterAccountIdFilename
-	// will be presumed to exist in every Substrate installation.
-	if err := WriteMasterAccountIdToDisk(masterAccountId); err != nil {
-		return err
+	// We'll never have this file when we're e.g. in Lambda.
+	if !fileutil.Exists(MasterAccountIdFilename) {
+		return nil
 	}
 
 	b, err := fileutil.ReadFile(MasterAccountIdFilename)

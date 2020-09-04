@@ -60,12 +60,27 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			Instances []*ec2.Instance
 			Regions   []string
 		}{
-			Debug:     string(b),
-			Instances: nil, // TODO
-			Regions:   selectedRegions,
+			Debug:   string(b),
+			Regions: selectedRegions,
 		}
 		if region != "" {
 			v.Error = fmt.Errorf("%s is either not a valid region or is not in use in your organization", region)
+		}
+		for _, region := range selectedRegions {
+
+			sess, err := awssessions.NewSession(awssessions.Config{Region: region})
+			if err != nil {
+				return nil, err
+			}
+			svc := ec2.New(sess)
+
+			instances, err := awsec2.DescribeInstances(svc)
+			if err != nil {
+				v.Error = err
+				break
+			}
+			v.Instances = append(v.Instances, instances...)
+
 		}
 		body, err := lambdautil.RenderHTML(indexTemplate(), v)
 		if err != nil {

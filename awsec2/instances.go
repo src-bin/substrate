@@ -39,6 +39,30 @@ func DescribeImages(svc *ec2.EC2, arch, name, owner string) ([]*ec2.Image, error
 	return out.Images, nil
 }
 
+func DescribeInstances(svc *ec2.EC2) ([]*ec2.Instance, error) {
+	in := &ec2.DescribeInstancesInput{
+		/*
+			Filters: []*ec2.Filter{
+					&ec2.Filter{
+						Name:   aws.String("name"),
+						Values: []*string{aws.String(name)},
+					},
+			},
+		*/
+	}
+	//log.Print(in)
+	out, err := svc.DescribeInstances(in)
+	if err != nil {
+		return nil, err
+	}
+	//log.Print(out)
+	var instances []*ec2.Instance
+	for _, reservation := range out.Reservations {
+		instances = append(instances, reservation.Instances...)
+	}
+	return instances, nil
+}
+
 func DescribeKeyPairs(svc *ec2.EC2, name string) ([]*ec2.KeyPairInfo, error) {
 	in := &ec2.DescribeKeyPairsInput{
 		KeyNames: []*string{aws.String(name)},
