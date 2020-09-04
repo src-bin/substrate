@@ -44,6 +44,12 @@ func ReadFile(pathname string) ([]byte, error) {
 	return b, err
 }
 
+// Tidy removes newline-like characters from either end of a []byte and
+// returns the middle as a string.
+func Tidy(b []byte) string {
+	return strings.Trim(strings.Replace(string(b), "\r", "\n", -1), "\n")
+}
+
 func ToLines(b []byte) []string {
-	return strings.Split(strings.Trim(strings.Replace(string(b), "\r", "\n", -1), "\n"), "\n")
+	return strings.Split(Tidy(b), "\n")
 }
