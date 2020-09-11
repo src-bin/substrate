@@ -134,3 +134,18 @@ func RunInstances(
 	//log.Print(reservation)
 	return reservation, nil
 }
+
+func TerminateInstances(
+	svc *ec2.EC2, instanceId string) error {
+	in := &ec2.TerminateInstancesInput{
+		DryRun:      aws.Bool(true),
+		InstanceIds: []*string{aws.String(instanceId)},
+	}
+	//log.Print(in)
+	_, err := svc.TerminateInstances(in)
+	if err != nil {
+		return err
+	}
+	//log.Print(out)
+	return nil
+}

@@ -14,7 +14,7 @@ func indexTemplate() string {
 <p class="error">{{.Error}}</p>
 {{- end}}
 <form method="GET">
-<p>Provision a new EC2 instance in:
+<p>Launch a new EC2 instance in:
 {{- range $i, $region := .Regions}}
 <input name="region" type="submit" value="{{$region}}">
 {{- end}}
@@ -25,16 +25,26 @@ func indexTemplate() string {
     <th>Hostname</th>
     <th>Availability Zone</th>
     <th>Instance Type</th>
-    <th>Provision Time</th>
+    <th>Launch Time</th>
+    <th>State</th>
     <th>&nbsp;</th>
 </tr>
-{{- range $i, $instance := .Instances}}
-<tr>
-    <td>{{$instance.PublicDnsName}}</td>
-    <td>{{$instance.Placement.AvailabilityZone}}</td>
-    <td>{{$instance.InstanceType}}</td>
-    <td>{{$instance.LaunchTime}}</td>
-    <td><input name="terminate" type="submit" value="{{$instance.InstanceId}}"></td>
+{{- $launched := .Launched}}
+{{- $terminate := .Terminate}}
+{{- range .Instances}}
+<tr{{if eq (StringValue .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (StringValue .InstanceId) $terminate}} bgcolor="#ffeeee"{{end}}>
+    <td>{{.PublicDnsName}}</td>
+    <td>{{.Placement.AvailabilityZone}}</td>
+    <td>{{.InstanceType}}</td>
+    <td>{{.LaunchTime}}</td>
+    <td>{{.State.Name}}</td>
+    <td>{{if eq (StringValue .State.Name) "running"}}{{if eq (StringValue .InstanceId) $terminate}}
+        <form method="POST">
+            <input type="submit" value="Yes, Terminate">
+            <input name="region" type="hidden" value="{{.Placement.AvailabilityZone | RegionFromAZ}}">
+            <input name="terminate" type="hidden" value="{{.InstanceId}}">
+        </form>
+    {{else}}<a href="?terminate={{.InstanceId}}">Terminate</a>{{end}}{{else}}&nbsp;{{end}}</td>
 </tr>
 {{- end}}
 </table>

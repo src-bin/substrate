@@ -21,15 +21,25 @@
     <th>Availability Zone</th>
     <th>Instance Type</th>
     <th>Launch Time</th>
+    <th>State</th>
     <th>&nbsp;</th>
 </tr>
-{{- range $i, $instance := .Instances}}
-<tr>
-    <td>{{$instance.PublicDnsName}}</td>
-    <td>{{$instance.Placement.AvailabilityZone}}</td>
-    <td>{{$instance.InstanceType}}</td>
-    <td>{{$instance.LaunchTime}}</td>
-    <td><form method="POST"><input type="submit" value="Terminate"><input name="terminate" type="hidden" value="{{$instance.InstanceId}}"></form></td>
+{{- $launched := .Launched}}
+{{- $terminate := .Terminate}}
+{{- range .Instances}}
+<tr{{if eq (StringValue .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (StringValue .InstanceId) $terminate}} bgcolor="#ffeeee"{{end}}>
+    <td>{{.PublicDnsName}}</td>
+    <td>{{.Placement.AvailabilityZone}}</td>
+    <td>{{.InstanceType}}</td>
+    <td>{{.LaunchTime}}</td>
+    <td>{{.State.Name}}</td>
+    <td>{{if eq (StringValue .State.Name) "running"}}{{if eq (StringValue .InstanceId) $terminate}}
+        <form method="POST">
+            <input type="submit" value="Yes, Terminate">
+            <input name="region" type="hidden" value="{{.Placement.AvailabilityZone | RegionFromAZ}}">
+            <input name="terminate" type="hidden" value="{{.InstanceId}}">
+        </form>
+    {{else}}<a href="?terminate={{.InstanceId}}">Terminate</a>{{end}}{{else}}&nbsp;{{end}}</td>
 </tr>
 {{- end}}
 </table>

@@ -34,10 +34,12 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		return nil, err
 	}
 
-	var instanceType, publicKeyMaterial string
+	var instanceType, publicKeyMaterial, terminateConfirmed string
+	launched := event.QueryStringParameters["launched"]
 	principalId := event.RequestContext.Authorizer["principalId"].(string)
 	region := event.QueryStringParameters["region"]
 	selectedRegions := strings.Split(event.StageVariables["SelectedRegions"], ",")
+	terminate := event.QueryStringParameters["terminate"]
 	if event.HTTPMethod == "POST" {
 		values, err := url.ParseQuery(event.Body)
 		if err != nil {
@@ -46,6 +48,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		instanceType = values.Get("instance_type")
 		publicKeyMaterial = values.Get("public_key_material")
 		region = values.Get("region")
+		terminateConfirmed = values.Get("terminate")
 	}
 
 	// See if we've got a valid region or render the index page.
@@ -55,13 +58,16 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	if !found {
 		v := struct {
-			Debug     string
-			Error     error
-			Instances []*ec2.Instance
-			Regions   []string
+			Debug               string
+			Error               error
+			Instances           []*ec2.Instance
+			Launched, Terminate string
+			Regions             []string
 		}{
-			Debug:   string(b),
-			Regions: selectedRegions,
+			Debug:     string(b),
+			Launched:  launched,
+			Regions:   selectedRegions,
+			Terminate: terminate,
 		}
 		if region != "" {
 			v.Error = fmt.Errorf("%s is either not a valid region or is not in use in your organization", region)
@@ -74,7 +80,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			}
 			svc := ec2.New(sess)
 
-			instances, err := awsec2.DescribeInstances(svc)
+			instances, err := awsec2.DescribeInstances(svc /* TODO filters */)
 			if err != nil {
 				v.Error = err
 				break
@@ -98,6 +104,16 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		return nil, err
 	}
 	svc := ec2.New(sess)
+
+	// We've got a region. If we're to terminate an instance, we've got enough
+	// information to do so already.
+	if terminateConfirmed != "" {
+		return &events.APIGatewayProxyResponse{
+			Body:       fmt.Sprintf("terminateConfirmed: %v", terminateConfirmed),
+			Headers:    map[string]string{"Content-Type": "text/plain"},
+			StatusCode: http.StatusOK,
+		}, nil
+	}
 
 	// We've got a region. Ensure we've got a key pair in this region, too, or
 	// render the public key input page.
@@ -234,7 +250,6 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	if err != nil {
 		return nil, err
 	}
-	// TODO instance profile created by Terraform and looked up here
 	subnet, err := randomSubnet("admin", event.RequestContext.Stage, region)
 	if err != nil {
 		return nil, err
@@ -246,7 +261,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	if len(securityGroups) != 1 {
 		return nil, fmt.Errorf("security group not found in %s", aws.StringValue(subnet.VpcId))
 	}
-	out, err := awsec2.RunInstances(
+	reservation, err := awsec2.RunInstances(
 		svc,
 		roles.Administrator, // there's an instance profile for this role with the same name
 		aws.StringValue(image.ImageId),
@@ -263,19 +278,33 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	)
 	if err != nil {
 		v.Error = err
-	} else {
-		v.Error = fmt.Errorf("%+v", out)
 	}
 	body, err := lambdautil.RenderHTML(instanceTemplate(), v)
 	if err != nil {
 		return nil, err
 	}
 	return &events.APIGatewayProxyResponse{
-		Body:       body,
-		Headers:    map[string]string{"Content-Type": "text/html"},
-		StatusCode: http.StatusOK,
+		Body: body,
+		Headers: map[string]string{
+			"Content-Type": "text/html",
+			"Location": location(
+				event,
+				url.Values{"launched": []string{aws.StringValue(reservation.Instances[0].InstanceId)}},
+			),
+		},
+		StatusCode: http.StatusFound,
 	}, nil
 
+}
+
+func location(event *events.APIGatewayProxyRequest, query url.Values) string {
+	u := &url.URL{
+		Scheme:   "https",
+		Host:     event.Headers["Host"],
+		Path:     event.Path,
+		RawQuery: query.Encode(),
+	}
+	return u.String()
 }
 
 func main() {
