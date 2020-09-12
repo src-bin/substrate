@@ -16,5 +16,6 @@ const (
 
 // Values.
 const (
-	Substrate = "Substrate"
+	Substrate                = "Substrate"
+	SubstrateInstanceFactory = "substrate-instance-factory"
 )

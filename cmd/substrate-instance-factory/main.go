@@ -19,6 +19,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/tags"
 )
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
@@ -81,7 +82,13 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			}
 			svc := ec2.New(sess)
 
-			instances, err := awsec2.DescribeInstances(svc /* TODO filters */)
+			instances, err := awsec2.DescribeInstances(
+				svc,
+				[]*ec2.Filter{&ec2.Filter{
+					Name:   aws.String(fmt.Sprintf("tag:%s", tags.Manager)),
+					Values: []*string{aws.String(tags.SubstrateInstanceFactory)},
+				}},
+			)
 			if err != nil {
 				v.Error = err
 				break
@@ -271,8 +278,8 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		aws.StringValue(subnet.SubnetId),
 		[]*ec2.Tag{
 			&ec2.Tag{
-				Key:   aws.String("Manager"),
-				Value: aws.String("substrate-instance-factory"),
+				Key:   aws.String(tags.Manager),
+				Value: aws.String(tags.SubstrateInstanceFactory),
 			},
 		},
 	)

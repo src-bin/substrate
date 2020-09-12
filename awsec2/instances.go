@@ -39,17 +39,11 @@ func DescribeImages(svc *ec2.EC2, arch, name, owner string) ([]*ec2.Image, error
 	return out.Images, nil
 }
 
-func DescribeInstances(svc *ec2.EC2) ([]*ec2.Instance, error) {
-	in := &ec2.DescribeInstancesInput{
-		/*
-			Filters: []*ec2.Filter{
-					&ec2.Filter{
-						Name:   aws.String("name"),
-						Values: []*string{aws.String(name)},
-					},
-			},
-		*/
-	}
+func DescribeInstances(
+	svc *ec2.EC2,
+	filters []*ec2.Filter,
+) ([]*ec2.Instance, error) {
+	in := &ec2.DescribeInstancesInput{Filters: filters}
 	//log.Print(in)
 	out, err := svc.DescribeInstances(in)
 	if err != nil {
