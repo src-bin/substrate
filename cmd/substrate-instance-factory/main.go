@@ -23,7 +23,6 @@ import (
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
 //go:generate go run ../../tools/template/main.go -name instanceTypeTemplate -package main instance_type.html
-//go:generate go run ../../tools/template/main.go -name instanceTemplate -package main instance.html
 //go:generate go run ../../tools/template/main.go -name keyPairTemplate -package main key_pair.html
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
@@ -40,6 +39,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	region := event.QueryStringParameters["region"]
 	selectedRegions := strings.Split(event.StageVariables["SelectedRegions"], ",")
 	terminate := event.QueryStringParameters["terminate"]
+	terminated := event.QueryStringParameters["terminated"]
 	if event.HTTPMethod == "POST" {
 		values, err := url.ParseQuery(event.Body)
 		if err != nil {
@@ -58,16 +58,17 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	if !found {
 		v := struct {
-			Debug               string
-			Error               error
-			Instances           []*ec2.Instance
-			Launched, Terminate string
-			Regions             []string
+			Debug                           string
+			Error                           error
+			Instances                       []*ec2.Instance
+			Launched, Terminate, Terminated string
+			Regions                         []string
 		}{
-			Debug:     string(b),
-			Launched:  launched,
-			Regions:   selectedRegions,
-			Terminate: terminate,
+			Debug:      string(b),
+			Launched:   launched,
+			Regions:    selectedRegions,
+			Terminate:  terminate,
+			Terminated: terminated,
 		}
 		if region != "" {
 			v.Error = fmt.Errorf("%s is either not a valid region or is not in use in your organization", region)
@@ -108,10 +109,19 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	// We've got a region. If we're to terminate an instance, we've got enough
 	// information to do so already.
 	if terminateConfirmed != "" {
+		if err := awsec2.TerminateInstance(svc, terminateConfirmed); err != nil {
+			return lambdautil.ErrorResponse(err)
+		}
 		return &events.APIGatewayProxyResponse{
-			Body:       fmt.Sprintf("terminateConfirmed: %v", terminateConfirmed),
-			Headers:    map[string]string{"Content-Type": "text/plain"},
-			StatusCode: http.StatusOK,
+			Body: fmt.Sprintf("terminating %s", terminateConfirmed),
+			Headers: map[string]string{
+				"Content-Type": "text/plain",
+				"Location": location(
+					event,
+					url.Values{"terminated": []string{terminateConfirmed}},
+				),
+			},
+			StatusCode: http.StatusFound,
 		}, nil
 	}
 
@@ -119,7 +129,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	// render the public key input page.
 	if publicKeyMaterial != "" {
 		if _, err := awsec2.ImportKeyPair(svc, principalId, publicKeyMaterial); err != nil {
-			return nil, err
+			return lambdautil.ErrorResponse(err)
 		}
 	}
 	keyPairs, err := awsec2.DescribeKeyPairs(svc, principalId)
@@ -236,16 +246,6 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 
 	// Let's do this!
-	v := struct {
-		Debug        string
-		Error        error
-		InstanceType string
-		Region       string
-	}{
-		Debug:        string(b),
-		InstanceType: instanceType,
-		Region:       region,
-	}
 	image, err := awsec2.LatestAmazonLinux2AMI(svc, awsec2.X86_64)
 	if err != nil {
 		return nil, err
@@ -261,7 +261,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	if len(securityGroups) != 1 {
 		return nil, fmt.Errorf("security group not found in %s", aws.StringValue(subnet.VpcId))
 	}
-	reservation, err := awsec2.RunInstances(
+	reservation, err := awsec2.RunInstance(
 		svc,
 		roles.Administrator, // there's an instance profile for this role with the same name
 		aws.StringValue(image.ImageId),
@@ -277,16 +277,12 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		},
 	)
 	if err != nil {
-		v.Error = err
-	}
-	body, err := lambdautil.RenderHTML(instanceTemplate(), v)
-	if err != nil {
-		return nil, err
+		return lambdautil.ErrorResponse(err)
 	}
 	return &events.APIGatewayProxyResponse{
-		Body: body,
+		Body: fmt.Sprintf("launching %s", reservation.Instances[0].InstanceId),
 		Headers: map[string]string{
-			"Content-Type": "text/html",
+			"Content-Type": "text/plain",
 			"Location": location(
 				event,
 				url.Values{"launched": []string{aws.StringValue(reservation.Instances[0].InstanceId)}},

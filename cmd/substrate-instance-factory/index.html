@@ -26,8 +26,9 @@
 </tr>
 {{- $launched := .Launched}}
 {{- $terminate := .Terminate}}
+{{- $terminated := .Terminated}}
 {{- range .Instances}}
-<tr{{if eq (StringValue .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (StringValue .InstanceId) $terminate}} bgcolor="#ffeeee"{{end}}>
+<tr{{if eq (StringValue .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (StringValue .InstanceId) $terminate}} bgcolor="#ffeeee"{{else if eq (StringValue .InstanceId) $terminated}} bgcolor="#ffeeee"{{end}}>
     <td>{{.PublicDnsName}}</td>
     <td>{{.Placement.AvailabilityZone}}</td>
     <td>{{.InstanceType}}</td>

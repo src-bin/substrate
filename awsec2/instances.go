@@ -104,7 +104,7 @@ func LatestAmazonLinux2AMI(svc *ec2.EC2, arch string) (*ec2.Image, error) {
 	return images[0], nil
 }
 
-func RunInstances(
+func RunInstance(
 	svc *ec2.EC2,
 	iamInstanceProfile, imageId, instanceType, keyName, securityGroupId, subnetId string,
 	tags []*ec2.Tag,
@@ -135,10 +135,9 @@ func RunInstances(
 	return reservation, nil
 }
 
-func TerminateInstances(
+func TerminateInstance(
 	svc *ec2.EC2, instanceId string) error {
 	in := &ec2.TerminateInstancesInput{
-		DryRun:      aws.Bool(true),
 		InstanceIds: []*string{aws.String(instanceId)},
 	}
 	//log.Print(in)
