@@ -321,6 +321,7 @@ func NewSession(config Config) (*session.Session, error) {
 	// Override the environment and any discovered credentials for all child
 	// processes, which smooths out Terraform runs initiated by this process.
 	// TODO factor this out and also do it in configWithRootCredentials
+	// FIXME it doesn't appear like these are working, or perhaps we're not getting here when we grab credentials from standard input; Terraform fails when the environment starts out empty; can't reproduce so I'm committing and moving on
 	if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(accessKey.AccessKeyId)); err != nil {
 		return nil, err
 	}
