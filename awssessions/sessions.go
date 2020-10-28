@@ -364,7 +364,8 @@ func configWithRootCredentials(rolename string, config Config) Config {
 			filepath.Base(os.Args[0]),
 		)
 	}
-	ui.Print("please provide an access key from your master AWS account")
+	ui.Print("please provide an access key ID and secret access key from your master AWS account")
+	ui.Print("if you also have a session token, set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN in your environment")
 	config.AccessKeyId, config.SecretAccessKey = awsutil.ReadAccessKeyFromStdin()
 	config.SessionToken = ""
 	ui.Printf("using access key ID %s", config.AccessKeyId)
