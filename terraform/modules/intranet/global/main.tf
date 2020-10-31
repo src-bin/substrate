@@ -138,8 +138,9 @@ resource "aws_iam_policy" "credential-factory" {
 }
 
 resource "aws_iam_role" "apigateway" {
-  assume_role_policy = data.aws_iam_policy_document.apigateway-trust.json
-  name               = "IntranetAPIGateway"
+  assume_role_policy   = data.aws_iam_policy_document.apigateway-trust.json
+  max_session_duration = 43200
+  name                 = "IntranetAPIGateway"
 }
 
 resource "aws_iam_role_policy_attachment" "apigateway" {

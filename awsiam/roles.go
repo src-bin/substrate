@@ -34,7 +34,7 @@ func CreateRole(
 	}
 	in := &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
-		MaxSessionDuration:       aws.Int64(12 * 60 * 60),
+		MaxSessionDuration:       aws.Int64(43200),
 		RoleName:                 aws.String(rolename),
 		Tags:                     tagsFor(rolename),
 	}
@@ -68,6 +68,16 @@ func EnsureRole(
 		policies.AssumeRolePolicyDocument(&policies.Principal{Service: []string{"ec2.amazonaws.com"}}), // harmless solution to chicken and egg problem
 	)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
+
+		// There was a time when Substrate created roles with the default
+		// 1-hour maximum session duration. Lengthen that to 12 hours.
+		if _, err := svc.UpdateRole(&iam.UpdateRoleInput{
+			MaxSessionDuration: aws.Int64(43200),
+			RoleName:           aws.String(rolename),
+		}); err != nil {
+			return nil, err
+		}
+
 		role, err = GetRole(svc, rolename)
 	}
 	if err != nil {

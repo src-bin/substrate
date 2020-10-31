@@ -20,8 +20,9 @@ resource "aws_iam_policy" "policy" {
 }
 
 resource "aws_iam_role" "role" {
-  assume_role_policy = data.aws_iam_policy_document.lambda-trust.json
-  name               = var.name
+  assume_role_policy   = data.aws_iam_policy_document.lambda-trust.json
+  max_session_duration = 43200
+  name                 = var.name
 }
 
 resource "aws_iam_role_policy_attachment" "policy" {

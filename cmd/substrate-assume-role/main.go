@@ -85,7 +85,12 @@ func main() {
 
 	sess = awssessions.Must(awssessions.NewSession(awssessions.Config{}))
 
-	out, err := awssts.AssumeRole(sts.New(sess), roles.Arn(accountId, *rolename), u.Username, 3600)
+	out, err := awssts.AssumeRole(
+		sts.New(sess),
+		roles.Arn(accountId, *rolename),
+		u.Username,
+		3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
