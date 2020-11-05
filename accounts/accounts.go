@@ -111,7 +111,7 @@ func CheatSheet(svc *organizations.Organizations) error {
 
 	fmt.Fprint(f, "Welcome to your Substrate-managed AWS organization!\n")
 	fmt.Fprint(f, "\n")
-	fmt.Fprint(f, "You can find the Substrate documentation at <https://src-bin.co/substrate.html>.\n")
+	fmt.Fprint(f, "You can find the Substrate documentation at <https://src-bin.co/substrate/>.\n")
 	fmt.Fprint(f, "\n")
 	fmt.Fprint(f, "You're likely to want to use the AWS CLI or Console to explore and manipulate\n")
 	fmt.Fprint(f, "your Organization.  Here are the account numbers and roles you'll need for the\n")
