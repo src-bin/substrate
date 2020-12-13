@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -27,12 +26,6 @@ import (
 //go:generate go run ../../tools/template/main.go -name keyPairTemplate -package main key_pair.html
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-
-	// Serialize the event to make it available in the browser for debugging.
-	b, err := json.MarshalIndent(event, "", "\t")
-	if err != nil {
-		return nil, err
-	}
 
 	var instanceType, publicKeyMaterial, terminateConfirmed string
 	launched := event.QueryStringParameters["launched"]
@@ -59,13 +52,11 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	if !found {
 		v := struct {
-			Debug                           string
 			Error                           error
 			Instances                       []*ec2.Instance
 			Launched, Terminate, Terminated string
 			Regions                         []string
 		}{
-			Debug:      string(b),
 			Launched:   launched,
 			Regions:    selectedRegions,
 			Terminate:  terminate,
@@ -142,12 +133,10 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	keyPairs, err := awsec2.DescribeKeyPairs(svc, principalId)
 	if err != nil || len(keyPairs) != 1 {
 		v := struct {
-			Debug       string
 			Error       error
 			PrincipalId string
 			Region      string
 		}{
-			Debug:       string(b),
 			PrincipalId: principalId,
 			Region:      region,
 		}
@@ -229,12 +218,10 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	if !found {
 		v := struct {
-			Debug            string
 			Error            error
 			InstanceFamilies map[string][]string
 			Region           string
 		}{
-			Debug:            string(b),
 			InstanceFamilies: instanceFamilies,
 			Region:           region,
 		}

@@ -52,8 +52,6 @@ func indexTemplate() string {
 </tr>
 {{- end}}
 </table>
-<hr>
-<pre>{{.Debug}}</pre>
 </body>
 </html>
 `
