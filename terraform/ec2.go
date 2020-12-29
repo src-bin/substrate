@@ -1,6 +1,7 @@
 package terraform
 
 type EIP struct {
+	Commented          bool // set by a command-line flag to control costs incurred by NAT Gateways
 	InternetGatewayRef Value
 	Label              Value
 	Provider           ProviderAlias
@@ -12,12 +13,18 @@ func (eip EIP) Ref() Value {
 }
 
 func (EIP) Template() string {
-	return `resource "aws_eip" {{.Label.Value}} {
+	return `{{if .Commented -}}
+/* commented because -no-nat-gateways was passed to substrate-bootstrap-network-account
+{{end -}}
+resource "aws_eip" {{.Label.Value}} {
   depends_on = [{{.InternetGatewayRef}}]
 {{- if .Provider}}
   provider = {{.Provider}}
 {{- end}}
   tags = {{.Tags.Value}}
   vpc = true
-}`
+}
+{{- if .Commented}}
+*/
+{{- end}}`
 }

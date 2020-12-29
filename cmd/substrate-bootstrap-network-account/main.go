@@ -35,6 +35,7 @@ func main() {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
+	noNATGateways := flag.Bool("no-nat-gateways", false, "comment out NAT Gateways in generated Terraform (this saves about $100 per month per region but renders your private subnets useless)")
 	flag.Parse()
 	version.Flag()
 
@@ -184,7 +185,7 @@ func main() {
 				Tags:      tags,
 			}
 			file.Push(vpc)
-			vpcAccoutrements(sess, region, org, vpc, file)
+			vpcAccoutrements(sess, *noNATGateways, region, org, vpc, file)
 			if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 				log.Fatal(err)
 			}

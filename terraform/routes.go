@@ -1,6 +1,7 @@
 package terraform
 
 type Route struct {
+	Commented                                                                      bool // set by a command-line flag to control costs incurred by NAT Gateways
 	DestinationIPv4, DestinationIPv6                                               Value
 	EgressOnlyInternetGatewayId, InternetGatewayId, NATGatewayId, TransitGatewayId Value
 	Label                                                                          Value
@@ -13,7 +14,10 @@ func (r Route) Ref() Value {
 }
 
 func (Route) Template() string {
-	return `resource "aws_route" {{.Label.Value}} {
+	return `{{if .Commented -}}
+/* commented because -no-nat-gateways was passed to substrate-bootstrap-network-account
+{{end -}}
+resource "aws_route" {{.Label.Value}} {
 {{- if .DestinationIPv4}}
   destination_cidr_block = {{.DestinationIPv4.Value}}
 {{- end}}
@@ -36,7 +40,10 @@ func (Route) Template() string {
 {{- if .TransitGatewayId}}
   transit_gateway_id = {{.TransitGatewayId.Value}}
 {{- end}}
-}`
+}
+{{- if .Commented}}
+*/
+{{- end}}`
 }
 
 type RouteTable struct {

@@ -43,6 +43,7 @@ func (InternetGateway) Template() string {
 }
 
 type NATGateway struct {
+	Commented          bool // set by a command-line flag to control costs
 	InternetGatewayRef Value
 	Label              Value
 	Provider           ProviderAlias
@@ -55,12 +56,18 @@ func (ngw NATGateway) Ref() Value {
 }
 
 func (NATGateway) Template() string {
-	return `resource "aws_nat_gateway" {{.Label.Value}} {
+	return `{{if .Commented -}}
+/* commented because -no-nat-gateways was passed to substrate-bootstrap-network-account
+{{end -}}
+resource "aws_nat_gateway" {{.Label.Value}} {
   allocation_id = aws_eip.{{.Label}}.id
 {{- if .Provider}}
   provider = {{.Provider}}
 {{- end}}
   subnet_id = {{.SubnetId.Value}}
   tags = {{.Tags.Value}}
-}`
+}
+{{- if .Commented}}
+*/
+{{- end}}`
 }
