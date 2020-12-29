@@ -36,6 +36,7 @@ const (
 type Config struct {
 	AccessKeyId, SecretAccessKey, SessionToken string
 	BootstrappingMasterAccount                 bool
+	FallbackToRootCredentials                  bool
 	Region                                     string
 }
 
@@ -157,7 +158,7 @@ func InMasterAccount(rolename string, config Config) (*session.Session, error) {
 	if _, err := awssts.GetCallerIdentity(sts.New(sess)); err != nil {
 
 		// Offer one (and only one) more shot via root credentials.
-		if config.AccessKeyId == "" {
+		if config.AccessKeyId == "" && config.FallbackToRootCredentials {
 			return InMasterAccount(rolename, configWithRootCredentials(rolename, config))
 		}
 
@@ -187,7 +188,7 @@ func InSpecialAccount(name, rolename string, config Config) (*session.Session, e
 
 		// But if we never even got started, and we haven't already asked, ask
 		// for root credentials and try again.
-		if config.AccessKeyId == "" {
+		if config.AccessKeyId == "" && config.FallbackToRootCredentials {
 			return InSpecialAccount(name, rolename, configWithRootCredentials(rolename, config))
 		}
 
@@ -215,7 +216,7 @@ func InSpecialAccount(name, rolename string, config Config) (*session.Session, e
 	if _, err := awssts.GetCallerIdentity(sts.New(sess)); err != nil {
 
 		// Offer one (and only one) more shot via root credentials.
-		if config.AccessKeyId == "" {
+		if config.AccessKeyId == "" && config.FallbackToRootCredentials {
 			return InSpecialAccount(name, rolename, configWithRootCredentials(rolename, config))
 		}
 
@@ -252,7 +253,7 @@ func NewSession(config Config) (*session.Session, error) {
 
 			// In this case the AWS SDK couldn't find any credentials so let's
 			// ask for some and try again.
-			if config.AccessKeyId == "" {
+			if config.AccessKeyId == "" && config.FallbackToRootCredentials {
 				return NewSession(configWithRootCredentials("", config))
 			}
 

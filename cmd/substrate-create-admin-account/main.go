@@ -57,7 +57,9 @@ func main() {
 		ui.Fatalf(`-quality"%s" is not a valid quality for an admin account in your organization`, *quality)
 	}
 
-	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{})
+	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{
+		FallbackToRootCredentials: true,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

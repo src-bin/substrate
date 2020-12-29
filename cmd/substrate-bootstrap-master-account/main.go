@@ -45,6 +45,7 @@ func main() {
 
 	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{
 		BootstrappingMasterAccount: true,
+		FallbackToRootCredentials:  true,
 		Region:                     region,
 	})
 	if err != nil {

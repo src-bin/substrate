@@ -38,7 +38,9 @@ func main() {
 		ui.Fatalf(`-environment="%s" -quality"%s" is not a valid environment and quality pair in your organization`, *environment, *quality)
 	}
 
-	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{})
+	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{
+		FallbackToRootCredentials: true,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

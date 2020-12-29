@@ -38,7 +38,9 @@ func main() {
 	flag.Parse()
 	version.Flag()
 
-	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{})
+	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{
+		FallbackToRootCredentials: true,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
