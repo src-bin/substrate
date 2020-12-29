@@ -175,12 +175,6 @@ func main() {
 	ui.Stopf("account %s", networkAccount.Id)
 	//log.Printf("%+v", networkAccount)
 
-	// Render a "cheat sheet" of sorts that has all the account numbers, role
-	// names, and role ARNs that folks might need to get the job done.
-	if err := accounts.CheatSheet(svc); err != nil {
-		log.Fatal(err)
-	}
-
 	// Tag the management account.
 	ui.Spin("tagging the management account")
 	if err := awsorgs.Tag(svc, aws.StringValue(org.MasterAccountId), map[string]string{
@@ -191,6 +185,12 @@ func main() {
 		log.Fatal(err)
 	}
 	ui.Stop("ok")
+
+	// Render a "cheat sheet" of sorts that has all the account numbers, role
+	// names, and role ARNs that folks might need to get the job done.
+	if err := accounts.CheatSheet(svc); err != nil {
+		log.Fatal(err)
+	}
 
 	ui.Spin("configuring your organization's service control and tagging policies")
 
