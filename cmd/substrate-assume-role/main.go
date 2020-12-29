@@ -61,7 +61,10 @@ func main() {
 		ui.Quiet()
 	}
 
-	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationReader, awssessions.Config{}))
+	sess, err := awssessions.InMasterAccount(roles.OrganizationReader, awssessions.Config{})
+	if err != nil {
+		ui.Fatal(awssessions.NewOrganizationReaderError(err, *rolename))
+	}
 	svc := organizations.New(sess)
 	var accountId string
 	if *number != "" {

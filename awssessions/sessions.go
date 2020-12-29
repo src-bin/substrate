@@ -2,6 +2,7 @@ package awssessions
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -192,7 +193,7 @@ func InSpecialAccount(name, rolename string, config Config) (*session.Session, e
 			return InSpecialAccount(name, rolename, configWithRootCredentials(rolename, config))
 		}
 
-		return nil, err
+		return nil, NewOrganizationReaderError(err, rolename)
 	}
 	account, err := awsorgs.FindSpecialAccount(organizations.New(masterSess), name)
 	if err != nil {
@@ -350,6 +351,27 @@ func NewSession(config Config) (*session.Session, error) {
 	ui.Stopf("switched to access key ID %s", accessKey.AccessKeyId)
 
 	return sess, nil
+}
+
+type OrganizationReaderError struct {
+	error
+	rolename string
+}
+
+func NewOrganizationReaderError(err error, rolename string) *OrganizationReaderError {
+	return &OrganizationReaderError{err, rolename}
+}
+
+func (err *OrganizationReaderError) Err() error {
+	return err.error
+}
+
+func (err *OrganizationReaderError) Error() string {
+	preamble := "could not assume the OrganizationReader role in your organization's master account, which is a prerequisite for finding and assuming "
+	if err.rolename == "" {
+		return preamble + "other roles"
+	}
+	return fmt.Sprintf(preamble+"the %s role", err.rolename)
 }
 
 func configWithRootCredentials(rolename string, config Config) Config {
