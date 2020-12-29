@@ -46,10 +46,10 @@ func EnablePolicyType(svc *organizations.Organizations, policyType PolicyType) e
 // has the desired content, and is attached to the specified root.
 //
 // A curiosity:  Though DescribeOrganization alludes to the ability to attach
-// service control policies to the master account, that does not appear to be
+// service control policies to the management account, that does not appear to be
 // possible (without first enabling service control policies).  It's unclear
 // if such policies would apply only to that account if attached there instead
-// of the root.  In other words, the distinction between a master account and
+// of the root.  In other words, the distinction between a management account and
 // the root is murkier than I thought yesterday.
 func EnsurePolicy(
 	svc *organizations.Organizations,

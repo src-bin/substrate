@@ -96,7 +96,7 @@ func main() {
 		providersFile.Push(terraform.GlobalProvider(
 			roles.Arn(accountId, roles.DeployAdministrator),
 		))
-		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InMasterAccount(
+		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InManagementAccount(
 			roles.OrganizationReader,
 			awssessions.Config{},
 		))), accounts.Network)

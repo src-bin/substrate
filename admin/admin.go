@@ -27,7 +27,7 @@ func AdminPrincipals(svc *organizations.Organizations) (*policies.Principal, err
 	if err != nil {
 		return nil, err
 	}
-	adminPrincipals := make([]string, len(adminAccounts)+2) // +2 for the master account and its IAM user
+	adminPrincipals := make([]string, len(adminAccounts)+2) // +2 for the management account and its IAM user
 	for i, account := range adminAccounts {
 		adminPrincipals[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
 	}
@@ -46,9 +46,9 @@ func AdminPrincipals(svc *organizations.Organizations) (*policies.Principal, err
 }
 
 // EnsureAdministratorRolesAndPolicies creates or updates the entire matrix of
-// Administrator roles and policies to allow the master account and admin
+// Administrator roles and policies to allow the management account and admin
 // accounts to move fairly freely throughout the organization.  The given
-// session must be for the OrganizationAdministrator user or role in the master
+// session must be for the OrganizationAdministrator user or role in the management
 // account.
 func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	svc := organizations.New(sess)
@@ -67,7 +67,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	}
 
 	// Admin accounts, once they exist, are going to need to be able to assume
-	// a role in the master account.  Because no admin accounts exist yet, this
+	// a role in the management account.  Because no admin accounts exist yet, this
 	// is something of a no-op but it provides a place for them to attach
 	// themselves as they're created.
 	ui.Spin("finding or creating a role to allow admin accounts to administer your organization")
@@ -149,7 +149,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
-	// Ensure all admin accounts and the master account can administer the
+	// Ensure all admin accounts and the management account can administer the
 	// deploy and network accounts.
 	ui.Spin("finding or creating a role to allow admin accounts to administer your deploy artifacts")
 	deployAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Deploy)
@@ -233,7 +233,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			switch account.Tags[tags.SubstrateSpecialAccount] {
 			case accounts.Deploy:
 				terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.StringValue(account.Id), roles.DeployAdministrator))
-			case accounts.Master:
+			case accounts.Management:
 				terraformPrincipals = append(
 					terraformPrincipals,
 					roles.Arn(aws.StringValue(account.Id), roles.OrganizationAdministrator),
@@ -281,7 +281,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	sort.Strings(terraformPrincipals) // to avoid spurious policy diffs
 	//log.Printf("%+v", terraformPrincipals)
 	var resources []string
-	for _, region := range regions.All() { // we can't use regions.Selected() in the first substrate-bootstrap-master-account
+	for _, region := range regions.All() { // we can't use regions.Selected() in the first substrate-bootstrap-management-account
 		bucketName := terraform.S3BucketName(region)
 		resources = append(
 			resources,

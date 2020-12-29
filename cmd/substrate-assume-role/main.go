@@ -23,36 +23,38 @@ func main() {
 	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")
 	quality := flag.String("quality", "", "quality of an AWS account in which to assume a role")
-	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "master" or "network"`)
-	master := flag.Bool("master", false, "assume a role in the organization's master AWS account")
+	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "management" or "network"`)
+	management := flag.Bool("management", false, "assume a role in the organization's management AWS account")
+	master := flag.Bool("master", false, "deprecated name for -management")
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
 	rolename := flag.String("role", "", "name of the IAM role to assume")
 	quiet := flag.Bool("quiet", false, "do not write anything to standard output before forking the child command")
 	flag.Parse()
+	*management = *management || *master
 	version.Flag()
 	if *admin {
 		*domain, *environment = "admin", "admin"
 	}
-	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*master && *number == "" {
-		ui.Fatal(`one of -domain="..." -environment="..." -quality"..." or -special="..." or -master or -number="..." is required`)
+	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*management && *number == "" {
+		ui.Fatal(`one of -domain="..." -environment="..." -quality"..." or -special="..." or -management or -number="..." is required`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *special != "" {
 		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -special="..."`)
 	}
-	if (*domain != "" || *environment != "" || *quality != "") && *master {
-		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -master`)
+	if (*domain != "" || *environment != "" || *quality != "") && *management {
+		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -management`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *number != "" {
 		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -number="..."`)
 	}
-	if *special != "" && *master {
-		ui.Fatal(`can't mix -special="..." with -master`)
+	if *special != "" && *management {
+		ui.Fatal(`can't mix -special="..." with -management`)
 	}
 	if *special != "" && *number != "" {
 		ui.Fatal(`can't mix -special="..." with -number="..."`)
 	}
-	if *master && *number != "" {
-		ui.Fatal(`can't mix -master with -number="..."`)
+	if *management && *number != "" {
+		ui.Fatal(`can't mix -management with -number="..."`)
 	}
 	if *rolename == "" {
 		ui.Fatal(`-role="..." is required`)
@@ -61,7 +63,7 @@ func main() {
 		ui.Quiet()
 	}
 
-	sess, err := awssessions.InMasterAccount(roles.OrganizationReader, awssessions.Config{})
+	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
 	if err != nil {
 		ui.Fatal(awssessions.NewOrganizationReaderError(err, *rolename))
 	}
@@ -69,7 +71,7 @@ func main() {
 	var accountId string
 	if *number != "" {
 		accountId = *number
-	} else if *master {
+	} else if *management {
 		org, err := awsorgs.DescribeOrganization(svc)
 		if err != nil {
 			log.Fatal(err)

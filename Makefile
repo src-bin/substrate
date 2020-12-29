@@ -13,6 +13,7 @@ all:
 clean:
 
 install:
+	ln -f -s substrate-bootstrap-management-account $(GOBIN)/substrate-bootstrap-master-account # TODO remove on or after release 2021.01
 	ls -1 cmd | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
 	grep -Flr lambda.Start cmd | xargs dirname | xargs -n1 basename | GOARCH=amd64 GOOS=linux xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
 

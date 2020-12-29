@@ -17,7 +17,7 @@ func main() {
 	flag.Parse()
 	version.Flag()
 
-	sess, err := awssessions.InMasterAccount(roles.OrganizationReader, awssessions.Config{})
+	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}

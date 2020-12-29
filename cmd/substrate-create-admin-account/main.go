@@ -57,7 +57,7 @@ func main() {
 		ui.Fatalf(`-quality"%s" is not a valid quality for an admin account in your organization`, *quality)
 	}
 
-	sess, err := awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{
+	sess, err := awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{
 		FallbackToRootCredentials: true,
 	})
 	if err != nil {
@@ -286,7 +286,7 @@ func main() {
 
 		file := terraform.NewFile()
 		deployAccount, err := awsorgs.FindSpecialAccount(
-			organizations.New(awssessions.Must(awssessions.AssumeRoleMaster(
+			organizations.New(awssessions.Must(awssessions.AssumeRoleManagement(
 				sess,
 				roles.OrganizationReader,
 			))),
@@ -337,7 +337,7 @@ func main() {
 			region,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 		))
-		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InMasterAccount(
+		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InManagementAccount(
 			roles.OrganizationReader,
 			awssessions.Config{},
 		))), accounts.Network)

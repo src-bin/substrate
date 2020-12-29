@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 	version.Flag()
 
-	sess := awssessions.Must(awssessions.InMasterAccount(roles.OrganizationAdministrator, awssessions.Config{}))
+	sess := awssessions.Must(awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{}))
 
 	ui.Spin("deleting all access keys for the OrganizationAdministrator user")
 	if err := awsiam.DeleteAllAccessKeys(

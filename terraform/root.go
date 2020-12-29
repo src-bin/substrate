@@ -111,7 +111,7 @@ func terraformBackend(dirname, region string, sess *session.Session) error {
 	}
 
 	deployAccount, err := awsorgs.FindSpecialAccount(
-		organizations.New(awssessions.Must(awssessions.AssumeRoleMaster(
+		organizations.New(awssessions.Must(awssessions.AssumeRoleManagement(
 			sess,
 			roles.OrganizationReader,
 		))),

@@ -3,6 +3,7 @@ package accounts
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"sort"
 
@@ -16,14 +17,15 @@ import (
 )
 
 const (
-	Admin   = "admin"
-	Audit   = "audit"
-	Deploy  = "deploy"
-	Master  = "master"
-	Network = "network"
+	Admin      = "admin"
+	Audit      = "audit"
+	Deploy     = "deploy"
+	Management = "management"
+	Network    = "network"
 
-	CheatSheetFilename      = "substrate.accounts.txt"
-	MasterAccountIdFilename = "substrate.master-account-id"
+	CheatSheetFilename             = "substrate.accounts.txt"
+	ManagementAccountIdFilename    = "substrate.management-account-id"
+	OldManagementAccountIdFilename = "substrate.master-account-id"
 )
 
 func CheatSheet(svc *organizations.Organizations) error {
@@ -68,8 +70,8 @@ func CheatSheet(svc *organizations.Organizations) error {
 				specialAccountsCells[4][1] = aws.StringValue(account.Id)
 				specialAccountsCells[4][2] = roles.DeployAdministrator
 				specialAccountsCells[4][3] = roles.Arn(aws.StringValue(account.Id), roles.DeployAdministrator)
-			case Master:
-				specialAccountsCells[1][0] = Master
+			case Management:
+				specialAccountsCells[1][0] = Management
 				specialAccountsCells[1][1] = aws.StringValue(account.Id)
 				specialAccountsCells[1][2] = roles.OrganizationAdministrator
 				specialAccountsCells[1][3] = roles.Arn(aws.StringValue(account.Id), roles.OrganizationAdministrator)
@@ -132,32 +134,45 @@ func CheatSheet(svc *organizations.Organizations) error {
 	return nil
 }
 
-func EnsureMasterAccountIdMatchesDisk(masterAccountId string) error {
+func EnsureManagementAccountIdMatchesDisk(managementAccountId string) error {
 
 	// We'll never have this file when we're e.g. in Lambda.
-	if !fileutil.Exists(MasterAccountIdFilename) {
+	if !fileutil.Exists(ManagementAccountIdFilename) {
 		return nil
 	}
 
-	b, err := fileutil.ReadFile(MasterAccountIdFilename)
+	b, err := fileutil.ReadFile(ManagementAccountIdFilename)
 	if err != nil {
 		return err
 	}
-	if diskMasterAccountId := fileutil.Tidy(b); masterAccountId != diskMasterAccountId {
+	if diskManagementAccountId := fileutil.Tidy(b); managementAccountId != diskManagementAccountId {
 		return fmt.Errorf(
-			"the calling account's master account is %s but this directory's master account is %s",
-			masterAccountId,
-			diskMasterAccountId,
+			"the calling account's management account is %s but this directory's management account is %s",
+			managementAccountId,
+			diskManagementAccountId,
 		)
 	}
 	return nil
 }
 
-func WriteMasterAccountIdToDisk(masterAccountId string) error {
-	if !fileutil.Exists(MasterAccountIdFilename) {
-		if err := ioutil.WriteFile(MasterAccountIdFilename, []byte(fmt.Sprintln(masterAccountId)), 0666); err != nil {
+func WriteManagementAccountIdToDisk(managementAccountId string) error {
+	if !fileutil.Exists(ManagementAccountIdFilename) {
+		if err := ioutil.WriteFile(ManagementAccountIdFilename, []byte(fmt.Sprintln(managementAccountId)), 0666); err != nil {
 			return err
 		}
 	}
+
+	// This file used to be stored under a different name. AWS have recently
+	// started referring to the account under which the organization was
+	// created as the "management" account rather than the "master" account
+	// so we reflect that change here.
+	//
+	// TODO Remove on or after release 2021.01.
+	if fileutil.Exists(OldManagementAccountIdFilename) {
+		if err := os.Remove(OldManagementAccountIdFilename); err != nil {
+			log.Print(err)
+		}
+	}
+
 	return nil
 }

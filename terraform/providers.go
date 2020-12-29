@@ -26,7 +26,7 @@ func GlobalProvider(roleArn string) Provider {
 }
 
 // NetworkProviderFor returns a Terraform provider for discovering the VPCs and
-// subnets in the given region's network.  The given sess must be in the master
+// subnets in the given region's network.  The given sess must be in the management
 // account (in any role).
 func NetworkProviderFor(region, roleArn string) Provider {
 	return Provider{
