@@ -11,6 +11,8 @@ all:
 	go generate ./...
 
 clean:
+	rm -f -r substrate-*-*-*
+	rm -f substrate-*-*-*.tar.gz
 
 install:
 	ln -f -s substrate-bootstrap-management-account $(GOBIN)/substrate-bootstrap-master-account # TODO remove on or after release 2021.01
