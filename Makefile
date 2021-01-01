@@ -15,21 +15,26 @@ clean:
 install:
 	ln -f -s substrate-bootstrap-management-account $(GOBIN)/substrate-bootstrap-master-account # TODO remove on or after release 2021.01
 	ls -1 cmd | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
-	grep -Flr lambda.Start cmd | xargs dirname | xargs -n1 basename | GOARCH=amd64 GOOS=linux xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
+	grep -Flr lambda.Start cmd | xargs dirname | xargs -n1 basename | GOARCH=amd64 GOOS=linux xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ -tags netgo ./cmd/___
 
 release:
-	mkdir substrate-$(VERSION)-$(COMMIT)-linux
-	make install GOARCH=amd64 GOBIN=$(PWD)/substrate-$(VERSION)-$(COMMIT)-linux GOOS=linux
-	tar czf substrate-$(VERSION)-$(COMMIT)-linux.tar.gz substrate-$(VERSION)-$(COMMIT)-linux
-	rm -f -r substrate-$(VERSION)-$(COMMIT)-linux
-	mkdir substrate-$(VERSION)-$(COMMIT)-macos
-	make install GOARCH=amd64 GOBIN=$(PWD)/substrate-$(VERSION)-$(COMMIT)-macos GOOS=darwin
-	tar czf substrate-$(VERSION)-$(COMMIT)-macos.tar.gz substrate-$(VERSION)-$(COMMIT)-macos
-	rm -f -r substrate-$(VERSION)-$(COMMIT)-macos
+	make tarball GOARCH=amd64 GOOS=linux
+	make tarball GOARCH=arm64 GOOS=linux
+	make tarball GOARCH=amd64 GOOS=darwin
+	#make tarball GOARCH=arm64 GOOS=darwin
 
 release-filenames: # for src-bin.co to grab on
-	@echo substrate-$(VERSION)-$(COMMIT)-linux.tar.gz
-	@echo substrate-$(VERSION)-$(COMMIT)-macos.tar.gz
+	@echo substrate-$(VERSION)-$(COMMIT)-linux-amd64.tar.gz
+	@echo substrate-$(VERSION)-$(COMMIT)-linux-arm64.tar.gz
+	@echo substrate-$(VERSION)-$(COMMIT)-darwin-amd64.tar.gz
+	#@echo substrate-$(VERSION)-$(COMMIT)-darwin-arm64.tar.gz
+
+tarball:
+	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH) # makes debugging easier
+	mkdir substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
+	make install GOBIN=$(PWD)/substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
+	tar czf substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH).tar.gz substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
+	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 
 test:
 	go test -race -v ./...
@@ -37,4 +42,4 @@ test:
 uninstall:
 	ls -1 cmd | xargs -I___ rm -f $(GOBIN)/___
 
-.PHONY: all clean install release release-filenames test uninstall
+.PHONY: all clean install release release-filenames tarball test uninstall
