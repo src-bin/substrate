@@ -77,13 +77,11 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 	return &events.APIGatewayCustomAuthorizerResponse{
 		Context: context,
 		PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
-			Statement: []events.IAMPolicyStatement{
-				{
-					Action:   []string{"execute-api:Invoke"},
-					Effect:   string(effect),
-					Resource: []string{event.MethodArn},
-				},
-			},
+			Statement: []events.IAMPolicyStatement{{
+				Action:   []string{"execute-api:Invoke"},
+				Effect:   string(effect),
+				Resource: []string{event.MethodArn},
+			}},
 			Version: "2012-10-17",
 		},
 		PrincipalID: idToken.Email,
