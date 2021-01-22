@@ -38,7 +38,7 @@ data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
 
 data "aws_iam_policy_document" "substrate-apigateway-index" {
   statement {
-    actions   = ["apigateway:GetResources"]
+    actions   = ["apigateway:GET"]
     resources = ["*"]
   }
 }

@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 )
 
@@ -14,12 +17,28 @@ import (
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
-	debug, err := json.MarshalIndent(event, "", "\t")
+	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := lambdautil.RenderHTML(indexTemplate(), struct{ Debug string }{string(debug)})
+	svc := apigateway.New(sess)
+	out, err := svc.GetResources(&apigateway.GetResourcesInput{
+		Limit:     aws.Int64(500),
+		RestApiId: aws.String(event.RequestContext.APIID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(out.Items))
+	for _, item := range out.Items {
+		if item.ParentId != nil {
+			paths = append(paths, aws.StringValue(item.Path))
+		}
+	}
+	sort.Strings(paths)
+
+	body, err := lambdautil.RenderHTML(indexTemplate(), struct{ Paths []string }{paths})
 	if err != nil {
 		return nil, err
 	}

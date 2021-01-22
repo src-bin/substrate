@@ -9,7 +9,11 @@ func indexTemplate() string {
 <title>Intranet</title>
 <body>
 <h1>Intranet</h1>
-<pre>{{.Debug}}</pre>
+<ul>
+{{- range .Paths}}
+    <li><a href="{{.}}">{{.}}</a></li>
+{{- end}}
+</ul>
 </body>
 </html>
 `
