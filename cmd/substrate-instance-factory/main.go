@@ -257,7 +257,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	reservation, err := awsec2.RunInstance(
 		svc,
-		roles.Administrator, // there's an instance profile for this role with the same name
+		roles.Administrator, // there's an instance profile for this role with the same name; TODO parameterize as with AWS Console
 		aws.StringValue(image.ImageId),
 		instanceType,
 		aws.StringValue(keyPairs[0].KeyName),

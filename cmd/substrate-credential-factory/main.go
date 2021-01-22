@@ -91,7 +91,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		stsSvc,
 		roles.Arn(
 			aws.StringValue(callerIdentity.Account),
-			roles.Administrator,
+			roles.Administrator, // TODO parameterize by user as with AWS Console
 		),
 		sessionName,
 		43200,
