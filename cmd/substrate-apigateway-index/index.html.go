@@ -14,6 +14,10 @@ func indexTemplate() string {
     <li><a href="{{.}}">{{.}}</a></li>
 {{- end}}
 </ul>
+{{- if .Debug}}
+<hr>
+<pre>{{.Debug}}</pre>
+{{- end}}
 </body>
 </html>
 `

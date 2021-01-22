@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"sort"
 
@@ -16,6 +17,15 @@ import (
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
 
 func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+
+	var debug string
+	if _, ok := event.QueryStringParameters["debug"]; ok {
+		b, err := json.MarshalIndent(event, "", "\t")
+		if err != nil {
+			return nil, err
+		}
+		debug = string(b)
+	}
 
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
@@ -45,7 +55,13 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	}
 	sort.Strings(paths)
 
-	body, err := lambdautil.RenderHTML(indexTemplate(), struct{ Paths []string }{paths})
+	body, err := lambdautil.RenderHTML(indexTemplate(), struct {
+		Debug string
+		Paths []string
+	}{
+		Debug: debug,
+		Paths: paths,
+	})
 	if err != nil {
 		return nil, err
 	}
