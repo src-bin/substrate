@@ -30,9 +30,16 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 	if err != nil {
 		return nil, err
 	}
-	paths := make([]string, 0, len(out.Items))
+	var root string
 	for _, item := range out.Items {
-		if item.ParentId != nil {
+		if item.ParentId == nil {
+			root = aws.StringValue(item.Id)
+			break
+		}
+	}
+	paths := make([]string, 0)
+	for _, item := range out.Items {
+		if aws.StringValue(item.ParentId) == root {
 			paths = append(paths, aws.StringValue(item.Path))
 		}
 	}
