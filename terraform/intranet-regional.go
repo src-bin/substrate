@@ -41,13 +41,11 @@ data "aws_route53_zone" "intranet" {
 
 locals {
   response_parameters = {
-    "gatewayresponse.header.Location" = "'https://${var.dns_domain_name}/login?next=/credential-factory'" # a last resort
-    #"gatewayresponse.header.Location"                  = "context.authorizer.Location" # use the authorizer for expensive string concatenation
+    "gatewayresponse.header.Location"                  = "context.authorizer.Location" # use the authorizer for expensive string concatenation
     "gatewayresponse.header.Strict-Transport-Security" = "'max-age=31536000; includeSubDomains; preload'"
   }
   response_templates = {
-    "application/json" = "{\"Location\":\"https://${var.dns_domain_name}/login?next=/credential-factory\"}" # a last resort
-    #"application/json" = "{\"Location\":\"$context.authorizer.Location\"}"
+    "application/json" = "{\"Location\":\"$context.authorizer.Location\"}"
   }
 }
 

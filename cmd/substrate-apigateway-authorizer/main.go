@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -46,8 +47,15 @@ func handle(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequest
 		clientSecret,
 	)
 
+	u := &url.URL{
+		Path:     event.Path,
+		RawQuery: url.Values(event.MultiValueQueryStringParameters).Encode(),
+	}
+	next := u.String()
+	u.Path = "/login"
+	u.RawQuery = url.Values{"next": []string{next}}.Encode()
 	context := map[string]interface{}{
-		"Location": "/login?next=" + event.Path, // where API Gateway will send the browser when unauthorized
+		"Location": u.String(), // where API Gateway will send the browser when unauthorized
 	}
 
 	idToken := &oauthoidc.IDToken{}
