@@ -58,9 +58,6 @@ module "substrate-apigateway-authenticator" {
 }
 
 module "substrate-apigateway-authorizer" {
-  #apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::*"
-  #apigateway_execution_arn = "arn:aws:apigateway:${data.aws_region.current.name}::/restapis/${aws_api_gateway_rest_api.intranet.id}/authorizers/${aws_api_gateway_authorizer.substrate.id}"
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
   filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
   name                     = "substrate-apigateway-authorizer"
@@ -133,18 +130,24 @@ resource "aws_api_gateway_deployment" "intranet" {
     redeployment = sha1(join(",", list(
       jsonencode(aws_api_gateway_authorizer.substrate),
       jsonencode(aws_api_gateway_integration.GET-credential-factory),
+      jsonencode(aws_api_gateway_integration.GET-credential-factory-authorize),
+      jsonencode(aws_api_gateway_integration.GET-credential-factory-fetch),
       jsonencode(aws_api_gateway_integration.GET-index),
       jsonencode(aws_api_gateway_integration.GET-instance-factory),
       jsonencode(aws_api_gateway_integration.GET-login),
       jsonencode(aws_api_gateway_integration.POST-instance-factory),
       jsonencode(aws_api_gateway_integration.POST-login),
       jsonencode(aws_api_gateway_method.GET-credential-factory),
+      jsonencode(aws_api_gateway_method.GET-credential-factory-authorize),
+      jsonencode(aws_api_gateway_method.GET-credential-factory-fetch),
       jsonencode(aws_api_gateway_method.GET-index),
       jsonencode(aws_api_gateway_method.GET-instance-factory),
       jsonencode(aws_api_gateway_method.GET-login),
       jsonencode(aws_api_gateway_method.POST-instance-factory),
       jsonencode(aws_api_gateway_method.POST-login),
       jsonencode(aws_api_gateway_resource.credential-factory),
+      jsonencode(aws_api_gateway_resource.credential-factory-authorize),
+      jsonencode(aws_api_gateway_resource.credential-factory-fetch),
       jsonencode(aws_api_gateway_resource.instance-factory),
       jsonencode(aws_api_gateway_resource.login),
       jsonencode(aws_api_gateway_gateway_response.ACCESS_DENIED),
@@ -194,6 +197,28 @@ resource "aws_api_gateway_integration" "GET-credential-factory" {
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
   resource_id             = aws_api_gateway_resource.credential-factory.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.substrate-credential-factory.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "GET-credential-factory-authorize" {
+  credentials             = data.aws_iam_role.apigateway.arn
+  http_method             = aws_api_gateway_method.GET-credential-factory-authorize.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.credential-factory-authorize.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.substrate-credential-factory.invoke_arn
+}
+
+resource "aws_api_gateway_integration" "GET-credential-factory-fetch" {
+  credentials             = data.aws_iam_role.apigateway.arn
+  http_method             = aws_api_gateway_method.GET-credential-factory-fetch.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.credential-factory-fetch.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
   uri                     = module.substrate-credential-factory.invoke_arn
@@ -262,6 +287,21 @@ resource "aws_api_gateway_method" "GET-credential-factory" {
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
 }
 
+resource "aws_api_gateway_method" "GET-credential-factory-authorize" {
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
+  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.credential-factory-authorize.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
+resource "aws_api_gateway_method" "GET-credential-factory-fetch" {
+  authorization = "NONE"
+  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.credential-factory-fetch.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
 resource "aws_api_gateway_method" "GET-index" {
   authorization = "CUSTOM"
   authorizer_id = aws_api_gateway_authorizer.substrate.id
@@ -314,6 +354,18 @@ resource "aws_api_gateway_method_settings" "intranet" {
 resource "aws_api_gateway_resource" "credential-factory" {
   parent_id   = aws_api_gateway_rest_api.intranet.root_resource_id
   path_part   = "credential-factory"
+  rest_api_id = aws_api_gateway_rest_api.intranet.id
+}
+
+resource "aws_api_gateway_resource" "credential-factory-authorize" {
+  parent_id   = aws_api_gateway_resource.credential-factory.id
+  path_part   = "authorize"
+  rest_api_id = aws_api_gateway_rest_api.intranet.id
+}
+
+resource "aws_api_gateway_resource" "credential-factory-fetch" {
+  parent_id   = aws_api_gateway_resource.credential-factory.id
+  path_part   = "fetch"
   rest_api_id = aws_api_gateway_rest_api.intranet.id
 }
 
