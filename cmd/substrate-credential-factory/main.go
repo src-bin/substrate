@@ -63,7 +63,7 @@ func getCredentials(sess *session.Session, sessionName string) (*sts.Credentials
 		}
 	}()
 
-	time.Sleep(3e9) // I really wish I didn't have to do this
+	time.Sleep(5e9) // I really wish I didn't have to do this
 
 	userSess, err := awssessions.NewSession(awssessions.Config{
 		AccessKeyId:     aws.StringValue(accessKey.AccessKeyId),
