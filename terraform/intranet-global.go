@@ -55,6 +55,9 @@ data "aws_iam_policy_document" "substrate-credential-factory" {
       "iam:CreateAccessKey",
       "iam:DeleteAccessKey",
       "iam:ListAccessKeys",
+      "iam:ListUserTags",
+      "iam:TagUser",
+      "iam:UntagUser",
     ]
     resources = ["*"]
   }
