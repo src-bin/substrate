@@ -54,7 +54,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if !veqpDoc.Valid(Environment, *quality) {
-		ui.Fatalf(`-quality"%s" is not a valid quality for an admin account in your organization`, *quality)
+		ui.Fatalf(`-quality="%s" is not a valid quality for an admin account in your organization`, *quality)
 	}
 
 	sess, err := awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{

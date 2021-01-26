@@ -35,7 +35,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if !veqpDoc.Valid(*environment, *quality) {
-		ui.Fatalf(`-environment="%s" -quality"%s" is not a valid environment and quality pair in your organization`, *environment, *quality)
+		ui.Fatalf(`-environment="%s" -quality="%s" is not a valid environment and quality pair in your organization`, *environment, *quality)
 	}
 
 	sess, err := awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{
