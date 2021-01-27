@@ -28,7 +28,7 @@ func main() {
 	master := flag.Bool("master", false, "deprecated name for -management")
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
 	rolename := flag.String("role", "", "name of the IAM role to assume")
-	quiet := flag.Bool("quiet", false, "do not write anything to standard output before forking the child command")
+	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Parse()
 	*management = *management || *master
 	version.Flag()
