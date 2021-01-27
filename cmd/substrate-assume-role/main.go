@@ -103,7 +103,7 @@ func main() {
 
 	// Print the credentials for the user to copy into their environment.
 	if !*quiet {
-		awssts.Export(out, nil)
+		awssts.Export(out.Credentials)
 	}
 
 	// Execute a command with the credentials in its environment.  We use
