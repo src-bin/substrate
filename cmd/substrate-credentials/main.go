@@ -5,16 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
@@ -38,49 +36,18 @@ func fetch(u *url.URL) (*sts.Credentials, error) {
 }
 
 func main() {
-	format := flag.String(
-		"format",
-		"export",
-		`output format - "export" for exported shell environment variables, "env" for .env files, "json" for IAM API-compatible JSON`,
-	)
+	format := awssts.CredentialFormatFlag()
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Parse()
 	version.Flag()
 	if *quiet {
 		ui.Quiet()
 	}
-
-	formats := map[string]func(*sts.Credentials){
-		"export": func(credentials *sts.Credentials) {
-			fmt.Printf(
-				" export AWS_ACCESS_KEY_ID=\"%s\" AWS_SECRET_ACCESS_KEY=\"%s\" AWS_SESSION_TOKEN=\"%s\"\n",
-				aws.StringValue(credentials.AccessKeyId),
-				aws.StringValue(credentials.SecretAccessKey),
-				aws.StringValue(credentials.SessionToken),
-			)
-		},
-		"env": func(credentials *sts.Credentials) {
-			fmt.Printf(
-				"AWS_ACCESS_KEY_ID=\"%s\"\nAWS_SECRET_ACCESS_KEY=\"%s\"\nAWS_SESSION_TOKEN=\"%s\"\n",
-				aws.StringValue(credentials.AccessKeyId),
-				aws.StringValue(credentials.SecretAccessKey),
-				aws.StringValue(credentials.SessionToken),
-			)
-		},
-		"json": func(credentials *sts.Credentials) {
-			enc := json.NewEncoder(os.Stdout)
-			enc.SetEscapeHTML(false)
-			enc.SetIndent("", "\t")
-			if err := enc.Encode(struct {
-				Credentials *sts.Credentials // nested to behave exactly like `aws sts assume-role`
-			}{credentials}); err != nil {
-				ui.Fatal(err)
-			}
-		},
-	}
-	if _, ok := formats[*format]; !ok {
-		ui.Fatalf(`-format="%s" not supported`, *format)
-	}
+	/*
+		if awssts.CredentialFormatValid(*format) {
+			ui.Fatalf(`-format="%s" not supported`, *format)
+		}
+	*/
 
 	// Generate the token we'll exchange for AWS credentials.
 	b := make([]byte, 48) // 48 binary bytes makes 64 base64-encoded bytes
@@ -137,6 +104,6 @@ func main() {
 	ui.Stop("ok")
 
 	// Print credentials in whatever format was requested.
-	formats[*format](credentials)
+	format.Print(credentials)
 
 }

@@ -1,7 +1,6 @@
 package awssts
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -23,23 +22,6 @@ func AssumeRole(svc *sts.STS, roleArn, sessionName string, durationSeconds int) 
 		RoleArn:         aws.String(roleArn),
 		RoleSessionName: aws.String(sessionName),
 	})
-}
-
-func Export(credentials *sts.Credentials) {
-	/*
-		if err != nil {
-			ui.Print(err)
-			return
-		}
-	*/
-	ui.Print("paste this into a shell to set environment variables (taking care to preserve the leading space):")
-	fmt.Printf(
-		` export OLD_AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" AWS_ACCESS_KEY_ID=%q OLD_AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" AWS_SECRET_ACCESS_KEY=%q OLD_AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" AWS_SESSION_TOKEN=%q; alias unassume-role='AWS_ACCESS_KEY_ID="$OLD_AWS_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$OLD_AWS_SECRET_ACCESS_KEY" AWS_SESSION_TOKEN="$OLD_AWS_SESSION_TOKEN"; unset OLD_AWS_ACCESS_KEY_ID OLD_AWS_SECRET_ACCESS_KEY OLD_AWS_SESSION_TOKEN'
-`,
-		aws.StringValue(credentials.AccessKeyId),
-		aws.StringValue(credentials.SecretAccessKey),
-		aws.StringValue(credentials.SessionToken),
-	)
 }
 
 func GetCallerIdentity(svc *sts.STS) (*sts.GetCallerIdentityOutput, error) {
