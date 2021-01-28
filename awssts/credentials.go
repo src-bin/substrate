@@ -39,7 +39,7 @@ func (f *CredentialFormat) Print(credentials *sts.Credentials) {
 
 func (f *CredentialFormat) Set(format string) error {
 	if _, ok := formats[format]; !ok {
-		return CredentialFormatError(fmt.Sprintf(`-format="%s" not supported`, format))
+		return CredentialFormatError(`valid values are "export", "env", and "json"`) // and "export-with-history"
 	}
 	f.format = format
 	return nil
