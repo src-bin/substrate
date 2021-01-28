@@ -28,6 +28,8 @@ func main() {
 	master := flag.Bool("master", false, "deprecated name for -management")
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
 	rolename := flag.String("role", "", "name of the IAM role to assume")
+	format := awssts.CredentialFormatFlag()
+	format.Set(awssts.CredentialFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Parse()
 	*management = *management || *master
@@ -103,7 +105,7 @@ func main() {
 
 	// Print the credentials for the user to copy into their environment.
 	if !*quiet {
-		awssts.PrintCredentialsExportWithHistory(out.Credentials)
+		format.Print(creds)
 	}
 
 	// Execute a command with the credentials in its environment.  We use
