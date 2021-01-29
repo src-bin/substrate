@@ -8,8 +8,6 @@ func makefileTemplate() string {
 AUTO_APPROVE=
 #AUTO_APPROVE=-auto-approve
 
-GOBIN={{.GOBIN}}
-
 all:
 
 apply:

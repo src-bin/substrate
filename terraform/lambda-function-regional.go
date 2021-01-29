@@ -8,12 +8,12 @@ func lambdaFunctionRegionalTemplate() map[string]string {
 `,
 		"main.tf":       `data "archive_file" "zip" {
   output_path = var.filename
-  source_file = "${data.external.gobin.result.GOBIN}/${var.name}"
+  source_file = "${data.external.dirname.result.dirname}/${var.name}"
   type        = "zip"
 }
 
-data "external" "gobin" {
-  program = ["/bin/sh", "-c", "echo \"{\\\"GOBIN\\\":\\\"$GOBIN\\\"}\""]
+data "external" "dirname" {
+  program = ["/bin/sh", "-c", "echo \"{\\\"dirname\\\":\\\"$(which substrate-create-admin-account | xargs dirname)\\\"}\""]
 }
 
 resource "aws_cloudwatch_log_group" "lambda" {
