@@ -24,6 +24,6 @@ init:
 plan:
 	terraform plan
 
-.PHONY: all apply init plan
+.PHONY: all apply destroy init plan
 `
 }
