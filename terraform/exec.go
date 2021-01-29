@@ -61,6 +61,9 @@ func Upgrade(dirname string) error {
 }
 
 func Version() (string, error) {
+	if memoizedVersion != "" {
+		return memoizedVersion, nil
+	}
 	cmd := exec.Command("terraform", "version", "-json")
 	cmd.Stdin = os.Stdin
 	stdout := &bytes.Buffer{}
@@ -75,7 +78,8 @@ func Version() (string, error) {
 	if err := json.Unmarshal(stdout.Bytes(), &out); err != nil {
 		return "", err
 	}
-	return out.TerraformVersion, nil
+	memoizedVersion = out.TerraformVersion
+	return memoizedVersion, nil
 }
 
 func execlp(progname string, args ...string) error {
@@ -85,3 +89,5 @@ func execlp(progname string, args ...string) error {
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
+
+var memoizedVersion string
