@@ -19,7 +19,7 @@ destroy:
 	terraform destroy $(AUTO_APPROVE)
 
 init:
-	terraform init
+	terraform init -reconfigure
 
 plan:
 	terraform plan
