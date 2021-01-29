@@ -3,8 +3,10 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/src-bin/substrate/ui"
 )
@@ -38,6 +40,24 @@ func Init(dirname string) error {
 func Plan(dirname string) error {
 	ui.Printf("planning Terraform changes in %s", dirname)
 	return execlp("make", "-C", dirname, "plan")
+}
+
+func ShortVersion() (string, error) {
+	version, err := Version()
+	if err != nil {
+		return "", err
+	}
+	parts := strings.SplitN(version, ".", 3)
+	return strings.Join(parts[:2], "."), nil
+}
+
+func Upgrade(dirname string) error {
+	shortVersion, err := ShortVersion()
+	if err != nil {
+		return err
+	}
+	ui.Printf("upgrading Terraform module to version %s", shortVersion)
+	return execlp("terraform", fmt.Sprintf("%supgrade", shortVersion), "-yes", dirname)
 }
 
 func Version() (string, error) {
