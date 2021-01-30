@@ -56,6 +56,13 @@ func Upgrade(dirname string) error {
 	if err != nil {
 		return err
 	}
+
+	// Substrate started in the era of Terraform 0.12 and, coincidentally, its
+	// upgrade program is not idempotent. Let's skip that whole sad party.
+	if shortVersion == "0.12" {
+		return nil
+	}
+
 	ui.Printf("upgrading Terraform module in %s to Terraform version %s", dirname, shortVersion)
 	return execdlp(dirname, "terraform", fmt.Sprintf("%supgrade", shortVersion), "-yes")
 }
@@ -73,13 +80,23 @@ func Version() (string, error) {
 	if err := cmd.Run(); err != nil {
 		return "", err
 	}
+	b := stdout.Bytes()
+
+	if len(b) > 1 && b[0] == 'T' { // "Terraform v0.12."x
+		if _, err := fmt.Sscanf(string(b), "Terraform v%s\n", &memoizedVersion); err != nil {
+			return "", err
+		}
+		return memoizedVersion, nil
+	}
+
 	out := struct {
 		TerraformVersion string `json:"terraform_version"`
 	}{}
-	if err := json.Unmarshal(stdout.Bytes(), &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		return "", err
 	}
 	memoizedVersion = out.TerraformVersion
+
 	return memoizedVersion, nil
 }
 
