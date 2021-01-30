@@ -16,6 +16,12 @@ data "external" "dirname" {
   program = ["/bin/sh", "-c", "echo \"{\\\"dirname\\\":\\\"$(which substrate-create-admin-account | xargs dirname)\\\"}\""]
 }
 
+# TODO remove this data source on or after the 2021.03 release.
+data "external" "gobin" {
+  program = ["/bin/sh", "-c", "echo \"{\\\"GOBIN\\\":\\\"$GOBIN\\\"}\""]
+}
+
+
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${var.name}"
   retention_in_days = 1
