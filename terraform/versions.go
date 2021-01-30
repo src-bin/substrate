@@ -8,7 +8,7 @@ import (
 
 //go:generate go run ../tools/template/main.go -name versionsTemplate versions.tf
 
-const RequiredVersion = "0.13"
+const RequiredVersion = "0.13.6"
 
 func versions(dirname string) error {
 	f, err := os.Create(filepath.Join(dirname, "versions.tf"))
