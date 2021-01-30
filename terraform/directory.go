@@ -38,9 +38,11 @@ func (d *Directory) Write(dirname string) error {
 	if err := versions(dirname); err != nil {
 		return err
 	}
-	if err := Upgrade(dirname); err != nil {
-		return err
-	}
+	/*
+		if err := Upgrade(dirname); err != nil {
+			return err
+		}
+	*/
 
 	return nil
 }
