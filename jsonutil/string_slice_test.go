@@ -13,6 +13,6 @@ func testStringSliceAdd(t *testing.T, ss StringSlice, s string) {
 	ss.Add(s)
 	ss.Add(s)
 	if len(ss) != 4 || ss[0] != "0" || ss[1] != "1" || ss[2] != "2" || ss[3] != "3" {
-		t.Fatal(ss, s)
+		t.Error(ss, s)
 	}
 }

@@ -137,11 +137,12 @@ func CheatSheet(svc *organizations.Organizations) error {
 func EnsureManagementAccountIdMatchesDisk(managementAccountId string) error {
 
 	// We'll never have this file when we're e.g. in Lambda.
-	if !fileutil.Exists(ManagementAccountIdFilename) {
+	pathname, err := fileutil.PathnameInParents(ManagementAccountIdFilename)
+	if err != nil {
 		return nil
 	}
 
-	b, err := fileutil.ReadFile(ManagementAccountIdFilename)
+	b, err := fileutil.ReadFile(pathname)
 	if err != nil {
 		return err
 	}

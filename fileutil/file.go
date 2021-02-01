@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -29,6 +30,25 @@ func Exists(pathname string) bool {
 
 func FromLines(ss []string) []byte {
 	return []byte(strings.Join(ss, "\n") + "\n")
+}
+
+// PathnameInParents searches the current working directory and each of its
+// parents for pathname. It returns the closest relative pathname in which the
+// given filename exists or an error if filename doesn't exist in any parent.
+func PathnameInParents(filename string) (string, error) {
+	pathname := filename
+	for {
+		if Exists(pathname) {
+			return pathname, nil
+		}
+		pathname = filepath.Join("..", pathname)
+		if dirname, err := filepath.Abs(filepath.Dir(pathname)); err != nil {
+			return "", err
+		} else if dirname == "/" {
+			break
+		}
+	}
+	return "", os.ErrNotExist
 }
 
 // ReadFile is ioutil.WriteFile's brother from another mother.
