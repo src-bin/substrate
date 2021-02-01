@@ -378,6 +378,6 @@ func main() {
 		Domain,
 		*quality,
 	)
-	ui.Printf("you should also start using <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
+	ui.Printf("you should also start using <https://%s/credential-factory> or substrate-credentials to mint short-lived AWS access keys", dnsDomainName)
 
 }
