@@ -56,7 +56,11 @@ func main() {
 	}
 	token := base64.RawURLEncoding.EncodeToString(b)
 
-	intranetDNSDomainName, err := fileutil.ReadFile(choices.IntranetDNSDomainNameFilename)
+	pathname, err := fileutil.PathnameInParents(choices.IntranetDNSDomainNameFilename)
+	if err != nil {
+		ui.Fatal(err)
+	}
+	intranetDNSDomainName, err := fileutil.ReadFile(pathname)
 	if err != nil {
 		ui.Fatal(err)
 	}
