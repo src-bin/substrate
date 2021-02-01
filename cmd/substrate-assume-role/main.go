@@ -8,6 +8,7 @@ import (
 	"os/user"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/awsorgs"
@@ -67,7 +68,14 @@ func main() {
 
 	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
 	if err != nil {
-		ui.Fatal(awssessions.NewOrganizationReaderError(err, *rolename))
+
+		// Mask the AWS-native error because we're 99% sure OrganizationReaderError
+		// is a better explanation of what went wrong.
+		if _, ok := err.(awserr.Error); ok {
+			ui.Fatal(awssessions.NewOrganizationReaderError(err, *rolename))
+		}
+
+		ui.Fatal(err)
 	}
 	svc := organizations.New(sess)
 	var accountId string

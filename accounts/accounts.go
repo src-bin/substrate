@@ -146,13 +146,19 @@ func EnsureManagementAccountIdMatchesDisk(managementAccountId string) error {
 		return err
 	}
 	if diskManagementAccountId := fileutil.Tidy(b); managementAccountId != diskManagementAccountId {
-		return fmt.Errorf(
+		return ManagementAccountMismatchError(fmt.Sprintf(
 			"the calling account's management account is %s but this directory's management account is %s",
 			managementAccountId,
 			diskManagementAccountId,
-		)
+		))
 	}
 	return nil
+}
+
+type ManagementAccountMismatchError string
+
+func (err ManagementAccountMismatchError) Error() string {
+	return string(err)
 }
 
 func WriteManagementAccountIdToDisk(managementAccountId string) error {
