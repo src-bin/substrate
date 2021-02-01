@@ -8,11 +8,6 @@ import (
 
 //go:generate go run ../tools/template/main.go -name versionsTemplate versions.tf
 
-const (
-	RequiredProvidersAWSVersion = "3.26.0"
-	RequiredVersion             = "0.13.6"
-)
-
 func versions(dirname string) error {
 	f, err := os.Create(filepath.Join(dirname, "versions.tf"))
 	if err != nil {
@@ -23,7 +18,5 @@ func versions(dirname string) error {
 	if err != nil {
 		return err
 	}
-	return tmpl.Execute(f, struct {
-		RequiredProvidersAWSVersion, RequiredVersion string
-	}{RequiredProvidersAWSVersion, RequiredVersion})
+	return tmpl.Execute(f, nil)
 }
