@@ -1,4 +1,8 @@
 Substrate
 =========
 
-<https://www.notion.so/srcbin/Substrate-design-616feb1d5f3042ccb0bd9e8ede6589c1>
+Substrate is an opinionated suite of tools that manage secure, reliable, and compliant cloud infrastructure in AWS.
+
+Full documentation is available at <https://src-bin.co/substrate/manual/>.
+
+Substrate is licensed under your Master Services Agreement with Source & Binary or under a subscription to [Source & Binary Advance](https://src-bin.co/advance/).
