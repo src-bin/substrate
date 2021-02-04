@@ -92,7 +92,7 @@ func main() {
 	admin.EnsureAdminRolesAndPolicies(sess)
 
 	// Make arrangements for a hosted zone to appear in this account so that
-	// the intranet can configure itself.  It's possible to do this entirely
+	// the Intranet can configure itself.  It's possible to do this entirely
 	// programmatically but there's a lot of UI surface area involved in doing
 	// a really good job.
 	if !fileutil.Exists(choices.IntranetDNSDomainNameFilename) {
@@ -102,12 +102,12 @@ func main() {
 	}
 	dnsDomainName, err := ui.PromptFile(
 		choices.IntranetDNSDomainNameFilename,
-		"what DNS domain name (the one you just bought, transferred, or shared) will you use for your organization's intranet?",
+		"what DNS domain name (the one you just bought, transferred, or shared) will you use for your organization's Intranet?",
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Printf("using DNS domain name %s for your organization's intranet", dnsDomainName)
+	ui.Printf("using DNS domain name %s for your organization's Intranet", dnsDomainName)
 	ui.Spinf("waiting for a hosted zone to appear for %s.", dnsDomainName)
 	for {
 		zone, err := awsroute53.FindHostedZone(

@@ -88,7 +88,7 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 	// these poor souls out by at least telling them exactly what value to set.
 	if name == Google {
 		ui.Printf(
-			`set the AWS/Role custom attribute in GSuite for every authorized AWS console user to "%s,%s"`,
+			`set the AWS/Role custom attribute in GSuite for every authorized AWS Console user to "%s,%s"`,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 			saml.Arn,
 		)
