@@ -452,7 +452,21 @@ resource "aws_security_group_rule" "ssh-ingress" {
   type              = "ingress"
 }
 `,
-		"outputs.tf":   `
+		"outputs.tf":   `output "authorizer_id" {
+  value = aws_api_gateway_authorizer.substrate.id
+}
+
+output "integration_credentials" {
+  value = data.aws_iam_role.apigateway.arn
+}
+
+output "rest_api_id" {
+  value = aws_api_gateway_rest_api.intranet.id
+}
+
+output "root_resource_id" {
+  value = aws_api_gateway_rest_api.intranet.root_resource_id
+}
 `,
 		"providers.tf": `provider "aws" {
   alias = "network"
