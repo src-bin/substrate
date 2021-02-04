@@ -111,11 +111,6 @@ func main() {
 	}
 	creds := out.Credentials
 
-	// Print the credentials for the user to copy into their environment.
-	if !*quiet {
-		format.Print(creds)
-	}
-
 	// Execute a command with the credentials in its environment.  We use
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
 	// other environment variables in case they're relevant to the command.
@@ -139,6 +134,12 @@ func main() {
 			}
 			os.Exit(1)
 		}
+
+	} else {
+
+		// Print the credentials for the user to copy into their environment.
+		format.Print(creds)
+
 	}
 
 }
