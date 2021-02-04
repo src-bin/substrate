@@ -17,7 +17,6 @@ func Scaffold(domain string) error {
 		}
 
 		providersFile := NewFile()
-		providersFile.Push(Provider{Alias: "network"})
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			return err
 		}
