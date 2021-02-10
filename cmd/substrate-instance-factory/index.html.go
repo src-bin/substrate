@@ -6,7 +6,7 @@ func indexTemplate() string {
 	return `<!DOCTYPE html>
 <html lang="en">
 <meta charset="utf-8">
-{{- if .Launched}}
+{{- if or .Launched .Terminated}}
 <meta http-equiv="refresh" content="10">
 {{- end}}
 <title>Instance Factory</title>
