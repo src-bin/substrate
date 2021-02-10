@@ -229,28 +229,30 @@ func main() {
 			}
 		}
 	}
-	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
-		sess,
-		"L-FE5A380F", "vpc", // NAT Gateways per availability zone
-		float64(nets), // only non-admin networks get private subnets and thus NAT Gateways
-		deadline,
-	); err != nil {
-		if _, ok := err.(awsservicequotas.DeadlinePassed); ok {
-			ui.Print(err)
-		} else {
-			ui.Fatal(err)
+	if !*noNATGateways {
+		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
+			sess,
+			"L-FE5A380F", "vpc", // NAT Gateways per availability zone
+			float64(nets), // only non-admin networks get private subnets and thus NAT Gateways
+			deadline,
+		); err != nil {
+			if _, ok := err.(awsservicequotas.DeadlinePassed); ok {
+				ui.Print(err)
+			} else {
+				ui.Fatal(err)
+			}
 		}
-	}
-	if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
-		sess,
-		"L-0263D0A3", "ec2", // EIPs per region
-		float64(nets*availabilityzones.NumberPerNetwork), // NAT Gateways per AZ times the number of AZs per network
-		deadline,
-	); err != nil {
-		if _, ok := err.(awsservicequotas.DeadlinePassed); ok {
-			ui.Print(err)
-		} else {
-			ui.Fatal(err)
+		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
+			sess,
+			"L-0263D0A3", "ec2", // EIPs per region
+			float64(nets*availabilityzones.NumberPerNetwork), // NAT Gateways per AZ times the number of AZs per network
+			deadline,
+		); err != nil {
+			if _, ok := err.(awsservicequotas.DeadlinePassed); ok {
+				ui.Print(err)
+			} else {
+				ui.Fatal(err)
+			}
 		}
 	}
 
