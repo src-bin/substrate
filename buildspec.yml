@@ -4,6 +4,10 @@
 ---
 version: 0.2
 
+env:
+  variables:
+    PATH: /root/bin:/usr/local/bin:/usr/bin
+
 phases:
   install:
     commands:
