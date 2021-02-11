@@ -7,20 +7,17 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      golang: latest
+      golang: 1.15
   pre_build:
     commands:
       - date
-      - echo pre_build
       - go version
   build:
     commands:
       - date
-      - echo build
   post_build:
     commands:
       - date
-      - echo post_build
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
