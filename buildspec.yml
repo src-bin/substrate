@@ -11,7 +11,7 @@ env:
 phases:
   install:
     commands:
-      - curl -L -o terraform.zip https://releases.hashicorp.com/terraform/0.13.6/terraform_0.13.6_linux_amd64.zip
+      - curl -L -o terraform.zip -s https://releases.hashicorp.com/terraform/0.13.6/terraform_0.13.6_linux_amd64.zip
       - mkdir ~/bin
       - unzip terraform.zip -d ~/bin
     runtime-versions:
