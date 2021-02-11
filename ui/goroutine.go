@@ -47,8 +47,8 @@ func init() {
 		tick := time.Tick(time.Second / hz)
 		ticks := 1
 		for {
-			isTerminal := terminal.IsTerminal(1)
-			width, _, err := terminal.GetSize(1)
+			isTerminal := terminal.IsTerminal(2)
+			width, _, err := terminal.GetSize(2)
 			if err != nil {
 				width = 80
 			}
