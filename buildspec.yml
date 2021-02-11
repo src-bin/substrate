@@ -19,12 +19,10 @@ phases:
       golang: 1.15
   pre_build:
     commands:
-      - date
-      - pwd
-      - env
       - go version
       - terraform version
       - make
+      - git diff --exit-code
       - git diff --quiet
       - make test
   build:
