@@ -14,6 +14,7 @@ phases:
       - curl -L -o terraform.zip -s https://releases.hashicorp.com/terraform/0.13.6/terraform_0.13.6_linux_amd64.zip
       - mkdir ~/bin
       - unzip terraform.zip -d ~/bin
+      - rm -f terraform.zip
     runtime-versions:
       golang: 1.15
   pre_build:
