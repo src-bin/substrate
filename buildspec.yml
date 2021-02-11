@@ -4,9 +4,9 @@
 ---
 version: 0.2
 
-env:
-  variables:
-    PATH: /root/bin:/usr/local/bin:/usr/bin
+#env:
+#  variables:
+#    PATH: /root/bin:/usr/local/bin:/usr/bin
 
 phases:
   install:
@@ -19,6 +19,8 @@ phases:
   pre_build:
     commands:
       - date
+      - pwd
+      - env
       - go version
       - terraform version
   build:
