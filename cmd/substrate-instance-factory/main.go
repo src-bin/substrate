@@ -274,7 +274,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		return lambdautil.ErrorResponse(err)
 	}
 	return &events.APIGatewayProxyResponse{
-		Body: fmt.Sprintf("launching %s", reservation.Instances[0].InstanceId),
+		Body: fmt.Sprintf("launching %s", aws.StringValue(reservation.Instances[0].InstanceId)),
 		Headers: map[string]string{
 			"Content-Type": "text/plain",
 			"Location": location(
