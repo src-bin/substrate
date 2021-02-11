@@ -1,15 +1,18 @@
 # Substrate builds in AWS CodeBuild
+#
+# <https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html>
 ---
 version: 0.2
 
 phases:
   install:
     runtime-versions:
-      golang: 1.15
+      golang: latest
   pre_build:
     commands:
       - date
       - echo pre_build
+      - go version
   build:
     commands:
       - date
