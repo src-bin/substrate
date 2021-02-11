@@ -1,0 +1,24 @@
+# Substrate builds in AWS CodeBuild
+---
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      golang: 1.15
+  pre_build:
+    commands:
+      - date
+      - echo pre_build
+  build:
+    commands:
+      - date
+      - echo build
+  post_build:
+    commands:
+      - date
+      - echo post_build
+artifacts:
+  files:
+    - substrate-*-*-*-*.tar.gz
+...
