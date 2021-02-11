@@ -4,9 +4,9 @@
 ---
 version: 0.2
 
-#env:
-#  variables:
-#    PATH: /root/bin:/usr/local/bin:/usr/bin
+env:
+  variables:
+    PATH: /root/bin:/root/.goenv/shims:/root/.goenv/bin:/go/bin:/usr/local/bin:/usr/bin
 
 phases:
   install:
