@@ -6,12 +6,17 @@ version: 0.2
 
 phases:
   install:
+    commands:
+      - curl -L -o terraform.zip https://releases.hashicorp.com/terraform/0.13.6/terraform_0.13.6_linux_amd64.zip
+      - mkdir ~/bin
+      - unzip terraform.zip -d ~/bin
     runtime-versions:
       golang: 1.15
   pre_build:
     commands:
       - date
       - go version
+      - terraform version
   build:
     commands:
       - date
