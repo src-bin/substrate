@@ -7,6 +7,7 @@ ops-account
 substrate-*-*-*
 substrate-*-*-*.tar.gz
 substrate.*
+!substrate.tf
 *.swo
 *.swp
 *.swx
