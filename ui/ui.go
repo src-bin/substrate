@@ -39,17 +39,17 @@ func Fatalf(format string, args ...interface{}) {
 }
 
 func Print(args ...interface{}) {
-	dereference(args)
+	args = dereference(args)
 	op(opPrint, fmt.Sprint(args...))
 }
 
 func Printf(format string, args ...interface{}) {
-	dereference(args)
+	args = dereference(args)
 	op(opPrint, fmt.Sprintf(format, args...))
 }
 
 func Prompt(args ...interface{}) (string, error) {
-	dereference(args)
+	args = dereference(args)
 	fmt.Print(append(args, " ")...)
 	s, err := stdin.ReadString('\n')
 	if err != nil {
@@ -71,31 +71,39 @@ func Quiet() {
 }
 
 func Spin(args ...interface{}) {
-	dereference(args)
+	args = dereference(args)
 	op(opSpin, fmt.Sprint(args...))
 }
 
 func Spinf(format string, args ...interface{}) {
-	dereference(args)
+	args = dereference(args)
 	op(opSpin, fmt.Sprintf(format, args...))
 }
 
 func Stop(args ...interface{}) {
-	dereference(args)
+	args = dereference(args)
 	op(opStop, fmt.Sprint(args...))
 }
 
 func Stopf(format string, args ...interface{}) {
-	dereference(args)
+	args = dereference(args)
 	op(opStop, fmt.Sprintf(format, args...))
 }
 
-func dereference(args []interface{}) {
+func dereference(args []interface{}) []interface{} {
+	returns := make([]interface{}, len(args))
 	for i, arg := range args {
 		if p, ok := arg.(*string); ok {
-			args[i] = *p
+			if p != nil {
+				returns[i] = *p
+			} else {
+				returns[i] = ""
+			}
+		} else {
+			returns[i] = args[i]
 		}
 	}
+	return returns
 }
 
 func op(opcode int, s string) {
