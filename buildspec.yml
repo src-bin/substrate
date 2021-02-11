@@ -27,7 +27,7 @@ phases:
       - make test
   build:
     commands:
-      - date
+      - make release
   post_build:
     commands:
       - date
