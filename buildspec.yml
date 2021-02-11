@@ -23,6 +23,9 @@ phases:
       - env
       - go version
       - terraform version
+      - make
+      - git diff --quiet
+      - make test
   build:
     commands:
       - date
