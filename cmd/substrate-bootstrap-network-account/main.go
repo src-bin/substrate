@@ -389,8 +389,18 @@ func main() {
 						log.Fatal(err)
 					}
 
-					// TODO Init, Plan, Apply
+					if err := terraform.Init(dirname); err != nil {
+						log.Fatal(err)
+					}
 
+					if *noApply {
+						err = terraform.Plan(dirname)
+					} else {
+						err = terraform.Apply(dirname, *autoApprove)
+					}
+					if err != nil {
+						log.Fatal(err)
+					}
 				}
 			}
 		}
