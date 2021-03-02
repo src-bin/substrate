@@ -55,6 +55,7 @@ data "aws_vpc" "requester" {
 }
 
 resource "aws_route" "accepter-private" {
+  #count                     = length(data.aws_route_table.accepter-private) # better but "Invalid count argument"
   count                     = var.environment == "admin" ? 0 : length(data.aws_subnet_ids.accepter-private[0].ids) # avoids "Invalid count argument"
   destination_cidr_block    = data.aws_vpc.requester.cidr_block
   provider                  = aws.accepter
@@ -70,6 +71,7 @@ resource "aws_route" "accepter-public" {
 }
 
 resource "aws_route" "requester-private" {
+  #count                     = length(data.aws_route_table.requester-private) # better but "Invalid count argument"
   count                     = var.environment == "admin" ? 0 : length(data.aws_subnet_ids.requester-private[0].ids) # avoids "Invalid count argument"
   destination_cidr_block    = data.aws_vpc.accepter.cidr_block
   provider                  = aws.requester
