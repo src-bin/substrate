@@ -1,8 +1,12 @@
+variable "accepter_environment" {
+  type = string
+}
+
 variable "accepter_quality" {
   type = string
 }
 
-variable "environment" {
+variable "requester_environment" {
   type = string
 }
 

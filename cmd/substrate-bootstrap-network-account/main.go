@@ -329,47 +329,71 @@ func main() {
 	for _, eq0 := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region0 := range regions.Selected() {
 			for _, eq1 := range veqpDoc.ValidEnvironmentQualityPairs {
-				if eq1.Environment != eq0.Environment {
-					continue
-				}
 				for _, region1 := range regions.Selected() {
-					if eq0.Quality == eq1.Quality && region0 == region1 || peeringConnections.Has(
-						eq0.Environment,
-						eq0.Quality, region0,
-						eq1.Quality, region1,
-					) {
+
+					// Don't peer with oneself.
+					if eq0 == eq1 && region0 == region1 {
 						continue
 					}
-					peeringConnections.Add(eq0.Environment, eq0.Quality, region0, eq1.Quality, region1)
+
+					// Peer admin networks with everything but otherwise
+					// only peer networks with matching environments.
+					if eq0.Environment != "admin" && eq0.Environment != eq1.Environment {
+						continue
+					}
+
+					// Don't create the same peering connection twice; each
+					// connection is bidirectional.
+					if peeringConnections.Has(eq0, eq1, region0, region1) {
+						continue
+					}
+					peeringConnections.Add(eq0, eq1, region0, region1)
 
 					ui.Printf(
-						"configuring VPC peering between %s %s and %s %s in %s",
-						eq0.Quality, region0,
-						eq1.Quality, region1,
-						eq0.Environment,
+						"configuring VPC peering between %s %s %s and %s %s %s",
+						eq0.Environment, eq0.Quality, region0,
+						eq1.Environment, eq1.Quality, region1,
 					)
+
+					/*
+						oldDirname := filepath.Join(
+							terraform.RootModulesDirname,
+							accounts.Network,
+							eq0.Environment,
+							"peering",
+							fmt.Sprintf("%s-%s-%s-%s", eq0.Quality, region0, eq1.Quality, region1),
+						)
+						if err := terraform.Destroy(oldDirname); err != nil {
+							log.Fatal(err)
+						}
+					*/
 
 					dirname := filepath.Join(
 						terraform.RootModulesDirname,
 						accounts.Network,
-						eq0.Environment,
 						"peering",
-						fmt.Sprintf("%s-%s-%s-%s", eq0.Quality, region0, eq1.Quality, region1),
+						eq0.Environment,
+						eq1.Environment,
+						eq0.Quality,
+						eq1.Quality,
+						region0,
+						region1,
 					)
 
 					file := terraform.NewFile()
 					file.Push(terraform.Module{
 						Arguments: map[string]terraform.Value{
-							"accepter_quality":  terraform.Q(eq0.Quality),
-							"environment":       terraform.Q(eq0.Environment),
-							"requester_quality": terraform.Q(eq1.Quality),
+							"accepter_environment":  terraform.Q(eq0.Environment),
+							"accepter_quality":      terraform.Q(eq0.Quality),
+							"requester_environment": terraform.Q(eq1.Environment),
+							"requester_quality":     terraform.Q(eq1.Quality),
 						},
 						Label: terraform.Q("peering-connection"),
 						Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
 							terraform.ProviderAliasFor("accepter"):  terraform.ProviderAliasFor("accepter"),
 							terraform.ProviderAliasFor("requester"): terraform.ProviderAliasFor("requester"),
 						},
-						Source: terraform.Q("../../../../../modules/peering-connection"),
+						Source: terraform.Q("../../../../../../../../../modules/peering-connection"),
 					})
 					if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 						log.Fatal(err)
