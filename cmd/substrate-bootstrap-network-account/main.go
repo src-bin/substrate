@@ -57,7 +57,12 @@ func main() {
 	}
 	found := false
 	for _, environment := range environments {
-		// TODO validate that environment contains no slashes or spaces and isn't named "peering"
+		if strings.ContainsAny(environment, " /") {
+			ui.Fatal("environments cannot contain ' ' or '/'")
+		}
+		if environment == "peering" {
+			ui.Fatal(`"peering" is a reserved environment name`)
+		}
 		found = found || environment == "admin"
 	}
 	if !found {
@@ -75,7 +80,11 @@ func main() {
 	if len(qualities) == 0 {
 		ui.Fatal("you must name at least one quality")
 	}
-	// TODO validate that each quality contains no slashes or spaces
+	for _, quality := range qualities {
+		if strings.ContainsAny(quality, " /") {
+			ui.Fatal("qualities cannot contain ' ' or '/'")
+		}
+	}
 	ui.Printf("using qualities %s", strings.Join(qualities, ", "))
 
 	// Combine all environments and qualities.  If a given combination doesn't
