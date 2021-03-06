@@ -66,10 +66,13 @@ func idp(sess *session.Session, account *awsorgs.Account, metadata string) (name
 	assumeRolePolicyDocument := &policies.Document{
 		Statement: []policies.Statement{
 			policies.AssumeRolePolicyDocument(adminPrincipals).Statement[0],
-			policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{users.Arn(
-				aws.StringValue(account.Id),
-				users.CredentialFactory,
-			)}}).Statement[0],
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				AWS: []string{users.Arn(
+					aws.StringValue(account.Id),
+					users.CredentialFactory,
+				)},
+				Service: []string{"ec2.amazonaws.com"},
+			}).Statement[0],
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				Federated: []string{saml.Arn},
 			}).Statement[0],

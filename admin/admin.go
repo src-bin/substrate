@@ -45,7 +45,7 @@ func AdminPrincipals(svc *organizations.Organizations) (*policies.Principal, err
 	return &policies.Principal{AWS: adminPrincipals}, nil
 }
 
-// EnsureAdministratorRolesAndPolicies creates or updates the entire matrix of
+// EnsureAdminRolesAndPolicies creates or updates the entire matrix of
 // Administrator roles and policies to allow the management account and admin
 // accounts to move fairly freely throughout the organization.  The given
 // session must be for the OrganizationAdministrator user or role in the management
