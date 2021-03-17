@@ -1,14 +1,6 @@
 *~
-audit-account
-deploy-account
-network-account
-ops-account
 *.stdin
 substrate-*-*-*
 substrate-*-*-*.tar.gz
-substrate.*
-!substrate.tf
-*.swo
-*.swp
-*.swx
+*.sw[opx]
 *.zip
