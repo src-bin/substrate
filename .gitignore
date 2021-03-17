@@ -1,6 +1,6 @@
 *~
 *.stdin
-substrate-*-*-*
-substrate-*-*-*.tar.gz
+substrate-[0-9]*-*-*
+substrate-[0-9]*-*-*.tar.gz
 *.sw[opx]
 *.zip
