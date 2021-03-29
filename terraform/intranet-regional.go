@@ -32,6 +32,10 @@ data "aws_iam_role" "substrate-instance-factory" {
   name = "substrate-instance-factory"
 }
 
+data "aws_iam_role" "substrate-intranet" {
+  name = "substrate-intranet"
+}
+
 data "aws_region" "current" {}
 
 data "aws_route53_zone" "intranet" {
@@ -89,6 +93,14 @@ module "substrate-instance-factory" {
   source                   = "../../lambda-function/regional"
 }
 
+module "substrate-intranet" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-intranet.zip"
+  name                     = "substrate-intranet"
+  role_arn                 = data.aws_iam_role.substrate-intranet.arn
+  source                   = "../../lambda-function/regional"
+}
+
 resource "aws_acm_certificate" "intranet" {
   domain_name       = var.dns_domain_name
   validation_method = "DNS"
@@ -129,6 +141,7 @@ resource "aws_api_gateway_deployment" "intranet" {
   triggers = {
     redeployment = sha1(join(",", list(
       jsonencode(aws_api_gateway_authorizer.substrate),
+      jsonencode(aws_api_gateway_integration.GET-accounts),
       jsonencode(aws_api_gateway_integration.GET-credential-factory),
       jsonencode(aws_api_gateway_integration.GET-credential-factory-authorize),
       jsonencode(aws_api_gateway_integration.GET-credential-factory-fetch),
@@ -137,6 +150,7 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_integration.GET-login),
       jsonencode(aws_api_gateway_integration.POST-instance-factory),
       jsonencode(aws_api_gateway_integration.POST-login),
+      jsonencode(aws_api_gateway_method.GET-accounts),
       jsonencode(aws_api_gateway_method.GET-credential-factory),
       jsonencode(aws_api_gateway_method.GET-credential-factory-authorize),
       jsonencode(aws_api_gateway_method.GET-credential-factory-fetch),
@@ -145,6 +159,7 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_method.GET-login),
       jsonencode(aws_api_gateway_method.POST-instance-factory),
       jsonencode(aws_api_gateway_method.POST-login),
+      jsonencode(aws_api_gateway_resource.accounts),
       jsonencode(aws_api_gateway_resource.credential-factory),
       jsonencode(aws_api_gateway_resource.credential-factory-authorize),
       jsonencode(aws_api_gateway_resource.credential-factory-fetch),
@@ -189,6 +204,17 @@ resource "aws_api_gateway_gateway_response" "UNAUTHORIZED" {
   response_type       = "UNAUTHORIZED"
   rest_api_id         = aws_api_gateway_rest_api.intranet.id
   status_code         = "302"
+}
+
+resource "aws_api_gateway_integration" "GET-accounts" {
+  credentials             = data.aws_iam_role.apigateway.arn
+  http_method             = aws_api_gateway_method.GET-accounts.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.accounts.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-credential-factory" {
@@ -279,6 +305,14 @@ resource "aws_api_gateway_integration" "POST-login" {
   uri                     = module.substrate-apigateway-authenticator.invoke_arn
 }
 
+resource "aws_api_gateway_method" "GET-accounts" {
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
+  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.accounts.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
 resource "aws_api_gateway_method" "GET-credential-factory" {
   authorization = "CUSTOM"
   authorizer_id = aws_api_gateway_authorizer.substrate.id
@@ -349,6 +383,12 @@ resource "aws_api_gateway_method_settings" "intranet" {
     metrics_enabled = false
   }
   stage_name = aws_api_gateway_deployment.intranet.stage_name
+}
+
+resource "aws_api_gateway_resource" "accounts" {
+  parent_id   = aws_api_gateway_rest_api.intranet.root_resource_id
+  path_part   = "accounts"
+  rest_api_id = aws_api_gateway_rest_api.intranet.id
 }
 
 resource "aws_api_gateway_resource" "credential-factory" {

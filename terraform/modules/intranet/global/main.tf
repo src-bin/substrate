@@ -85,6 +85,23 @@ data "aws_iam_policy_document" "substrate-instance-factory" {
   }
 }
 
+data "aws_iam_policy_document" "substrate-intranet" {
+  statement {
+    actions = [
+      "organizations:DescribeOrganization",
+      "sts:AssumeRole",
+    ]
+    resources = ["*"]
+    sid       = "Accounts"
+  }
+  /*
+  statement {
+    actions   = ["iam:PassRole"]
+    resources = [data.aws_iam_role.admin.arn]
+  }
+  */
+}
+
 data "aws_iam_role" "admin" {
   name = "Administrator"
 }
@@ -125,6 +142,12 @@ module "substrate-credential-factory" {
 module "substrate-instance-factory" {
   name   = "substrate-instance-factory"
   policy = data.aws_iam_policy_document.substrate-instance-factory.json
+  source = "../../lambda-function/global"
+}
+
+module "substrate-intranet" {
+  name   = "substrate-intranet"
+  policy = data.aws_iam_policy_document.substrate-intranet.json
   source = "../../lambda-function/global"
 }
 
