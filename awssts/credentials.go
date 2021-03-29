@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/ui"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -77,7 +78,9 @@ func PrintCredentialsExport(credentials *sts.Credentials) {
 }
 
 func PrintCredentialsExportWithHistory(credentials *sts.Credentials) {
-	ui.Print("paste this into a shell to set environment variables (taking care to preserve the leading space):")
+	if terminal.IsTerminal(1) {
+		ui.Print("paste this into a shell to set environment variables (taking care to preserve the leading space):")
+	}
 	fmt.Printf(
 		` export OLD_AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" AWS_ACCESS_KEY_ID=%q OLD_AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" AWS_SECRET_ACCESS_KEY=%q OLD_AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" AWS_SESSION_TOKEN=%q; alias unassume-role='AWS_ACCESS_KEY_ID="$OLD_AWS_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$OLD_AWS_SECRET_ACCESS_KEY" AWS_SESSION_TOKEN="$OLD_AWS_SESSION_TOKEN"; unset OLD_AWS_ACCESS_KEY_ID OLD_AWS_SECRET_ACCESS_KEY OLD_AWS_SESSION_TOKEN'
 `,
