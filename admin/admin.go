@@ -176,6 +176,20 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	}
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
+	ui.Spin("finding or creating a role to allow admin accounts to audit your deploy artifacts")
+	role, err = EnsureAuditorRole(
+		iam.New(awssessions.AssumeRole(
+			sess,
+			aws.StringValue(deployAccount.Id),
+			roles.OrganizationAccountAccessRole,
+		)),
+		policies.AssumeRolePolicyDocument(orgAccountPrincipals),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", role.Name)
+	//log.Printf("%+v", role)
 	ui.Spin("finding or creating a role to allow admin accounts to administer your networks")
 	networkAccount, err := awsorgs.FindSpecialAccount(svc, accounts.Network)
 	if err != nil {
@@ -214,6 +228,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 		log.Fatal(err)
 	}
 	ui.Stopf("role %s", role.Name)
+	//log.Printf("%+v", role)
 
 	// TODO maybe bring Administrator and Auditor for admin accounts in here, too (they're not quite the same because of SAML)
 
