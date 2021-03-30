@@ -53,6 +53,7 @@ func CheatSheet(svc *organizations.Organizations) error {
 	specialAccountsCells[0][2] = "Role Name"
 	specialAccountsCells[0][3] = "Role ARN"
 
+	// TODO reimplement this section in terms of the new Grouped function below.
 	allAccounts, err := awsorgs.ListAccounts(svc)
 	if err != nil {
 		return err
@@ -154,6 +155,48 @@ func EnsureManagementAccountIdMatchesDisk(managementAccountId string) error {
 		))
 	}
 	return nil
+}
+
+func Grouped(svc *organizations.Organizations) (adminAccounts, serviceAccounts []*awsorgs.Account, auditAccount, deployAccount, managementAccount, networkAccount *awsorgs.Account, err error) {
+	var allAccounts []*awsorgs.Account
+	allAccounts, err = awsorgs.ListAccounts(svc)
+	if err != nil {
+		return
+	}
+	for _, account := range allAccounts {
+		if account.Tags[tags.SubstrateSpecialAccount] != "" {
+			switch account.Tags[tags.SubstrateSpecialAccount] {
+			case Audit:
+				auditAccount = account
+			case Deploy:
+				deployAccount = account
+			case Management:
+				managementAccount = account
+			case Network:
+				networkAccount = account
+			}
+		} else if account.Tags[tags.Domain] == Admin {
+			adminAccounts = append(adminAccounts, account)
+		} else {
+			serviceAccounts = append(serviceAccounts, account)
+		}
+	}
+	sort.Slice(adminAccounts, func(i, j int) bool {
+		return adminAccounts[i].Tags[tags.Quality] < adminAccounts[j].Tags[tags.Quality]
+	})
+	sort.Slice(serviceAccounts, func(i, j int) bool {
+		if serviceAccounts[i].Tags[tags.Domain] != serviceAccounts[j].Tags[tags.Domain] {
+			return serviceAccounts[i].Tags[tags.Domain] < serviceAccounts[j].Tags[tags.Domain]
+		}
+		if serviceAccounts[i].Tags[tags.Environment] != serviceAccounts[j].Tags[tags.Environment] {
+			return serviceAccounts[i].Tags[tags.Environment] < serviceAccounts[j].Tags[tags.Environment]
+		}
+		if serviceAccounts[i].Tags[tags.Quality] != serviceAccounts[j].Tags[tags.Quality] {
+			return serviceAccounts[i].Tags[tags.Quality] < serviceAccounts[j].Tags[tags.Quality]
+		}
+		return false
+	})
+	return
 }
 
 type ManagementAccountMismatchError string
