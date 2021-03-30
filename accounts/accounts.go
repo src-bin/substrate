@@ -40,13 +40,13 @@ func CheatSheet(svc *organizations.Organizations) error {
 	adminAccountsCells[0][1] = "Account Number"
 	adminAccountsCells[0][2] = "Role Name"
 	adminAccountsCells[0][3] = "Role ARN"
-	otherAccountsCells := ui.MakeTableCells(6, 1)
-	otherAccountsCells[0][0] = "Domain"
-	otherAccountsCells[0][1] = "Environment"
-	otherAccountsCells[0][2] = "Quality"
-	otherAccountsCells[0][3] = "Account Number"
-	otherAccountsCells[0][4] = "Role Name"
-	otherAccountsCells[0][5] = "Role ARN"
+	serviceAccountsCells := ui.MakeTableCells(6, 1)
+	serviceAccountsCells[0][0] = "Domain"
+	serviceAccountsCells[0][1] = "Environment"
+	serviceAccountsCells[0][2] = "Quality"
+	serviceAccountsCells[0][3] = "Account Number"
+	serviceAccountsCells[0][4] = "Role Name"
+	serviceAccountsCells[0][5] = "Role ARN"
 	specialAccountsCells := ui.MakeTableCells(4, 6)
 	specialAccountsCells[0][0] = "Account Name"
 	specialAccountsCells[0][1] = "Account Number"
@@ -89,7 +89,7 @@ func CheatSheet(svc *organizations.Organizations) error {
 				roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 			})
 		} else {
-			otherAccountsCells = append(otherAccountsCells, []string{
+			serviceAccountsCells = append(serviceAccountsCells, []string{
 				account.Tags[tags.Domain],
 				account.Tags[tags.Environment],
 				account.Tags[tags.Quality],
@@ -102,10 +102,10 @@ func CheatSheet(svc *organizations.Organizations) error {
 	sort.Slice(adminAccountsCells[1:], func(i, j int) bool {
 		return adminAccountsCells[i+1][0] < adminAccountsCells[j+1][0]
 	})
-	sort.Slice(otherAccountsCells[1:], func(i, j int) bool {
+	sort.Slice(serviceAccountsCells[1:], func(i, j int) bool {
 		for k := 0; k <= 2; k++ {
-			if otherAccountsCells[i+1][k] != otherAccountsCells[j+1][k] {
-				return otherAccountsCells[i+1][k] < otherAccountsCells[j+1][k]
+			if serviceAccountsCells[i+1][k] != serviceAccountsCells[j+1][k] {
+				return serviceAccountsCells[i+1][k] < serviceAccountsCells[j+1][k]
 			}
 		}
 		return false
@@ -122,9 +122,9 @@ func CheatSheet(svc *organizations.Organizations) error {
 	ui.Ftable(f, specialAccountsCells)
 
 	fmt.Fprint(f, "\n")
-	fmt.Fprint(f, "And here are the account numbers and roles for your other accounts:\n")
+	fmt.Fprint(f, "And here are the account numbers and roles for your service accounts:\n")
 	fmt.Fprint(f, "\n")
-	ui.Ftable(f, otherAccountsCells)
+	ui.Ftable(f, serviceAccountsCells)
 
 	fmt.Fprint(f, "\n")
 	fmt.Fprint(f, "Finally, here are the account numbers and roles for your admin accounts:\n")
