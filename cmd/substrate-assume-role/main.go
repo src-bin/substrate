@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -29,6 +31,7 @@ func main() {
 	master := flag.Bool("master", false, "deprecated name for -management")
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
 	rolename := flag.String("role", "", "name of the IAM role to assume")
+	console := flag.Bool("console", false, "open the AWS Console to assume a role instead of generating an access key")
 	format := awssts.CredentialFormatFlag()
 	format.Set(awssts.CredentialFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
@@ -78,24 +81,43 @@ func main() {
 		ui.Fatal(err)
 	}
 	svc := organizations.New(sess)
-	var accountId string
+	var accountId, displayName string
 	if *number != "" {
 		accountId = *number
+		displayName = *number
 	} else if *management {
 		org, err := awsorgs.DescribeOrganization(svc)
 		if err != nil {
 			log.Fatal(err)
 		}
 		accountId = aws.StringValue(org.MasterAccountId)
+		displayName = *rolename
 	} else if *special != "" {
 		accountId = aws.StringValue(awsorgs.Must(awsorgs.FindSpecialAccount(svc, *special)).Id)
+		displayName = fmt.Sprintf("%s %s", *special, *rolename)
 	} else {
 		accountId = aws.StringValue(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id)
+		displayName = fmt.Sprintf("%s %s %s %s", *domain, *environment, *quality, *rolename)
 	}
 
 	u, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if *console {
+		u := &url.URL{
+			Scheme: "https",
+			Host:   "signin.aws.amazon.com",
+			Path:   "/switchrole",
+			RawQuery: url.Values{
+				"account":     []string{accountId},
+				"displayName": []string{displayName},
+				"roleName":    []string{*rolename},
+			}.Encode(),
+		}
+		ui.OpenURL(u.String())
+		return
 	}
 
 	sess = awssessions.Must(awssessions.NewSession(awssessions.Config{}))
