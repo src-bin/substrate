@@ -20,8 +20,8 @@ func accountsTemplate() string {
 <tr>
     <td>management</td>
     <td>{{.ManagementAccount.Id}}</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName={{.ManagementAccount.Name}}+Administrator&roleName=OrganizationAdministrator">OrganizationAdministrator</a></td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName={{.ManagementAccount.Name}}+Auditor&roleName=OrganizationReader">OrganizationReader</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName=OrganizationAdministrator&roleName=OrganizationAdministrator">OrganizationAdministrator</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName=OrganizationReader&roleName=OrganizationReader">OrganizationReader</a></td>
 </tr>
 <tr>
     <td>{{.AuditAccount.Name}}</td>
@@ -32,13 +32,13 @@ func accountsTemplate() string {
 <tr>
     <td>{{.DeployAccount.Name}}</td>
     <td>{{.DeployAccount.Id}}</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName={{.DeployAccount.Name}}+Administrator&roleName=DeployAdministrator">DeployAdministrator</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName=DeployAdministrator&roleName=DeployAdministrator">DeployAdministrator</a></td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName={{.DeployAccount.Name}}+Auditor&roleName=Auditor">Auditor</a></td>
 </tr>
 <tr>
     <td>{{.NetworkAccount.Name}}</td>
     <td>{{.NetworkAccount.Id}}</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName={{.NetworkAccount.Name}}+Administrator&roleName=NetworkAdministrator">NetworkAdministrator</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName=NetworkAdministrator&roleName=NetworkAdministrator">NetworkAdministrator</a></td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName={{.NetworkAccount.Name}}+Auditor&roleName=Auditor">Auditor</a></td>
 </tr>
 </table>
