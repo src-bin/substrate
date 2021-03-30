@@ -53,64 +53,50 @@ func CheatSheet(svc *organizations.Organizations) error {
 	specialAccountsCells[0][2] = "Role Name"
 	specialAccountsCells[0][3] = "Role ARN"
 
-	// TODO reimplement this section in terms of the new Grouped function below.
-	allAccounts, err := awsorgs.ListAccounts(svc)
+	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(svc)
 	if err != nil {
 		return err
 	}
-	for _, account := range allAccounts {
-		if account.Tags[tags.SubstrateSpecialAccount] != "" {
-			switch account.Tags[tags.SubstrateSpecialAccount] {
-			case Audit:
-				specialAccountsCells[3][0] = Audit
-				specialAccountsCells[3][1] = aws.StringValue(account.Id)
-				specialAccountsCells[3][2] = roles.Auditor
-				specialAccountsCells[3][3] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
-			case Deploy:
-				specialAccountsCells[4][0] = Deploy
-				specialAccountsCells[4][1] = aws.StringValue(account.Id)
-				specialAccountsCells[4][2] = roles.DeployAdministrator
-				specialAccountsCells[4][3] = roles.Arn(aws.StringValue(account.Id), roles.DeployAdministrator)
-			case Management:
-				specialAccountsCells[1][0] = Management
-				specialAccountsCells[1][1] = aws.StringValue(account.Id)
-				specialAccountsCells[1][2] = roles.OrganizationAdministrator
-				specialAccountsCells[1][3] = roles.Arn(aws.StringValue(account.Id), roles.OrganizationAdministrator)
-			case Network:
-				specialAccountsCells[5][0] = Network
-				specialAccountsCells[5][1] = aws.StringValue(account.Id)
-				specialAccountsCells[5][2] = roles.NetworkAdministrator
-				specialAccountsCells[5][3] = roles.Arn(aws.StringValue(account.Id), roles.NetworkAdministrator)
-			}
-		} else if account.Tags[tags.Domain] == Admin {
-			adminAccountsCells = append(adminAccountsCells, []string{
-				account.Tags[tags.Quality],
-				aws.StringValue(account.Id),
-				roles.Administrator,
-				roles.Arn(aws.StringValue(account.Id), roles.Administrator),
-			})
-		} else {
-			serviceAccountsCells = append(serviceAccountsCells, []string{
-				account.Tags[tags.Domain],
-				account.Tags[tags.Environment],
-				account.Tags[tags.Quality],
-				aws.StringValue(account.Id),
-				roles.Administrator,
-				roles.Arn(aws.StringValue(account.Id), roles.Administrator),
-			})
-		}
+
+	specialAccountsCells[3][0] = Audit
+	specialAccountsCells[3][1] = aws.StringValue(auditAccount.Id)
+	specialAccountsCells[3][2] = roles.Auditor
+	specialAccountsCells[3][3] = roles.Arn(aws.StringValue(auditAccount.Id), roles.Auditor)
+
+	specialAccountsCells[4][0] = Deploy
+	specialAccountsCells[4][1] = aws.StringValue(deployAccount.Id)
+	specialAccountsCells[4][2] = roles.DeployAdministrator
+	specialAccountsCells[4][3] = roles.Arn(aws.StringValue(deployAccount.Id), roles.DeployAdministrator)
+
+	specialAccountsCells[1][0] = Management
+	specialAccountsCells[1][1] = aws.StringValue(managementAccount.Id)
+	specialAccountsCells[1][2] = roles.OrganizationAdministrator
+	specialAccountsCells[1][3] = roles.Arn(aws.StringValue(managementAccount.Id), roles.OrganizationAdministrator)
+
+	specialAccountsCells[5][0] = Network
+	specialAccountsCells[5][1] = aws.StringValue(networkAccount.Id)
+	specialAccountsCells[5][2] = roles.NetworkAdministrator
+	specialAccountsCells[5][3] = roles.Arn(aws.StringValue(networkAccount.Id), roles.NetworkAdministrator)
+
+	for _, account := range adminAccounts {
+		adminAccountsCells = append(adminAccountsCells, []string{
+			account.Tags[tags.Quality],
+			aws.StringValue(account.Id),
+			roles.Administrator,
+			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+		})
 	}
-	sort.Slice(adminAccountsCells[1:], func(i, j int) bool {
-		return adminAccountsCells[i+1][0] < adminAccountsCells[j+1][0]
-	})
-	sort.Slice(serviceAccountsCells[1:], func(i, j int) bool {
-		for k := 0; k <= 2; k++ {
-			if serviceAccountsCells[i+1][k] != serviceAccountsCells[j+1][k] {
-				return serviceAccountsCells[i+1][k] < serviceAccountsCells[j+1][k]
-			}
-		}
-		return false
-	})
+
+	for _, account := range serviceAccounts {
+		serviceAccountsCells = append(serviceAccountsCells, []string{
+			account.Tags[tags.Domain],
+			account.Tags[tags.Environment],
+			account.Tags[tags.Quality],
+			aws.StringValue(account.Id),
+			roles.Administrator,
+			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+		})
+	}
 
 	fmt.Fprint(f, "Welcome to your Substrate-managed AWS organization!\n")
 	fmt.Fprint(f, "\n")
