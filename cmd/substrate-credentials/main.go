@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -70,26 +69,8 @@ func main() {
 		Path:     "/credential-factory/authorize",
 		RawQuery: url.Values{"token": []string{token}}.Encode(),
 	}
-
-	// Open /credentials/authorize?token=... in a browser or, if we can't
-	// figure out how to accomplish this, ask them to do so themselves.
-	var progname string
-	for _, progname = range []string{
-		"open",     // MacOS
-		"xdg-open", // Linux
-	} {
-		if _, err := exec.LookPath(progname); err == nil {
-			break
-		}
-	}
-	if progname != "" {
-		ui.Printf("opening <%s> in your web browser; return here after authenticating", u.String())
-		if err := exec.Command(progname, u.String()).Start(); err != nil {
-			ui.Fatal(err)
-		}
-	} else {
-		ui.Printf("open <%s> in your web browser, authenticating if prompted, and then return here", u.String())
-	}
+	ui.OpenURL(u.String())
+	ui.Print("authenticate in your web browser if prompted, then return here")
 
 	// Spin requesting /credentials/fetch?token=... until it responds 200 OK.
 	ui.Spin("fetching credentials")
