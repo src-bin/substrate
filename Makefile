@@ -22,13 +22,13 @@ release:
 	make tarball GOARCH=amd64 GOOS=linux
 	make tarball GOARCH=arm64 GOOS=linux
 	make tarball GOARCH=amd64 GOOS=darwin
-	#make tarball GOARCH=arm64 GOOS=darwin
+	make tarball GOARCH=arm64 GOOS=darwin
 
 release-filenames: # for src-bin.co to grab on
 	@echo substrate-$(VERSION)-$(COMMIT)-linux-amd64.tar.gz
 	@echo substrate-$(VERSION)-$(COMMIT)-linux-arm64.tar.gz
 	@echo substrate-$(VERSION)-$(COMMIT)-darwin-amd64.tar.gz
-#@echo substrate-$(VERSION)-$(COMMIT)-darwin-arm64.tar.gz
+	@echo substrate-$(VERSION)-$(COMMIT)-darwin-arm64.tar.gz
 
 tarball:
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH) # makes debugging easier
