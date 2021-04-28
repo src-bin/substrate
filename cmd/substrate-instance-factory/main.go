@@ -75,10 +75,16 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 
 			instances, err := awsec2.DescribeInstances(
 				svc,
-				[]*ec2.Filter{&ec2.Filter{
-					Name:   aws.String(fmt.Sprintf("tag:%s", tags.Manager)),
-					Values: []*string{aws.String(tags.SubstrateInstanceFactory)},
-				}},
+				[]*ec2.Filter{
+					&ec2.Filter{
+						Name:   aws.String(fmt.Sprintf("tag:%s", tags.Manager)),
+						Values: []*string{aws.String(tags.SubstrateInstanceFactory)},
+					},
+					&ec2.Filter{
+						Name:   aws.String("key-name"),
+						Values: []*string{aws.String(fmt.Sprint(event.RequestContext.Authorizer["principalId"]))},
+					},
+				},
 			)
 			if err != nil {
 				v.Error = err
@@ -264,12 +270,10 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		100, // gigabyte root volume
 		aws.StringValue(securityGroups[0].GroupId),
 		aws.StringValue(subnet.SubnetId),
-		[]*ec2.Tag{
-			&ec2.Tag{
-				Key:   aws.String(tags.Manager),
-				Value: aws.String(tags.SubstrateInstanceFactory),
-			},
-		},
+		[]*ec2.Tag{&ec2.Tag{
+			Key:   aws.String(tags.Manager),
+			Value: aws.String(tags.SubstrateInstanceFactory),
+		}},
 	)
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
