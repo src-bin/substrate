@@ -261,6 +261,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		aws.StringValue(image.ImageId),
 		instanceType,
 		aws.StringValue(keyPairs[0].KeyName),
+		100, // gigabyte root volume
 		aws.StringValue(securityGroups[0].GroupId),
 		aws.StringValue(subnet.SubnetId),
 		[]*ec2.Tag{

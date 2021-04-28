@@ -100,10 +100,20 @@ func LatestAmazonLinux2AMI(svc *ec2.EC2, arch string) (*ec2.Image, error) {
 
 func RunInstance(
 	svc *ec2.EC2,
-	iamInstanceProfile, imageId, instanceType, keyName, securityGroupId, subnetId string,
+	iamInstanceProfile, imageId, instanceType, keyName string,
+	rootVolumeSize int,
+	securityGroupId, subnetId string,
 	tags []*ec2.Tag,
 ) (*ec2.Reservation, error) {
 	in := &ec2.RunInstancesInput{
+		BlockDeviceMappings: []*ec2.BlockDeviceMapping{&ec2.BlockDeviceMapping{
+			DeviceName: aws.String("/dev/xvda"),
+			Ebs: &ec2.EbsBlockDevice{
+				DeleteOnTermination: aws.Bool(true),
+				VolumeSize:          aws.Int64(int64(rootVolumeSize)),
+				VolumeType:          aws.String("gp3"),
+			},
+		}},
 		//DryRun: aws.Bool(true),
 		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
 			Name: aws.String(iamInstanceProfile),
