@@ -25,7 +25,7 @@ func indexTemplate() string {
 </form>
 <table border="1" cellpadding="2" cellspacing="2">
 <tr>
-    <th>Hostname</th>
+    <th>SSH command</th>
     <th>Availability Zone</th>
     <th>Instance Type</th>
     <th>Launch Time</th>
@@ -37,7 +37,7 @@ func indexTemplate() string {
 {{- $terminated := .Terminated}}
 {{- range .Instances}}
 <tr{{if eq (StringValue .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (StringValue .InstanceId) $terminate}} bgcolor="#ffeeee"{{else if eq (StringValue .InstanceId) $terminated}} bgcolor="#ffeeee"{{end}}>
-    <td>{{.PublicDnsName}}</td>
+    <td><kbd>ssh -A ec2-user@{{.PublicDnsName}}</kbd></td>
     <td>{{.Placement.AvailabilityZone}}</td>
     <td>{{.InstanceType}}</td>
     <td>{{.LaunchTime}}</td>
