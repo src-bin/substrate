@@ -79,7 +79,6 @@ func vpcAccoutrements(
 		Tags:        vpc.Tags,
 		VpcId:       terraform.U(vpc.Ref(), ".id"),
 	}
-	file.Push(vpce)
 
 	// Create a public and private subnet in each of (up to, and the newest)
 	// three availability zones in the region.
@@ -202,5 +201,9 @@ func vpcAccoutrements(
 		})
 
 	}
+
+	// Now that all the route tables have been associated with the S3 VPC
+	// Endpoint, add it to the file.
+	file.Push(vpce)
 
 }
