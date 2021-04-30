@@ -475,7 +475,7 @@ resource "aws_security_group" "substrate-instance-factory" {
 }
 
 resource "aws_security_group_rule" "egress" {
-  cidr_blocks       = ["0.0.0.0/0"]
+  cidr_blocks       = ["0.0.0.0/0", "::/0"]
   from_port         = 0
   protocol          = "-1"
   security_group_id = aws_security_group.substrate-instance-factory.id
@@ -484,7 +484,7 @@ resource "aws_security_group_rule" "egress" {
 }
 
 resource "aws_security_group_rule" "ssh-ingress" {
-  cidr_blocks       = ["0.0.0.0/0"]
+  cidr_blocks       = ["0.0.0.0/0", "::/0"]
   from_port         = 22
   protocol          = "tcp"
   security_group_id = aws_security_group.substrate-instance-factory.id
