@@ -47,6 +47,22 @@ func CreateRole(
 	return roleFromAPI(out.Role)
 }
 
+func CreateServiceLinkedRole(
+	svc *iam.IAM,
+	serviceName string,
+) (*Role, error) {
+	in := &iam.CreateServiceLinkedRoleInput{
+		AWSServiceName: aws.String(serviceName),
+	}
+	out, err := svc.CreateServiceLinkedRole(in)
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", out)
+	time.Sleep(10e9) // give IAM time to become consistent (TODO do it gracefully)
+	return roleFromAPI(out.Role)
+}
+
 func DeleteRolePolicy(svc *iam.IAM, roleName string) error {
 	in := &iam.DeleteRolePolicyInput{
 		PolicyName: aws.String(SubstrateManaged),
@@ -127,6 +143,29 @@ func EnsureRoleWithPolicy(
 		RoleName:       aws.String(roleName),
 	}
 	if _, err := svc.PutRolePolicy(in); err != nil {
+		return nil, err
+	}
+
+	return role, nil
+}
+
+func EnsureServiceLinkedRole(
+	svc *iam.IAM,
+	roleName, serviceName string, // not independent; must match AWS expectations
+) (*Role, error) {
+
+	role, err := CreateServiceLinkedRole(svc, serviceName)
+	if awsutil.ErrorCodeIs(err, InvalidInput) {
+		role, err = GetRole(svc, roleName)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := svc.TagRole(&iam.TagRoleInput{
+		RoleName: aws.String(roleName),
+		Tags:     tagsFor(roleName),
+	}); err != nil {
 		return nil, err
 	}
 
