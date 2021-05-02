@@ -16,6 +16,6 @@ const (
 	TerraformStateManager         = "TerraformStateManager"
 )
 
-func Arn(accountId, rolename string) string {
-	return fmt.Sprintf("arn:aws:iam::%s:role/%s", accountId, rolename)
+func Arn(accountId, roleName string) string {
+	return fmt.Sprintf("arn:aws:iam::%s:role/%s", accountId, roleName)
 }

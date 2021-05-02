@@ -62,13 +62,13 @@ func (c Config) AWS() aws.Config {
 }
 
 // TODO AssumeRoleArn(sess, roleArn) variant?
-func AssumeRole(sess *session.Session, accountId, rolename string) *session.Session {
-	arn := roles.Arn(accountId, rolename)
+func AssumeRole(sess *session.Session, accountId, roleName string) *session.Session {
+	arn := roles.Arn(accountId, roleName)
 	ui.Printf("assuming role %s", arn)
 	return sess.Copy(&aws.Config{Credentials: stscreds.NewCredentials(sess, arn)})
 }
 
-func AssumeRoleManagement(sess *session.Session, rolename string) (*session.Session, error) {
+func AssumeRoleManagement(sess *session.Session, roleName string) (*session.Session, error) {
 	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func AssumeRoleManagement(sess *session.Session, rolename string) (*session.Sess
 	if err := accounts.EnsureManagementAccountIdMatchesDisk(aws.StringValue(org.MasterAccountId)); err != nil {
 		return nil, err
 	}
-	return AssumeRole(sess, aws.StringValue(org.MasterAccountId), rolename), nil
+	return AssumeRole(sess, aws.StringValue(org.MasterAccountId), roleName), nil
 }
 
 // InAccount returns a session in the given account (by domain, environment,
@@ -89,10 +89,10 @@ func AssumeRoleManagement(sess *session.Session, rolename string) (*session.Sess
 // account must be allowed to call organizations:DescribeOrganization and
 // sts:AssumeRole.
 func InAccount(
-	domain, environment, quality, rolename string,
+	domain, environment, quality, roleName string,
 	config Config,
 ) (*session.Session, error) {
-	return InSpecialAccount(awsorgs.NameFor(domain, environment, quality), rolename, config)
+	return InSpecialAccount(awsorgs.NameFor(domain, environment, quality), roleName, config)
 }
 
 // InManagementAccount returns a session in the organization's management account in
@@ -104,7 +104,7 @@ func InAccount(
 // The initial identity assumed first before assuming a role in the management
 // account must be allowed to call organizations:DescribeOrganization and
 // sts:AssumeRole.
-func InManagementAccount(rolename string, config Config) (*session.Session, error) {
+func InManagementAccount(roleName string, config Config) (*session.Session, error) {
 	sess, err := NewSession(config)
 	if err != nil {
 		return nil, err
@@ -141,18 +141,18 @@ func InManagementAccount(rolename string, config Config) (*session.Session, erro
 	callerIdentityArn := aws.StringValue(callerIdentity.Arn)
 
 	// Maybe we're already in the desired role.
-	if callerIdentityArn == roles.Arn(managementAccountId, rolename) {
+	if callerIdentityArn == roles.Arn(managementAccountId, roleName) {
 		return sess, nil
 	}
 
 	// Or maybe we're trying to be role/OrganizationAdministrator but really
 	// user/OrganizationAdministrator will do.
-	if rolename == roles.OrganizationAdministrator && callerIdentityArn == users.Arn(managementAccountId, users.OrganizationAdministrator) {
+	if roleName == roles.OrganizationAdministrator && callerIdentityArn == users.Arn(managementAccountId, users.OrganizationAdministrator) {
 		return sess, nil
 	}
 
 	// Nope.
-	sess = AssumeRole(sess, managementAccountId, rolename)
+	sess = AssumeRole(sess, managementAccountId, roleName)
 
 	// Now force it to actually assume the role so that, if we fail, we fail
 	// at a sensible time instead of "later."
@@ -160,7 +160,7 @@ func InManagementAccount(rolename string, config Config) (*session.Session, erro
 
 		// Offer one (and only one) more shot via root credentials.
 		if config.AccessKeyId == "" && config.FallbackToRootCredentials {
-			return InManagementAccount(rolename, configWithRootCredentials(rolename, config))
+			return InManagementAccount(roleName, configWithRootCredentials(roleName, config))
 		}
 
 		return nil, err
@@ -178,7 +178,7 @@ func InManagementAccount(rolename string, config Config) (*session.Session, erro
 // The initial identity assumed first before assuming a role in the other
 // account must be allowed to call organizations:DescribeOrganization and
 // sts:AssumeRole.
-func InSpecialAccount(name, rolename string, config Config) (*session.Session, error) {
+func InSpecialAccount(name, roleName string, config Config) (*session.Session, error) {
 	sess, err := NewSession(config)
 	if err != nil {
 		return nil, err
@@ -190,10 +190,10 @@ func InSpecialAccount(name, rolename string, config Config) (*session.Session, e
 		// But if we never even got started, and we haven't already asked, ask
 		// for root credentials and try again.
 		if config.AccessKeyId == "" && config.FallbackToRootCredentials {
-			return InSpecialAccount(name, rolename, configWithRootCredentials(rolename, config))
+			return InSpecialAccount(name, roleName, configWithRootCredentials(roleName, config))
 		}
 
-		return nil, NewOrganizationReaderError(err, rolename)
+		return nil, NewOrganizationReaderError(err, roleName)
 	}
 	account, err := awsorgs.FindSpecialAccount(organizations.New(managementSess), name)
 	if err != nil {
@@ -205,12 +205,12 @@ func InSpecialAccount(name, rolename string, config Config) (*session.Session, e
 	if err != nil {
 		return nil, err
 	}
-	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), rolename) {
+	if aws.StringValue(callerIdentity.Arn) == roles.Arn(aws.StringValue(account.Id), roleName) {
 		return sess, nil
 	}
 
 	// Nope.
-	sess = AssumeRole(sess, aws.StringValue(account.Id), rolename)
+	sess = AssumeRole(sess, aws.StringValue(account.Id), roleName)
 
 	// Now force it to actually assume the role so that, if we fail, we fail
 	// at a sensible time instead of "later."
@@ -218,7 +218,7 @@ func InSpecialAccount(name, rolename string, config Config) (*session.Session, e
 
 		// Offer one (and only one) more shot via root credentials.
 		if config.AccessKeyId == "" && config.FallbackToRootCredentials {
-			return InSpecialAccount(name, rolename, configWithRootCredentials(rolename, config))
+			return InSpecialAccount(name, roleName, configWithRootCredentials(roleName, config))
 		}
 
 		return nil, err
@@ -355,11 +355,11 @@ func NewSession(config Config) (*session.Session, error) {
 
 type OrganizationReaderError struct {
 	error
-	rolename string
+	roleName string
 }
 
-func NewOrganizationReaderError(err error, rolename string) *OrganizationReaderError {
-	return &OrganizationReaderError{err, rolename}
+func NewOrganizationReaderError(err error, roleName string) *OrganizationReaderError {
+	return &OrganizationReaderError{err, roleName}
 }
 
 func (err *OrganizationReaderError) Err() error {
@@ -368,14 +368,14 @@ func (err *OrganizationReaderError) Err() error {
 
 func (err *OrganizationReaderError) Error() string {
 	preamble := "could not assume the OrganizationReader role in your organization's management account, which is a prerequisite for finding and assuming "
-	if err.rolename == "" {
+	if err.roleName == "" {
 		return preamble + "other roles"
 	}
-	return fmt.Sprintf(preamble+"the %s role", err.rolename)
+	return fmt.Sprintf(preamble+"the %s role", err.roleName)
 }
 
-func configWithRootCredentials(rolename string, config Config) Config {
-	if rolename == "" {
+func configWithRootCredentials(roleName string, config Config) Config {
+	if roleName == "" {
 		ui.Printf(
 			"unable to find any AWS credentials, which means this is probably your first time running %s",
 			filepath.Base(os.Args[0]),
@@ -383,7 +383,7 @@ func configWithRootCredentials(rolename string, config Config) Config {
 	} else {
 		ui.Printf(
 			"unable to assume the %s role, which means this is probably your first time running %s",
-			rolename,
+			roleName,
 			filepath.Base(os.Args[0]),
 		)
 	}

@@ -13,10 +13,10 @@ import (
 
 func AttachRolePolicy(
 	svc *iam.IAM,
-	rolename, policyArn string,
+	roleName, policyArn string,
 ) error {
 	in := &iam.AttachRolePolicyInput{
-		RoleName:  aws.String(rolename),
+		RoleName:  aws.String(roleName),
 		PolicyArn: aws.String(policyArn),
 	}
 	_, err := svc.AttachRolePolicy(in)
@@ -25,7 +25,7 @@ func AttachRolePolicy(
 
 func CreateRole(
 	svc *iam.IAM,
-	rolename string,
+	roleName string,
 	assumeRolePolicyDoc *policies.Document,
 ) (*Role, error) {
 	docJSON, err := assumeRolePolicyDoc.Marshal()
@@ -35,8 +35,8 @@ func CreateRole(
 	in := &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
 		MaxSessionDuration:       aws.Int64(43200),
-		RoleName:                 aws.String(rolename),
-		Tags:                     tagsFor(rolename),
+		RoleName:                 aws.String(roleName),
+		Tags:                     tagsFor(roleName),
 	}
 	out, err := svc.CreateRole(in)
 	if err != nil {
@@ -47,10 +47,10 @@ func CreateRole(
 	return roleFromAPI(out.Role)
 }
 
-func DeleteRolePolicy(svc *iam.IAM, rolename string) error {
+func DeleteRolePolicy(svc *iam.IAM, roleName string) error {
 	in := &iam.DeleteRolePolicyInput{
 		PolicyName: aws.String(SubstrateManaged),
-		RoleName:   aws.String(rolename),
+		RoleName:   aws.String(roleName),
 	}
 	_, err := svc.DeleteRolePolicy(in)
 	return err
@@ -58,13 +58,13 @@ func DeleteRolePolicy(svc *iam.IAM, rolename string) error {
 
 func EnsureRole(
 	svc *iam.IAM,
-	rolename string,
+	roleName string,
 	assumeRolePolicyDoc *policies.Document,
 ) (*Role, error) {
 
 	role, err := CreateRole(
 		svc,
-		rolename,
+		roleName,
 		policies.AssumeRolePolicyDocument(&policies.Principal{Service: []string{"ec2.amazonaws.com"}}), // harmless solution to chicken and egg problem
 	)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
@@ -73,20 +73,20 @@ func EnsureRole(
 		// 1-hour maximum session duration. Lengthen that to 12 hours.
 		if _, err := svc.UpdateRole(&iam.UpdateRoleInput{
 			MaxSessionDuration: aws.Int64(43200),
-			RoleName:           aws.String(rolename),
+			RoleName:           aws.String(roleName),
 		}); err != nil {
 			return nil, err
 		}
 
-		role, err = GetRole(svc, rolename)
+		role, err = GetRole(svc, roleName)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if _, err := svc.TagRole(&iam.TagRoleInput{
-		RoleName: aws.String(rolename),
-		Tags:     tagsFor(rolename),
+		RoleName: aws.String(roleName),
+		Tags:     tagsFor(roleName),
 	}); err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func EnsureRole(
 	}
 	if _, err := svc.UpdateAssumeRolePolicy(&iam.UpdateAssumeRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
-		RoleName:       aws.String(rolename),
+		RoleName:       aws.String(roleName),
 	}); err != nil {
 		return nil, err
 	}
@@ -107,12 +107,12 @@ func EnsureRole(
 
 func EnsureRoleWithPolicy(
 	svc *iam.IAM,
-	rolename string,
+	roleName string,
 	assumeRolePolicyDoc *policies.Document,
 	doc *policies.Document,
 ) (*Role, error) {
 
-	role, err := EnsureRole(svc, rolename, assumeRolePolicyDoc)
+	role, err := EnsureRole(svc, roleName, assumeRolePolicyDoc)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func EnsureRoleWithPolicy(
 	in := &iam.PutRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
 		PolicyName:     aws.String(SubstrateManaged),
-		RoleName:       aws.String(rolename),
+		RoleName:       aws.String(roleName),
 	}
 	if _, err := svc.PutRolePolicy(in); err != nil {
 		return nil, err
@@ -133,9 +133,9 @@ func EnsureRoleWithPolicy(
 	return role, nil
 }
 
-func GetRole(svc *iam.IAM, rolename string) (*Role, error) {
+func GetRole(svc *iam.IAM, roleName string) (*Role, error) {
 	in := &iam.GetRoleInput{
-		RoleName: aws.String(rolename),
+		RoleName: aws.String(roleName),
 	}
 	out, err := svc.GetRole(in)
 	if err != nil {

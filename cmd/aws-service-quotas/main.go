@@ -19,7 +19,7 @@ import (
 func main() {
 
 	accountId := flag.String("account-number", "", "AWS account number")
-	rolename := flag.String("role", "", "AWS IAM role name to assume")
+	roleName := flag.String("role", "", "AWS IAM role name to assume")
 	region := flag.String("region", "", "AWS region in which the service quota should be shown or increased")
 	listServices := flag.Bool("list-services", false, "list all services that have service limits to learn their -service-code values")
 	listQuotas := flag.Bool("list-quotas", false, "list all service quotes for -service-code to learn their -quota-code values")
@@ -45,7 +45,7 @@ func main() {
 	sess := awssessions.AssumeRole(
 		awssessions.Must(awssessions.NewSession(awssessions.Config{})),
 		*accountId,
-		*rolename,
+		*roleName,
 	)
 
 	if *listServices {

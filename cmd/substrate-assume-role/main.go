@@ -30,7 +30,7 @@ func main() {
 	management := flag.Bool("management", false, "assume a role in the organization's management AWS account")
 	master := flag.Bool("master", false, "deprecated name for -management")
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
-	rolename := flag.String("role", "", "name of the IAM role to assume")
+	roleName := flag.String("role", "", "name of the IAM role to assume")
 	console := flag.Bool("console", false, "open the AWS Console to assume a role instead of generating an access key")
 	format := awssts.CredentialFormatFlag()
 	format.Set(awssts.CredentialFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
@@ -62,7 +62,7 @@ func main() {
 	if *management && *number != "" {
 		ui.Fatal(`can't mix -management with -number="..."`)
 	}
-	if *rolename == "" {
+	if *roleName == "" {
 		ui.Fatal(`-role="..." is required`)
 	}
 	if *quiet {
@@ -75,7 +75,7 @@ func main() {
 		// Mask the AWS-native error because we're 99% sure OrganizationReaderError
 		// is a better explanation of what went wrong.
 		if _, ok := err.(awserr.Error); ok {
-			ui.Fatal(awssessions.NewOrganizationReaderError(err, *rolename))
+			ui.Fatal(awssessions.NewOrganizationReaderError(err, *roleName))
 		}
 
 		ui.Fatal(err)
@@ -91,13 +91,13 @@ func main() {
 			log.Fatal(err)
 		}
 		accountId = aws.StringValue(org.MasterAccountId)
-		displayName = *rolename
+		displayName = *roleName
 	} else if *special != "" {
 		accountId = aws.StringValue(awsorgs.Must(awsorgs.FindSpecialAccount(svc, *special)).Id)
-		displayName = fmt.Sprintf("%s %s", *special, *rolename)
+		displayName = fmt.Sprintf("%s %s", *special, *roleName)
 	} else {
 		accountId = aws.StringValue(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id)
-		displayName = fmt.Sprintf("%s %s %s %s", *domain, *environment, *quality, *rolename)
+		displayName = fmt.Sprintf("%s %s %s %s", *domain, *environment, *quality, *roleName)
 	}
 
 	u, err := user.Current()
@@ -113,7 +113,7 @@ func main() {
 			RawQuery: url.Values{
 				"account":     []string{accountId},
 				"displayName": []string{displayName},
-				"roleName":    []string{*rolename},
+				"roleName":    []string{*roleName},
 			}.Encode(),
 		}
 		ui.OpenURL(u.String())
@@ -124,7 +124,7 @@ func main() {
 
 	out, err := awssts.AssumeRole(
 		sts.New(sess),
-		roles.Arn(accountId, *rolename),
+		roles.Arn(accountId, *roleName),
 		u.Username,
 		3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 	)
