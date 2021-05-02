@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -225,12 +227,9 @@ func main() {
 			log.Fatal(err)
 		}
 
-		outputsFile := terraform.NewFile()
-		outputsFile.Push(terraform.Output{
-			Label: terraform.Q("validation_fqdn"), // because there is no aws_route53_record data source
-			Value: terraform.U(module.Ref(), ".validation_fqdn"),
-		})
-		if err := outputsFile.Write(filepath.Join(dirname, "outputs.tf")); err != nil {
+		// Substrate 2021.05 simplified Intranet TLS certificate management
+		// to the point that this outputs.tf is no longer necessary.
+		if err := os.Remove(filepath.Join(dirname, "outputs.tf")); err != nil && !errors.Is(err, os.ErrNotExist) {
 			log.Fatal(err)
 		}
 
@@ -264,33 +263,12 @@ func main() {
 		dirname := filepath.Join(terraform.RootModulesDirname, Domain, *quality, region)
 
 		file := terraform.NewFile()
-		deployAccount, err := awsorgs.FindSpecialAccount(
-			organizations.New(awssessions.Must(awssessions.AssumeRoleManagement(
-				sess,
-				roles.OrganizationReader,
-			))),
-			accounts.Deploy,
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		file.Push(terraform.RemoteState{
-			Config: terraform.RemoteStateConfig{
-				Bucket:        terraform.S3BucketName("us-east-1"),
-				DynamoDBTable: terraform.DynamoDBTableName,
-				Key:           filepath.Join(terraform.RootModulesDirname, Domain, *quality, "global/terraform.tfstate"),
-				Region:        "us-east-1",
-				RoleArn:       roles.Arn(aws.StringValue(deployAccount.Id), roles.TerraformStateManager),
-			},
-			Label: terraform.Q("global"),
-		})
 		arguments := map[string]terraform.Value{
 			"dns_domain_name":                    terraform.Q(dnsDomainName),
 			"oauth_oidc_client_id":               terraform.Q(clientId),
 			"oauth_oidc_client_secret_timestamp": terraform.Q(clientSecretTimestamp),
 			"selected_regions":                   terraform.QSlice(regions.Selected()),
 			"stage_name":                         terraform.Q(*quality),
-			"validation_fqdn":                    terraform.U("data.terraform_remote_state.global.outputs.validation_fqdn"),
 		}
 		if hostname != "" {
 			arguments["okta_hostname"] = terraform.Q(hostname)

@@ -23,7 +23,3 @@ output "substrate_apigateway_authenticator_role_arn" {
 output "substrate_apigateway_authorizer_role_arn" {
   value = module.substrate-apigateway-authorizer.role_arn
 }
-
-output "validation_fqdn" {
-  value = aws_route53_record.validation.fqdn
-}

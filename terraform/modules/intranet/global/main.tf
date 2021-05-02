@@ -151,16 +151,6 @@ module "substrate-intranet" {
   source = "../../lambda-function/global"
 }
 
-resource "aws_acm_certificate" "intranet" {
-  domain_name       = var.dns_domain_name
-  validation_method = "DNS"
-}
-
-resource "aws_acm_certificate_validation" "intranet" {
-  certificate_arn         = aws_acm_certificate.intranet.arn
-  validation_record_fqdns = [aws_route53_record.validation.fqdn]
-}
-
 resource "aws_iam_instance_profile" "admin" {
   name = "Administrator"
   role = data.aws_iam_role.admin.name
@@ -203,12 +193,4 @@ resource "aws_iam_role_policy_attachment" "admin-cloudwatch" {
 resource "aws_iam_user_policy_attachment" "credential-factory" {
   policy_arn = aws_iam_policy.credential-factory.arn
   user       = data.aws_iam_user.credential-factory.user_name
-}
-
-resource "aws_route53_record" "validation" {
-  name    = tolist(aws_acm_certificate.intranet.domain_validation_options)[0].resource_record_name
-  records = [tolist(aws_acm_certificate.intranet.domain_validation_options)[0].resource_record_value]
-  ttl     = 60
-  type    = tolist(aws_acm_certificate.intranet.domain_validation_options)[0].resource_record_type
-  zone_id = data.aws_route53_zone.intranet.zone_id
 }

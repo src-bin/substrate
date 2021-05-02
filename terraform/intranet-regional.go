@@ -108,7 +108,7 @@ resource "aws_acm_certificate" "intranet" {
 
 resource "aws_acm_certificate_validation" "intranet" {
   certificate_arn         = aws_acm_certificate.intranet.arn
-  validation_record_fqdns = [var.validation_fqdn]
+  validation_record_fqdns = [aws_route53_record.validation.fqdn]
 }
 
 resource "aws_api_gateway_account" "current" {
@@ -462,6 +462,15 @@ resource "aws_route53_record" "intranet" {
   zone_id        = data.aws_route53_zone.intranet.id
 }
 
+resource "aws_route53_record" "validation" {
+  allow_overwrite = true
+  name            = tolist(aws_acm_certificate.intranet.domain_validation_options)[0].resource_record_name
+  records         = [tolist(aws_acm_certificate.intranet.domain_validation_options)[0].resource_record_value]
+  ttl             = 60
+  type            = tolist(aws_acm_certificate.intranet.domain_validation_options)[0].resource_record_type
+  zone_id         = data.aws_route53_zone.intranet.zone_id
+}
+
 resource "aws_security_group" "substrate-instance-factory" {
   name        = "substrate-instance-factory"
   description = "Allow inbound SSH access to instances managed by substrate-instance-factory"
@@ -544,10 +553,6 @@ variable "selected_regions" {
 }
 
 variable "stage_name" {
-  type = string
-}
-
-variable "validation_fqdn" {
   type = string
 }
 `,

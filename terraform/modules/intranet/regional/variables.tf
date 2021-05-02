@@ -22,7 +22,3 @@ variable "selected_regions" {
 variable "stage_name" {
   type = string
 }
-
-variable "validation_fqdn" {
-  type = string
-}
