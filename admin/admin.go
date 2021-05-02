@@ -127,6 +127,26 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	}
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
+	ui.Spin("finding or creating a role to allow CloudWatch to discover accounts within your organization, too")
+	role, err = awsiam.EnsureRoleWithPolicy(
+		iam.New(sess),
+		"CloudWatch-CrossAccountSharing-ListAccountsRole",
+		policies.AssumeRolePolicyDocument(orgAccountPrincipals),
+		&policies.Document{
+			Statement: []policies.Statement{{
+				Action: []string{
+					"organizations:ListAccounts",
+					"organizations:ListAccountsForParent",
+				},
+				Resource: []string{"*"},
+			}},
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ui.Stopf("role %s", role.Name)
+	//log.Printf("%+v", role)
 
 	// Ensure admin accounts can get into the audit account to look at
 	// CloudTrail logs.  It's unfortunate that we can't grant admin accounts
@@ -242,15 +262,14 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 
-	// TODO maybe bring Administrator and Auditor for admin accounts in here, too (they're not quite the same because of SAML)
-
-	// Loop through every non-admin, non-special account and authorize all the
-	// Administrator roles to assume roles there.
-	ui.Spinf("finding or creating Administrator and Auditor roles in all other accounts")
 	allAccounts, err := awsorgs.ListAccounts(svc)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Loop through every non-admin, non-special account and authorize all the
+	// Administrator roles to assume roles there.
+	ui.Spinf("finding or creating Administrator and Auditor roles in all other accounts")
 	terraformPrincipals := make([]string, 0, len(allAccounts))
 	for _, account := range allAccounts {
 
@@ -301,6 +320,53 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 		}
 	}
 	ui.Stop("ok")
+
+	ui.Spinf("finding or creating the CloudWatch-CrossAccountSharingRole role in all accounts")
+	org, err := awsorgs.DescribeOrganization(svc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, account := range allAccounts {
+		var svc *iam.IAM
+		if aws.StringValue(account.Id) == aws.StringValue(org.MasterAccountId) {
+			svc = iam.New(sess)
+		} else {
+			svc = iam.New(awssessions.AssumeRole(
+				sess,
+				aws.StringValue(account.Id),
+				roles.OrganizationAccountAccessRole,
+			))
+		}
+		if _, err := EnsureCloudWatchCrossAccountSharingRole(svc, policies.AssumeRolePolicyDocument(adminAccountPrincipals)); err != nil {
+			ui.Printf(
+				"could not create the CloudWatch-CrossAccountSharingRole role in account %s; it might be because this account has only half-joined the organization",
+				account.Id,
+			)
+		}
+	}
+	ui.Stop("ok")
+
+	// Create the service-linked role CloudWatch will actually use to read logs
+	// and metrics from other accounts in your organization.
+	ui.Spin("finding or creating CloudWatch's service-linked role for cross-account log and metric access")
+	for _, account := range allAccounts {
+		if account.Tags[tags.Domain] != "admin" {
+			continue
+		}
+		svc := iam.New(awssessions.AssumeRole(
+			sess,
+			aws.StringValue(account.Id),
+			roles.OrganizationAccountAccessRole,
+		))
+		if _, err := awsiam.EnsureServiceLinkedRole(
+			svc,
+			"AWSServiceRoleForCloudWatchCrossAccount",
+			"cloudwatch-crossaccount.amazonaws.com",
+		); err != nil {
+			log.Fatal(err)
+		}
+	}
+	ui.Stopf("ok")
 
 	// Ensure every account can run Terraform with remote state centralized
 	// in the deploy account.
@@ -385,6 +451,37 @@ func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document
 		"arn:aws:iam::aws:policy/ReadOnlyAccess",
 	)
 	return role, err
+}
+
+// EnsureCloudWatchCrossAccountSharingRole creates the
+// CloudWatch-CrossAccountSharingRole role in the account referenced by the
+// given IAM client.  This role will be allowed to read CloudWatch logs and
+// metrics via a service-linked role in the admin account(s).
+func EnsureCloudWatchCrossAccountSharingRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document) (*awsiam.Role, error) {
+	const roleName = "CloudWatch-CrossAccountSharingRole"
+	role, err := awsiam.EnsureRole(
+		svc,
+		roleName,
+		assumeRolePolicyDocument,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := awsiam.AttachRolePolicy(svc, roleName, "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"); err != nil {
+		return nil, err
+	}
+	if err := awsiam.AttachRolePolicy(svc, roleName, "arn:aws:iam::aws:policy/AWSXrayReadOnlyAccess"); err != nil {
+		return nil, err
+	}
+	if err := awsiam.AttachRolePolicy(svc, roleName, "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"); err != nil {
+		return nil, err
+	}
+	if err := awsiam.AttachRolePolicy(svc, roleName, "arn:aws:iam::aws:policy/CloudWatchAutomaticDashboardsAccess"); err != nil {
+		return nil, err
+	}
+
+	return role, nil
 }
 
 func OrgAccountPrincipals(svc *organizations.Organizations) (*policies.Principal, error) {
