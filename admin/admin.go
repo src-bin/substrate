@@ -22,27 +22,39 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-func AdminPrincipals(svc *organizations.Organizations) (*policies.Principal, error) {
+func AdminPrincipals(svc *organizations.Organizations) (
+	adminAccountPrincipals, adminRolePrincipals *policies.Principal,
+	err error,
+) {
 	adminAccounts, err := awsorgs.FindAccountsByDomain(svc, accounts.Admin)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	adminPrincipals := make([]string, len(adminAccounts)+2) // +2 for the management account and its IAM user
+
+	adminAccountPrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts))}
 	for i, account := range adminAccounts {
-		adminPrincipals[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+		adminAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
+	}
+	sort.Strings(adminAccountPrincipals.AWS) // to avoid spurious policy diffs
+	//log.Printf("%+v", adminAccountPrincipals)
+
+	adminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)} // +2 for the management account and its IAM user
+	for i, account := range adminAccounts {
+		adminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
 	}
 	org, err := awsorgs.DescribeOrganization(svc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	adminPrincipals[len(adminPrincipals)-2] = aws.StringValue(org.MasterAccountId)
-	adminPrincipals[len(adminPrincipals)-1] = users.Arn(
+	adminRolePrincipals.AWS[len(adminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId)
+	adminRolePrincipals.AWS[len(adminRolePrincipals.AWS)-1] = users.Arn(
 		aws.StringValue(org.MasterAccountId),
 		users.OrganizationAdministrator,
 	)
-	sort.Strings(adminPrincipals) // to avoid spurious policy diffs
-	//log.Printf("%+v", adminPrincipals)
-	return &policies.Principal{AWS: adminPrincipals}, nil
+	sort.Strings(adminRolePrincipals.AWS) // to avoid spurious policy diffs
+	//log.Printf("%+v", adminRolePrincipals)
+
+	return adminAccountPrincipals, adminRolePrincipals, nil
 }
 
 // EnsureAdminRolesAndPolicies creates or updates the entire matrix of
@@ -57,7 +69,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	// to allow cross-account access.  On the first run they're basically
 	// no-ops but on subsequent runs this is key to not undoing the work of
 	// substrate-create-account and substrate-create-admin-account.
-	adminPrincipals, err := AdminPrincipals(svc)
+	adminAccountPrincipals, adminRolePrincipals, err := AdminPrincipals(svc)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,7 +86,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationAdministrator,
-		policies.AssumeRolePolicyDocument(adminPrincipals),
+		policies.AssumeRolePolicyDocument(adminRolePrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -138,7 +150,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(auditAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		role, err = awsiam.EnsureRole(svc, roles.Auditor, policies.AssumeRolePolicyDocument(adminPrincipals))
+		role, err = awsiam.EnsureRole(svc, roles.Auditor, policies.AssumeRolePolicyDocument(adminRolePrincipals))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -163,7 +175,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.DeployAdministrator,
-		policies.AssumeRolePolicyDocument(adminPrincipals),
+		policies.AssumeRolePolicyDocument(adminRolePrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -202,7 +214,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.NetworkAdministrator,
-		policies.AssumeRolePolicyDocument(adminPrincipals),
+		policies.AssumeRolePolicyDocument(adminRolePrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -275,13 +287,13 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(account.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		if _, err := EnsureAdministratorRole(svc, policies.AssumeRolePolicyDocument(adminPrincipals)); err != nil {
+		if _, err := EnsureAdministratorRole(svc, policies.AssumeRolePolicyDocument(adminRolePrincipals)); err != nil {
 			ui.Printf(
 				"could not create the Administrator role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
 			)
 		}
-		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(adminPrincipals)); err != nil {
+		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(adminRolePrincipals)); err != nil {
 			ui.Printf(
 				"could not create the Auditor role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
