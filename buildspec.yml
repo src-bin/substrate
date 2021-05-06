@@ -32,7 +32,7 @@ phases:
       - make release
   post_build:
     commands:
-      - date
+      - find "." -name "substrate-*-*-*-*-tar.gz" -printf "%P\\n" | xargs -I"___" aws s3api put-object-acl --acl="bucket-owner-full-control" --bucket="$BUCKET" --key="substrate/___"
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
