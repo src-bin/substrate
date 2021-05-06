@@ -13,13 +13,13 @@ env:
 phases:
   install:
     commands:
-      - mkdir -p ~/bin
-      - curl -L -o golang.tar.gz -s https://redirector.gvt1.com/edgedl/go/go$GO_VERSION.linux-amd64.tar.gz
-      - tar -C ~ -f golang.tar.gz -x
-      - rm -f golang.tar.gz
-      - curl -L -o terraform.zip -s https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-      - unzip terraform.zip -d ~/bin
-      - rm -f terraform.zip
+      - mkdir -p "$HOME/bin"
+      - curl -L -o"golang.tar.gz" -s "https://redirector.gvt1.com/edgedl/go/go$GO_VERSION.linux-amd64.tar.gz"
+      - tar -C"$HOME" -f"golang.tar.gz" -x
+      - rm -f "golang.tar.gz"
+      - curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+      - unzip "terraform.zip" -d "$HOME/bin"
+      - rm -f "terraform.zip"
   pre_build:
     commands:
       - go version
