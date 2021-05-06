@@ -7,7 +7,7 @@ version: 0.2
 env:
   variables:
     GO_VERSION: 1.16.3
-    PATH: /root/bin:/root/.goenv/shims:/root/.goenv/bin:/go/bin:/usr/local/bin:/usr/bin
+    PATH: /root/bin:/root/go/bin:/usr/local/bin:/usr/bin:/bin
     TERRAFORM_VERSION: 0.14.7
 
 phases:
