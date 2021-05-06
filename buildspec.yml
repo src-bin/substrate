@@ -23,7 +23,6 @@ phases:
       - terraform version
       - make
       - git diff --exit-code
-      - git diff --quiet
       - make test
   build:
     commands:
