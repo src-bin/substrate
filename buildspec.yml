@@ -33,7 +33,7 @@ phases:
       - make release
   post_build:
     commands:
-      - curl --data-binary '{"text":"Substrate '"$(make release-version)"' is out!\\n\\nFull release notes\: https\://src-bin.co/substrate/manual/releases/#'"$(make release-version)"'\\n\\nDownloads\:\\n'"$(make release-filenames | xargs -I___ echo https\://src-bin.co/___)"'"}' "$SLACK_WEBHOOK_URL"
+      - go run "tools/slack/main.go"
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
