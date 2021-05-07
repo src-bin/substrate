@@ -8,6 +8,7 @@ env:
   variables:
     GO_VERSION: 1.16.3
     PATH: /root/bin:/root/go/bin:/usr/local/bin:/usr/bin:/bin
+    # SLACK_WEBHOOK_URL comes from upstream
     TERRAFORM_VERSION: 0.14.7
 
 phases:
@@ -32,7 +33,7 @@ phases:
       - make release
   post_build:
     commands:
-      - date
+      - curl --data-binary '{"text":"Substrate '"$(make release-version)"' is out!\\n\\nFull release notes: https://src-bin.org/substrate/manual/releases/#'"$(make release-version)"'\\n\\nDownloads:\\n'"$(make release-filenames | xargs -I___ echo https://src-bin.org/___)"'"}' "$SLACK_WEBHOOK_URL"
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
