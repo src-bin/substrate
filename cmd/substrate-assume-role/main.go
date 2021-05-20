@@ -146,6 +146,14 @@ func main() {
 		if err := os.Setenv("AWS_SESSION_TOKEN", aws.StringValue(creds.SessionToken)); err != nil {
 			log.Fatal(err)
 		}
+
+		// Distinguish between a command error, which presumably is described
+		// by the command itself before exiting with a non-zero status, and
+		// command not found, which is our responsibility as the pseudo-shell.
+		if _, err := exec.LookPath(flag.Args()[0]); err != nil {
+			log.Fatal(err)
+		}
+
 		cmd := exec.Command(flag.Args()[0], flag.Args()[1:]...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
