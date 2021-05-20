@@ -198,7 +198,7 @@ func createAccount(
 	}
 	//log.Printf("%+v", out)
 
-	// TODO we might need to raise L-29A0C5DF ("Number of AWS accounts in an organization") to proceed
+	// TODO we might need to raise {"L-29A0C5DF", "organizations"} ("Number of AWS accounts in an organization") to proceed
 
 	status := out.CreateAccountStatus
 	for {
