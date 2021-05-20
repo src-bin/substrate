@@ -21,6 +21,7 @@ const (
 )
 
 func EnablePolicyType(svc *organizations.Organizations, policyType PolicyType) error {
+	defer time.Sleep(1e9) // TODO should be more graceful but one last sleep should prevent ConcurrentModificationException
 	for {
 		root, err := Root(svc)
 		if err != nil {

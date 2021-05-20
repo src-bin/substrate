@@ -77,6 +77,7 @@ func EnsureRole(
 	roleName string,
 	assumeRolePolicyDoc *policies.Document,
 ) (*Role, error) {
+	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
 
 	role, err := CreateRole(
 		svc,
@@ -127,6 +128,7 @@ func EnsureRoleWithPolicy(
 	assumeRolePolicyDoc *policies.Document,
 	doc *policies.Document,
 ) (*Role, error) {
+	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
 
 	role, err := EnsureRole(svc, roleName, assumeRolePolicyDoc)
 	if err != nil {
@@ -153,6 +155,7 @@ func EnsureServiceLinkedRole(
 	svc *iam.IAM,
 	roleName, serviceName string, // not independent; must match AWS expectations
 ) (*Role, error) {
+	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
 
 	role, err := CreateServiceLinkedRole(svc, serviceName)
 	if awsutil.ErrorCodeIs(err, InvalidInput) {
