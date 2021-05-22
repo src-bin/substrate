@@ -36,13 +36,6 @@ data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   }
 }
 
-data "aws_iam_policy_document" "substrate-apigateway-index" {
-  statement {
-    actions   = ["apigateway:GET"]
-    resources = ["*"]
-  }
-}
-
 data "aws_iam_policy_document" "substrate-credential-factory" {
   statement {
     actions = [
@@ -94,6 +87,11 @@ data "aws_iam_policy_document" "substrate-intranet" {
     resources = ["*"]
     sid       = "Accounts"
   }
+  statement {
+    actions   = ["apigateway:GET"]
+    resources = ["*"]
+    sid       = "Index"
+  }
   /*
   statement {
     actions   = ["iam:PassRole"]
@@ -124,12 +122,6 @@ module "substrate-apigateway-authenticator" {
 module "substrate-apigateway-authorizer" {
   name   = "substrate-apigateway-authorizer"
   policy = data.aws_iam_policy_document.substrate-apigateway-authorizer.json
-  source = "../../lambda-function/global"
-}
-
-module "substrate-apigateway-index" {
-  name   = "substrate-apigateway-index"
-  policy = data.aws_iam_policy_document.substrate-apigateway-index.json
   source = "../../lambda-function/global"
 }
 

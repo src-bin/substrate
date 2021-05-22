@@ -20,10 +20,6 @@ data "aws_iam_role" "substrate-apigateway-authorizer" {
   name = "substrate-apigateway-authorizer"
 }
 
-data "aws_iam_role" "substrate-apigateway-index" {
-  name = "substrate-apigateway-index"
-}
-
 data "aws_iam_role" "substrate-credential-factory" {
   name = "substrate-credential-factory"
 }
@@ -66,14 +62,6 @@ module "substrate-apigateway-authorizer" {
   filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
   name                     = "substrate-apigateway-authorizer"
   role_arn                 = data.aws_iam_role.substrate-apigateway-authorizer.arn
-  source                   = "../../lambda-function/regional"
-}
-
-module "substrate-apigateway-index" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-apigateway-index.zip"
-  name                     = "substrate-apigateway-index"
-  role_arn                 = data.aws_iam_role.substrate-apigateway-index.arn
   source                   = "../../lambda-function/regional"
 }
 
@@ -259,7 +247,7 @@ resource "aws_api_gateway_integration" "GET-index" {
   resource_id             = aws_api_gateway_rest_api.intranet.root_resource_id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-apigateway-index.invoke_arn
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {
