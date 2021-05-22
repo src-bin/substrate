@@ -22,13 +22,6 @@ data "aws_iam_policy_document" "credential-factory" {
   }
 }
 
-data "aws_iam_policy_document" "substrate-apigateway-authenticator" {
-  statement {
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = ["*"]
-  }
-}
-
 data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
@@ -92,6 +85,11 @@ data "aws_iam_policy_document" "substrate-intranet" {
     resources = ["*"]
     sid       = "Index"
   }
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = ["*"]
+    sid       = "Login"
+  }
   /*
   statement {
     actions   = ["iam:PassRole"]
@@ -111,12 +109,6 @@ data "aws_route53_zone" "intranet" {
 
 data "aws_iam_user" "credential-factory" {
   user_name = "CredentialFactory"
-}
-
-module "substrate-apigateway-authenticator" {
-  name   = "substrate-apigateway-authenticator"
-  policy = data.aws_iam_policy_document.substrate-apigateway-authenticator.json
-  source = "../../lambda-function/global"
 }
 
 module "substrate-apigateway-authorizer" {

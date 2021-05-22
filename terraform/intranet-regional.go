@@ -12,10 +12,6 @@ data "aws_iam_role" "apigateway" {
   name = "IntranetAPIGateway"
 }
 
-data "aws_iam_role" "substrate-apigateway-authenticator" {
-  name = "substrate-apigateway-authenticator"
-}
-
 data "aws_iam_role" "substrate-apigateway-authorizer" {
   name = "substrate-apigateway-authorizer"
 }
@@ -47,14 +43,6 @@ locals {
   response_templates = {
     "application/json" = "{\"Location\":\"$context.authorizer.Location\"}"
   }
-}
-
-module "substrate-apigateway-authenticator" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-apigateway-authenticator.zip"
-  name                     = "substrate-apigateway-authenticator"
-  role_arn                 = data.aws_iam_role.substrate-apigateway-authenticator.arn
-  source                   = "../../lambda-function/regional"
 }
 
 module "substrate-apigateway-authorizer" {
@@ -269,7 +257,7 @@ resource "aws_api_gateway_integration" "GET-login" {
   resource_id             = aws_api_gateway_resource.login.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-apigateway-authenticator.invoke_arn
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-instance-factory" {
@@ -291,7 +279,7 @@ resource "aws_api_gateway_integration" "POST-login" {
   resource_id             = aws_api_gateway_resource.login.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-apigateway-authenticator.invoke_arn
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_method" "GET-accounts" {

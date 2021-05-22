@@ -28,13 +28,6 @@ data "aws_iam_policy_document" "credential-factory" {
   }
 }
 
-data "aws_iam_policy_document" "substrate-apigateway-authenticator" {
-  statement {
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = ["*"]
-  }
-}
-
 data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
@@ -98,6 +91,11 @@ data "aws_iam_policy_document" "substrate-intranet" {
     resources = ["*"]
     sid       = "Index"
   }
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = ["*"]
+    sid       = "Login"
+  }
   /*
   statement {
     actions   = ["iam:PassRole"]
@@ -117,12 +115,6 @@ data "aws_route53_zone" "intranet" {
 
 data "aws_iam_user" "credential-factory" {
   user_name = "CredentialFactory"
-}
-
-module "substrate-apigateway-authenticator" {
-  name   = "substrate-apigateway-authenticator"
-  policy = data.aws_iam_policy_document.substrate-apigateway-authenticator.json
-  source = "../../lambda-function/global"
 }
 
 module "substrate-apigateway-authorizer" {
@@ -193,31 +185,7 @@ resource "aws_iam_user_policy_attachment" "credential-factory" {
   user       = data.aws_iam_user.credential-factory.user_name
 }
 `,
-		"outputs.tf":   `output "apigateway_role_arn" {
-  value = aws_iam_role.apigateway.arn
-}
-
-# substrate_credential_factory_role_arn is set to Administrator because there's
-# a chicken-and-egg problem if we try to authorize a role specific to the
-# substrate-credential-factory Lambda function to assume the Administrator role
-# since its ARN is not known when the Administrator's assume role policy must
-# be set.  And, since the whole point is to assume the Administrator role, it's
-# no serious security compromise to jump straight to the Administrator role.
-output "substrate_credential_factory_role_arn" {
-  value = data.aws_iam_role.admin.arn
-}
-
-output "substrate_instance_factory_role_arn" {
-  value = module.substrate-instance-factory.role_arn
-}
-
-output "substrate_apigateway_authenticator_role_arn" {
-  value = module.substrate-apigateway-authenticator.role_arn
-}
-
-output "substrate_apigateway_authorizer_role_arn" {
-  value = module.substrate-apigateway-authorizer.role_arn
-}
+		"outputs.tf":   `# TODO remove this empty file and os.Remove it in substrate-create-admin-account
 `,
 		"substrate.tf": `module "substrate" {
   source = "../../substrate/global"
