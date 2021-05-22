@@ -86,6 +86,7 @@ func gitignore(dirname string) error {
 	return tmpl.Execute(f, nil)
 }
 
+// TODO consider deleting this altogether in favor of `terraform -chdir=... ...`
 func makefile(dirname string) error {
 	f, err := os.Create(filepath.Join(dirname, "Makefile"))
 	if err != nil {
