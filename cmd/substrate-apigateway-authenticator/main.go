@@ -108,12 +108,11 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 				fmt.Sprintf("id=%s; HttpOnly; Max-Age=%d; Secure", doc.IDToken, maxAge),
 			},
 		}
-		statusCode := http.StatusOK
-		if state.Next != "" {
-			bodyV.Location = state.Next
-			multiValueHeaders["Location"] = []string{state.Next}
-			statusCode = http.StatusFound
+		bodyV.Location = state.Next
+		if bodyV.Location == "" {
+			bodyV.Location = "/"
 		}
+		multiValueHeaders["Location"] = []string{bodyV.Location}
 		body, err := lambdautil.RenderHTML(loginTemplate(), bodyV)
 		if err != nil {
 			return nil, err
@@ -122,7 +121,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		return &events.APIGatewayProxyResponse{
 			Body:              body,
 			MultiValueHeaders: multiValueHeaders,
-			StatusCode:        statusCode,
+			StatusCode:        http.StatusFound,
 		}, nil
 	}
 
