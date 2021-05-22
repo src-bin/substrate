@@ -132,6 +132,7 @@ resource "aws_api_gateway_deployment" "intranet" {
   stage_name  = var.stage_name
   triggers = {
     redeployment = sha1(join(",", list(
+      filesha256("${path.module}/substrate-intranet.zip"),
       jsonencode(aws_api_gateway_authorizer.substrate),
       jsonencode(aws_api_gateway_integration.GET-accounts),
       jsonencode(aws_api_gateway_integration.GET-credential-factory),
