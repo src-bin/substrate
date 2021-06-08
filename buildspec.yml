@@ -9,7 +9,7 @@ env:
     GO_VERSION: 1.16.3
     PATH: /root/bin:/root/go/bin:/usr/local/bin:/usr/bin:/bin
     # SLACK_WEBHOOK_URL comes from upstream
-    TERRAFORM_VERSION: 0.14.7
+    TERRAFORM_VERSION: 0.15.5
 
 phases:
   install:
