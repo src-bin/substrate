@@ -9,7 +9,6 @@ env:
     GO_VERSION: 1.16.3
     PATH: /root/bin:/root/go/bin:/usr/local/bin:/usr/bin:/bin
     # SLACK_WEBHOOK_URL comes from upstream
-    TERRAFORM_VERSION: 0.15.5
 
 phases:
   install:
@@ -18,7 +17,7 @@ phases:
       - curl -L -o"golang.tar.gz" -s "https://redirector.gvt1.com/edgedl/go/go$GO_VERSION.linux-amd64.tar.gz"
       - tar -C"$HOME" -f"golang.tar.gz" -x
       - rm -f "golang.tar.gz"
-      - curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/$TERRAFORM_VERSION/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+      - cat "terraform-version.txt" | xargs -I"VERSION" curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/VERSION/terraform_VERSION_linux_amd64.zip"
       - unzip "terraform.zip" -d "$HOME/bin"
       - rm -f "terraform.zip"
   pre_build:
