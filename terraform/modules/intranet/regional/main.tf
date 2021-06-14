@@ -69,6 +69,35 @@ module "substrate-intranet" {
   source                   = "../../lambda-function/regional"
 }
 
+# Dead resources that must hang around a little longer to break a dependency
+# cycle. To allow us to still move on by deleting cmd/... for these programs,
+# they're now using the new cmd/substrate-intranet code, which doesn't matter
+# because nothing's invoking them.
+#
+# Remove these one release after every Intranet endpoint transitions to
+# cmd/substrate-intranet.
+module "substrate-accounts" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-intranet.zip"
+  name                     = "substrate-accounts"
+  role_arn                 = data.aws_iam_role.substrate-intranet.arn
+  source                   = "../../lambda-function/regional"
+}
+module "substrate-apigateway-authenticator" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-intranet.zip"
+  name                     = "substrate-apigateway-authenticator"
+  role_arn                 = data.aws_iam_role.substrate-intranet.arn
+  source                   = "../../lambda-function/regional"
+}
+module "substrate-apigateway-index" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-intranet.zip"
+  name                     = "substrate-apigateway-index"
+  role_arn                 = data.aws_iam_role.substrate-intranet.arn
+  source                   = "../../lambda-function/regional"
+}
+
 resource "aws_acm_certificate" "intranet" {
   domain_name       = var.dns_domain_name
   validation_method = "DNS"
@@ -107,9 +136,11 @@ resource "aws_api_gateway_deployment" "intranet" {
   rest_api_id = aws_api_gateway_rest_api.intranet.id
   stage_name  = var.stage_name
   triggers = {
-    redeployment = sha1(join(",", list(
+    redeployment = sha1(join(",", [
       filesha256("${path.module}/substrate-intranet.zip"),
       jsonencode(aws_api_gateway_authorizer.substrate),
+      jsonencode(aws_api_gateway_gateway_response.ACCESS_DENIED),
+      jsonencode(aws_api_gateway_gateway_response.UNAUTHORIZED),
       jsonencode(aws_api_gateway_integration.GET-accounts),
       jsonencode(aws_api_gateway_integration.GET-credential-factory),
       jsonencode(aws_api_gateway_integration.GET-credential-factory-authorize),
@@ -134,10 +165,8 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_resource.credential-factory-fetch),
       jsonencode(aws_api_gateway_resource.instance-factory),
       jsonencode(aws_api_gateway_resource.login),
-      jsonencode(aws_api_gateway_gateway_response.ACCESS_DENIED),
-      jsonencode(aws_api_gateway_gateway_response.UNAUTHORIZED),
       jsonencode(aws_cloudwatch_log_group.apigateway),
-    )))
+    ]))
   }
   variables = {
     "OAuthOIDCClientID"              = var.oauth_oidc_client_id
