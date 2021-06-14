@@ -6,9 +6,9 @@ import (
 	"text/template"
 )
 
-//go:generate go run ../tools/template/main.go -name versionsTemplate versions.tf
+//go:generate go run ../tools/template/main.go -name versionsTemplate versions.tf.template
 
-func versions(dirname string) error {
+func versions(dirname string, configurationAliases []string) error {
 	f, err := os.Create(filepath.Join(dirname, "versions.tf"))
 	if err != nil {
 		return err
@@ -18,5 +18,7 @@ func versions(dirname string) error {
 	if err != nil {
 		return err
 	}
-	return tmpl.Execute(f, nil)
+	return tmpl.Execute(f, struct {
+		ConfigurationAliases []string
+	}{configurationAliases})
 }

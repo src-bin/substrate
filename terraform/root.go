@@ -58,7 +58,7 @@ func Root(dirname, region string) error {
 	if err := terraformBackend(dirname, region, sess); err != nil {
 		return err
 	}
-	if err := versions(dirname); err != nil {
+	if err := versions(dirname, nil); err != nil {
 		return err
 	}
 	/*

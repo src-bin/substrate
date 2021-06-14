@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,17 +11,17 @@ import (
 )
 
 type Directory struct {
-	files map[string]string
+	ConfigurationAliases []string // for replacing deprecated `provider "aws" { alias = "..." }` blocks
+	Files                map[string]string
+	RemoveFiles          []string // it's not enough to remove a file from terraform/modules/..., we must know to remove it from end-user systems
 }
 
 func NewDirectory() *Directory {
-	return &Directory{make(map[string]string)}
-}
-
-// TODO func (d *Directory) Add(filename, f *File)
-
-func (d *Directory) AddStatic(filename, content string) {
-	d.files[filename] = content
+	return &Directory{
+		ConfigurationAliases: []string{},
+		Files:                make(map[string]string),
+		RemoveFiles:          []string{},
+	}
 }
 
 func (d *Directory) Write(dirname string) error {
@@ -29,13 +30,19 @@ func (d *Directory) Write(dirname string) error {
 		return err
 	}
 
-	for filename, content := range d.files {
+	for filename, content := range d.Files {
 		if err := writeFile(dirname, filename, content); err != nil {
 			return err
 		}
 	}
 
-	if err := versions(dirname); err != nil {
+	for _, filename := range d.RemoveFiles {
+		if err := os.Remove(filepath.Join(dirname, filename)); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+
+	if err := versions(dirname, d.ConfigurationAliases); err != nil {
 		return err
 	}
 	/*
