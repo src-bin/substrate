@@ -34,7 +34,7 @@ func Fmt(dirname string) error {
 
 func Init(dirname string) error {
 	ui.Printf("initializing Terraform in %s", dirname)
-	return execdlp(dirname, "terraform", "init", "-reconfigure")
+	return execdlp(dirname, "terraform", "init", "-reconfigure", "-upgrade")
 }
 
 func Plan(dirname string) error {
