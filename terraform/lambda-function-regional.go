@@ -16,11 +16,6 @@ data "external" "dirname" {
   program = ["/bin/sh", "-c", "echo \"{\\\"dirname\\\":\\\"$(which substrate-create-admin-account | xargs dirname)\\\"}\""]
 }
 
-# TODO remove this data source on or after the 2021.03 release.
-data "external" "gobin" {
-  program = ["/bin/sh", "-c", "echo \"{\\\"GOBIN\\\":\\\"$GOBIN\\\"}\""]
-}
-
 
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${var.name}"
@@ -32,13 +27,13 @@ resource "aws_cloudwatch_log_group" "lambda" {
 
 resource "aws_lambda_function" "function" {
   depends_on       = [aws_cloudwatch_log_group.lambda]
-  filename         = var.filename
+  filename         = data.archive_file.zip.output_path
   function_name    = var.name
   handler          = var.name
   memory_size      = 128 # default
   role             = var.role_arn
   runtime          = "go1.x"
-  source_code_hash = filebase64sha256(var.filename)
+  source_code_hash = data.archive_file.zip.output_base64sha256
   tags = {
     Manager = "Terraform"
     Name    = var.name
@@ -59,6 +54,10 @@ resource "aws_lambda_permission" "permission" {
 
 output "invoke_arn" {
   value = aws_lambda_function.function.invoke_arn
+}
+
+output "source_code_hash" {
+  value = aws_lambda_function.function.source_code_hash
 }
 `,
 		"variables.tf":  `variable "apigateway_execution_arn" {

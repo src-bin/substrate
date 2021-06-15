@@ -5,3 +5,7 @@ output "function_arn" {
 output "invoke_arn" {
   value = aws_lambda_function.function.invoke_arn
 }
+
+output "source_code_hash" {
+  value = aws_lambda_function.function.source_code_hash
+}

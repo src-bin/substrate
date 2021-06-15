@@ -84,23 +84,16 @@ module "substrate-intranet" {
 #
 # Remove these one release after every Intranet endpoint transitions to
 # cmd/substrate-intranet.
-module "substrate-accounts" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-intranet.zip"
-  name                     = "substrate-accounts"
-  role_arn                 = data.aws_iam_role.substrate-intranet.arn
-  source                   = "../../lambda-function/regional"
-}
 module "substrate-apigateway-authenticator" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-intranet.zip"
+  filename                 = "${path.module}/substrate-apigateway-authenticator.zip"
   name                     = "substrate-apigateway-authenticator"
   role_arn                 = data.aws_iam_role.substrate-intranet.arn
   source                   = "../../lambda-function/regional"
 }
 module "substrate-apigateway-index" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-intranet.zip"
+  filename                 = "${path.module}/substrate-apigateway-index.zip"
   name                     = "substrate-apigateway-index"
   role_arn                 = data.aws_iam_role.substrate-intranet.arn
   source                   = "../../lambda-function/regional"
@@ -145,7 +138,6 @@ resource "aws_api_gateway_deployment" "intranet" {
   stage_name  = var.stage_name
   triggers = {
     redeployment = sha1(join(",", [
-      filesha256("${path.module}/substrate-intranet.zip"),
       jsonencode(aws_api_gateway_authorizer.substrate),
       jsonencode(aws_api_gateway_gateway_response.ACCESS_DENIED),
       jsonencode(aws_api_gateway_gateway_response.UNAUTHORIZED),
@@ -174,6 +166,7 @@ resource "aws_api_gateway_deployment" "intranet" {
       jsonencode(aws_api_gateway_resource.instance-factory),
       jsonencode(aws_api_gateway_resource.login),
       jsonencode(aws_cloudwatch_log_group.apigateway),
+      module.substrate-intranet.source_code_hash,
     ]))
   }
   variables = {

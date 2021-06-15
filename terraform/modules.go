@@ -4,7 +4,7 @@ package terraform
 func IntranetGlobalModule() *Directory {
 	return &Directory{
 		Files:       intranetGlobalTemplate(),
-		RemoveFiles: []string{"providers.tf"},
+		RemoveFiles: []string{"outputs.tf", "providers.tf"},
 	}
 }
 
