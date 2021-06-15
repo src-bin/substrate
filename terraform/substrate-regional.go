@@ -4,7 +4,7 @@ package terraform
 
 func substrateRegionalTemplate() map[string]string {
 	return map[string]string{
-		"main.tf":      `data "aws_subnet_ids" "private" {
+		"main.tf":    `data "aws_subnet_ids" "private" {
   count    = module.global.tags.environment == "admin" ? 0 : 1
   provider = aws.network
   tags = {
@@ -37,7 +37,7 @@ module "global" {
   source = "../global"
 }
 `,
-		"outputs.tf":   `output "tags" {
+		"outputs.tf": `output "tags" {
   value = module.global.tags
 }
 
@@ -52,8 +52,6 @@ output "public_subnet_ids" {
 output "vpc_id" {
   value = data.aws_vpc.network.id
 }
-`,
-		"providers.tf": `provider "aws" { alias = "network" }
 `,
 	}
 }

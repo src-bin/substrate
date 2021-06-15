@@ -518,10 +518,6 @@ output "root_resource_id" {
   value = aws_api_gateway_rest_api.intranet.root_resource_id
 }
 `,
-		"providers.tf": `provider "aws" {
-  alias = "network"
-}
-`,
 		"substrate.tf": `module "substrate" {
   providers = {
     aws         = aws

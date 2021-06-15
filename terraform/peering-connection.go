@@ -124,10 +124,6 @@ resource "aws_vpc_peering_connection_options" "requester" {
 }
 */
 `,
-		"providers.tf": `provider "aws" { alias = "accepter" }
-
-provider "aws" { alias = "requester" }
-`,
 		"variables.tf": `variable "accepter_environment" {
   type = string
 }

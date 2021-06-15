@@ -36,8 +36,9 @@ func LambdaFunctionRegionalModule() *Directory {
 //go:generate go run ../tools/template/main.go -name peeringConnectionTemplate -o peering-connection.go modules/peering-connection
 func PeeringConnectionModule() *Directory {
 	return &Directory{
-		Files:       peeringConnectionTemplate(),
-		RemoveFiles: []string{"providers.tf"},
+		ConfigurationAliases: []string{"aws.accepter", "aws.requester"},
+		Files:                peeringConnectionTemplate(),
+		RemoveFiles:          []string{"providers.tf"},
 	}
 }
 
