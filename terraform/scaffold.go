@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"os"
 	"path/filepath"
 )
 
@@ -16,8 +17,8 @@ func Scaffold(domain string) error {
 			return err
 		}
 
-		providersFile := NewFile()
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+		// TODO remove this on or after the 2021.07 release.
+		if err := os.Remove(filepath.Join(dirname, "providers.tf")); err != nil {
 			return err
 		}
 
@@ -30,6 +31,10 @@ func Scaffold(domain string) error {
 			return err
 		}
 
+		if err := versions(dirname, nil); err != nil {
+			return err
+		}
+
 	}
 	{
 		dirname := filepath.Join(ModulesDirname, domain, "regional")
@@ -38,9 +43,8 @@ func Scaffold(domain string) error {
 			return err
 		}
 
-		providersFile := NewFile()
-		providersFile.Push(Provider{Alias: "network"})
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+		// TODO remove this on or after the 2021.07 release.
+		if err := os.Remove(filepath.Join(dirname, "providers.tf")); err != nil {
 			return err
 		}
 
@@ -54,6 +58,10 @@ func Scaffold(domain string) error {
 			Source: Q("../../substrate/regional"),
 		})
 		if err := substrateFile.Write(filepath.Join(dirname, "substrate.tf")); err != nil {
+			return err
+		}
+
+		if err := versions(dirname, []ProviderAlias{NetworkProviderAlias}); err != nil {
 			return err
 		}
 
