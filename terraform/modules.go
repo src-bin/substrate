@@ -11,7 +11,7 @@ func IntranetGlobalModule() *Directory {
 //go:generate go run ../tools/template/main.go -name intranetRegionalTemplate -o intranet-regional.go modules/intranet/regional
 func IntranetRegionalModule() *Directory {
 	return &Directory{
-		ConfigurationAliases: []string{"aws.network"},
+		ConfigurationAliases: []ProviderAlias{NetworkProviderAlias},
 		Files:                intranetRegionalTemplate(),
 		RemoveFiles:          []string{"providers.tf"},
 	}
@@ -36,7 +36,7 @@ func LambdaFunctionRegionalModule() *Directory {
 //go:generate go run ../tools/template/main.go -name peeringConnectionTemplate -o peering-connection.go modules/peering-connection
 func PeeringConnectionModule() *Directory {
 	return &Directory{
-		ConfigurationAliases: []string{"aws.accepter", "aws.requester"},
+		ConfigurationAliases: []ProviderAlias{"aws.accepter", "aws.requester"},
 		Files:                peeringConnectionTemplate(),
 		RemoveFiles:          []string{"providers.tf"},
 	}
@@ -53,7 +53,7 @@ func SubstrateGlobalModule() *Directory {
 //go:generate go run ../tools/template/main.go -name substrateRegionalTemplate -o substrate-regional.go modules/substrate/regional
 func SubstrateRegionalModule() *Directory {
 	return &Directory{
-		ConfigurationAliases: []string{"aws.network"},
+		ConfigurationAliases: []ProviderAlias{NetworkProviderAlias},
 		Files:                substrateRegionalTemplate(),
 		RemoveFiles:          []string{"providers.tf"},
 	}

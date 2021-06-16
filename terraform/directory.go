@@ -11,14 +11,14 @@ import (
 )
 
 type Directory struct {
-	ConfigurationAliases []string // for replacing deprecated `provider "aws" { alias = "..." }` blocks
+	ConfigurationAliases []ProviderAlias // for replacing deprecated `provider "aws" { alias = "..." }` blocks
 	Files                map[string]string
 	RemoveFiles          []string // it's not enough to remove a file from terraform/modules/..., we must know to remove it from end-user systems
 }
 
 func NewDirectory() *Directory {
 	return &Directory{
-		ConfigurationAliases: []string{},
+		ConfigurationAliases: []ProviderAlias{},
 		Files:                make(map[string]string),
 		RemoveFiles:          []string{},
 	}
