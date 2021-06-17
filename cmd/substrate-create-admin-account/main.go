@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -229,7 +227,7 @@ func main() {
 
 		// Substrate 2021.05 simplified Intranet TLS certificate management
 		// to the point that this outputs.tf is no longer necessary.
-		if err := os.Remove(filepath.Join(dirname, "outputs.tf")); err != nil && !errors.Is(err, os.ErrNotExist) {
+		if err := fileutil.Remove(filepath.Join(dirname, "outputs.tf")); err != nil {
 			log.Fatal(err)
 		}
 

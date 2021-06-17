@@ -1,6 +1,7 @@
 package fileutil
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -62,6 +63,16 @@ func ReadFile(pathname string) ([]byte, error) {
 		return nil, err
 	}
 	return b, err
+}
+
+// Remove removes a file via os.Remove and returns every error it can return
+// except os.ErrNotExist, which it silences.
+func Remove(pathname string) error {
+	err := os.Remove(pathname)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 // Tidy removes newline-like characters from either end of a []byte and

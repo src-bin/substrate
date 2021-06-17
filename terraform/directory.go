@@ -1,12 +1,12 @@
 package terraform
 
 import (
-	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
 )
 
@@ -37,7 +37,7 @@ func (d *Directory) Write(dirname string) error {
 	}
 
 	for _, filename := range d.RemoveFiles {
-		if err := os.Remove(filepath.Join(dirname, filename)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		if err := fileutil.Remove(filepath.Join(dirname, filename)); err != nil {
 			return err
 		}
 	}

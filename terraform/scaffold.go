@@ -1,8 +1,9 @@
 package terraform
 
 import (
-	"os"
 	"path/filepath"
+
+	"github.com/src-bin/substrate/fileutil"
 )
 
 // Scaffold generates modules/domain/{global,regional}, both setup with the
@@ -18,7 +19,7 @@ func Scaffold(domain string) error {
 		}
 
 		// TODO remove this on or after the 2021.07 release.
-		if err := os.Remove(filepath.Join(dirname, "providers.tf")); err != nil {
+		if err := fileutil.Remove(filepath.Join(dirname, "providers.tf")); err != nil {
 			return err
 		}
 
@@ -44,7 +45,7 @@ func Scaffold(domain string) error {
 		}
 
 		// TODO remove this on or after the 2021.07 release.
-		if err := os.Remove(filepath.Join(dirname, "providers.tf")); err != nil {
+		if err := fileutil.Remove(filepath.Join(dirname, "providers.tf")); err != nil {
 			return err
 		}
 
