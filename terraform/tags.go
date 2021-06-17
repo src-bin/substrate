@@ -6,6 +6,36 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
+// EC2Tag generates the aws_ec2_tag resource, useful for tagging VPCs created
+// in another account and shared into this one (because their tags don't get
+// shared along).
+type EC2Tag struct {
+	ForEach    Value
+	Key, Value Value
+	Label      Value
+	Provider   ProviderAlias
+	ResourceId Value
+}
+
+func (t EC2Tag) Ref() Value {
+	return Uf("aws_ec2_tag.%s", t.Label)
+}
+
+func (EC2Tag) Template() string {
+	return `resource "aws_ec2_tag" {{.Label.Value}} {
+{{- if .ForEach}}
+  for_each = {{.ForEach.Value}}
+{{- end}}
+  key = {{.Key.Value}}
+{{- if .Provider}}
+  provider = {{.Provider}}
+{{- end}}
+  resource_id = {{.ResourceId.Value}}
+  value = {{.Value.Value}}
+}
+`
+}
+
 type Tags struct {
 	Connectivity                 string // "public" or "private"; used only by subnets
 	Domain, Environment, Quality string

@@ -2,9 +2,10 @@ package tags
 
 // Keys.
 const (
-	Domain      = "Domain"
-	Environment = "Environment"
-	Quality     = "Quality"
+	Connectivity = "Connectivity" // only used by subnets
+	Domain       = "Domain"
+	Environment  = "Environment"
+	Quality      = "Quality"
 
 	Manager = "Manager"
 

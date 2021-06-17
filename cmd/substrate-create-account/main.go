@@ -14,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
@@ -126,20 +127,19 @@ func main() {
 		}
 
 		networkFile := terraform.NewFile()
-		tags := terraform.Tags{
-			Environment: *environment,
-			Name:        fmt.Sprintf("%s-%s-%s", *domain, *environment, *quality),
-			Quality:     *quality,
-			Region:      region,
-		}
 		rs := terraform.ResourceShare{
-			Label:    terraform.Label(tags),
 			Provider: terraform.NetworkProviderAlias,
-			Tags:     tags,
+			Tags: terraform.Tags{
+				Environment: *environment,
+				Name:        fmt.Sprintf("%s-%s-%s", *domain, *environment, *quality),
+				Quality:     *quality,
+				Region:      region,
+			},
 		}
+		rs.Label = terraform.Label(rs.Tags)
 		networkFile.Push(rs)
 		networkFile.Push(terraform.PrincipalAssociation{
-			Label:            terraform.Label(tags),
+			Label:            terraform.Label(rs.Tags),
 			Principal:        terraform.Q(aws.StringValue(account.Id)),
 			Provider:         terraform.NetworkProviderAlias,
 			ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
@@ -170,7 +170,52 @@ func main() {
 		}
 		networkFile.Push(dataSubnet)
 		// TODO 2021.07 share the appropriate VPC using the aws.network provider.
-		// FIXME tag the VPC using the default provider
+		networkFile.Push(terraform.EC2Tag{
+			ForEach:    terraform.U(dataSubnet.Ref()),
+			Key:        terraform.Q(tags.Connectivity),
+			Label:      terraform.Q("subnet-connectivity"),
+			ResourceId: terraform.U("each.value.id"),
+			Value:      terraform.U(fmt.Sprintf("each.value.tags[\"%s\"]", tags.Connectivity)),
+		})
+		networkFile.Push(terraform.EC2Tag{
+			ForEach:    terraform.U(dataSubnet.Ref()),
+			Key:        terraform.Q(tags.Environment),
+			Label:      terraform.Q("subnet-environment"),
+			ResourceId: terraform.U("each.value.id"),
+			Value:      terraform.Q(*environment),
+		})
+		networkFile.Push(terraform.EC2Tag{
+			ForEach:    terraform.U(dataSubnet.Ref()),
+			Key:        terraform.Q(tags.Name),
+			Label:      terraform.Q("subnet-name"),
+			ResourceId: terraform.U("each.value.id"),
+			Value:      terraform.U(fmt.Sprintf("\"%s-%s-${each.value.tags[\"%s\"]}-${each.value.availability_zone}\"", *environment, *quality, tags.Connectivity)),
+		})
+		networkFile.Push(terraform.EC2Tag{
+			ForEach:    terraform.U(dataSubnet.Ref()),
+			Key:        terraform.Q(tags.Quality),
+			Label:      terraform.Q("subnet-quality"),
+			ResourceId: terraform.U("each.value.id"),
+			Value:      terraform.Q(*quality),
+		})
+		networkFile.Push(terraform.EC2Tag{
+			Key:        terraform.Q(tags.Environment),
+			Label:      terraform.Q("vpc-environment"),
+			ResourceId: terraform.U(dataVPC.Ref(), ".id"),
+			Value:      terraform.Q(*environment),
+		})
+		networkFile.Push(terraform.EC2Tag{
+			Key:        terraform.Q(tags.Name),
+			Label:      terraform.Q("vpc-name"),
+			ResourceId: terraform.U(dataVPC.Ref(), ".id"),
+			Value:      terraform.Q(fmt.Sprintf("%s-%s", *environment, *quality)),
+		})
+		networkFile.Push(terraform.EC2Tag{
+			Key:        terraform.Q(tags.Quality),
+			Label:      terraform.Q("vpc-quality"),
+			ResourceId: terraform.U(dataVPC.Ref(), ".id"),
+			Value:      terraform.Q(*quality),
+		})
 		if err := networkFile.Write(filepath.Join(dirname, "network.tf")); err != nil {
 			log.Fatal(err)
 		}
