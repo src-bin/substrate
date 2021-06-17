@@ -21,6 +21,7 @@ func (PrincipalAssociation) Template() string {
 }
 
 type ResourceAssociation struct {
+	ForEach                       Value
 	Label                         Value
 	Provider                      ProviderAlias
 	ResourceArn, ResourceShareArn Value
@@ -32,6 +33,9 @@ func (ra ResourceAssociation) Ref() Value {
 
 func (ResourceAssociation) Template() string {
 	return `resource "aws_ram_resource_association" {{.Label.Value}} {
+{{- if .ForEach}}
+  for_each = {{.ForEach.Value}}
+{{- end}}
 {{- if .Provider}}
   provider = {{.Provider}}
 {{- end}}

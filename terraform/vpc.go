@@ -5,6 +5,75 @@ import (
 	"strings"
 )
 
+type DataSubnet struct {
+	ForEach, Id Value
+	Label       Value
+	Provider    ProviderAlias
+}
+
+func (d DataSubnet) Ref() Value {
+	return Uf("data.aws_subnet.%s", d.Label)
+}
+
+func (DataSubnet) Template() string {
+	return `data "aws_subnet" {{.Label.Value}} {
+{{- if .ForEach}}
+  for_each = {{.ForEach.Value}}
+{{- end}}
+  id = {{.Id.Value}}
+{{- if .Provider}}
+  provider = {{.Provider}}
+{{- end}}
+}
+`
+}
+
+type DataSubnetIds struct {
+	Label    Value
+	Provider ProviderAlias
+	Tags     Tags
+	VpcId    Value
+}
+
+func (d DataSubnetIds) Ref() Value {
+	return Uf("data.aws_subnet_ids.%s", d.Label)
+}
+
+func (DataSubnetIds) Template() string {
+	return `data "aws_subnet_ids" {{.Label.Value}} {
+{{- if .Provider}}
+  provider = {{.Provider}}
+{{- end}}
+{{- if .Tags}}
+  tags = {{.Tags.Value}}
+{{- end}}
+  vpc_id = {{.VpcId.Value}}
+}
+`
+}
+
+type DataVPC struct {
+	Label    Value
+	Provider ProviderAlias
+	Tags     Tags
+}
+
+func (d DataVPC) Ref() Value {
+	return Uf("data.aws_vpc.%s", d.Label)
+}
+
+func (DataVPC) Template() string {
+	return `data "aws_vpc" {{.Label.Value}} {
+{{- if .Provider}}
+  provider = {{.Provider}}
+{{- end}}
+{{- if .Tags}}
+  tags = {{.Tags.Value}}
+{{- end}}
+}
+`
+}
+
 type Subnet struct {
 	AvailabilityZone         Value
 	CidrBlock, IPv6CidrBlock Value

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"path/filepath"
 
@@ -124,6 +125,56 @@ func main() {
 			log.Fatal(err)
 		}
 
+		networkFile := terraform.NewFile()
+		tags := terraform.Tags{
+			Environment: *environment,
+			Name:        fmt.Sprintf("%s-%s-%s", *domain, *environment, *quality),
+			Quality:     *quality,
+			Region:      region,
+		}
+		rs := terraform.ResourceShare{
+			Label:    terraform.Label(tags),
+			Provider: terraform.NetworkProviderAlias,
+			Tags:     tags,
+		}
+		networkFile.Push(rs)
+		networkFile.Push(terraform.PrincipalAssociation{
+			Label:            terraform.Label(tags),
+			Principal:        terraform.Q(aws.StringValue(account.Id)),
+			Provider:         terraform.NetworkProviderAlias,
+			ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
+		})
+		eqTags := terraform.Tags{
+			Environment: *environment,
+			Quality:     *quality,
+			SkipMeta:    true,
+		}
+		dataVPC := terraform.DataVPC{
+			Label:    terraform.Q("network"),
+			Provider: terraform.NetworkProviderAlias,
+			Tags:     eqTags,
+		}
+		networkFile.Push(dataVPC)
+		dataSubnetIds := terraform.DataSubnetIds{
+			Label:    terraform.Q("network"),
+			Provider: terraform.NetworkProviderAlias,
+			Tags:     eqTags,
+			VpcId:    terraform.U(dataVPC.Ref(), ".id"),
+		}
+		networkFile.Push(dataSubnetIds)
+		dataSubnet := terraform.DataSubnet{
+			ForEach:  terraform.U(dataSubnetIds.Ref(), ".ids"),
+			Id:       terraform.U("each.value"),
+			Label:    terraform.Q("network"),
+			Provider: terraform.NetworkProviderAlias,
+		}
+		networkFile.Push(dataSubnet)
+		// TODO 2021.07 share the appropriate VPC using the aws.network provider.
+		// FIXME tag the VPC using the default provider
+		if err := networkFile.Write(filepath.Join(dirname, "network.tf")); err != nil {
+			log.Fatal(err)
+		}
+
 		providersFile := terraform.NewFile()
 		providersFile.Push(terraform.ProviderFor(
 			region,
@@ -138,7 +189,7 @@ func main() {
 		}
 		providersFile.Push(terraform.NetworkProviderFor(
 			region,
-			roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
+			roles.Arn(aws.StringValue(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			log.Fatal(err)

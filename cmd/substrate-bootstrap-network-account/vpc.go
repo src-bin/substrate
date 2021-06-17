@@ -25,6 +25,7 @@ func vpcAccoutrements(
 	// Accept the default DHCP option set until we need to do otherwise.
 
 	// A resource share for the subnets to reference, shared org-wide.
+	// TODO 2021.08 remove these org-wide shares.
 	rs := terraform.ResourceShare{
 		Label: terraform.Label(vpc.Tags),
 		Tags:  vpc.Tags,

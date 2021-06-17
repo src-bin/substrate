@@ -11,6 +11,7 @@ type Tags struct {
 	Domain, Environment, Quality string
 	Name                         string
 	Region, AvailabilityZone     string
+	SkipMeta                     bool // used by data sources querying by tags
 	Special                      string
 }
 
@@ -33,7 +34,9 @@ func (t Tags) Value() Value {
 	if t.Environment != "" {
 		s += fmt.Sprintf(format, "Environment", t.Environment)
 	}
-	s += fmt.Sprintf(format, "Manager", t.Manager())
+	if !t.SkipMeta {
+		s += fmt.Sprintf(format, "Manager", t.Manager())
+	}
 	if t.Name != "" {
 		s += fmt.Sprintf(format, "Name", t.Name)
 	}
@@ -46,7 +49,9 @@ func (t Tags) Value() Value {
 	if t.Special != "" {
 		//s += fmt.Sprintf(format, "Special", t.Special)
 	}
-	s += fmt.Sprintf(format, "SubstrateVersion", t.SubstrateVersion())
+	if !t.SkipMeta {
+		s += fmt.Sprintf(format, "SubstrateVersion", t.SubstrateVersion())
+	}
 	s += "\n  }"
 	return U(s)
 }
