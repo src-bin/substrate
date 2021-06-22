@@ -21,6 +21,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -287,6 +288,12 @@ func main() {
 			log.Fatal(err)
 		}
 
+		networkFile := terraform.NewFile()
+		networks.TagSharedVPC(networkFile, account, Domain, Environment, *quality)
+		if err := networkFile.Write(filepath.Join(dirname, "network.tf")); err != nil {
+			log.Fatal(err)
+		}
+
 		providersFile := terraform.NewFile()
 		providersFile.Push(terraform.ProviderFor(
 			region,
@@ -301,7 +308,7 @@ func main() {
 		}
 		providersFile.Push(terraform.NetworkProviderFor(
 			region,
-			roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
+			roles.Arn(aws.StringValue(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			log.Fatal(err)
