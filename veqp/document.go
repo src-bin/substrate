@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
+	"io/fs"
 
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
@@ -21,7 +21,7 @@ type Document struct {
 
 func ReadDocument() (*Document, error) {
 	b, err := fileutil.ReadFile(Filename)
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, fs.ErrNotExist) {
 		b = []byte("{}")
 		err = nil
 	}

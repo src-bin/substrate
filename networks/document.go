@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
+	"io/fs"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,7 +30,7 @@ type Document struct {
 
 func ReadDocument(filename string, rfc1918 IPv4, subnetMaskLength int) (*Document, error) {
 	b, err := fileutil.ReadFile(filename)
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, fs.ErrNotExist) {
 		b = []byte("{}")
 		err = nil
 	}

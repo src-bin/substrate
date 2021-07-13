@@ -3,8 +3,8 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/src-bin/substrate/fileutil"
@@ -22,7 +22,7 @@ import (
 func EditFile(pathname, notice, instructions string) ([]string, error) {
 	for {
 		b, err := fileutil.ReadFile(pathname)
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, fs.ErrNotExist) {
 			b = []byte("")
 			err = nil
 		}
