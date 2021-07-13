@@ -3,13 +3,13 @@ package terraform
 // managed by go generate; do not edit by hand
 
 func versionsTemplate() string {
-	return `# managed by Substrate; do not edit by hand
+	return `# partially managed by Substrate; do not edit the archive, aws, or external providers by hand
 
 terraform {
   required_providers {
     archive = {
       source  = "hashicorp/archive"
-      version = ">= 2.2.0"
+      version = ">= {{.ArchiveVersion}}"
     }
     aws = {
 {{- if .ConfigurationAliases}}
@@ -20,14 +20,14 @@ terraform {
       ]
 {{- end}}
       source  = "hashicorp/aws"
-      version = ">= 3.45.0"
+      version = ">= {{.AWSVersion}}"
     }
     external = {
       source  = "hashicorp/external"
-      version = ">= 2.1.0"
+      version = ">= {{.ExternalVersion}}"
     }
   }
-  required_version = "= 0.15.5"
+  required_version = "= {{.TerraformVersion}}"
 }
 `
 }

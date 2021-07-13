@@ -15,6 +15,6 @@ func Flag() {
 	}
 }
 
-var Version = "1970.01" // to be replaced at release time using -ldflags "-X github.com/src-bin/substrate/version.Version=$(VERSION)"; see Makefile
+var Version = "1970.01" // replaced at build time with current computed version; see Makefile
 
 var versionFlag = flag.Bool("version", false, "print Substrate version information and exit")
