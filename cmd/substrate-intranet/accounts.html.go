@@ -20,26 +20,26 @@ func accountsTemplate() string {
 <tr>
     <td>management</td>
     <td>{{.ManagementAccount.Id}}</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName=OrganizationAdministrator&roleName=OrganizationAdministrator">OrganizationAdministrator</a></td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName=OrganizationReader&roleName=OrganizationReader">OrganizationReader</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName=OrganizationAdministrator&roleName=OrganizationAdministrator" target="_blank">OrganizationAdministrator</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName=OrganizationReader&roleName=OrganizationReader" target="_blank">OrganizationReader</a></td>
 </tr>
 <tr>
     <td>{{.AuditAccount.Name}}</td>
     <td>{{.AuditAccount.Id}}</td>
     <td>&nbsp;</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.AuditAccount.Id}}&displayName={{.AuditAccount.Name}}+Auditor&roleName=Auditor">Auditor</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.AuditAccount.Id}}&displayName={{.AuditAccount.Name}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
 </tr>
 <tr>
     <td>{{.DeployAccount.Name}}</td>
     <td>{{.DeployAccount.Id}}</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName=DeployAdministrator&roleName=DeployAdministrator">DeployAdministrator</a></td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName={{.DeployAccount.Name}}+Auditor&roleName=Auditor">Auditor</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName=DeployAdministrator&roleName=DeployAdministrator" target="_blank">DeployAdministrator</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName={{.DeployAccount.Name}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
 </tr>
 <tr>
     <td>{{.NetworkAccount.Name}}</td>
     <td>{{.NetworkAccount.Id}}</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName=NetworkAdministrator&roleName=NetworkAdministrator">NetworkAdministrator</a></td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName={{.NetworkAccount.Name}}+Auditor&roleName=Auditor">Auditor</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName=NetworkAdministrator&roleName=NetworkAdministrator" target="_blank">NetworkAdministrator</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName={{.NetworkAccount.Name}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
 </tr>
 </table>
 <h2>Service accounts</h2>
@@ -57,8 +57,8 @@ func accountsTemplate() string {
     <td>{{.Tags.Environment}}</td>
     <td>{{.Tags.Quality}}</td>
     <td>{{.Id}}</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName={{.Tags.Domain}}+{{.Tags.Environment}}+{{.Tags.Quality}}+Administrator&roleName=Administrator">Administrator</a></td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName={{.Tags.Domain}}+{{.Tags.Environment}}+{{.Tags.Quality}}+Auditor&roleName=Auditor">Auditor</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName={{.Tags.Domain}}+{{.Tags.Environment}}+{{.Tags.Quality}}+Administrator&roleName=Administrator" target="_blank">Administrator</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName={{.Tags.Domain}}+{{.Tags.Environment}}+{{.Tags.Quality}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
 </tr>
 {{- end}}
 </table>
@@ -73,8 +73,8 @@ func accountsTemplate() string {
 <tr>
     <td>{{.Tags.Quality}}</td>
     <td>{{.Id}}</td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName=admin+{{.Tags.Quality}}+Administrator&roleName=Administrator">Administrator</a></td>
-    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName=admin+{{.Tags.Quality}}+Auditor&roleName=Auditor">Auditor</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName=admin+{{.Tags.Quality}}+Administrator&roleName=Administrator" target="_blank">Administrator</a></td>
+    <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName=admin+{{.Tags.Quality}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
 </tr>
 {{- end}}
 </table>
