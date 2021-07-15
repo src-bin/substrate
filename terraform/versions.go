@@ -18,7 +18,7 @@ const (
 	TerraformVersion = "" // replaced at build time with the contents of terraform-version.txt; see Makefile
 
 	archiveVersion  = "2.2.0"
-	awsVersion      = "3.45.0"
+	awsVersion      = "3.49.0"
 	externalVersion = "2.1.0"
 )
 
