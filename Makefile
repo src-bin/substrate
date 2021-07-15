@@ -15,8 +15,8 @@ clean:
 	rm -f substrate-*-*-*.tar.gz
 
 install:
-	ls -1 cmd | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform/TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
-	grep -Flr lambda.Start cmd | xargs -n1 dirname | xargs -n1 basename | GOARCH=amd64 GOOS=linux xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform/TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ -tags netgo ./cmd/___
+	ls -1 cmd | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
+	grep -Flr lambda.Start cmd | xargs -n1 dirname | xargs -n1 basename | GOARCH=amd64 GOOS=linux xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ -tags netgo ./cmd/___
 
 release:
 	make tarball GOARCH=amd64 GOOS=linux

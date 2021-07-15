@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/src-bin/substrate/version"
 )
 
 type Provider struct {
@@ -52,7 +54,7 @@ func (p Provider) Ref() Value {
 }
 
 func (Provider) Template() string {
-	return `provider "aws" {
+	return fmt.Sprintf(`provider "aws" {
 {{- if .Alias}}
 	alias = "{{.Alias}}"
 {{- end}}
@@ -67,10 +69,16 @@ func (Provider) Template() string {
 	}
 {{- end}}
 {{- end}}
+  default_tags {
+    tags = {
+      Manager          = "Terraform"
+      SubstrateVersion = "%s"
+    }
+  }
 {{- if .Region}}
 	region = "{{.Region}}"
 {{- end}}
-}`
+}`, version.Version)
 }
 
 type ProviderAlias string
