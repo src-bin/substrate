@@ -22,6 +22,7 @@ import (
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/choices"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
@@ -36,6 +37,7 @@ const (
 )
 
 func main() {
+	cmdutil.Chdir()
 	flag.Parse()
 	version.Flag()
 

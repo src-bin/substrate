@@ -17,6 +17,7 @@ import (
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -36,6 +37,7 @@ func main() {
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	noNATGateways := flag.Bool("no-nat-gateways", false, "comment out NAT Gateways in generated Terraform (this saves about $100 per month per region but renders your private subnets useless)")
+	cmdutil.Chdir()
 	flag.Parse()
 	version.Flag()
 

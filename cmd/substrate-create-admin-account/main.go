@@ -20,6 +20,7 @@ import (
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/choices"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/oauthoidc"
@@ -45,6 +46,7 @@ func main() {
 	quality := flag.String("quality", "", "quality for this new AWS account")
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
+	cmdutil.Chdir()
 	flag.Parse()
 	version.Flag()
 	if *quality == "" {

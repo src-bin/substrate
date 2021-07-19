@@ -9,6 +9,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/choices"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
@@ -17,6 +18,7 @@ import (
 )
 
 func main() {
+	cmdutil.Chdir()
 	flag.Parse()
 	version.Flag()
 

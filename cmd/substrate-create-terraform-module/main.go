@@ -4,12 +4,14 @@ import (
 	"flag"
 	"log"
 
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
 func main() {
+	cmdutil.Chdir()
 	flag.Parse()
 	version.Flag()
 	if flag.NArg() == 0 {

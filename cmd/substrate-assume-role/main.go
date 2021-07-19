@@ -16,6 +16,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -35,6 +36,7 @@ func main() {
 	format := awssts.CredentialFormatFlag()
 	format.Set(awssts.CredentialFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
+	cmdutil.Chdir()
 	flag.Parse()
 	*management = *management || *master
 	version.Flag()

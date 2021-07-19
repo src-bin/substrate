@@ -9,11 +9,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/version"
 )
 
 func main() {
+	cmdutil.Chdir()
 	flag.Parse()
 	version.Flag()
 

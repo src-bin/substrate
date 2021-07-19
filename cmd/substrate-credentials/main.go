@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/choices"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -37,6 +38,7 @@ func fetch(u *url.URL) (*sts.Credentials, error) {
 func main() {
 	format := awssts.CredentialFormatFlag()
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
+	cmdutil.Chdir()
 	flag.Parse()
 	version.Flag()
 	if *quiet {

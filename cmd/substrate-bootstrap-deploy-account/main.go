@@ -14,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/choices"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -25,6 +26,7 @@ import (
 func main() {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
+	cmdutil.Chdir()
 	flag.Parse()
 	version.Flag()
 
