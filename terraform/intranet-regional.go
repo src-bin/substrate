@@ -425,25 +425,16 @@ resource "aws_api_gateway_rest_api" "intranet" {
     types = ["REGIONAL"]
   }
   name = "Intranet"
-  tags = {
-    Manager = "Terraform"
-  }
 }
 
 resource "aws_cloudwatch_log_group" "apigateway" {
   name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.intranet.id}/${var.stage_name}"
   retention_in_days = 1
-  tags = {
-    Manager = "Terraform"
-  }
 }
 
 resource "aws_cloudwatch_log_group" "apigateway-welcome" {
   name              = "/aws/apigateway/welcome"
   retention_in_days = 1
-  tags = {
-    Manager = "Terraform"
-  }
 }
 
 resource "aws_route53_record" "intranet" {
@@ -476,7 +467,6 @@ resource "aws_security_group" "substrate-instance-factory" {
   vpc_id      = module.substrate.vpc_id
   tags = {
     Environment = module.substrate.tags.environment
-    Manager     = "Terraform"
     Name        = "substrate-instance-factory"
     Quality     = module.substrate.tags.quality
   }

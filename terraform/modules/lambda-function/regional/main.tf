@@ -12,9 +12,6 @@ data "external" "dirname" {
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${var.name}"
   retention_in_days = 1
-  tags = {
-    Manager = "Terraform"
-  }
 }
 
 resource "aws_lambda_function" "function" {
@@ -27,8 +24,7 @@ resource "aws_lambda_function" "function" {
   runtime          = "go1.x"
   source_code_hash = data.archive_file.zip.output_base64sha256
   tags = {
-    Manager = "Terraform"
-    Name    = var.name
+    Name = var.name
   }
   timeout = 60
 }

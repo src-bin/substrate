@@ -36,7 +36,6 @@ func TagSharedVPC(
 	eqTags := terraform.Tags{
 		Environment: environment,
 		Quality:     quality,
-		SkipMeta:    true,
 	}
 
 	dataVPC := terraform.DataVPC{

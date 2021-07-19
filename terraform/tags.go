@@ -2,8 +2,6 @@ package terraform
 
 import (
 	"fmt"
-
-	"github.com/src-bin/substrate/version"
 )
 
 // EC2Tag generates the aws_ec2_tag resource, useful for tagging VPCs created
@@ -41,13 +39,8 @@ type Tags struct {
 	Domain, Environment, Quality string
 	Name                         string
 	Region, AvailabilityZone     string
-	SkipMeta                     bool // used by data sources querying by tags
 	Special                      string
 }
-
-func (Tags) Manager() string { return "Terraform" }
-
-func (Tags) SubstrateVersion() string { return version.Version }
 
 func (t Tags) Value() Value {
 	format := "\n    %s = %q"
@@ -64,9 +57,6 @@ func (t Tags) Value() Value {
 	if t.Environment != "" {
 		s += fmt.Sprintf(format, "Environment", t.Environment)
 	}
-	if !t.SkipMeta {
-		s += fmt.Sprintf(format, "Manager", t.Manager())
-	}
 	if t.Name != "" {
 		s += fmt.Sprintf(format, "Name", t.Name)
 	}
@@ -78,9 +68,6 @@ func (t Tags) Value() Value {
 	}
 	if t.Special != "" {
 		//s += fmt.Sprintf(format, "Special", t.Special)
-	}
-	if !t.SkipMeta {
-		s += fmt.Sprintf(format, "SubstrateVersion", t.SubstrateVersion())
 	}
 	s += "\n  }"
 	return U(s)
