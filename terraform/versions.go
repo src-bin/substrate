@@ -56,10 +56,7 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 
 	b = regexp.MustCompile(
 		`# managed by Substrate; do not edit by hand`,
-	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
-		`# partially managed by Substrate; do not edit the archive, aws, or external providers by hand`,
-		TerraformVersion,
-	)))
+	).ReplaceAllLiteral(b, []byte(`# partially managed by Substrate; do not edit the archive, aws, or external providers by hand`))
 
 	b = regexp.MustCompile(
 		`source\s+=\s+"hashicorp/archive"
