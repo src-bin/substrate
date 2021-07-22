@@ -9,10 +9,11 @@ import (
 	"github.com/src-bin/substrate/terraform"
 )
 
-func TagSharedVPC(
+func ShareVPC(
 	f *terraform.File,
 	account *awsorgs.Account,
 	domain, environment, quality string,
+	region string,
 ) {
 	rs := terraform.ResourceShare{
 		Provider: terraform.NetworkProviderAlias,

@@ -128,7 +128,7 @@ func main() {
 		}
 
 		networkFile := terraform.NewFile()
-		networks.TagSharedVPC(networkFile, account, *domain, *environment, *quality)
+		networks.ShareVPC(networkFile, account, *domain, *environment, *quality, region)
 		if err := networkFile.Write(filepath.Join(dirname, "network.tf")); err != nil {
 			log.Fatal(err)
 		}
