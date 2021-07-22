@@ -19,10 +19,14 @@ func ShareVPC(
 		Provider: terraform.NetworkProviderAlias,
 		Tags: terraform.Tags{
 			Environment: environment,
-			Name:        fmt.Sprintf("%s-%s-%s", domain, environment, quality),
 			Quality:     quality,
-			//Region:      region,
+			Region:      region,
 		},
+	}
+	if domain == "admin" {
+		rs.Tags.Name = fmt.Sprintf("%s-%s", domain, quality)
+	} else {
+		rs.Tags.Name = fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 	}
 	rs.Label = terraform.Label(rs.Tags)
 	f.Push(rs)
@@ -40,13 +44,13 @@ func ShareVPC(
 	}
 
 	dataVPC := terraform.DataVPC{
-		Label:    terraform.Q("network"),
+		Label:    terraform.Label(rs.Tags),
 		Provider: terraform.NetworkProviderAlias,
 		Tags:     eqTags,
 	}
 	f.Push(dataVPC)
 	dataSubnetIds := terraform.DataSubnetIds{
-		Label:    terraform.Q("network"),
+		Label:    terraform.Label(rs.Tags),
 		Provider: terraform.NetworkProviderAlias,
 		Tags:     eqTags,
 		VpcId:    terraform.U(dataVPC.Ref(), ".id"),
@@ -55,7 +59,7 @@ func ShareVPC(
 	dataSubnet := terraform.DataSubnet{
 		ForEach:  terraform.U(dataSubnetIds.Ref(), ".ids"),
 		Id:       terraform.U("each.value"),
-		Label:    terraform.Q("network"),
+		Label:    terraform.Label(rs.Tags),
 		Provider: terraform.NetworkProviderAlias,
 	}
 	f.Push(dataSubnet)
@@ -65,47 +69,47 @@ func ShareVPC(
 	f.Push(terraform.EC2Tag{
 		ForEach:    terraform.U(dataSubnet.Ref()),
 		Key:        terraform.Q(tags.Connectivity),
-		Label:      terraform.Q("subnet-connectivity"),
+		Label:      terraform.Label(rs.Tags, "subnet-connectivity"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.U(fmt.Sprintf("each.value.tags[\"%s\"]", tags.Connectivity)),
 	})
 	f.Push(terraform.EC2Tag{
 		ForEach:    terraform.U(dataSubnet.Ref()),
 		Key:        terraform.Q(tags.Environment),
-		Label:      terraform.Q("subnet-environment"),
+		Label:      terraform.Label(rs.Tags, "subnet-environment"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.Q(environment),
 	})
 	f.Push(terraform.EC2Tag{
 		ForEach:    terraform.U(dataSubnet.Ref()),
 		Key:        terraform.Q(tags.Name),
-		Label:      terraform.Q("subnet-name"),
+		Label:      terraform.Label(rs.Tags, "subnet-name"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.U(fmt.Sprintf("\"%s-%s-${each.value.tags[\"%s\"]}-${each.value.availability_zone}\"", environment, quality, tags.Connectivity)),
 	})
 	f.Push(terraform.EC2Tag{
 		ForEach:    terraform.U(dataSubnet.Ref()),
 		Key:        terraform.Q(tags.Quality),
-		Label:      terraform.Q("subnet-quality"),
+		Label:      terraform.Label(rs.Tags, "subnet-quality"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.Q(quality),
 	})
 
 	f.Push(terraform.EC2Tag{
 		Key:        terraform.Q(tags.Environment),
-		Label:      terraform.Q("vpc-environment"),
+		Label:      terraform.Label(rs.Tags, "vpc-environment"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(environment),
 	})
 	f.Push(terraform.EC2Tag{
 		Key:        terraform.Q(tags.Name),
-		Label:      terraform.Q("vpc-name"),
+		Label:      terraform.Label(rs.Tags, "vpc-name"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(fmt.Sprintf("%s-%s", environment, quality)),
 	})
 	f.Push(terraform.EC2Tag{
 		Key:        terraform.Q(tags.Quality),
-		Label:      terraform.Q("vpc-quality"),
+		Label:      terraform.Label(rs.Tags, "vpc-quality"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(quality),
 	})
