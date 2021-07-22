@@ -64,8 +64,6 @@ func ShareVPC(
 	}
 	f.Push(dataSubnet)
 
-	// TODO 2021.07 share the appropriate VPC using the aws.network provider.
-
 	f.Push(terraform.EC2Tag{
 		ForEach:    terraform.U(dataSubnet.Ref()),
 		Key:        terraform.Q(tags.Connectivity),
@@ -112,5 +110,13 @@ func ShareVPC(
 		Label:      terraform.Label(rs.Tags, "vpc-quality"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(quality),
+	})
+
+	f.Push(terraform.ResourceAssociation{
+		ForEach:          terraform.U(dataSubnet.Ref()),
+		Label:            terraform.Label(rs.Tags),
+		Provider:         terraform.NetworkProviderAlias,
+		ResourceArn:      terraform.U("each.value.arn"),
+		ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
 	})
 }
