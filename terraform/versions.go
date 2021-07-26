@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -27,7 +26,6 @@ const (
 func versions(dirname string, configurationAliases []ProviderAlias) error {
 	pathname := filepath.Join(dirname, "versions.tf")
 	b, err := fileutil.ReadFile(pathname)
-	log.Print(err)
 
 	if errors.Is(err, fs.ErrNotExist) {
 		f, err := os.Create(pathname)
