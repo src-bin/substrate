@@ -16,10 +16,6 @@ data "aws_iam_role" "substrate-apigateway-authorizer" {
   name = "substrate-apigateway-authorizer"
 }
 
-data "aws_iam_role" "substrate-credential-factory" {
-  name = "substrate-credential-factory"
-}
-
 data "aws_iam_role" "substrate-instance-factory" {
   name = "substrate-instance-factory"
 }
@@ -50,14 +46,6 @@ module "substrate-apigateway-authorizer" {
   filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
   name                     = "substrate-apigateway-authorizer"
   role_arn                 = data.aws_iam_role.substrate-apigateway-authorizer.arn
-  source                   = "../../lambda-function/regional"
-}
-
-module "substrate-credential-factory" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-credential-factory.zip"
-  name                     = "substrate-credential-factory"
-  role_arn                 = data.aws_iam_role.substrate-credential-factory.arn
   source                   = "../../lambda-function/regional"
 }
 
@@ -224,7 +212,7 @@ resource "aws_api_gateway_integration" "GET-credential-factory" {
   resource_id             = aws_api_gateway_resource.credential-factory.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-credential-factory.invoke_arn
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-credential-factory-authorize" {
@@ -235,7 +223,7 @@ resource "aws_api_gateway_integration" "GET-credential-factory-authorize" {
   resource_id             = aws_api_gateway_resource.credential-factory-authorize.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-credential-factory.invoke_arn
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-credential-factory-fetch" {
@@ -246,7 +234,7 @@ resource "aws_api_gateway_integration" "GET-credential-factory-fetch" {
   resource_id             = aws_api_gateway_resource.credential-factory-fetch.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-credential-factory.invoke_arn
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-index" {

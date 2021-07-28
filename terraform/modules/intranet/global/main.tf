@@ -29,24 +29,6 @@ data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   }
 }
 
-data "aws_iam_policy_document" "substrate-credential-factory" {
-  statement {
-    actions = [
-      "iam:CreateAccessKey",
-      "iam:DeleteAccessKey",
-      "iam:ListAccessKeys",
-      "iam:ListUserTags",
-      "iam:TagUser",
-      "iam:UntagUser",
-    ]
-    resources = ["*"]
-  }
-  statement {
-    actions   = ["sts:AssumeRole"]
-    resources = [data.aws_iam_role.admin.arn]
-  }
-}
-
 data "aws_iam_policy_document" "substrate-instance-factory" {
   statement {
     actions = [
@@ -79,6 +61,23 @@ data "aws_iam_policy_document" "substrate-intranet" {
     ]
     resources = ["*"]
     sid       = "Accounts"
+  }
+  statement {
+    actions = [
+      "iam:CreateAccessKey",
+      "iam:DeleteAccessKey",
+      "iam:ListAccessKeys",
+      "iam:ListUserTags",
+      "iam:TagUser",
+      "iam:UntagUser",
+    ]
+    resources = ["*"]
+    sid       = "CredentialFactoryIAM"
+  }
+  statement {
+    actions   = ["sts:AssumeRole"]
+    resources = [data.aws_iam_role.admin.arn]
+    sid       = "CredentialFactorySTS"
   }
   statement {
     actions   = ["apigateway:GET"]
@@ -114,12 +113,6 @@ data "aws_iam_user" "credential-factory" {
 module "substrate-apigateway-authorizer" {
   name   = "substrate-apigateway-authorizer"
   policy = data.aws_iam_policy_document.substrate-apigateway-authorizer.json
-  source = "../../lambda-function/global"
-}
-
-module "substrate-credential-factory" {
-  name   = "substrate-credential-factory"
-  policy = data.aws_iam_policy_document.substrate-credential-factory.json
   source = "../../lambda-function/global"
 }
 
