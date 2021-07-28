@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/src-bin/substrate/accounts"
@@ -21,11 +20,15 @@ import (
 	"github.com/src-bin/substrate/tags"
 )
 
-//go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
-//go:generate go run ../../tools/template/main.go -name instanceTypeTemplate -package main instance_type.html
-//go:generate go run ../../tools/template/main.go -name keyPairTemplate -package main key_pair.html
+//go:generate go run ../../tools/template/main.go -name instanceFactoryTemplate -package main instance-factory.html
+//go:generate go run ../../tools/template/main.go -name instanceFactoryTypeTemplate -package main instance-factory-type.html
+//go:generate go run ../../tools/template/main.go -name instanceFactoryKeyPairTemplate -package main instance-factory-key-pair.html
 
-func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func init() {
+	handlers["/instance-factory"] = instanceFactoryHandler
+}
+
+func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	var instanceType, publicKeyMaterial, terminateConfirmed string
 	launched := event.QueryStringParameters["launched"]
@@ -93,7 +96,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			v.Instances = append(v.Instances, instances...)
 
 		}
-		body, err := lambdautil.RenderHTML(indexTemplate(), v)
+		body, err := lambdautil.RenderHTML(instanceFactoryTemplate(), v)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +149,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 			PrincipalId: principalId,
 			Region:      region,
 		}
-		body, err := lambdautil.RenderHTML(keyPairTemplate(), v)
+		body, err := lambdautil.RenderHTML(instanceFactoryKeyPairTemplate(), v)
 		if err != nil {
 			return nil, err
 		}
@@ -234,7 +237,7 @@ func handle(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.
 		if instanceType != "" {
 			v.Error = fmt.Errorf("%s is not a valid instance type in %s", instanceType, region)
 		}
-		body, err := lambdautil.RenderHTML(instanceTypeTemplate(), v)
+		body, err := lambdautil.RenderHTML(instanceFactoryTypeTemplate(), v)
 		if err != nil {
 			return nil, err
 		}
@@ -300,10 +303,6 @@ func location(event *events.APIGatewayProxyRequest, query url.Values) string {
 		RawQuery: query.Encode(),
 	}
 	return u.String()
-}
-
-func main() {
-	lambda.Start(handle)
 }
 
 func randomSubnet(environment, quality, region string) (*ec2.Subnet, error) {

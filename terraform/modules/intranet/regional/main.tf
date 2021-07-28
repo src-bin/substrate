@@ -8,10 +8,6 @@ data "aws_iam_role" "substrate-apigateway-authorizer" {
   name = "substrate-apigateway-authorizer"
 }
 
-data "aws_iam_role" "substrate-instance-factory" {
-  name = "substrate-instance-factory"
-}
-
 data "aws_iam_role" "substrate-intranet" {
   name = "substrate-intranet"
 }
@@ -38,14 +34,6 @@ module "substrate-apigateway-authorizer" {
   filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
   name                     = "substrate-apigateway-authorizer"
   role_arn                 = data.aws_iam_role.substrate-apigateway-authorizer.arn
-  source                   = "../../lambda-function/regional"
-}
-
-module "substrate-instance-factory" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-instance-factory.zip"
-  name                     = "substrate-instance-factory"
-  role_arn                 = data.aws_iam_role.substrate-instance-factory.arn
   source                   = "../../lambda-function/regional"
 }
 
@@ -248,7 +236,7 @@ resource "aws_api_gateway_integration" "GET-instance-factory" {
   resource_id             = aws_api_gateway_resource.instance-factory.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-instance-factory.invoke_arn
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-login" {
@@ -270,7 +258,7 @@ resource "aws_api_gateway_integration" "POST-instance-factory" {
   resource_id             = aws_api_gateway_resource.instance-factory.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-instance-factory.invoke_arn
+  uri                     = module.substrate-intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-login" {
@@ -447,7 +435,7 @@ resource "aws_security_group" "substrate-instance-factory" {
   vpc_id      = module.substrate.vpc_id
   tags = {
     Environment = module.substrate.tags.environment
-    Name        = "substrate-instance-factory"
+    Name        = "InstanceFactory"
     Quality     = module.substrate.tags.quality
   }
 }

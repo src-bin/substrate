@@ -29,30 +29,6 @@ data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   }
 }
 
-data "aws_iam_policy_document" "substrate-instance-factory" {
-  statement {
-    actions = [
-      "ec2:CreateTags",
-      "ec2:DescribeInstanceTypeOfferings",
-      "ec2:DescribeImages",
-      "ec2:DescribeInstances",
-      "ec2:DescribeKeyPairs",
-      "ec2:DescribeSecurityGroups",
-      "ec2:DescribeSubnets",
-      "ec2:ImportKeyPair",
-      "ec2:RunInstances",
-      "ec2:TerminateInstances",
-      "organizations:DescribeOrganization",
-      "sts:AssumeRole",
-    ]
-    resources = ["*"]
-  }
-  statement {
-    actions   = ["iam:PassRole"]
-    resources = [data.aws_iam_role.admin.arn]
-  }
-}
-
 data "aws_iam_policy_document" "substrate-intranet" {
   statement {
     actions = [
@@ -85,16 +61,33 @@ data "aws_iam_policy_document" "substrate-intranet" {
     sid       = "Index"
   }
   statement {
+    actions = [
+      "ec2:CreateTags",
+      "ec2:DescribeInstanceTypeOfferings",
+      "ec2:DescribeImages",
+      "ec2:DescribeInstances",
+      "ec2:DescribeKeyPairs",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSubnets",
+      "ec2:ImportKeyPair",
+      "ec2:RunInstances",
+      "ec2:TerminateInstances",
+      "organizations:DescribeOrganization",
+      "sts:AssumeRole",
+    ]
+    resources = ["*"]
+    sid       = "InstanceFactory"
+  }
+  statement {
+    actions   = ["iam:PassRole"]
+    resources = [data.aws_iam_role.admin.arn]
+    sid       = "InstanceFactoryIAM"
+  }
+  statement {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = ["*"]
     sid       = "Login"
   }
-  /*
-  statement {
-    actions   = ["iam:PassRole"]
-    resources = [data.aws_iam_role.admin.arn]
-  }
-  */
 }
 
 data "aws_iam_role" "admin" {
@@ -113,12 +106,6 @@ data "aws_iam_user" "credential-factory" {
 module "substrate-apigateway-authorizer" {
   name   = "substrate-apigateway-authorizer"
   policy = data.aws_iam_policy_document.substrate-apigateway-authorizer.json
-  source = "../../lambda-function/global"
-}
-
-module "substrate-instance-factory" {
-  name   = "substrate-instance-factory"
-  policy = data.aws_iam_policy_document.substrate-instance-factory.json
   source = "../../lambda-function/global"
 }
 

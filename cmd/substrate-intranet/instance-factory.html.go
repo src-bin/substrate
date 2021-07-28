@@ -2,7 +2,7 @@ package main
 
 // managed by go generate; do not edit by hand
 
-func indexTemplate() string {
+func instanceFactoryTemplate() string {
 	return `<!DOCTYPE html>
 <html lang="en">
 <meta charset="utf-8">
