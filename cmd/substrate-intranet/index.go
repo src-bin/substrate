@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 
@@ -24,7 +25,7 @@ func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*e
 		if err != nil {
 			return nil, err
 		}
-		debug = string(b)
+		debug = string(b) + "\n" + strings.Join(os.Environ(), "\n")
 	}
 
 	sess, err := awssessions.NewSession(awssessions.Config{})
