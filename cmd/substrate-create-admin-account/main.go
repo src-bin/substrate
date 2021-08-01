@@ -177,6 +177,13 @@ func main() {
 	if err := intranetRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional")); err != nil {
 		log.Fatal(err)
 	}
+	if err := ioutil.WriteFile(
+		filepath.Join(terraform.ModulesDirname, "intranet/regional/substrate-intranet.zip"),
+		SubstrateIntranetZip,
+		0666,
+	); err != nil {
+		log.Fatal(err)
+	}
 	lambdaFunctionGlobalModule := terraform.LambdaFunctionGlobalModule()
 	if err := lambdaFunctionGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/global")); err != nil {
 		log.Fatal(err)

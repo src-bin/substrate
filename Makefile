@@ -15,12 +15,13 @@ clean:
 	rm -f substrate-*-*-*.tar.gz
 
 install:
-	ls -1 cmd | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
-	grep -Flr lambda.Start cmd | xargs -n1 dirname | xargs -n1 basename | GOARCH=amd64 GOOS=linux xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ -tags netgo ./cmd/___
+	ls -1 cmd | grep -v substrate-intranet | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
 	echo '#!/bin/sh' >$(GOBIN)/substrate-apigateway-authenticator # change to `rm -f` in 2021.09
+	echo '#!/bin/sh' >$(GOBIN)/substrate-apigateway-authorizer # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(GOBIN)/substrate-apigateway-index # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(GOBIN)/substrate-credential-factory # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(GOBIN)/substrate-instance-factory # change to `rm -f` in 2021.09
+	echo '#!/bin/sh' >$(GOBIN)/substrate-intranet # change to `rm -f` in 2021.09
 	chmod +x $(GOBIN)/substrate-*
 
 release:
