@@ -3,7 +3,6 @@ package accounts
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"sort"
 
@@ -197,18 +196,5 @@ func WriteManagementAccountIdToDisk(managementAccountId string) error {
 			return err
 		}
 	}
-
-	// This file used to be stored under a different name. AWS have recently
-	// started referring to the account under which the organization was
-	// created as the "management" account rather than the "master" account
-	// so we reflect that change here.
-	//
-	// TODO Remove on or after release 2021.01.
-	if fileutil.Exists(OldManagementAccountIdFilename) {
-		if err := os.Remove(OldManagementAccountIdFilename); err != nil {
-			log.Print(err)
-		}
-	}
-
 	return nil
 }
