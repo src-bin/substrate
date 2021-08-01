@@ -15,14 +15,14 @@ clean:
 	rm -f substrate-*-*-*.tar.gz
 
 install:
-	ls -1 cmd | grep -v substrate-intranet | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(GOBIN)/___ ./cmd/___
-	echo '#!/bin/sh' >$(GOBIN)/substrate-apigateway-authenticator # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(GOBIN)/substrate-apigateway-authorizer # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(GOBIN)/substrate-apigateway-index # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(GOBIN)/substrate-credential-factory # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(GOBIN)/substrate-instance-factory # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(GOBIN)/substrate-intranet # change to `rm -f` in 2021.09
-	chmod +x $(GOBIN)/substrate-*
+	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs go install -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)"
+	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authenticator # change to `rm -f` in 2021.09
+	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authorizer # change to `rm -f` in 2021.09
+	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-index # change to `rm -f` in 2021.09
+	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-credential-factory # change to `rm -f` in 2021.09
+	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-instance-factory # change to `rm -f` in 2021.09
+	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-intranet # change to `rm -f` in 2021.09
+	chmod +x $(shell go env GOBIN)/substrate-*
 
 release:
 	make tarball GOARCH=amd64 GOOS=linux
@@ -50,6 +50,11 @@ test:
 	go test -race -v ./...
 
 uninstall:
-	ls -1 cmd | xargs -I___ rm -f $(GOBIN)/___
+	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
+	rm -f $(shell go env GOBIN)/substrate-apigateway-authenticator # remove in 2021.09
+	rm -f $(shell go env GOBIN)/substrate-apigateway-authorizer # remove in 2021.09
+	rm -f $(shell go env GOBIN)/substrate-apigateway-index # remove in 2021.09
+	rm -f $(shell go env GOBIN)/substrate-credential-factory # remove in 2021.09
+	rm -f $(shell go env GOBIN)/substrate-instance-factory # remove in 2021.09
 
 .PHONY: all clean install release release-filenames tarball test uninstall
