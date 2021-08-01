@@ -24,19 +24,6 @@ func vpcAccoutrements(
 
 	// Accept the default DHCP option set until we need to do otherwise.
 
-	// A resource share for the subnets to reference, shared org-wide.
-	// TODO 2021.08 remove these org-wide shares.
-	rs := terraform.ResourceShare{
-		Label: terraform.Label(vpc.Tags),
-		Tags:  vpc.Tags,
-	}
-	file.Push(rs)
-	file.Push(terraform.PrincipalAssociation{
-		Label:            terraform.Label(vpc.Tags),
-		Principal:        terraform.U(org.Ref(), ".arn"),
-		ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
-	})
-
 	// IPv4 and IPv6 Internet Gateways for the public subnets.
 	igw := terraform.InternetGateway{
 		Label: terraform.Label(vpc.Tags),
@@ -113,11 +100,6 @@ func vpcAccoutrements(
 		s.Tags.Connectivity = "public"
 		s.Tags.Name = vpc.Tags.Name + "-public-" + az
 		file.Push(s)
-		file.Push(terraform.ResourceAssociation{
-			Label:            s.Label,
-			ResourceArn:      terraform.U(s.Ref(), ".arn"),
-			ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
-		})
 
 		// Explicitly associate the public subnets with the main routing table.
 		file.Push(terraform.RouteTableAssociation{
@@ -146,11 +128,6 @@ func vpcAccoutrements(
 		s.Tags.Connectivity = "private"
 		s.Tags.Name = vpc.Tags.Name + "-private-" + az
 		file.Push(s)
-		file.Push(terraform.ResourceAssociation{
-			Label:            s.Label,
-			ResourceArn:      terraform.U(s.Ref(), ".arn"),
-			ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
-		})
 
 		// Private subnets need their own routing tables to keep their NAT
 		// Gateway traffic zonal.  The VPC Endpoint we created for S3 needs
