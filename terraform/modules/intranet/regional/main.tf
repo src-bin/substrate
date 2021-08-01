@@ -31,8 +31,9 @@ locals {
 
 module "substrate-apigateway-authorizer" {
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
-  filename                 = "${path.module}/substrate-apigateway-authorizer.zip"
+  filename                 = "${path.module}/substrate-intranet.zip"
   name                     = "substrate-apigateway-authorizer"
+  progname                 = "substrate-intranet"
   role_arn                 = data.aws_iam_role.substrate-apigateway-authorizer.arn
   source                   = "../../lambda-function/regional"
 }
@@ -41,28 +42,6 @@ module "substrate-intranet" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-intranet.zip"
   name                     = "substrate-intranet"
-  role_arn                 = data.aws_iam_role.substrate-intranet.arn
-  source                   = "../../lambda-function/regional"
-}
-
-# Dead resources that must hang around a little longer to break a dependency
-# cycle. To allow us to still move on by deleting cmd/... for these programs,
-# they're now using the new cmd/substrate-intranet code, which doesn't matter
-# because nothing's invoking them.
-#
-# Remove these one release after every Intranet endpoint transitions to
-# cmd/substrate-intranet.
-module "substrate-apigateway-authenticator" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-apigateway-authenticator.zip"
-  name                     = "substrate-apigateway-authenticator"
-  role_arn                 = data.aws_iam_role.substrate-intranet.arn
-  source                   = "../../lambda-function/regional"
-}
-module "substrate-apigateway-index" {
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-apigateway-index.zip"
-  name                     = "substrate-apigateway-index"
   role_arn                 = data.aws_iam_role.substrate-intranet.arn
   source                   = "../../lambda-function/regional"
 }

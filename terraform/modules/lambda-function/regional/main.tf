@@ -1,6 +1,6 @@
 data "archive_file" "zip" {
   output_path = var.filename
-  source_file = "${data.external.dirname.result.dirname}/${var.name}"
+  source_file = "${data.external.dirname.result.dirname}/${var.progname != "" ? var.progname : var.name}"
   type        = "zip"
 }
 
@@ -18,7 +18,7 @@ resource "aws_lambda_function" "function" {
   depends_on       = [aws_cloudwatch_log_group.lambda]
   filename         = data.archive_file.zip.output_path
   function_name    = var.name
-  handler          = var.name
+  handler          = var.progname != "" ? var.progname : var.name
   memory_size      = 128 # default
   role             = var.role_arn
   runtime          = "go1.x"
