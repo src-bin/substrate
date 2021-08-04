@@ -30,13 +30,13 @@ release:
 	make tarball GOARCH=amd64 GOOS=darwin
 	make tarball GOARCH=arm64 GOOS=darwin
 
-release-filenames: # for src-bin.co to grab on
+release-filenames: # for src-bin.com to grab on
 	@echo substrate-$(VERSION)-$(COMMIT)-linux-amd64.tar.gz
 	@echo substrate-$(VERSION)-$(COMMIT)-linux-arm64.tar.gz
 	@echo substrate-$(VERSION)-$(COMMIT)-darwin-amd64.tar.gz
 	@echo substrate-$(VERSION)-$(COMMIT)-darwin-arm64.tar.gz
 
-release-version: # for src-bin.co to grab on
+release-version: # for src-bin.com to grab on
 	@echo $(VERSION)
 
 tarball:

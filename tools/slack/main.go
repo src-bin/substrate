@@ -29,11 +29,11 @@ func main() {
 	tmpl, err := template.New("release").Parse(
 		`Substrate {{.Version}} is out!
 
-Full release notes: https://src-bin.co/substrate/manual/releases/#{{.Version}}
+Full release notes: https://src-bin.com/substrate/manual/releases/#{{.Version}}
 
 Downloads:
 {{range .Filenames -}}
-https://src-bin.co/{{.}}
+https://src-bin.com/{{.}}
 {{end -}}`,
 	)
 	if err != nil {
