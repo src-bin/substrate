@@ -64,6 +64,7 @@ data "aws_iam_policy_document" "substrate-intranet" {
     actions = [
       "ec2:CreateTags",
       "ec2:DescribeInstanceTypeOfferings",
+      "ec2:DescribeInstanceTypes",
       "ec2:DescribeImages",
       "ec2:DescribeInstances",
       "ec2:DescribeKeyPairs",

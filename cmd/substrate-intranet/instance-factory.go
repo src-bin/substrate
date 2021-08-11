@@ -249,7 +249,17 @@ func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRe
 	}
 
 	// Let's do this!
-	image, err := awsec2.LatestAmazonLinux2AMI(svc, awsec2.X86_64)
+	types, err := awsec2.DescribeInstanceTypes(svc, []string{instanceType})
+	if err != nil {
+		return nil, err
+	}
+	if len(types) != 1 {
+		return nil, fmt.Errorf("instance type %s not found", instanceType)
+	}
+	if len(types[0].ProcessorInfo.SupportedArchitectures) != 1 {
+		return nil, fmt.Errorf("instance type %s supports multiple CPU architectures", instanceType)
+	}
+	image, err := awsec2.LatestAmazonLinux2AMI(svc, aws.StringValue(types[0].ProcessorInfo.SupportedArchitectures[0]))
 	if err != nil {
 		return nil, err
 	}
