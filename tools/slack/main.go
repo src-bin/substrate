@@ -25,7 +25,6 @@ func main() {
 		log.Fatal(err)
 	}
 	version := strings.Trim(string(out), "\r\n")
-
 	tmpl, err := template.New("release").Parse(
 		`Substrate {{.Version}} is out!
 
@@ -48,7 +47,23 @@ https://src-bin.com/{{.}}
 		log.Fatal(err)
 	}
 	text := b.String()
+	slack(text)
 
+	for _, customer := range split(os.Getenv("CUSTOMERS_ANNOUNCE")) {
+		slack(fmt.Sprintf("Share or copy/paste the release announcement to *%s*", customer))
+	}
+
+	for _, customer := range split(os.Getenv("CUSTOMERS_UPGRADE")) {
+		slack(fmt.Sprintf("Upgrade Substrate for *%s*", customer))
+	}
+
+	for _, customer := range split(os.Getenv("CUSTOMERS_PIN")) { // not alphabetical but comes after upgrades in the TODO list
+		slack(fmt.Sprintf("Pin the new version of Substrate for *%s*", customer))
+	}
+
+}
+
+func slack(text string) {
 	body, err := json.MarshalIndent(map[string]string{"text": text}, "", "\t")
 	if err != nil {
 		log.Fatal(err)
@@ -66,5 +81,15 @@ https://src-bin.com/{{.}}
 		}
 		fmt.Println(string(body))
 	}
+}
 
+func split(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	ss := strings.Split(s, ",")
+	for i, s := range ss {
+		ss[i] = strings.TrimSpace(s)
+	}
+	return ss
 }
