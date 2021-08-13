@@ -46,7 +46,7 @@ func main() {
 	quality := flag.String("quality", "", "quality for this new AWS account")
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
-	cmdutil.Chdir()
+	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()
 	if *quality == "" {

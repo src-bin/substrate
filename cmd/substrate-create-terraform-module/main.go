@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	cmdutil.Chdir()
+	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()
 	if flag.NArg() == 0 {

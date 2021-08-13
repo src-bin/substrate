@@ -36,7 +36,7 @@ func main() {
 	format := awssts.CredentialFormatFlag()
 	format.Set(awssts.CredentialFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	cmdutil.Chdir()
+	cmdutil.MustChdir()
 	flag.Parse()
 	*management = *management || *master
 	version.Flag()

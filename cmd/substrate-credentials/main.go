@@ -38,7 +38,7 @@ func fetch(u *url.URL) (*sts.Credentials, error) {
 func main() {
 	format := awssts.CredentialFormatFlag()
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	cmdutil.Chdir()
+	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()
 	if *quiet {
