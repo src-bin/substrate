@@ -36,7 +36,7 @@ func main() {
 	format := awssts.CredentialFormatFlag()
 	format.Set(awssts.CredentialFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	cmdutil.MustChdir()
+	oldpwd := cmdutil.MustChdir()
 	flag.Parse()
 	*management = *management || *master
 	version.Flag()
@@ -146,6 +146,12 @@ func main() {
 			log.Fatal(err)
 		}
 		if err := os.Setenv("AWS_SESSION_TOKEN", aws.StringValue(creds.SessionToken)); err != nil {
+			log.Fatal(err)
+		}
+
+		// Switch back to the original working directory before looking for the
+		// program to execute.
+		if err := os.Chdir(oldpwd); err != nil {
 			log.Fatal(err)
 		}
 
