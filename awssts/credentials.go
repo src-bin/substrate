@@ -2,66 +2,34 @@ package awssts
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/ui"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-const (
-	CredentialFormatEnv               = "env"
-	CredentialFormatExport            = "export"
-	CredentialFormatExportWithHistory = "export-with-history"
-	CredentialFormatJSON              = "json"
-)
-
-type CredentialFormat struct {
-	format string
-}
-
-func CredentialFormatFlag() *CredentialFormat {
-	f := &CredentialFormat{}
-	flag.Var(
-		f,
-		"format",
-		`output format - "export" for exported shell environment variables, "env" for .env files, "json" for IAM API-compatible JSON`,
-		// "export-with-history" works but is undocumented because it only really makes sense as used by substrate-assume-role
-	)
-	return f
-}
-
-func (f *CredentialFormat) Print(credentials *sts.Credentials) {
-	formats[f.String()](credentials)
-}
-
-func (f *CredentialFormat) Set(format string) error {
-	if _, ok := formats[format]; !ok {
-		return CredentialFormatError(`valid values are "export", "env", and "json"`) // and "export-with-history"
+func PrintCredentials(format *cmdutil.SerializationFormat, credentials *sts.Credentials) {
+	switch format.String() {
+	case cmdutil.SerializationFormatEnv:
+		PrintCredentialsEnv(credentials)
+	case cmdutil.SerializationFormatExport:
+		PrintCredentialsExport(credentials)
+	case cmdutil.SerializationFormatExportWithHistory:
+		PrintCredentialsExportWithHistory(credentials)
+	case cmdutil.SerializationFormatJSON:
+		PrintCredentialsJSON(credentials)
+	default:
+		ui.Fatalf("-format=%q not supported", format)
 	}
-	f.format = format
-	return nil
-}
-
-func (f *CredentialFormat) String() string {
-	if f.format == "" {
-		return CredentialFormatExport
-	}
-	return f.format
-}
-
-type CredentialFormatError string
-
-func (err CredentialFormatError) Error() string {
-	return string(err)
 }
 
 func PrintCredentialsEnv(credentials *sts.Credentials) {
 	fmt.Printf(
-		"AWS_ACCESS_KEY_ID=\"%s\"\nAWS_SECRET_ACCESS_KEY=\"%s\"\nAWS_SESSION_TOKEN=\"%s\"\n",
+		"AWS_ACCESS_KEY_ID=%q\nAWS_SECRET_ACCESS_KEY=%q\nAWS_SESSION_TOKEN=%q\n",
 		aws.StringValue(credentials.AccessKeyId),
 		aws.StringValue(credentials.SecretAccessKey),
 		aws.StringValue(credentials.SessionToken),
@@ -70,7 +38,7 @@ func PrintCredentialsEnv(credentials *sts.Credentials) {
 
 func PrintCredentialsExport(credentials *sts.Credentials) {
 	fmt.Printf(
-		" export AWS_ACCESS_KEY_ID=\"%s\" AWS_SECRET_ACCESS_KEY=\"%s\" AWS_SESSION_TOKEN=\"%s\"\n",
+		" export AWS_ACCESS_KEY_ID=%q AWS_SECRET_ACCESS_KEY=%q AWS_SESSION_TOKEN=%q\n",
 		aws.StringValue(credentials.AccessKeyId),
 		aws.StringValue(credentials.SecretAccessKey),
 		aws.StringValue(credentials.SessionToken),
@@ -99,11 +67,4 @@ func PrintCredentialsJSON(credentials *sts.Credentials) {
 	}{credentials}); err != nil {
 		ui.Fatal(err)
 	}
-}
-
-var formats = map[string]func(*sts.Credentials){
-	CredentialFormatEnv:               PrintCredentialsEnv,
-	CredentialFormatExport:            PrintCredentialsExport,
-	CredentialFormatExportWithHistory: PrintCredentialsExportWithHistory,
-	CredentialFormatJSON:              PrintCredentialsJSON,
 }

@@ -36,7 +36,7 @@ func fetch(u *url.URL) (*sts.Credentials, error) {
 }
 
 func main() {
-	format := awssts.CredentialFormatFlag()
+	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	cmdutil.MustChdir()
 	flag.Parse()
@@ -91,6 +91,6 @@ func main() {
 	ui.Stop("ok")
 
 	// Print credentials in whatever format was requested.
-	format.Print(credentials)
+	awssts.PrintCredentials(format, credentials)
 
 }

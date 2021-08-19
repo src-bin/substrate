@@ -33,8 +33,7 @@ func main() {
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
 	roleName := flag.String("role", "", "name of the IAM role to assume")
 	console := flag.Bool("console", false, "open the AWS Console to assume a role instead of generating an access key")
-	format := awssts.CredentialFormatFlag()
-	format.Set(awssts.CredentialFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
+	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	oldpwd := cmdutil.MustChdir()
 	flag.Parse()
@@ -176,7 +175,7 @@ func main() {
 	} else {
 
 		// Print the credentials for the user to copy into their environment.
-		format.Print(creds)
+		awssts.PrintCredentials(format, creds)
 
 	}
 
