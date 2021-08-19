@@ -114,6 +114,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action: []string{
+					"organizations:DescribeAccount",
 					"organizations:DescribeOrganization",
 					"organizations:ListAccounts",
 					"organizations:ListTagsForResource",

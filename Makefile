@@ -23,6 +23,7 @@ install:
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-instance-factory # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-intranet # change to `rm -f` in 2021.09
 	chmod +x $(shell go env GOBIN)/substrate-*
+	ln -f -s substrate $(shell go env GOBIN)/substrate-whoami
 
 release:
 	make tarball GOARCH=amd64 GOOS=linux
