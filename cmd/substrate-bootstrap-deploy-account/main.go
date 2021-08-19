@@ -48,10 +48,43 @@ func main() {
 		ui.Print("this tool can affect every AWS region in rapid succession")
 		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
 	}
+	{
+		dirname := filepath.Join(terraform.RootModulesDirname, accounts.Deploy, "global")
+		region := "us-east-1"
+
+		file := terraform.NewFile()
+		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		providersFile := terraform.NewFile()
+		providersFile.Push(terraform.ProviderFor(
+			region,
+			roles.Arn(accountId, roles.DeployAdministrator),
+		))
+		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := terraform.Root(dirname, region); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
+
+		if *noApply {
+			err = terraform.Plan(dirname)
+		} else {
+			err = terraform.Apply(dirname, *autoApprove)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, accounts.Deploy, region)
-
-		// TODO setup global and regional modules just like in other accounts
 
 		file := terraform.NewFile()
 		name := fmt.Sprintf("%s-deploy-artifacts-%s", prefix, region) // S3 bucket names are still global
