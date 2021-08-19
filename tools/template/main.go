@@ -18,7 +18,6 @@ func init() {
 }
 
 func main() {
-
 	name := flag.String("name", "Template", "function (or, with -receiver-type, method) name which will return this template")
 	out := flag.String("o", "", "filename where generated Go code will be written (defaults to appending \".go\" to the input filename)")
 	pkg := flag.String("package", "", "package name for the generated Go code (defaults to the name of the directory in which the file is written)")
