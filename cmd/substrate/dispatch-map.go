@@ -1,5 +1,9 @@
 package main
 
-var dispatchMap = map[string]func(includeInDispatchMap){
-	"whoami": whoami,
+import (
+	"github.com/src-bin/substrate/cmd/substrate/whoami"
+)
+
+var dispatchMap = map[string]func(){
+	"whoami": whoami.Main,
 }

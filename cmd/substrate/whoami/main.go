@@ -1,4 +1,4 @@
-package main
+package whoami
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-func whoami(includeInDispatchMap) {
+func Main() {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value for substrate-whoami
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Parse()
@@ -70,7 +70,7 @@ func whoami(includeInDispatchMap) {
 		}
 	case cmdutil.SerializationFormatText:
 		ui.Printf(
-			"you're in AWS account %s\nDomain:      %s\nEnvironment: %s\nQuality:     %s\n",
+			"you're in AWS account %s\nDomain:      %s\nEnvironment: %s\nQuality:     %s",
 			aws.StringValue(account.Id),
 			account.Tags[tags.Domain],
 			account.Tags[tags.Environment],

@@ -11,11 +11,6 @@ import (
 
 //go:generate go run ../../tools/dispatch-map/main.go -package main
 
-// includeInDispatchMap, when declared as the only argument to a package-level
-// function, signals the dispatch-map generator to include that function in the
-// dispatch map.
-type includeInDispatchMap struct{}
-
 func main() {
 
 	// If we were invoked directly, expect to find a subcommand in the first
@@ -38,6 +33,6 @@ func main() {
 	if !ok {
 		ui.Fatalf("%s not found", os.Args[0]) // possibly confusing if invoked as a subcommand
 	}
-	f(includeInDispatchMap{})
+	f()
 
 }
