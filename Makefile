@@ -57,5 +57,6 @@ uninstall:
 	rm -f $(shell go env GOBIN)/substrate-apigateway-index # remove in 2021.09
 	rm -f $(shell go env GOBIN)/substrate-credential-factory # remove in 2021.09
 	rm -f $(shell go env GOBIN)/substrate-instance-factory # remove in 2021.09
+	rm -f $(shell go env GOBIN)/substrate-whoami
 
 .PHONY: all clean install release release-filenames tarball test uninstall
