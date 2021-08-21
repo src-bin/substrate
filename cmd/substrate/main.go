@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -28,10 +29,23 @@ func main() {
 		os.Args = append([]string{fmt.Sprintf("substrate-%s", os.Args[1])}, os.Args[2:]...)
 	}
 
-	// Dispatch to the function in this package named like the subcommand.
+	// Dispatch to the package named like the subcommand with a Main function
+	// or to the appropriate substrate-* program.
 	f, ok := dispatchMap[strings.TrimPrefix(os.Args[0], "substrate-")]
 	if !ok {
-		ui.Fatalf("%s not found", os.Args[0]) // possibly confusing if invoked as a subcommand
+		if _, err := exec.LookPath(os.Args[0]); err != nil {
+			ui.Fatalf("%s not found", os.Args[0])
+		}
+		cmd := exec.Command(os.Args[0], os.Args[1:]...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				os.Exit(exitErr.ExitCode())
+			}
+			os.Exit(1)
+		}
 	}
 	f()
 
