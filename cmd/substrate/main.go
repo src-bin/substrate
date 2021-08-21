@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/src-bin/substrate/ui"
@@ -24,8 +25,16 @@ func main() {
 	}
 	if filepath.Base(os.Args[0]) == filepath.Base(executable) {
 		if len(os.Args) < 2 {
-			ui.Fatal("not enough arguments")
+			usage(1)
 		}
+
+		// Respond to `substrate -h` but not `substrate-* -h` or
+		// `substrate * -h`, which are handled by main.main or *.Main.
+		switch os.Args[1] {
+		case "-h", "-help", "--help":
+			usage(0)
+		}
+
 		os.Args = append([]string{fmt.Sprintf("substrate-%s", os.Args[1])}, os.Args[2:]...)
 	}
 
@@ -49,4 +58,40 @@ func main() {
 	}
 	f()
 
+}
+
+func usage(status int) {
+	var commands []string
+
+	for subcommand, _ := range dispatchMap {
+		commands = append(commands, fmt.Sprintf("substrate-%s", subcommand))
+	}
+
+	executable, err := os.Executable()
+	if err != nil {
+		ui.Fatal(err)
+	}
+	entries, err := os.ReadDir(filepath.Dir(executable))
+	if err != nil {
+		ui.Fatal(err)
+	}
+	for _, entry := range entries {
+		if name := entry.Name(); strings.HasPrefix(name, "substrate-") {
+			commands = append(commands, name)
+		}
+	}
+
+	ui.Print("Substrate is an opinionated suite of tools that manage secure, reliable, and compliant cloud infrastructure in AWS")
+	ui.Print("the following commands are available:")
+	sort.Strings(commands)
+	var previousCommand string
+	for _, command := range commands {
+		if command != previousCommand {
+			ui.Printf("\t%s", command)
+		}
+		previousCommand = command
+	}
+	ui.Print("if you're unsure where to start, visit <https://src-bin.com/substrate/manual/>")
+
+	os.Exit(status)
 }
