@@ -48,6 +48,7 @@ https://src-bin.com/{{.}}
 	}
 	text := b.String()
 	slack(text)
+	slack("Push release notes and documentation updates to https://src-bin.com/substrate/manual/.")
 
 	for _, customer := range split(os.Getenv("CUSTOMERS_ANNOUNCE")) {
 		slack(fmt.Sprintf("Share or copy/paste the release announcement to *%s*", customer))
