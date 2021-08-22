@@ -19,7 +19,7 @@ import (
 )
 
 func Main() {
-	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value for substrate-whoami
+	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Parse()
 	if *quiet {

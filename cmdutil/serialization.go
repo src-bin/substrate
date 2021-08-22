@@ -9,7 +9,7 @@ const (
 	SerializationFormatExport            = "export"
 	SerializationFormatExportWithHistory = "export-with-history" // undocumented because it only really makes sense as used for credentials by substrate-assume-role
 	SerializationFormatJSON              = "json"
-	SerializationFormatText              = "txt" // undocumented default for substrate-whoami
+	SerializationFormatText              = "text" // undocumented default for some tools
 )
 
 type SerializationFormat struct {
