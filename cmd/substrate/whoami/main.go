@@ -1,10 +1,8 @@
 package whoami
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -58,16 +56,11 @@ func Main() {
 			account.Tags[tags.Quality],
 		)
 	case cmdutil.SerializationFormatJSON:
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", "\t")
-		if err := enc.Encode(map[string]string{
+		ui.PrettyPrintJSON(map[string]string{
 			tags.Domain:      account.Tags[tags.Domain],
 			tags.Environment: account.Tags[tags.Environment],
 			tags.Quality:     account.Tags[tags.Quality],
-		}); err != nil {
-			ui.Fatal(err)
-		}
+		})
 	case cmdutil.SerializationFormatText:
 		ui.Printf(
 			"you're in AWS account %s\nDomain:      %s\nEnvironment: %s\nQuality:     %s",

@@ -1,9 +1,7 @@
 package awssts
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -59,12 +57,7 @@ func PrintCredentialsExportWithHistory(credentials *sts.Credentials) {
 }
 
 func PrintCredentialsJSON(credentials *sts.Credentials) {
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "\t")
-	if err := enc.Encode(struct {
+	ui.PrettyPrintJSON(struct {
 		Credentials *sts.Credentials // nested to behave exactly like `aws sts assume-role`
-	}{credentials}); err != nil {
-		ui.Fatal(err)
-	}
+	}{credentials})
 }

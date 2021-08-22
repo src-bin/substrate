@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"io"
 	"log"
@@ -42,17 +41,12 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", "\t")
-		if err := enc.Encode(append(append([]*awsorgs.Account{
+		ui.PrettyPrintJSON(append(append([]*awsorgs.Account{
 			managementAccount,
 			auditAccount,
 			networkAccount,
 			deployAccount,
-		}, adminAccounts...), serviceAccounts...)); err != nil {
-			ui.Fatal(err)
-		}
+		}, adminAccounts...), serviceAccounts...))
 
 	case cmdutil.SerializationFormatText:
 		f, err := os.Open(accounts.CheatSheetFilename)
