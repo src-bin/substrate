@@ -15,7 +15,7 @@ clean:
 	rm -f substrate-*-*-*.tar.gz
 
 install:
-	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs go install -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)"
+	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authenticator # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authorizer # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-index # change to `rm -f` in 2021.09
@@ -26,10 +26,10 @@ install:
 	ln -f -s substrate $(shell go env GOBIN)/substrate-whoami
 
 release:
-	make tarball GOARCH=amd64 GOOS=linux
-	make tarball GOARCH=arm64 GOOS=linux
-	make tarball GOARCH=amd64 GOOS=darwin
-	make tarball GOARCH=arm64 GOOS=darwin
+	GOARCH=amd64 GOOS=linux make tarball
+	GOARCH=arm64 GOOS=linux make tarball
+	GOARCH=amd64 GOOS=darwin make tarball
+	GOARCH=arm64 GOOS=darwin make tarball
 
 release-filenames: # for src-bin.com to grab on
 	@echo substrate-$(VERSION)-$(COMMIT)-linux-amd64.tar.gz
@@ -43,7 +43,7 @@ release-version: # for src-bin.com to grab on
 tarball:
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH) # makes debugging easier
 	mkdir substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
-	make install GOBIN=$(PWD)/substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
+	GOBIN=$(PWD)/substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH) make install
 	tar czf substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH).tar.gz substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 
