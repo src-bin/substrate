@@ -100,12 +100,23 @@ func main() {
 				},
 				policies.Statement{
 					Principal: &policies.Principal{AWS: []string{"*"}},
-					Action:    []string{"s3:GetObject", "s3:ListBucket", "s3:PutObject"},
+					Action:    []string{"s3:GetObject", "s3:ListBucket"},
 					Resource: []string{
 						fmt.Sprintf("arn:aws:s3:::%s", name),
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
 					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
+				},
+				policies.Statement{
+					Principal: &policies.Principal{AWS: []string{"*"}},
+					Action:    []string{"s3:PutObject"},
+					Resource: []string{
+						fmt.Sprintf("arn:aws:s3:::%s/*", name),
+					},
+					Condition: policies.Condition{"StringEquals": {
+						"aws:PrincipalOrgID": aws.StringValue(org.Id),
+						"s3:x-amz-acl":       "bucket-owner-full-control",
+					}},
 				},
 			},
 		}
@@ -113,11 +124,17 @@ func main() {
 			Name:   name,
 			Region: region,
 		}
-		file.Push(terraform.S3Bucket{
+		bucket := terraform.S3Bucket{
 			Bucket: terraform.Q(tags.Name),
 			Label:  terraform.Label(tags),
 			Policy: terraform.Q(policy.MustMarshal()),
 			Tags:   tags,
+		}
+		file.Push(bucket)
+		file.Push(terraform.S3BucketOwnershipControls{
+			Bucket:          terraform.U(bucket.Ref(), ".bucket"),
+			Label:           terraform.Label(tags),
+			ObjectOwnership: terraform.Q(terraform.BucketOwnerPreferred),
 		})
 		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 			log.Fatal(err)

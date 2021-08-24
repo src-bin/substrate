@@ -1,5 +1,10 @@
 package terraform
 
+const (
+	BucketOwnerPreferred = "BucketOwnerPreferred"
+	ObjectWriter         = "ObjectWriter"
+)
+
 type S3Bucket struct {
 	Bucket   Value
 	Label    Value
@@ -35,5 +40,28 @@ resource "aws_s3_bucket_public_access_block" {{.Label.Value}} {
   provider = {{.Provider}}
 {{- end}}
   restrict_public_buckets = true
+}`
+}
+
+type S3BucketOwnershipControls struct {
+	Bucket          Value
+	Label           Value
+	ObjectOwnership Value
+	Provider        ProviderAlias
+}
+
+func (boc S3BucketOwnershipControls) Ref() Value {
+	return Uf("aws_s3_bucket_ownership_controls.%s", boc.Label)
+}
+
+func (S3BucketOwnershipControls) Template() string {
+	return `resource "aws_s3_bucket_ownership_controls" {{.Label.Value}} {
+  bucket = {{.Bucket.Value}}
+{{- if .Provider}}
+  provider = {{.Provider}}
+{{- end}}
+  rule {
+    object_ownership = {{.ObjectOwnership.Value}}
+  }
 }`
 }
