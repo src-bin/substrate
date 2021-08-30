@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/src-bin/substrate/fileutil"
 )
@@ -34,6 +35,11 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 			lines := fileutil.ToLines(b)
 			for _, s := range lines {
 				Printf("\t%s", s)
+			}
+			if Interactivity() < FullyInteractive {
+				Print("if this is not correct, press ^C and re-run this command with -fully-interactive")
+				time.Sleep(5e9) // give them a chance to ^C
+				return lines, nil
 			}
 			ok, err := Confirm("is this correct? (yes/no)")
 			if err != nil {
