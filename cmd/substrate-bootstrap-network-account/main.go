@@ -100,20 +100,22 @@ func main() {
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		ui.Printf("\t%-12s %s", eq.Environment, eq.Quality)
 	}
-	ok, err := ui.Confirm("is this correct? (yes/no)")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if !ok {
-		for _, environment := range environments {
-			for _, quality := range qualities {
-				if !veqpDoc.Valid(environment, quality) {
-					ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
-					if err != nil {
-						log.Fatal(err)
-					}
-					if ok {
-						veqpDoc.Ensure(environment, quality)
+	if ui.Interactivity() == ui.FullyInteractive {
+		ok, err := ui.Confirm("is this correct? (yes/no)")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if !ok {
+			for _, environment := range environments {
+				for _, quality := range qualities {
+					if !veqpDoc.Valid(environment, quality) {
+						ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
+						if err != nil {
+							log.Fatal(err)
+						}
+						if ok {
+							veqpDoc.Ensure(environment, quality)
+						}
 					}
 				}
 			}
