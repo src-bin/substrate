@@ -31,7 +31,8 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 		}
 		if len(b) != 0 {
 			Print(notice)
-			for _, s := range fileutil.ToLines(b) {
+			lines := fileutil.ToLines(b)
+			for _, s := range lines {
 				Printf("\t%s", s)
 			}
 			ok, err := Confirm("is this correct? (yes/no)")
@@ -39,7 +40,7 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 				return nil, err
 			}
 			if ok {
-				return fileutil.ToLines(b), nil
+				return lines, nil
 			}
 		}
 		if _, err := Promptf(
