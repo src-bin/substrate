@@ -51,6 +51,9 @@ func Printf(format string, args ...interface{}) {
 func Prompt(args ...interface{}) (string, error) {
 	args = dereference(args)
 	fmt.Print(append(args, " ")...)
+	if Interactivity() == NonInteractive {
+		Fatal("(cannot accept input in non-interactive mode)")
+	}
 	s, err := stdin.ReadString('\n')
 	if err != nil {
 		return "", err
