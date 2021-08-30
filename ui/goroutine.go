@@ -148,3 +148,13 @@ func init() {
 		}
 	}(ch)
 }
+
+func op(opcode int, s string) {
+	ch := make(chan struct{})
+	chInst <- instruction{
+		ch:     ch,
+		opcode: opcode,
+		s:      s,
+	}
+	<-ch
+}
