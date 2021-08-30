@@ -1,9 +1,7 @@
 package regions
 
 import (
-	"io/ioutil"
 	"log"
-	"os"
 	"sort"
 
 	"github.com/aws/aws-sdk-go/aws/endpoints"
@@ -50,26 +48,34 @@ func IsRegion(region string) bool {
 
 func Select() ([]string, error) {
 
-	if _, err := os.Stat(Filename); os.IsNotExist(err) {
-		regions := []string{}
-		for _, region := range All() {
-			if !IsBeingAvoided(region) {
-				regions = append(regions, region)
+	// We used to begin by initializing the list of regions with all of them.
+	// This was problematic for two reasons:
+	// 1. It encouraged folks to enable them all which takes forever and
+	//    potentially costs a lot just for the NAT Gateways.
+	// 2. It breaks the signal to the various levels of interactivity.
+	/*
+		if !fileutil.Exists(Filename) {
+			regions := []string{}
+			for _, region := range All() {
+				if !IsBeingAvoided(region) {
+					regions = append(regions, region)
+				}
+			}
+			if err := ioutil.WriteFile(
+				Filename,
+				fileutil.FromLines(regions),
+				0666,
+			); err != nil {
+				return nil, err
 			}
 		}
-		if err := ioutil.WriteFile(
-			Filename,
-			fileutil.FromLines(regions),
-			0666,
-		); err != nil {
-			return nil, err
-		}
-	}
+	*/
 
 	regions, err := ui.EditFile(
 		Filename,
 		"your Substrate-managed infrastructure is currently configured to use the following AWS regions:",
-		"remove regions you don't want to use or add regions you wish to expand into, one per line",
+		// "remove regions you don't want to use or add regions you wish to expand into, one per line",
+		"add regions you wish to expand into, one per line",
 	)
 	if err != nil {
 		return nil, err
