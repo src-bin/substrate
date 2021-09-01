@@ -306,12 +306,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		// Substrate 2021.05 simplified Intranet TLS certificate management
-		// to the point that this outputs.tf is no longer necessary.
-		if err := fileutil.Remove(filepath.Join(dirname, "outputs.tf")); err != nil {
-			log.Fatal(err)
-		}
-
 		providersFile := terraform.NewFile()
 		providersFile.Push(terraform.ProviderFor(
 			region,
@@ -427,7 +421,7 @@ func main() {
 				),
 				fmt.Sprintf("%s-%s", oauthoidc.OAuthOIDCClientSecret, clientId),
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
-					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authorizer"), // must match intranet/global/main.tf
+					roles.Arn(aws.StringValue(account.Id), "substrate-apigateway-authorizer"), // must match intranet/global/main.tf // TODO remove in 2021.10
 					roles.Arn(aws.StringValue(account.Id), "substrate-intranet"),              // must match intranet/global/main.tf
 				}}),
 				clientSecretTimestamp,

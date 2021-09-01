@@ -74,7 +74,7 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
       version = ">= %s"`,
 		awsVersion,
 	)))
-	// TODO also might need to handle configuration_aliases for completeness (but don't need to this month)
+	// TODO need to handle configuration_aliases for completeness (one customer was actually missing configuration_aliases because of this, though the consequences were extremely mild)
 
 	b = regexp.MustCompile(
 		`source\s+=\s+"hashicorp/external"
