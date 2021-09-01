@@ -445,9 +445,6 @@ func main() {
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 			saml.Arn,
 		)
-		if _, err := ui.Prompt("press <enter> after you've configured at least one GSuite user (so you can test this)"); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	// Give Okta a user that can enumerate the roles it can assume.  Only Okta
@@ -469,11 +466,18 @@ func main() {
 		}
 		ui.Stopf("user %s", user.UserName)
 		//log.Printf("%+v", user)
-		if ok, err := ui.Confirm( // TODO need to find a way to remove this as it is remarkably confusing and tedious if answered incorrectly; maybe only do it if IdP metadata was changed?
-			`answering "yes" will break any existing integration - do you need to configure Okta's AWS integration? (yes/no)`,
-		); err != nil {
-			log.Fatal(err)
-		} else if ok {
+		var ok bool
+		if ui.Interactivity() == ui.FullyInteractive {
+			if ok, err = ui.Confirm( // TODO need to find a way to remove this as it is remarkably confusing and tedious if answered incorrectly; maybe only do it if IdP metadata was changed?
+				`answering "yes" will break any existing integration - do you need to configure Okta's AWS integration? (yes/no)`,
+			); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			ui.Print("if you need to reconfigure Okta, re-run this command with -fully-interactive")
+			time.Sleep(5e9)
+		}
+		if ok {
 			ui.Spin("deleting existing access keys and creating a new one")
 			if err := awsiam.DeleteAllAccessKeys(svc, Okta); err != nil {
 				log.Fatal(err)
