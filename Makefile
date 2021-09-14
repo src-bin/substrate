@@ -8,13 +8,13 @@ VERSION := $(shell date +%Y.%m)
 COMMIT := $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
 
 all:
-	go generate ./...
 
 clean:
 	rm -f -r substrate-*-*-*
 	rm -f substrate-*-*-*.tar.gz
 
 install:
+	go generate ./...
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authenticator # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authorizer # change to `rm -f` in 2021.09
