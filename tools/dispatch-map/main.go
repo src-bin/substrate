@@ -21,6 +21,10 @@ import (
 
 const Main = "Main"
 
+func init() {
+	log.SetFlags(log.Lshortfile)
+}
+
 func main() {
 	name := flag.String("name", "dispatchMap", "function (or, with -receiver-type, method) name")
 	out := flag.String("o", "dispatch-map.go", "filename where generated Go code will be written (defaults to \"dispatch-map.go\")")
@@ -94,17 +98,28 @@ func main() {
 	re := regexp.MustCompile(`[\p{Lu}]`)
 	fmt.Fprintf(b, "package %s\n\nimport (\n", *pkg)
 	for _, dirname := range dirnames {
-		fmt.Fprintf(b, "\t\"%s/%s\"\n", pkgPath, dirname)
+		if strings.Contains(dirname, "-") {
+
+			// Remove dashes from directory names as is convention for package names.
+			fmt.Fprintf(b, "\t%s \"%s/%s\"\n", strings.ReplaceAll(dirname, "-", ""), pkgPath, dirname)
+
+		} else {
+			fmt.Fprintf(b, "\t\"%s/%s\"\n", pkgPath, dirname)
+		}
+
 	}
 	fmt.Fprintf(b, ")\n\nvar %s = map[string]func(){\n", *name)
 	for _, dirname := range dirnames {
 		fmt.Fprintf(
 			b,
 			"\t%q: %s.%s,\n",
+
+			// Turn camelCase and snake_case into dash-case for the command-line argument.
 			re.ReplaceAllStringFunc(dirname, func(s string) string {
 				return fmt.Sprintf("-%s", strings.ReplaceAll(strings.ToLower(s), "_", "-"))
 			}),
-			dirname,
+
+			strings.ReplaceAll(dirname, "-", ""),
 			Main,
 		)
 	}
