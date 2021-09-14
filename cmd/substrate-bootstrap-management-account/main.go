@@ -205,6 +205,8 @@ func main() {
 
 	// Ensure service control policies are enabled and that Substrate's is
 	// attached and up-to-date.
+	//
+	// This MUST happen AFTER configuring CloudTrail.
 	if err := awsorgs.EnablePolicyType(svc, awsorgs.SERVICE_CONTROL_POLICY); err != nil {
 		log.Fatal(err)
 	}
@@ -215,6 +217,15 @@ func main() {
 		awsorgs.SERVICE_CONTROL_POLICY,
 		&policies.Document{
 			Statement: []policies.Statement{
+
+				// It's catastrophically expensive to create a second trail
+				// so let's not let anyone do it.
+				policies.Statement{
+					Action:   []string{"cloudtrail:CreateTrail"},
+					Effect:   policies.Deny,
+					Resource: []string{"*"},
+				},
+
 				policies.Statement{
 					Action:   []string{"*"},
 					Resource: []string{"*"},
