@@ -10,11 +10,18 @@ COMMIT := $(shell git show --format=%h --no-patch)$(shell git diff --quiet || ec
 all:
 
 clean:
+	find -name dispatch-map.go -delete
+	find -name \*.html.go -delete
+	find -name \*.template.go -delete
+	find terraform -name \*-global.go -o -name \*-regional.go -delete
+	rm -f cmd/substrate-create-admin-account/substrate-intranet*
 	rm -f -r substrate-*-*-*
 	rm -f substrate-*-*-*.tar.gz
 
 install:
-	go generate ./...
+	go generate ./lambdautil # dependency of several packages with go:generate directives
+	go generate ./cmd/substrate-intranet # dependency of cmd/substrate-create-admin-account's go:generate directives
+	go generate ./... # the rest of the go:generate directives
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authenticator # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authorizer # change to `rm -f` in 2021.09

@@ -1,6 +1,11 @@
 *~
+dispatch-map.go
+*.html.go
 *.stdin
 substrate-[0-9]*-*-*
 substrate-[0-9]*-*-*.tar.gz
 *.sw[opx]
+*.template.go
+terraform/*-global.go
+terraform/*-regional.go
 *.zip
