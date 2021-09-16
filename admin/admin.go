@@ -322,6 +322,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	}
 	ui.Stop("ok")
 
+	// TODO don't do this if we know we've already done it
 	ui.Spinf("finding or creating the CloudWatch-CrossAccountSharingRole role in all accounts")
 	org, err := awsorgs.DescribeOrganization(svc)
 	if err != nil {
@@ -349,6 +350,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 
 	// Create the service-linked role CloudWatch will actually use to read logs
 	// and metrics from other accounts in your organization.
+	// TODO don't do this if we know we've already done it
 	ui.Spin("finding or creating CloudWatch's service-linked role for cross-account log and metric access")
 	for _, account := range allAccounts {
 		if account.Tags[tags.Domain] != "admin" {
