@@ -40,7 +40,7 @@ func main() {
 
 	// Dispatch to the package named like the subcommand with a Main function
 	// or to the appropriate substrate-* program.
-	f, ok := dispatchMap[strings.TrimPrefix(os.Args[0], "substrate-")]
+	f, ok := dispatchMap[strings.TrimPrefix(filepath.Base(os.Args[0]), "substrate-")]
 	if !ok {
 		if _, err := exec.LookPath(os.Args[0]); err != nil {
 			ui.Fatalf("%s not found", os.Args[0])
