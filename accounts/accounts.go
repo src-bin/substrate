@@ -34,23 +34,26 @@ func CheatSheet(svc *organizations.Organizations) error {
 	}
 	defer f.Close()
 
-	adminAccountsCells := ui.MakeTableCells(4, 1)
+	adminAccountsCells := ui.MakeTableCells(5, 1)
 	adminAccountsCells[0][0] = "Quality"
 	adminAccountsCells[0][1] = "Account Number"
 	adminAccountsCells[0][2] = "Role Name"
 	adminAccountsCells[0][3] = "Role ARN"
-	serviceAccountsCells := ui.MakeTableCells(6, 1)
+	adminAccountsCells[0][4] = "E-mail"
+	serviceAccountsCells := ui.MakeTableCells(7, 1)
 	serviceAccountsCells[0][0] = "Domain"
 	serviceAccountsCells[0][1] = "Environment"
 	serviceAccountsCells[0][2] = "Quality"
 	serviceAccountsCells[0][3] = "Account Number"
 	serviceAccountsCells[0][4] = "Role Name"
 	serviceAccountsCells[0][5] = "Role ARN"
-	specialAccountsCells := ui.MakeTableCells(4, 6)
+	serviceAccountsCells[0][6] = "E-mail"
+	specialAccountsCells := ui.MakeTableCells(5, 6)
 	specialAccountsCells[0][0] = "Account Name"
 	specialAccountsCells[0][1] = "Account Number"
 	specialAccountsCells[0][2] = "Role Name"
 	specialAccountsCells[0][3] = "Role ARN"
+	specialAccountsCells[0][4] = "E-mail"
 
 	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(svc)
 	if err != nil {
@@ -61,21 +64,25 @@ func CheatSheet(svc *organizations.Organizations) error {
 	specialAccountsCells[3][1] = aws.StringValue(auditAccount.Id)
 	specialAccountsCells[3][2] = roles.Auditor
 	specialAccountsCells[3][3] = roles.Arn(aws.StringValue(auditAccount.Id), roles.Auditor)
+	specialAccountsCells[3][4] = aws.StringValue(auditAccount.Email)
 
 	specialAccountsCells[4][0] = Deploy
 	specialAccountsCells[4][1] = aws.StringValue(deployAccount.Id)
 	specialAccountsCells[4][2] = roles.DeployAdministrator
 	specialAccountsCells[4][3] = roles.Arn(aws.StringValue(deployAccount.Id), roles.DeployAdministrator)
+	specialAccountsCells[4][4] = aws.StringValue(deployAccount.Email)
 
 	specialAccountsCells[1][0] = Management
 	specialAccountsCells[1][1] = aws.StringValue(managementAccount.Id)
 	specialAccountsCells[1][2] = roles.OrganizationAdministrator
 	specialAccountsCells[1][3] = roles.Arn(aws.StringValue(managementAccount.Id), roles.OrganizationAdministrator)
+	specialAccountsCells[1][4] = aws.StringValue(managementAccount.Email)
 
 	specialAccountsCells[5][0] = Network
 	specialAccountsCells[5][1] = aws.StringValue(networkAccount.Id)
 	specialAccountsCells[5][2] = roles.NetworkAdministrator
 	specialAccountsCells[5][3] = roles.Arn(aws.StringValue(networkAccount.Id), roles.NetworkAdministrator)
+	specialAccountsCells[5][4] = aws.StringValue(networkAccount.Email)
 
 	for _, account := range adminAccounts {
 		adminAccountsCells = append(adminAccountsCells, []string{
@@ -83,6 +90,7 @@ func CheatSheet(svc *organizations.Organizations) error {
 			aws.StringValue(account.Id),
 			roles.Administrator,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+			aws.StringValue(account.Email),
 		})
 	}
 
@@ -94,6 +102,7 @@ func CheatSheet(svc *organizations.Organizations) error {
 			aws.StringValue(account.Id),
 			roles.Administrator,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+			aws.StringValue(account.Email),
 		})
 	}
 

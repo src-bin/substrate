@@ -16,30 +16,35 @@ func accountsTemplate() string {
     <th nowrap>Name</th>
     <th nowrap>Account Number</th>
     <th colspan="2"nowrap>Launch the AWS Console as...</th>
+    <th nowrap>E-mail</th>
 </tr>
 <tr>
     <td>management</td>
     <td>{{.ManagementAccount.Id}}</td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName=OrganizationAdministrator&roleName=OrganizationAdministrator" target="_blank">OrganizationAdministrator</a></td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.ManagementAccount.Id}}&displayName=OrganizationReader&roleName=OrganizationReader" target="_blank">OrganizationReader</a></td>
+    <td>{{.ManagementAccount.Email}}</td>
 </tr>
 <tr>
     <td>{{.AuditAccount.Name}}</td>
     <td>{{.AuditAccount.Id}}</td>
     <td>&nbsp;</td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.AuditAccount.Id}}&displayName={{.AuditAccount.Name}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
+    <td>{{.AuditAccount.Email}}</td>
 </tr>
 <tr>
     <td>{{.DeployAccount.Name}}</td>
     <td>{{.DeployAccount.Id}}</td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName=DeployAdministrator&roleName=DeployAdministrator" target="_blank">DeployAdministrator</a></td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.DeployAccount.Id}}&displayName={{.DeployAccount.Name}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
+    <td>{{.DeployAccount.Email}}</td>
 </tr>
 <tr>
     <td>{{.NetworkAccount.Name}}</td>
     <td>{{.NetworkAccount.Id}}</td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName=NetworkAdministrator&roleName=NetworkAdministrator" target="_blank">NetworkAdministrator</a></td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.NetworkAccount.Id}}&displayName={{.NetworkAccount.Name}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
+    <td>{{.NetworkAccount.Email}}</td>
 </tr>
 </table>
 <h2>Service accounts</h2>
@@ -50,6 +55,7 @@ func accountsTemplate() string {
     <th nowrap>Quality</th>
     <th nowrap>Account Number</th>
     <th colspan="2"nowrap>Launch the AWS Console as...</th>
+    <th nowrap>E-mail</th>
 </tr>
 {{- range .ServiceAccounts}}
 <tr>
@@ -59,6 +65,7 @@ func accountsTemplate() string {
     <td>{{.Id}}</td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName={{.Tags.Domain}}+{{.Tags.Environment}}+{{.Tags.Quality}}+Administrator&roleName=Administrator" target="_blank">Administrator</a></td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName={{.Tags.Domain}}+{{.Tags.Environment}}+{{.Tags.Quality}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
+    <td>{{.Email}}</td>
 </tr>
 {{- end}}
 </table>
@@ -68,6 +75,7 @@ func accountsTemplate() string {
     <th nowrap>Quality</th>
     <th nowrap>Account Number</th>
     <th colspan="2"nowrap>Launch the AWS Console as...</th>
+    <th nowrap>E-mail</th>
 </tr>
 {{- range .AdminAccounts}}
 <tr>
@@ -75,6 +83,7 @@ func accountsTemplate() string {
     <td>{{.Id}}</td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName=admin+{{.Tags.Quality}}+Administrator&roleName=Administrator" target="_blank">Administrator</a></td>
     <td><a href="https://signin.aws.amazon.com/switchrole?account={{.Id}}&displayName=admin+{{.Tags.Quality}}+Auditor&roleName=Auditor" target="_blank">Auditor</a></td>
+    <td>{{.Email}}</td>
 </tr>
 {{- end}}
 </table>
