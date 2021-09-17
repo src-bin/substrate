@@ -338,7 +338,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for pc := range peeringConnections {
+	for _, pc := range peeringConnections.Slice() {
 		eq0, eq1, region0, region1 := pc.Ends()
 
 		ui.Printf(

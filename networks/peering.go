@@ -9,14 +9,16 @@ import (
 
 // PeeringConnections ensures we don't duplicate the work of constructing VPC
 // peering connections between two quality-region pairs in an environment.
-type PeeringConnections map[peeringConnection]bool
+type PeeringConnections struct {
+	slice []peeringConnection
+}
 
-func EnumeratePeeringConnections() (PeeringConnections, error) {
+func EnumeratePeeringConnections() (*PeeringConnections, error) {
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
 		return nil, err
 	}
-	pcs := PeeringConnections{}
+	pcs := &PeeringConnections{}
 	for _, eq0 := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region0 := range regions.Selected() {
 			for _, eq1 := range veqpDoc.ValidEnvironmentQualityPairs {
@@ -38,16 +40,28 @@ func EnumeratePeeringConnections() (PeeringConnections, error) {
 			}
 		}
 	}
-	// TODO find a way to keep this sorted in the sensible order in which it's constructed
 	return pcs, nil
 }
 
-func (pcs PeeringConnections) Add(eq0, eq1 veqp.EnvironmentQualityPair, region0, region1 string) {
-	pcs[newPeeringConnection(eq0, eq1, region0, region1)] = true
+func (pcs *PeeringConnections) Add(eq0, eq1 veqp.EnvironmentQualityPair, region0, region1 string) {
+	if pcs.Has(eq0, eq1, region0, region1) {
+		return
+	}
+	pcs.slice = append(pcs.slice, newPeeringConnection(eq0, eq1, region0, region1))
 }
 
-func (pcs PeeringConnections) Has(eq0, eq1 veqp.EnvironmentQualityPair, region0, region1 string) bool {
-	return pcs[newPeeringConnection(eq0, eq1, region0, region1)]
+func (pcs *PeeringConnections) Has(eq0, eq1 veqp.EnvironmentQualityPair, region0, region1 string) bool {
+	pc := newPeeringConnection(eq0, eq1, region0, region1)
+	for i := range pcs.slice {
+		if pc == pcs.slice[i] {
+			return true
+		}
+	}
+	return false
+}
+
+func (pcs *PeeringConnections) Slice() []peeringConnection {
+	return pcs.slice
 }
 
 type peeringConnection struct {

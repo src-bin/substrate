@@ -76,7 +76,7 @@ func Main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for pc := range peeringConnections {
+	for _, pc := range peeringConnections.Slice() {
 		eq0, eq1, region0, region1 := pc.Ends()
 		rootModules = append(rootModules, filepath.Join(
 			terraform.RootModulesDirname,
