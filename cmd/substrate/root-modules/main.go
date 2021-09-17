@@ -2,6 +2,7 @@ package rootmodules
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"path/filepath"
 
@@ -135,7 +136,7 @@ func Main() {
 		ui.PrettyPrintJSON(rootModules)
 	case cmdutil.SerializationFormatText:
 		for _, rootModule := range rootModules {
-			ui.Print(rootModule)
+			fmt.Println(rootModule)
 		}
 	default:
 		ui.Fatalf("-format=%q not supported", format)
