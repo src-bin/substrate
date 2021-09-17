@@ -31,6 +31,12 @@ func (a *Account) String() string {
 	return jsonutil.MustString(a)
 }
 
+type AccountNotFound string
+
+func (err AccountNotFound) Error() string {
+	return fmt.Sprintf("account not found: %s", string(err))
+}
+
 func DescribeAccount(svc *organizations.Organizations, accountId string) (*Account, error) {
 	in := &organizations.DescribeAccountInput{
 		AccountId: aws.String(accountId),
@@ -110,7 +116,7 @@ func FindAccountByName(svc *organizations.Organizations, name string) (*Account,
 			return account, nil
 		}
 	}
-	return nil, fmt.Errorf("%s account not found", name)
+	return nil, AccountNotFound(name)
 }
 
 func FindSpecialAccount(svc *organizations.Organizations, name string) (*Account, error) {
