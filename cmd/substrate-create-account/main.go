@@ -73,7 +73,7 @@ func main() {
 		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
 	}
 	{
-		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, "global")
+		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, regions.Global)
 		region := "us-east-1"
 
 		file := terraform.NewFile()

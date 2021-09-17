@@ -9,7 +9,11 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-const Filename = "substrate.regions"
+const (
+	Filename = "substrate.regions"
+
+	Global = "global" // special value used in the same place as region sometimes
+)
 
 func All() []string {
 	m := all()

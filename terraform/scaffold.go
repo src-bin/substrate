@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"path/filepath"
+
+	"github.com/src-bin/substrate/regions"
 )
 
 // Scaffold generates modules/domain/{global,regional}, both setup with the
@@ -10,7 +12,7 @@ import (
 // region-aware.
 func Scaffold(domain string) error {
 	{
-		dirname := filepath.Join(ModulesDirname, domain, "global")
+		dirname := filepath.Join(ModulesDirname, domain, regions.Global)
 
 		if err := NewFile().WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
 			return err

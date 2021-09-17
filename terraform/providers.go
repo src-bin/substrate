@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -20,7 +21,7 @@ type Provider struct {
 // only be configured in us-east-1.
 func GlobalProvider(roleArn string) Provider {
 	return Provider{
-		Alias:       "global",
+		Alias:       regions.Global,
 		Region:      "us-east-1",
 		RoleArn:     roleArn,
 		SessionName: "Terraform",
