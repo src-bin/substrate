@@ -16,7 +16,7 @@ func EnumeratePeeringConnections() (PeeringConnections, error) {
 	if err != nil {
 		return nil, err
 	}
-	pc := PeeringConnections{}
+	pcs := PeeringConnections{}
 	for _, eq0 := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region0 := range regions.Selected() {
 			for _, eq1 := range veqpDoc.ValidEnvironmentQualityPairs {
@@ -33,13 +33,13 @@ func EnumeratePeeringConnections() (PeeringConnections, error) {
 						continue
 					}
 
-					pc.Add(eq0, eq1, region0, region1)
+					pcs.Add(eq0, eq1, region0, region1)
 				}
 			}
 		}
 	}
 	// TODO find a way to keep this sorted in the sensible order in which it's constructed
-	return pc, nil
+	return pcs, nil
 }
 
 func (pcs PeeringConnections) Add(eq0, eq1 veqp.EnvironmentQualityPair, region0, region1 string) {
