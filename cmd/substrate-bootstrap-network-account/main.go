@@ -334,117 +334,97 @@ func main() {
 	if err := peeringConnectionModule.Write(filepath.Join(terraform.ModulesDirname, "peering-connection")); err != nil {
 		log.Fatal(err)
 	}
-	peeringConnections := PeeringConnections{}
-	for _, eq0 := range veqpDoc.ValidEnvironmentQualityPairs {
-		for _, region0 := range regions.Selected() {
-			for _, eq1 := range veqpDoc.ValidEnvironmentQualityPairs {
-				for _, region1 := range regions.Selected() {
+	peeringConnections, err := networks.EnumeratePeeringConnections()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for pc := range peeringConnections {
+		eq0, eq1, region0, region1 := pc.Ends()
 
-					// Don't peer with oneself.
-					if eq0 == eq1 && region0 == region1 {
-						continue
-					}
+		ui.Printf(
+			"configuring VPC peering between %s %s %s and %s %s %s",
+			eq0.Environment, eq0.Quality, region0,
+			eq1.Environment, eq1.Quality, region1,
+		)
 
-					// Peer admin networks with everything but otherwise
-					// only peer networks with matching environments.
-					if eq0.Environment != "admin" && eq0.Environment != eq1.Environment {
-						continue
-					}
-
-					// Don't create the same peering connection twice; each
-					// connection is bidirectional.
-					if peeringConnections.Has(eq0, eq1, region0, region1) {
-						continue
-					}
-					peeringConnections.Add(eq0, eq1, region0, region1)
-
-					ui.Printf(
-						"configuring VPC peering between %s %s %s and %s %s %s",
-						eq0.Environment, eq0.Quality, region0,
-						eq1.Environment, eq1.Quality, region1,
-					)
-
-					/*
-						oldDirname := filepath.Join(
-							terraform.RootModulesDirname,
-							accounts.Network,
-							eq0.Environment,
-							"peering",
-							fmt.Sprintf("%s-%s-%s-%s", eq0.Quality, region0, eq1.Quality, region1),
-						)
-						if err := terraform.Destroy(oldDirname); err != nil {
-							log.Fatal(err)
-						}
-					*/
-
-					dirname := filepath.Join(
-						terraform.RootModulesDirname,
-						accounts.Network,
-						"peering",
-						eq0.Environment,
-						eq1.Environment,
-						eq0.Quality,
-						eq1.Quality,
-						region0,
-						region1,
-					)
-
-					file := terraform.NewFile()
-					file.Push(terraform.Module{
-						Arguments: map[string]terraform.Value{
-							"accepter_environment":  terraform.Q(eq0.Environment),
-							"accepter_quality":      terraform.Q(eq0.Quality),
-							"requester_environment": terraform.Q(eq1.Environment),
-							"requester_quality":     terraform.Q(eq1.Quality),
-						},
-						Label: terraform.Q("peering-connection"),
-						Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
-							terraform.ProviderAliasFor("accepter"):  terraform.ProviderAliasFor("accepter"),
-							terraform.ProviderAliasFor("requester"): terraform.ProviderAliasFor("requester"),
-						},
-						Source: terraform.Q("../../../../../../../../../modules/peering-connection"),
-					})
-					if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
-						log.Fatal(err)
-					}
-
-					providersFile := terraform.NewFile()
-					accepterProvider := terraform.ProviderFor(
-						region1,
-						roles.Arn(accountId, roles.NetworkAdministrator),
-					)
-					accepterProvider.Alias = "accepter"
-					providersFile.Push(accepterProvider)
-					requesterProvider := terraform.ProviderFor(
-						region0,
-						roles.Arn(accountId, roles.NetworkAdministrator),
-					)
-					requesterProvider.Alias = "requester"
-					providersFile.Push(requesterProvider)
-					if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-						log.Fatal(err)
-					}
-
-					// The choice of region0 here is arbitrary.  Only one side
-					// can store the Terraform state and region0 wins.
-					if err := terraform.Root(dirname, region0); err != nil {
-						log.Fatal(err)
-					}
-
-					if err := terraform.Init(dirname); err != nil {
-						log.Fatal(err)
-					}
-
-					if *noApply {
-						err = terraform.Plan(dirname)
-					} else {
-						err = terraform.Apply(dirname, *autoApprove)
-					}
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
+		/*
+			oldDirname := filepath.Join(
+				terraform.RootModulesDirname,
+				accounts.Network,
+				eq0.Environment,
+				"peering",
+				fmt.Sprintf("%s-%s-%s-%s", eq0.Quality, region0, eq1.Quality, region1),
+			)
+			if err := terraform.Destroy(oldDirname); err != nil {
+				log.Fatal(err)
 			}
+		*/
+
+		dirname := filepath.Join(
+			terraform.RootModulesDirname,
+			accounts.Network,
+			"peering",
+			eq0.Environment,
+			eq1.Environment,
+			eq0.Quality,
+			eq1.Quality,
+			region0,
+			region1,
+		)
+
+		file := terraform.NewFile()
+		file.Push(terraform.Module{
+			Arguments: map[string]terraform.Value{
+				"accepter_environment":  terraform.Q(eq0.Environment),
+				"accepter_quality":      terraform.Q(eq0.Quality),
+				"requester_environment": terraform.Q(eq1.Environment),
+				"requester_quality":     terraform.Q(eq1.Quality),
+			},
+			Label: terraform.Q("peering-connection"),
+			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
+				terraform.ProviderAliasFor("accepter"):  terraform.ProviderAliasFor("accepter"),
+				terraform.ProviderAliasFor("requester"): terraform.ProviderAliasFor("requester"),
+			},
+			Source: terraform.Q("../../../../../../../../../modules/peering-connection"),
+		})
+		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		providersFile := terraform.NewFile()
+		accepterProvider := terraform.ProviderFor(
+			region1,
+			roles.Arn(accountId, roles.NetworkAdministrator),
+		)
+		accepterProvider.Alias = "accepter"
+		providersFile.Push(accepterProvider)
+		requesterProvider := terraform.ProviderFor(
+			region0,
+			roles.Arn(accountId, roles.NetworkAdministrator),
+		)
+		requesterProvider.Alias = "requester"
+		providersFile.Push(requesterProvider)
+		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
+			log.Fatal(err)
+		}
+
+		// The choice of region0 here is arbitrary.  Only one side
+		// can store the Terraform state and region0 wins.
+		if err := terraform.Root(dirname, region0); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := terraform.Init(dirname); err != nil {
+			log.Fatal(err)
+		}
+
+		if *noApply {
+			err = terraform.Plan(dirname)
+		} else {
+			err = terraform.Apply(dirname, *autoApprove)
+		}
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 
