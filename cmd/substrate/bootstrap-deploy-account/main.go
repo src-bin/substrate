@@ -1,4 +1,4 @@
-package main
+package bootstrapdeployaccount
 
 import (
 	"flag"
@@ -23,7 +23,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func main() {
+func Main() {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	cmdutil.MustChdir()
