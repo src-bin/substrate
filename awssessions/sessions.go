@@ -268,7 +268,7 @@ func NewSession(config Config) (*session.Session, error) {
 
 	// If we're not using root credentials, we're done.
 	if !strings.HasSuffix(aws.StringValue(callerIdentity.Arn), ":root") {
-		ui.Printf("starting AWS session as %s", callerIdentity.Arn)
+		//ui.Printf("starting AWS session as %s", callerIdentity.Arn)
 		return sess, nil
 	}
 
