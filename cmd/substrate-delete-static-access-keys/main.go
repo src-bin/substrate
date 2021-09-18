@@ -43,7 +43,7 @@ func main() {
 		log.Fatal(err)
 	}
 	ui.Printf(
-		"from now on, use <https://%s/credential-factory> to get temporary AWS access keys",
+		"from now on, use substrate-credentials or <https://%s/credential-factory> to mint short-lived AWS access keys",
 		strings.Trim(string(intranetDNSDomainName), "\r\n"),
 	)
 
