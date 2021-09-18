@@ -22,6 +22,7 @@ import (
 )
 
 func main() {
+	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
 	domain := flag.String("domain", "", "domain for this new AWS account")
 	environment := flag.String("environment", "", "environment for this new AWS account")
 	quality := flag.String("quality", "", "quality for this new AWS account")
@@ -48,14 +49,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ui.Spin("finding or creating the account")
-	svc := organizations.New(sess)
-	account, err := awsorgs.EnsureAccount(svc, *domain, *environment, *quality)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := accounts.CheatSheet(svc); err != nil {
-		log.Fatal(err)
+	ui.Spin("finding the account")
+	var account *awsorgs.Account
+	{
+		svc := organizations.New(sess)
+		account, err = awsorgs.FindAccount(svc, *domain, *environment, *quality)
+		if _, ok := err.(awsorgs.AccountNotFound); ok {
+			ui.Stop("not found")
+			if !*create {
+				if ok, err := ui.Confirm("create a new AWS account? (yes/no)"); err != nil {
+					log.Fatal(err)
+				} else if !ok {
+					ui.Fatal("not creating a new AWS account")
+				}
+			}
+			ui.Spin("creating the account")
+			account, err = awsorgs.EnsureAccount(svc, *domain, *environment, *quality)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := accounts.CheatSheet(svc); err != nil {
+			log.Fatal(err)
+		}
 	}
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)

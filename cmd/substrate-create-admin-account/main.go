@@ -54,6 +54,7 @@ const (
 func main() {
 	quality := flag.String("quality", "", "quality for this new AWS account")
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
+	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	cmdutil.MustChdir()
 	flag.Parse()
@@ -87,13 +88,29 @@ func main() {
 	metadata := strings.Join(lines, "\n") + "\n" // ui.EditFile is line-oriented but this instance isn't
 
 	// Ensure the account exists.
-	ui.Spin("finding or creating the admin account")
-	account, err := awsorgs.EnsureAccount(organizations.New(sess), accounts.Admin, accounts.Admin, *quality)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := accounts.CheatSheet(organizations.New(sess)); err != nil {
-		log.Fatal(err)
+	ui.Spin("finding the admin account")
+	var account *awsorgs.Account
+	{
+		svc := organizations.New(sess)
+		account, err = awsorgs.FindAccount(svc, accounts.Admin, accounts.Admin, *quality)
+		if _, ok := err.(awsorgs.AccountNotFound); ok {
+			ui.Stop("not found")
+			if !*create {
+				if ok, err := ui.Confirmf("create a new %s-quality admin account? (yes/no)", *quality); err != nil {
+					log.Fatal(err)
+				} else if !ok {
+					ui.Fatal("not creating a new AWS account")
+				}
+			}
+			ui.Spin("creating the admin account")
+			account, err = awsorgs.EnsureAccount(svc, accounts.Admin, accounts.Admin, *quality)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := accounts.CheatSheet(svc); err != nil {
+			log.Fatal(err)
+		}
 	}
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
