@@ -1,4 +1,4 @@
-package main
+package createaccount
 
 import (
 	"flag"
@@ -21,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func main() {
+func Main() {
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
 	domain := flag.String("domain", "", "domain for this new AWS account")
 	environment := flag.String("environment", "", "environment for this new AWS account")
