@@ -1,4 +1,4 @@
-package main
+package bootstrapmanagementaccount
 
 import (
 	"flag"
@@ -36,7 +36,7 @@ const (
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
 )
 
-func main() {
+func Main() {
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()
