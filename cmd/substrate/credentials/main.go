@@ -1,4 +1,4 @@
-package main
+package credentials
 
 import (
 	"crypto/rand"
@@ -19,23 +19,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func fetch(u *url.URL) (*sts.Credentials, error) {
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, nil
-	}
-	var credentials sts.Credentials
-	if err := json.NewDecoder(resp.Body).Decode(&credentials); err != nil {
-		return nil, err
-	}
-	return &credentials, nil
-}
-
-func main() {
+func Main() {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	cmdutil.MustChdir()
@@ -93,4 +77,20 @@ func main() {
 	// Print credentials in whatever format was requested.
 	awssts.PrintCredentials(format, credentials)
 
+}
+
+func fetch(u *url.URL) (*sts.Credentials, error) {
+	resp, err := http.Get(u.String())
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil
+	}
+	var credentials sts.Credentials
+	if err := json.NewDecoder(resp.Body).Decode(&credentials); err != nil {
+		return nil, err
+	}
+	return &credentials, nil
 }
