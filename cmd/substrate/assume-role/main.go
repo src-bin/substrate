@@ -1,4 +1,4 @@
-package main
+package assumerole
 
 import (
 	"flag"
@@ -22,7 +22,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func main() {
+func Main() {
 	admin := flag.Bool("admin", false, `shorthand for -domain="admin" -environment="admin"`)
 	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")
