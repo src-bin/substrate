@@ -23,13 +23,12 @@ install:
 	go generate ./cmd/substrate-intranet # dependency of cmd/substrate-create-admin-account's go:generate directives
 	go generate ./... # the rest of the go:generate directives
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
-	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authenticator # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-authorizer # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-apigateway-index # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-credential-factory # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-instance-factory # change to `rm -f` in 2021.09
-	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-intranet # change to `rm -f` in 2021.09
-	chmod +x $(shell go env GOBIN)/substrate-*
+	rm -f $(shell go env GOBIN)/substrate-apigateway-authenticator # remove in 2021.10
+	rm -f $(shell go env GOBIN)/substrate-apigateway-authorizer # remove in 2021.10
+	rm -f $(shell go env GOBIN)/substrate-apigateway-index # remove in 2021.10
+	rm -f $(shell go env GOBIN)/substrate-credential-factory # remove in 2021.10
+	rm -f $(shell go env GOBIN)/substrate-instance-factory # remove in 2021.10
+	rm -f $(shell go env GOBIN)/substrate-intranet # remove in 2021.10
 	ln -f -s substrate $(shell go env GOBIN)/substrate-delete-static-access-keys
 	ln -f -s substrate $(shell go env GOBIN)/substrate-whoami
 
@@ -60,11 +59,6 @@ test:
 
 uninstall:
 	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
-	rm -f $(shell go env GOBIN)/substrate-apigateway-authenticator # remove in 2021.09
-	rm -f $(shell go env GOBIN)/substrate-apigateway-authorizer # remove in 2021.09
-	rm -f $(shell go env GOBIN)/substrate-apigateway-index # remove in 2021.09
-	rm -f $(shell go env GOBIN)/substrate-credential-factory # remove in 2021.09
-	rm -f $(shell go env GOBIN)/substrate-instance-factory # remove in 2021.09
 	rm -f $(shell go env GOBIN)/substrate-delete-static-access-keys
 	rm -f $(shell go env GOBIN)/substrate-whoami
 
