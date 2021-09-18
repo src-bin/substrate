@@ -1,4 +1,4 @@
-package main
+package deletestaticaccesskeys
 
 import (
 	"flag"
@@ -17,7 +17,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func main() {
+func Main() {
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()

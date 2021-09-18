@@ -30,6 +30,7 @@ install:
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-instance-factory # change to `rm -f` in 2021.09
 	echo '#!/bin/sh' >$(shell go env GOBIN)/substrate-intranet # change to `rm -f` in 2021.09
 	chmod +x $(shell go env GOBIN)/substrate-*
+	ln -f -s substrate $(shell go env GOBIN)/substrate-delete-static-access-keys
 	ln -f -s substrate $(shell go env GOBIN)/substrate-whoami
 
 release:
@@ -64,6 +65,7 @@ uninstall:
 	rm -f $(shell go env GOBIN)/substrate-apigateway-index # remove in 2021.09
 	rm -f $(shell go env GOBIN)/substrate-credential-factory # remove in 2021.09
 	rm -f $(shell go env GOBIN)/substrate-instance-factory # remove in 2021.09
+	rm -f $(shell go env GOBIN)/substrate-delete-static-access-keys
 	rm -f $(shell go env GOBIN)/substrate-whoami
 
 .PHONY: all clean install release release-filenames tarball test uninstall
