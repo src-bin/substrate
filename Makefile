@@ -29,6 +29,7 @@ install:
 	rm -f $(shell go env GOBIN)/substrate-credential-factory # remove in 2021.10
 	rm -f $(shell go env GOBIN)/substrate-instance-factory # remove in 2021.10
 	rm -f $(shell go env GOBIN)/substrate-intranet # remove in 2021.10
+	ln -f -s substrate $(shell go env GOBIN)/substrate-accounts
 	ln -f -s substrate $(shell go env GOBIN)/substrate-delete-static-access-keys
 	ln -f -s substrate $(shell go env GOBIN)/substrate-whoami
 
@@ -59,6 +60,7 @@ test:
 
 uninstall:
 	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
+	rm -f $(shell go env GOBIN)/substrate-accounts
 	rm -f $(shell go env GOBIN)/substrate-delete-static-access-keys
 	rm -f $(shell go env GOBIN)/substrate-whoami
 

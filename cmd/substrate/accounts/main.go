@@ -1,4 +1,4 @@
-package main
+package accounts
 
 import (
 	"flag"
@@ -18,7 +18,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func main() {
+func Main() {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
 	cmdutil.MustChdir()
 	flag.Parse()
