@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -34,19 +36,41 @@ func main() {
 		log.Fatal(err)
 	}
 
+	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(svc)
+	if err != nil {
+		log.Fatal(err)
+	}
 	switch format.String() {
 
 	case cmdutil.SerializationFormatJSON:
-		adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(svc)
-		if err != nil {
-			log.Fatal(err)
-		}
 		ui.PrettyPrintJSON(append(append([]*awsorgs.Account{
 			managementAccount,
 			auditAccount,
 			networkAccount,
 			deployAccount,
 		}, adminAccounts...), serviceAccounts...))
+
+	case cmdutil.SerializationFormatShell:
+		fmt.Println("substrate-bootstrap-management-account")
+		fmt.Println("substrate-bootstrap-network-account")
+		fmt.Println("substrate-bootstrap-deploy-account")
+		for _, account := range adminAccounts {
+			fmt.Printf(
+				"substrate-create-admin-account -quality=%q\n",
+				account.Tags[tags.Quality],
+			)
+		}
+		for _, account := range serviceAccounts {
+			if _, ok := account.Tags[tags.Domain]; !ok {
+				continue
+			}
+			fmt.Printf(
+				"substrate-create-account -domain=%q -environment=%q -quality=%q\n",
+				account.Tags[tags.Domain],
+				account.Tags[tags.Environment],
+				account.Tags[tags.Quality],
+			)
+		}
 
 	case cmdutil.SerializationFormatText:
 		f, err := os.Open(accounts.CheatSheetFilename)
