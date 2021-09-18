@@ -1,4 +1,4 @@
-package main
+package createadminaccount
 
 import (
 	"flag"
@@ -51,7 +51,7 @@ const (
 	SAMLMetadataFilename = "substrate.saml-metadata.xml"
 )
 
-func main() {
+func Main() {
 	quality := flag.String("quality", "", "quality for this new AWS account")
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
