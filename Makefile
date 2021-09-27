@@ -32,6 +32,10 @@ install:
 	rm -f $(shell go env GOBIN)/substrate-intranet # remove in 2021.10
 
 release:
+ifndef CODEBUILD_BUILD_ID
+	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
+	@false
+endif
 	GOARCH=amd64 GOOS=linux make tarball
 	GOARCH=arm64 GOOS=linux make tarball
 	GOARCH=amd64 GOOS=darwin make tarball
