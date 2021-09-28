@@ -31,6 +31,8 @@ func AdminPrincipals(svc *organizations.Organizations) (
 		return nil, nil, err
 	}
 
+	// This is a lot of work to only be used by the half-baked cross-account
+	// CloudWatch browsing experience.
 	adminAccountPrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts))}
 	for i, account := range adminAccounts {
 		adminAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
@@ -40,7 +42,7 @@ func AdminPrincipals(svc *organizations.Organizations) (
 
 	adminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)} // +2 for the management account and its IAM user
 	for i, account := range adminAccounts {
-		adminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+		adminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator) // TODO here's the spot to swap in roles.Auditor to make Auditor able to move about
 	}
 	org, err := awsorgs.DescribeOrganization(svc)
 	if err != nil {
@@ -178,6 +180,11 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 		if err := awsiam.AttachRolePolicy(svc, roles.Auditor, "arn:aws:iam::aws:policy/ReadOnlyAccess"); err != nil {
 			log.Fatal(err)
 		}
+		/*
+			if err := awsiam.AttachRolePolicy(svc, roles.Auditor, "arn:aws:iam::aws:policy/SecurityAudit"); err != nil {
+				log.Fatal(err)
+			}
+		*/
 	}
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
@@ -437,23 +444,41 @@ func EnsureAdministratorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Do
 // given IAM client.  This role will be allowed to call all read-only APIs as
 // defined by the AWS-managed ReadOnlyAccess policy except the list of
 // sensitive read-only APIs identified by Alestic and captured in
-// DenySensitiveReadsPolicyDocument.
+// DenySensitiveReadsPolicyDocument. It will also be allowed to assume roles
+// via AllowAssumeRolePolicyDocument but the roles that allows it to assume
+// them will (presumably) also be read-only Auditor-like roles.
 func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document) (*awsiam.Role, error) {
 	role, err := awsiam.EnsureRoleWithPolicy(
 		svc,
-		roles.Auditor, // TODO allow it to assume roles (even non-Auditor roles) but set a permission boundary to keep it read-only
+		roles.Auditor,
 		assumeRolePolicyDocument,
-		DenySensitiveReadsPolicyDocument,
+		&policies.Document{
+			Statement: []policies.Statement{
+				//AllowAssumeRolePolicyDocument.Statement[0], // TODO set a permissions boundary to keep it read-only even if the role that allows Auditor to assume it is more permissive
+				DenySensitiveReadsPolicyDocument.Statement[0],
+			},
+		},
 	)
 	if err != nil {
 		return nil, err
 	}
-	err = awsiam.AttachRolePolicy(
+	if err := awsiam.AttachRolePolicy(
 		svc,
 		roles.Auditor,
 		"arn:aws:iam::aws:policy/ReadOnlyAccess",
-	)
-	return role, err
+	); err != nil {
+		return nil, err
+	}
+	/*
+		if err := awsiam.AttachRolePolicy(
+			svc,
+			roles.Auditor,
+			"arn:aws:iam::aws:policy/SecurityAudit",
+		); err != nil {
+			return nil, err
+		}
+	*/
+	return role, nil
 }
 
 // EnsureCloudWatchCrossAccountSharingRole creates the

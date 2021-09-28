@@ -27,6 +27,7 @@ func CreateRole(
 	svc *iam.IAM,
 	roleName string,
 	assumeRolePolicyDoc *policies.Document,
+	// TODO permissionsBoundaryPolicyArn,
 ) (*Role, error) {
 	docJSON, err := assumeRolePolicyDoc.Marshal()
 	if err != nil {
@@ -35,8 +36,9 @@ func CreateRole(
 	in := &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
 		MaxSessionDuration:       aws.Int64(43200),
-		RoleName:                 aws.String(roleName),
-		Tags:                     tagsFor(roleName),
+		// TODO permissionsBoundaryPolicyArn,
+		RoleName: aws.String(roleName),
+		Tags:     tagsFor(roleName),
 	}
 	out, err := svc.CreateRole(in)
 	if err != nil {
@@ -76,6 +78,7 @@ func EnsureRole(
 	svc *iam.IAM,
 	roleName string,
 	assumeRolePolicyDoc *policies.Document,
+	// TODO permissionsBoundaryPolicyArn,
 ) (*Role, error) {
 	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
 
@@ -83,6 +86,7 @@ func EnsureRole(
 		svc,
 		roleName,
 		policies.AssumeRolePolicyDocument(&policies.Principal{Service: []string{"ec2.amazonaws.com"}}), // harmless solution to chicken and egg problem
+		// TODO permissionsBoundaryPolicyArn,
 	)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
 
@@ -126,6 +130,7 @@ func EnsureRoleWithPolicy(
 	svc *iam.IAM,
 	roleName string,
 	assumeRolePolicyDoc *policies.Document,
+	// TODO permissionsBoundaryPolicyArn,
 	doc *policies.Document,
 ) (*Role, error) {
 	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
