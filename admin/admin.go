@@ -248,7 +248,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	}
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
-	ui.Spin("finding or creating a role to allow admin accounts to audit your networks (mostly for discovery in Terraform code)")
+	ui.Spin("finding or creating a role to allow admin accounts to audit your networks (and Terraform code to discover them)")
 	role, err = EnsureAuditorRole(
 		iam.New(awssessions.AssumeRole(
 			sess,

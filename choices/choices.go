@@ -19,7 +19,7 @@ var printedDefaultRegion, printedPrefix bool
 func DefaultRegion() string {
 	region, err := ui.PromptFile(
 		DefaultRegionFilename,
-		"what region is your default for hosting e.g. the S3 buckets that stores your CloudTrail logs or Terraform state?",
+		"what region is your default for hosting shared resources e.g. the S3 bucket that stores your CloudTrail logs?",
 	)
 	if err != nil {
 		log.Fatal(err)
