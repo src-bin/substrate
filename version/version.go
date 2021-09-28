@@ -2,6 +2,7 @@ package version
 
 import (
 	"flag"
+	"os"
 
 	"github.com/src-bin/substrate/ui"
 )
@@ -11,8 +12,13 @@ func Flag() {
 		panic("version.Flag must be called after flag.Parse")
 	}
 	if *versionFlag {
-		ui.Fatalf("Substrate version %s", Version)
+		Print()
+		os.Exit(0)
 	}
+}
+
+func Print() {
+	ui.Printf("Substrate version %s", Version)
 }
 
 var Version = "1970.01" // replaced at build time with current computed version; see Makefile
