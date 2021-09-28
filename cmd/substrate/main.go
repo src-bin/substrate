@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/version"
 )
 
 //go:generate go run ../../tools/dispatch-map/main.go -package main
@@ -41,6 +42,9 @@ func main() {
 		switch os.Args[1] {
 		case "-h", "-help", "--help":
 			usage(0)
+		case "-version", "--version":
+			version.Print()
+			os.Exit(0)
 		}
 
 		os.Args = append([]string{fmt.Sprintf("substrate-%s", os.Args[1])}, os.Args[2:]...)
