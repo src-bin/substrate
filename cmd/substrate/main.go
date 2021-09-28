@@ -19,8 +19,16 @@ func main() {
 	// position. Reconfigure the arguments to make it look like we were invoked
 	// via a symbolic link so as to unify dispatch and simply argument parsing
 	// after dispatch.
+	//
+	// The extra call to filepath.EvalSymlinks is to normalize executable to
+	// be a reference to the actual binary. On MacOS, os.Executable returns
+	// the pathname of the symbolic link, which caused the comparison with
+	// os.Args[0] to always succeed.
 	executable, err := os.Executable()
 	if err != nil {
+		ui.Fatal(err)
+	}
+	if executable, err = filepath.EvalSymlinks(executable); err != nil {
 		ui.Fatal(err)
 	}
 	if filepath.Base(os.Args[0]) == filepath.Base(executable) {
