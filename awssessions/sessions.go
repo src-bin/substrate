@@ -367,11 +367,15 @@ func (err *OrganizationReaderError) Err() error {
 }
 
 func (err *OrganizationReaderError) Error() string {
-	preamble := "could not assume the OrganizationReader role in your organization's management account, which is a prerequisite for finding and assuming "
-	if err.roleName == "" {
-		return preamble + "other roles"
+	target := "other roles"
+	if err.roleName != "" {
+		target = fmt.Sprintf("the %s role", err.roleName)
 	}
-	return fmt.Sprintf(preamble+"the %s role", err.roleName)
+	return fmt.Sprintf(
+		"could not assume the OrganizationReader role in your organization's management account, which is a prerequisite for finding and assuming %s (actual error: %s)",
+		target,
+		err.Err(),
+	)
 }
 
 func configWithRootCredentials(roleName string, config Config) Config {
