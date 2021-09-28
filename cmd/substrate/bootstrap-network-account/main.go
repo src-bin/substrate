@@ -96,14 +96,18 @@ func Main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ui.Print("you currently allow the following combinations of environment and quality in your Substrate-managed infrastructure:")
-	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
-		ui.Printf("\t%-12s %s", eq.Environment, eq.Quality)
+	if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
+		ui.Print("you currently allow the following combinations of environment and quality in your Substrate-managed infrastructure:")
+		for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
+			ui.Printf("\t%-12s %s", eq.Environment, eq.Quality)
+		}
 	}
-	if ui.Interactivity() == ui.FullyInteractive {
-		ok, err := ui.Confirm("is this correct? (yes/no)")
-		if err != nil {
-			log.Fatal(err)
+	if ui.Interactivity() == ui.FullyInteractive || ui.Interactivity() == ui.MinimallyInteractive && len(veqpDoc.ValidEnvironmentQualityPairs) == 0 {
+		var ok bool
+		if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
+			if ok, err = ui.Confirm("is this correct? (yes/no)"); err != nil {
+				log.Fatal(err)
+			}
 		}
 		if !ok {
 			for _, environment := range environments {
@@ -120,6 +124,9 @@ func Main() {
 				}
 			}
 		}
+	} else {
+		ui.Print("if this is not correct, press ^C and re-run this command with -fully-interactive")
+		time.Sleep(5e9) // give them a chance to ^C
 	}
 	if err := veqpDoc.Validate(environments, qualities); err != nil {
 		log.Fatal(err)
