@@ -149,13 +149,13 @@ func Main() {
 
 	// Give Okta some entrypoints in the Admin account.
 	ui.Spinf("finding or creating roles for %s to use in this admin account", idpName)
-	_, adminRolePrincipals, err := admin.AdminPrincipals(organizations.New(sess))
+	canned, err := admin.CannedPrincipals(organizations.New(sess))
 	if err != nil {
 		log.Fatal(err)
 	}
 	assumeRolePolicyDocument := &policies.Document{
 		Statement: []policies.Statement{
-			policies.AssumeRolePolicyDocument(adminRolePrincipals).Statement[0],
+			policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals).Statement[0],
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				AWS: []string{users.Arn(
 					aws.StringValue(account.Id),

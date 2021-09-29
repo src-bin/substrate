@@ -22,41 +22,54 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-func AdminPrincipals(svc *organizations.Organizations) (
-	adminAccountPrincipals, adminRolePrincipals *policies.Principal,
+func CannedPrincipals(svc *organizations.Organizations) (
+	canned struct{ AdminAccountPrincipals, AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
 	err error,
 ) {
-	adminAccounts, err := awsorgs.FindAccountsByDomain(svc, accounts.Admin)
+	var adminAccounts, allAccounts []*awsorgs.Account
+	if adminAccounts, err = awsorgs.FindAccountsByDomain(svc, accounts.Admin); err != nil {
+		return
+	}
+	if allAccounts, err = awsorgs.ListAccounts(svc); err != nil {
+		return
+	}
+	var org *organizations.Organization
+	org, err = awsorgs.DescribeOrganization(svc)
 	if err != nil {
-		return nil, nil, err
+		return
 	}
 
-	// This is a lot of work to only be used by the half-baked cross-account
-	// CloudWatch browsing experience.
-	adminAccountPrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts))}
+	canned.AdminAccountPrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts))}
+	canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
+	canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
 	for i, account := range adminAccounts {
-		adminAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
+		canned.AdminAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
+		canned.AdminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+		canned.AuditorRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+		canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
 	}
-	sort.Strings(adminAccountPrincipals.AWS) // to avoid spurious policy diffs
-	//log.Printf("%+v", adminAccountPrincipals)
-
-	adminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)} // +2 for the management account and its IAM user
-	for i, account := range adminAccounts {
-		adminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator) // TODO here's the spot to swap in roles.Auditor to make Auditor able to move about
-	}
-	org, err := awsorgs.DescribeOrganization(svc)
-	if err != nil {
-		return nil, nil, err
-	}
-	adminRolePrincipals.AWS[len(adminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId)
-	adminRolePrincipals.AWS[len(adminRolePrincipals.AWS)-1] = users.Arn(
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId)
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
 		aws.StringValue(org.MasterAccountId),
 		users.OrganizationAdministrator,
 	)
-	sort.Strings(adminRolePrincipals.AWS) // to avoid spurious policy diffs
-	//log.Printf("%+v", adminRolePrincipals)
+	canned.AuditorRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId)
+	canned.AuditorRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
+		aws.StringValue(org.MasterAccountId),
+		users.OrganizationAdministrator,
+	)
+	sort.Strings(canned.AdminAccountPrincipals.AWS) // to avoid spurious policy diffs
+	sort.Strings(canned.AdminRolePrincipals.AWS)    // to avoid spurious policy diffs
+	sort.Strings(canned.AuditorRolePrincipals.AWS)  // to avoid spurious policy diffs
 
-	return adminAccountPrincipals, adminRolePrincipals, nil
+	canned.OrgAccountPrincipals = &policies.Principal{AWS: make([]string, len(allAccounts))}
+	for i, account := range allAccounts {
+		canned.OrgAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
+	}
+	sort.Strings(canned.OrgAccountPrincipals.AWS) // to avoid spurious policy diffs
+
+	log.Printf("%+v", canned)
+	return
 }
 
 // EnsureAdminRolesAndPolicies creates or updates the entire matrix of
@@ -71,11 +84,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	// to allow cross-account access.  On the first run they're basically
 	// no-ops but on subsequent runs this is key to not undoing the work of
 	// substrate-create-account and substrate-create-admin-account.
-	adminAccountPrincipals, adminRolePrincipals, err := AdminPrincipals(svc)
-	if err != nil {
-		log.Fatal(err)
-	}
-	orgAccountPrincipals, err := OrgAccountPrincipals(svc)
+	canned, err := CannedPrincipals(svc)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +97,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationAdministrator,
-		policies.AssumeRolePolicyDocument(adminRolePrincipals),
+		policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -112,7 +121,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationReader,
-		policies.AssumeRolePolicyDocument(orgAccountPrincipals),
+		policies.AssumeRolePolicyDocument(canned.OrgAccountPrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action: []string{
@@ -134,7 +143,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		"CloudWatch-CrossAccountSharing-ListAccountsRole",
-		policies.AssumeRolePolicyDocument(orgAccountPrincipals),
+		policies.AssumeRolePolicyDocument(canned.OrgAccountPrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action: []string{
@@ -173,7 +182,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(auditAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		role, err = awsiam.EnsureRole(svc, roles.Auditor, policies.AssumeRolePolicyDocument(adminRolePrincipals))
+		role, err = awsiam.EnsureRole(svc, roles.Auditor, policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -203,7 +212,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.DeployAdministrator,
-		policies.AssumeRolePolicyDocument(adminRolePrincipals),
+		policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -223,7 +232,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(deployAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		)),
-		policies.AssumeRolePolicyDocument(orgAccountPrincipals),
+		policies.AssumeRolePolicyDocument(canned.OrgAccountPrincipals),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -242,7 +251,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.NetworkAdministrator,
-		policies.AssumeRolePolicyDocument(adminRolePrincipals),
+		policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -262,7 +271,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(networkAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		)),
-		policies.AssumeRolePolicyDocument(orgAccountPrincipals),
+		policies.AssumeRolePolicyDocument(canned.OrgAccountPrincipals),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -314,13 +323,13 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(account.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		if _, err := EnsureAdministratorRole(svc, policies.AssumeRolePolicyDocument(adminRolePrincipals)); err != nil {
+		if _, err := EnsureAdministratorRole(svc, policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals)); err != nil {
 			ui.Printf(
 				"could not create the Administrator role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
 			)
 		}
-		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(adminRolePrincipals)); err != nil {
+		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals)); err != nil {
 			ui.Printf(
 				"could not create the Auditor role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
@@ -346,7 +355,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 				roles.OrganizationAccountAccessRole,
 			))
 		}
-		if _, err := EnsureCloudWatchCrossAccountSharingRole(svc, policies.AssumeRolePolicyDocument(adminAccountPrincipals)); err != nil {
+		if _, err := EnsureCloudWatchCrossAccountSharingRole(svc, policies.AssumeRolePolicyDocument(canned.AdminAccountPrincipals)); err != nil {
 			ui.Printf(
 				"could not create the CloudWatch-CrossAccountSharingRole role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
@@ -510,18 +519,4 @@ func EnsureCloudWatchCrossAccountSharingRole(svc *iam.IAM, assumeRolePolicyDocum
 	}
 
 	return role, nil
-}
-
-func OrgAccountPrincipals(svc *organizations.Organizations) (*policies.Principal, error) {
-	accounts, err := awsorgs.ListAccounts(svc)
-	if err != nil {
-		return nil, err
-	}
-	accountIds := make([]string, len(accounts))
-	for i, account := range accounts {
-		accountIds[i] = aws.StringValue(account.Id)
-	}
-	sort.Strings(accountIds) // to avoid spurious policy diffs
-	//log.Printf("%+v", accountIds)
-	return &policies.Principal{AWS: accountIds}, nil
 }
