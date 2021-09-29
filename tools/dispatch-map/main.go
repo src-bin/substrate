@@ -75,8 +75,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if len(pkgs) != 1 {
-			log.Fatal("unexpectedly found more than one package in a single directory")
+		if len(pkgs) > 1 {
+			log.Fatalf("unexpectedly found more than one package in a single directory (%s)", entry.Name())
 		}
 		for _, pkg := range pkgs {
 			for _, file := range pkg.Files {
