@@ -2,12 +2,14 @@ package awssts
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"net/url"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/choices"
+	"github.com/src-bin/substrate/fileutil"
 )
 
 // ConsoleSigninURL exchanges a set of STS credentials for a signin token that
@@ -41,7 +43,6 @@ func ConsoleSigninURL(svc *sts.STS, credentials *sts.Credentials) (string, error
 			// "SessionDuration": []string{"600"}, // FIXME it breaks if this is uncommented, with seemingly any value
 		}.Encode(),
 	}
-	log.Print(u.String())
 	resp, err := http.Get(u.String())
 	if err != nil {
 		return "", err
@@ -51,13 +52,16 @@ func ConsoleSigninURL(svc *sts.STS, credentials *sts.Credentials) (string, error
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		return "", err
 	}
-	log.Printf("%+v", body)
 
 	// Step 3: Construct the console signin URL.
+	intranetDNSDomainName, err := fileutil.ReadFile(choices.IntranetDNSDomainNameFilename)
+	if err != nil {
+		return "", err
+	}
 	u.RawQuery = url.Values{
 		"Action":      []string{"login"},
 		"Destination": []string{"https://console.aws.amazon.com/"},
-		"Issuer":      []string{"https://src-bin.com/TODO/TODO/TODO/TODO/TODO/TODO/TODO/TODO/TODO"},
+		"Issuer":      []string{fmt.Sprintf("https://%s/login", intranetDNSDomainName)},
 		"SigninToken": []string{body.SigninToken},
 	}.Encode()
 
