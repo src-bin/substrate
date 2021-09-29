@@ -181,6 +181,9 @@ func Main() {
 	// roles created here.
 	admin.EnsureAdminRolesAndPolicies(sess)
 
+	// TODO need to print the how-to-give-yourself-console-access cue here so folks can actually get into the right account in the console to buy/transfer the domain
+	// TODO or maybe construct a magic console sign-in URL and give it to them right here, right now
+
 	// Make arrangements for a hosted zone to appear in this account so that
 	// the Intranet can configure itself.  It's possible to do this entirely
 	// programmatically but there's a lot of UI surface area involved in doing
