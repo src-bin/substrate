@@ -115,7 +115,6 @@ func Main() {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
-	//idpName := idp(sess, account, metadata)
 	svc := iam.New(sess, &aws.Config{
 		Credentials: stscreds.NewCredentials(sess, roles.Arn(
 			aws.StringValue(account.Id),

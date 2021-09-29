@@ -2,7 +2,6 @@ package assumerole
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -81,24 +80,22 @@ func Main() {
 
 		ui.Fatal(err)
 	}
-	svc := organizations.New(sess)
-	var accountId, displayName string
-	if *number != "" {
-		accountId = *number
-		displayName = *number
-	} else if *management {
-		org, err := awsorgs.DescribeOrganization(svc)
-		if err != nil {
-			log.Fatal(err)
+	var accountId string
+	{
+		svc := organizations.New(sess)
+		if *number != "" {
+			accountId = *number
+		} else if *management {
+			org, err := awsorgs.DescribeOrganization(svc)
+			if err != nil {
+				log.Fatal(err)
+			}
+			accountId = aws.StringValue(org.MasterAccountId)
+		} else if *special != "" {
+			accountId = aws.StringValue(awsorgs.Must(awsorgs.FindSpecialAccount(svc, *special)).Id)
+		} else {
+			accountId = aws.StringValue(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id)
 		}
-		accountId = aws.StringValue(org.MasterAccountId)
-		displayName = *roleName
-	} else if *special != "" {
-		accountId = aws.StringValue(awsorgs.Must(awsorgs.FindSpecialAccount(svc, *special)).Id)
-		displayName = fmt.Sprintf("%s %s", *special, *roleName)
-	} else {
-		accountId = aws.StringValue(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id)
-		displayName = fmt.Sprintf("%s %s %s %s", *domain, *environment, *quality, *roleName)
 	}
 
 	u, err := user.Current()
@@ -122,29 +119,30 @@ func Main() {
 	}
 
 	sess = awssessions.Must(awssessions.NewSession(awssessions.Config{}))
+	svc := sts.New(sess)
 
 	out, err := awssts.AssumeRole(
-		sts.New(sess),
+		svc,
 		roles.Arn(accountId, *roleName),
 		u.Username,
-		3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
+		3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> // TODO 43200?
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	creds := out.Credentials
+	credentials := out.Credentials
 
 	// Execute a command with the credentials in its environment.  We use
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
 	// other environment variables in case they're relevant to the command.
 	if args := flag.Args(); len(args) > 0 {
-		if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(creds.AccessKeyId)); err != nil {
+		if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(credentials.AccessKeyId)); err != nil {
 			log.Fatal(err)
 		}
-		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", aws.StringValue(creds.SecretAccessKey)); err != nil {
+		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", aws.StringValue(credentials.SecretAccessKey)); err != nil {
 			log.Fatal(err)
 		}
-		if err := os.Setenv("AWS_SESSION_TOKEN", aws.StringValue(creds.SessionToken)); err != nil {
+		if err := os.Setenv("AWS_SESSION_TOKEN", aws.StringValue(credentials.SessionToken)); err != nil {
 			log.Fatal(err)
 		}
 
@@ -172,11 +170,10 @@ func Main() {
 			os.Exit(1)
 		}
 
-	} else {
-
-		// Print the credentials for the user to copy into their environment.
-		awssts.PrintCredentials(format, creds)
-
+		return
 	}
+
+	// Print the credentials for the user to copy into their environment.
+	awssts.PrintCredentials(format, credentials)
 
 }
