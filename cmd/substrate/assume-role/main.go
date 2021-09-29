@@ -3,7 +3,6 @@ package assumerole
 import (
 	"flag"
 	"log"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
@@ -103,21 +102,6 @@ func Main() {
 		log.Fatal(err)
 	}
 
-	if *console {
-		u := &url.URL{
-			Scheme: "https",
-			Host:   "signin.aws.amazon.com",
-			Path:   "/switchrole",
-			RawQuery: url.Values{
-				"account":     []string{accountId},
-				"displayName": []string{displayName},
-				"roleName":    []string{*roleName},
-			}.Encode(),
-		}
-		ui.OpenURL(u.String())
-		return
-	}
-
 	sess = awssessions.Must(awssessions.NewSession(awssessions.Config{}))
 	svc := sts.New(sess)
 
@@ -131,6 +115,15 @@ func Main() {
 		log.Fatal(err)
 	}
 	credentials := out.Credentials
+
+	if *console {
+		consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ui.OpenURL(consoleSigninURL)
+		return
+	}
 
 	// Execute a command with the credentials in its environment.  We use
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve

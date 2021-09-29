@@ -1,0 +1,65 @@
+package awssts
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"net/url"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sts"
+)
+
+// ConsoleSigninURL exchanges a set of STS credentials for a signin token that
+// grants the opener access to the AWS Console per the algorithm outlined in
+// <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-custom-url.html>.
+func ConsoleSigninURL(svc *sts.STS, credentials *sts.Credentials) (string, error) {
+
+	// Step 1: AssumeRole, which is technically optional, as all that's really
+	// required is a set of credentials.
+
+	// Step 2: Exchange the credentials for a signin token.
+	session, err := json.Marshal(struct {
+		ID    string `json:"sessionId"`
+		Key   string `json:"sessionKey"`
+		Token string `json:"sessionToken"`
+	}{
+		aws.StringValue(credentials.AccessKeyId),
+		aws.StringValue(credentials.SecretAccessKey),
+		aws.StringValue(credentials.SessionToken),
+	})
+	if err != nil {
+		return "", err
+	}
+	u := &url.URL{
+		Scheme: "https",
+		Host:   "signin.aws.amazon.com",
+		Path:   "/federation",
+		RawQuery: url.Values{
+			"Action":  []string{"getSigninToken"},
+			"Session": []string{string(session)},
+			// "SessionDuration": []string{"600"}, // FIXME it breaks if this is uncommented, with seemingly any value
+		}.Encode(),
+	}
+	log.Print(u.String())
+	resp, err := http.Get(u.String())
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	var body struct{ SigninToken string }
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return "", err
+	}
+	log.Printf("%+v", body)
+
+	// Step 3: Construct the console signin URL.
+	u.RawQuery = url.Values{
+		"Action":      []string{"login"},
+		"Destination": []string{"https://console.aws.amazon.com/"},
+		"Issuer":      []string{"https://src-bin.com/TODO/TODO/TODO/TODO/TODO/TODO/TODO/TODO/TODO"},
+		"SigninToken": []string{body.SigninToken},
+	}.Encode()
+
+	return u.String(), nil
+}
