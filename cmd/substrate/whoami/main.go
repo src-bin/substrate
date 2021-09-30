@@ -43,28 +43,31 @@ func Main() {
 	switch format.String() {
 	case cmdutil.SerializationFormatEnv:
 		fmt.Printf(
-			"DOMAIN=%q\nENVIRONMENT=%q\nQUALITY=%q\n",
+			"DOMAIN=%q\nENVIRONMENT=%q\nQUALITY=%q\nROLE=%q\n",
 			account.Tags[tags.Domain],
 			account.Tags[tags.Environment],
 			account.Tags[tags.Quality],
+			aws.StringValue(callerIdentity.Arn),
 		)
 	case cmdutil.SerializationFormatExport, cmdutil.SerializationFormatExportWithHistory:
 		fmt.Printf(
-			"export DOMAIN=%q ENVIRONMENT=%q QUALITY=%q\n",
+			"export DOMAIN=%q ENVIRONMENT=%q QUALITY=%q ROLE=%q\n",
 			account.Tags[tags.Domain],
 			account.Tags[tags.Environment],
 			account.Tags[tags.Quality],
+			aws.StringValue(callerIdentity.Arn),
 		)
 	case cmdutil.SerializationFormatJSON:
 		ui.PrettyPrintJSON(map[string]string{
 			tags.Domain:      account.Tags[tags.Domain],
 			tags.Environment: account.Tags[tags.Environment],
 			tags.Quality:     account.Tags[tags.Quality],
+			"Role":           aws.StringValue(callerIdentity.Arn),
 		})
 	case cmdutil.SerializationFormatText:
 		ui.Printf(
-			"you're in AWS account %s\nDomain:      %s\nEnvironment: %s\nQuality:     %s",
-			aws.StringValue(account.Id),
+			"you're %s in\nDomain:      %s\nEnvironment: %s\nQuality:     %s",
+			aws.StringValue(callerIdentity.Arn),
 			account.Tags[tags.Domain],
 			account.Tags[tags.Environment],
 			account.Tags[tags.Quality],
