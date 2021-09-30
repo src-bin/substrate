@@ -48,13 +48,13 @@ func CannedPrincipals(svc *organizations.Organizations) (
 		canned.AuditorRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
 		canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
 	}
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId)
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
 	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
 		aws.StringValue(org.MasterAccountId),
 		users.OrganizationAdministrator,
 	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId)
-	canned.AuditorRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.Arn(
 		aws.StringValue(org.MasterAccountId),
 		users.OrganizationAdministrator,
 	)
@@ -68,7 +68,7 @@ func CannedPrincipals(svc *organizations.Organizations) (
 	}
 	sort.Strings(canned.OrgAccountPrincipals.AWS) // to avoid spurious policy diffs
 
-	log.Printf("%+v", canned)
+	//log.Printf("%+v", canned)
 	return
 }
 

@@ -155,7 +155,7 @@ func Main() {
 	}
 	assumeRolePolicyDocument := &policies.Document{
 		Statement: []policies.Statement{
-			policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals).Statement[0],
+			policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals).Statement[0], // must be at index 0
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				AWS: []string{users.Arn(
 					aws.StringValue(account.Id),
@@ -172,6 +172,8 @@ func Main() {
 	if _, err := admin.EnsureAdministratorRole(svc, assumeRolePolicyDocument); err != nil {
 		log.Fatal(err)
 	}
+	assumeRolePolicyDocument.Statement[0].Principal = canned.AuditorRolePrincipals
+	log.Printf("%+v", assumeRolePolicyDocument)
 	if _, err := admin.EnsureAuditorRole(svc, assumeRolePolicyDocument); err != nil {
 		log.Fatal(err)
 	}
