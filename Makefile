@@ -2,7 +2,7 @@
 VERSION := $(shell date +%Y.%m)
 
 # Emergency releases are daily.
-VERSION := $(shell date +%Y.%m.%d)
+#VERSION := $(shell date +%Y.%m.%d)
 
 # All release tarballs are annotated with a short commit SHA and a dirty bit for the work tree.
 COMMIT := $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
