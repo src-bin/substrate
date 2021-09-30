@@ -64,7 +64,7 @@ func (c Config) AWS() aws.Config {
 // TODO AssumeRoleArn(sess, roleArn) variant?
 func AssumeRole(sess *session.Session, accountId, roleName string) *session.Session {
 	arn := roles.Arn(accountId, roleName)
-	ui.Printf("assuming role %s", arn)
+	//ui.Printf("assuming role %s", arn)
 	return sess.Copy(&aws.Config{Credentials: stscreds.NewCredentials(sess, arn)})
 }
 
