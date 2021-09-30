@@ -182,7 +182,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(auditAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		role, err = awsiam.EnsureRole(svc, roles.Auditor, policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals))
+		role, err = awsiam.EnsureRole(svc, roles.Auditor, policies.AssumeRolePolicyDocument(canned.AuditorRolePrincipals))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -329,7 +329,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 				account.Id,
 			)
 		}
-		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals)); err != nil {
+		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(canned.AuditorRolePrincipals)); err != nil {
 			ui.Printf(
 				"could not create the Auditor role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
@@ -463,7 +463,7 @@ func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document
 		assumeRolePolicyDocument,
 		&policies.Document{
 			Statement: []policies.Statement{
-				//AllowAssumeRolePolicyDocument.Statement[0], // TODO set a permissions boundary to keep it read-only even if the role that allows Auditor to assume it is more permissive
+				AllowAssumeRolePolicyDocument.Statement[0], // TODO set a permissions boundary to keep it read-only even if the role that allows Auditor to assume it is more permissive
 				DenySensitiveReadsPolicyDocument.Statement[0],
 			},
 		},
