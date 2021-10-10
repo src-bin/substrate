@@ -111,7 +111,7 @@ func Main() {
 				},
 				policies.Statement{
 					Principal: &policies.Principal{AWS: []string{"*"}},
-					Action:    []string{"s3:PutObject"},
+					Action:    []string{"s3:PutObject", "s3:PutObjectAcl"},
 					Resource: []string{
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
