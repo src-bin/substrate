@@ -22,6 +22,18 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
+func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
+	canned struct{ AdminAccountPrincipals, AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
+	err error,
+) {
+	cp, err := CannedPrincipals(svc)
+	canned.AdminAccountPrincipals = policies.AssumeRolePolicyDocument(cp.AdminAccountPrincipals)
+	canned.AdminRolePrincipals = policies.AssumeRolePolicyDocument(cp.AdminRolePrincipals)
+	canned.AuditorRolePrincipals = policies.AssumeRolePolicyDocument(cp.AuditorRolePrincipals)
+	canned.OrgAccountPrincipals = policies.AssumeRolePolicyDocument(cp.OrgAccountPrincipals)
+	return canned, err
+}
+
 func CannedPrincipals(svc *organizations.Organizations) (
 	canned struct{ AdminAccountPrincipals, AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
 	err error,
@@ -84,7 +96,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	// to allow cross-account access.  On the first run they're basically
 	// no-ops but on subsequent runs this is key to not undoing the work of
 	// substrate-create-account and substrate-create-admin-account.
-	canned, err := CannedPrincipals(svc)
+	canned, err := CannedAssumeRolePolicyDocuments(svc)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,7 +109,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	role, err := awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationAdministrator,
-		policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
+		canned.AdminRolePrincipals,
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -121,7 +133,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		roles.OrganizationReader,
-		policies.AssumeRolePolicyDocument(canned.OrgAccountPrincipals),
+		canned.OrgAccountPrincipals,
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action: []string{
@@ -143,7 +155,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	role, err = awsiam.EnsureRoleWithPolicy(
 		iam.New(sess),
 		"CloudWatch-CrossAccountSharing-ListAccountsRole",
-		policies.AssumeRolePolicyDocument(canned.OrgAccountPrincipals),
+		canned.OrgAccountPrincipals,
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action: []string{
@@ -182,7 +194,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(auditAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		role, err = awsiam.EnsureRole(svc, roles.Auditor, policies.AssumeRolePolicyDocument(canned.AuditorRolePrincipals))
+		role, err = awsiam.EnsureRole(svc, roles.Auditor, canned.AuditorRolePrincipals)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -212,7 +224,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.DeployAdministrator,
-		policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
+		canned.AdminRolePrincipals,
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -232,7 +244,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(deployAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		)),
-		policies.AssumeRolePolicyDocument(canned.OrgAccountPrincipals),
+		canned.OrgAccountPrincipals,
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -251,7 +263,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			roles.OrganizationAccountAccessRole,
 		)),
 		roles.NetworkAdministrator,
-		policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
+		canned.AdminRolePrincipals,
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -271,7 +283,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(networkAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		)),
-		policies.AssumeRolePolicyDocument(canned.OrgAccountPrincipals),
+		canned.OrgAccountPrincipals,
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -323,13 +335,13 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			aws.StringValue(account.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		if _, err := EnsureAdministratorRole(svc, policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals)); err != nil {
+		if _, err := EnsureAdministratorRole(svc, canned.AdminRolePrincipals); err != nil {
 			ui.Printf(
 				"could not create the Administrator role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
 			)
 		}
-		if _, err := EnsureAuditorRole(svc, policies.AssumeRolePolicyDocument(canned.AuditorRolePrincipals)); err != nil {
+		if _, err := EnsureAuditorRole(svc, canned.AuditorRolePrincipals); err != nil {
 			ui.Printf(
 				"could not create the Auditor role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
@@ -355,7 +367,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 				roles.OrganizationAccountAccessRole,
 			))
 		}
-		if _, err := EnsureCloudWatchCrossAccountSharingRole(svc, policies.AssumeRolePolicyDocument(canned.AdminAccountPrincipals)); err != nil {
+		if _, err := EnsureCloudWatchCrossAccountSharingRole(svc, canned.AdminAccountPrincipals); err != nil {
 			ui.Printf(
 				"could not create the CloudWatch-CrossAccountSharingRole role in account %s; it might be because this account has only half-joined the organization",
 				account.Id,
@@ -461,12 +473,10 @@ func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document
 		svc,
 		roles.Auditor,
 		assumeRolePolicyDocument,
-		&policies.Document{
-			Statement: []policies.Statement{
-				AllowAssumeRolePolicyDocument.Statement[0], // TODO set a permissions boundary to keep it read-only even if the role that allows Auditor to assume it is more permissive
-				DenySensitiveReadsPolicyDocument.Statement[0],
-			},
-		},
+		policies.Merge(
+			AllowAssumeRolePolicyDocument, // TODO set a permissions boundary to keep it read-only even if the role that allows Auditor to assume it is more permissive
+			DenySensitiveReadsPolicyDocument,
+		),
 	)
 	if err != nil {
 		return nil, err

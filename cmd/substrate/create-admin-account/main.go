@@ -149,30 +149,28 @@ func Main() {
 
 	// Give Okta some entrypoints in the Admin account.
 	ui.Spinf("finding or creating roles for %s to use in this admin account", idpName)
-	canned, err := admin.CannedPrincipals(organizations.New(sess))
+	canned, err := admin.CannedAssumeRolePolicyDocuments(organizations.New(sess))
 	if err != nil {
 		log.Fatal(err)
 	}
-	assumeRolePolicyDocument := &policies.Document{
-		Statement: []policies.Statement{
-			policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals).Statement[0], // must be at index 0
-			policies.AssumeRolePolicyDocument(&policies.Principal{
-				AWS: []string{users.Arn(
-					aws.StringValue(account.Id),
-					users.CredentialFactory,
-				)},
-				Service: []string{"ec2.amazonaws.com"},
-			}).Statement[0],
-			policies.AssumeRolePolicyDocument(&policies.Principal{
-				Federated: []string{saml.Arn},
-			}).Statement[0],
-		},
-	}
+	assumeRolePolicyDocument := policies.Merge(
+		canned.AdminRolePrincipals, // must be at index 0
+		policies.AssumeRolePolicyDocument(&policies.Principal{
+			AWS: []string{users.Arn(
+				aws.StringValue(account.Id),
+				users.CredentialFactory,
+			)},
+			Service: []string{"ec2.amazonaws.com"},
+		}),
+		policies.AssumeRolePolicyDocument(&policies.Principal{
+			Federated: []string{saml.Arn},
+		}),
+	)
 	//log.Printf("%+v", assumeRolePolicyDocument)
 	if _, err := admin.EnsureAdministratorRole(svc, assumeRolePolicyDocument); err != nil {
 		log.Fatal(err)
 	}
-	assumeRolePolicyDocument.Statement[0].Principal = canned.AuditorRolePrincipals
+	assumeRolePolicyDocument.Statement[0] = canned.AuditorRolePrincipals.Statement[0] // this is why it must be at index 0
 	log.Printf("%+v", assumeRolePolicyDocument)
 	if _, err := admin.EnsureAuditorRole(svc, assumeRolePolicyDocument); err != nil {
 		log.Fatal(err)
