@@ -1,7 +1,6 @@
 package awsiam
 
 import (
-	"fmt"
 	"net/url"
 	"time"
 
@@ -209,33 +208,4 @@ func roleFromAPI(role *iam.Role) (*Role, error) {
 		AssumeRolePolicy: doc,
 		Name:             aws.StringValue(role.RoleName),
 	}, err
-}
-
-func (r *Role) AddPrincipal(svc *iam.IAM, principal *policies.Principal) error {
-	if len(r.AssumeRolePolicy.Statement) == 0 {
-		return fmt.Errorf("AssumeRolePolicy with zero Statements %+v", r.AssumeRolePolicy)
-	}
-	if len(r.AssumeRolePolicy.Statement) > 1 {
-		return fmt.Errorf("AssumeRolePolicy with more than one Statement %+v", r.AssumeRolePolicy)
-	}
-
-	for _, s := range principal.AWS {
-		r.AssumeRolePolicy.Statement[0].Principal.AWS.Add(s)
-	}
-	for _, s := range principal.Federated {
-		r.AssumeRolePolicy.Statement[0].Principal.Federated.Add(s)
-	}
-	for _, s := range principal.Service {
-		r.AssumeRolePolicy.Statement[0].Principal.Service.Add(s)
-	}
-
-	docJSON, err := r.AssumeRolePolicy.Marshal()
-	if err != nil {
-		return err
-	}
-	_, err = svc.UpdateAssumeRolePolicy(&iam.UpdateAssumeRolePolicyInput{
-		PolicyDocument: aws.String(docJSON),
-		RoleName:       aws.String(r.Name),
-	})
-	return err
 }
