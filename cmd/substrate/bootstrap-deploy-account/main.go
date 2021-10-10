@@ -105,7 +105,9 @@ func Main() {
 						fmt.Sprintf("arn:aws:s3:::%s", name),
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
-					Condition: policies.Condition{"StringEquals": {"aws:PrincipalOrgID": aws.StringValue(org.Id)}},
+					Condition: policies.Condition{"StringEquals": {
+						"aws:PrincipalOrgID": aws.StringValue(org.Id),
+					}},
 				},
 				policies.Statement{
 					Principal: &policies.Principal{AWS: []string{"*"}},
