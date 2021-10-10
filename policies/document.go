@@ -33,9 +33,21 @@ func AssumeRolePolicyDocument(principal *Principal) *Document {
 	return doc
 }
 
-func Unmarshal(s string) (*Document, error) {
+func Merge(docs ...*Document) *Document {
+	doc := &Document{}
+	for i := 0; i < len(docs); i++ {
+		doc.Statement = append(doc.Statement, docs[i].Statement...)
+	}
+	return doc
+}
+
+func Unmarshal(b []byte) (*Document, error) {
 	d := &Document{}
-	return d, json.Unmarshal([]byte(s), d)
+	return d, json.Unmarshal(b, d)
+}
+
+func UnmarshalString(s string) (*Document, error) {
+	return Unmarshal([]byte(s))
 }
 
 func (d *Document) Marshal() (string, error) {

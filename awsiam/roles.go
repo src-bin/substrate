@@ -202,7 +202,7 @@ func roleFromAPI(role *iam.Role) (*Role, error) {
 	if err != nil {
 		return nil, err
 	}
-	doc, err := policies.Unmarshal(s)
+	doc, err := policies.UnmarshalString(s)
 	return &Role{
 		Arn:              aws.StringValue(role.Arn),
 		AssumeRolePolicy: doc,
