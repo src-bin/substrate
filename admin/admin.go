@@ -26,62 +26,12 @@ func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
 	canned struct{ AdminAccountPrincipals, AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
 	err error,
 ) {
-	cp, err := CannedPrincipals(svc)
+	cp, err := cannedPrincipals(svc)
 	canned.AdminAccountPrincipals = policies.AssumeRolePolicyDocument(cp.AdminAccountPrincipals)
 	canned.AdminRolePrincipals = policies.AssumeRolePolicyDocument(cp.AdminRolePrincipals)
 	canned.AuditorRolePrincipals = policies.AssumeRolePolicyDocument(cp.AuditorRolePrincipals)
 	canned.OrgAccountPrincipals = policies.AssumeRolePolicyDocument(cp.OrgAccountPrincipals)
 	return canned, err
-}
-
-func CannedPrincipals(svc *organizations.Organizations) (
-	canned struct{ AdminAccountPrincipals, AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
-	err error,
-) {
-	var adminAccounts, allAccounts []*awsorgs.Account
-	if adminAccounts, err = awsorgs.FindAccountsByDomain(svc, accounts.Admin); err != nil {
-		return
-	}
-	if allAccounts, err = awsorgs.ListAccounts(svc); err != nil {
-		return
-	}
-	var org *organizations.Organization
-	org, err = awsorgs.DescribeOrganization(svc)
-	if err != nil {
-		return
-	}
-
-	canned.AdminAccountPrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts))}
-	canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
-	canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
-	for i, account := range adminAccounts {
-		canned.AdminAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
-		canned.AdminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-		canned.AuditorRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-		canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
-	}
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
-		aws.StringValue(org.MasterAccountId),
-		users.OrganizationAdministrator,
-	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.Arn(
-		aws.StringValue(org.MasterAccountId),
-		users.OrganizationAdministrator,
-	)
-	sort.Strings(canned.AdminAccountPrincipals.AWS) // to avoid spurious policy diffs
-	sort.Strings(canned.AdminRolePrincipals.AWS)    // to avoid spurious policy diffs
-	sort.Strings(canned.AuditorRolePrincipals.AWS)  // to avoid spurious policy diffs
-
-	canned.OrgAccountPrincipals = &policies.Principal{AWS: make([]string, len(allAccounts))}
-	for i, account := range allAccounts {
-		canned.OrgAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
-	}
-	sort.Strings(canned.OrgAccountPrincipals.AWS) // to avoid spurious policy diffs
-
-	//log.Printf("%+v", canned)
-	return
 }
 
 // EnsureAdminRolesAndPolicies creates or updates the entire matrix of
@@ -529,4 +479,54 @@ func EnsureCloudWatchCrossAccountSharingRole(svc *iam.IAM, assumeRolePolicyDocum
 	}
 
 	return role, nil
+}
+
+func cannedPrincipals(svc *organizations.Organizations) (
+	canned struct{ AdminAccountPrincipals, AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
+	err error,
+) {
+	var adminAccounts, allAccounts []*awsorgs.Account
+	if adminAccounts, err = awsorgs.FindAccountsByDomain(svc, accounts.Admin); err != nil {
+		return
+	}
+	if allAccounts, err = awsorgs.ListAccounts(svc); err != nil {
+		return
+	}
+	var org *organizations.Organization
+	org, err = awsorgs.DescribeOrganization(svc)
+	if err != nil {
+		return
+	}
+
+	canned.AdminAccountPrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts))}
+	canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
+	canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
+	for i, account := range adminAccounts {
+		canned.AdminAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
+		canned.AdminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+		canned.AuditorRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+		canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
+	}
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
+		aws.StringValue(org.MasterAccountId),
+		users.OrganizationAdministrator,
+	)
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.Arn(
+		aws.StringValue(org.MasterAccountId),
+		users.OrganizationAdministrator,
+	)
+	sort.Strings(canned.AdminAccountPrincipals.AWS) // to avoid spurious policy diffs
+	sort.Strings(canned.AdminRolePrincipals.AWS)    // to avoid spurious policy diffs
+	sort.Strings(canned.AuditorRolePrincipals.AWS)  // to avoid spurious policy diffs
+
+	canned.OrgAccountPrincipals = &policies.Principal{AWS: make([]string, len(allAccounts))}
+	for i, account := range allAccounts {
+		canned.OrgAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
+	}
+	sort.Strings(canned.OrgAccountPrincipals.AWS) // to avoid spurious policy diffs
+
+	//log.Printf("%+v", canned)
+	return
 }
