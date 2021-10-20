@@ -43,7 +43,7 @@ func Main() {
 
 	pathname, err := fileutil.PathnameInParents(choices.IntranetDNSDomainNameFilename)
 	if err != nil {
-		ui.Fatal(err)
+		ui.Fatal("substrate.* not found in this or any parent directory; change to your Substrate repository or set SUBSTRATE_ROOT to its path in your environment")
 	}
 	intranetDNSDomainName, err := fileutil.ReadFile(pathname)
 	if err != nil {
