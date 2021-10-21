@@ -24,8 +24,7 @@ func (DataSubnet) Template() string {
 {{- if .Provider}}
   provider = {{.Provider}}
 {{- end}}
-}
-`
+}`
 }
 
 type DataSubnetIds struct {
@@ -48,8 +47,7 @@ func (DataSubnetIds) Template() string {
   tags = {{.Tags.Value}}
 {{- end}}
   vpc_id = {{.VpcId.Value}}
-}
-`
+}`
 }
 
 type DataVPC struct {
@@ -70,8 +68,7 @@ func (DataVPC) Template() string {
 {{- if .Tags}}
   tags = {{.Tags.Value}}
 {{- end}}
-}
-`
+}`
 }
 
 type Subnet struct {

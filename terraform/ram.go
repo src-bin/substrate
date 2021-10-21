@@ -7,7 +7,7 @@ type PrincipalAssociation struct {
 }
 
 func (pa PrincipalAssociation) Ref() Value {
-	return Uf("aws_resource_association.%s", pa.Label)
+	return Uf("aws_ram_principal_association.%s", pa.Label)
 }
 
 func (PrincipalAssociation) Template() string {
@@ -28,7 +28,7 @@ type ResourceAssociation struct {
 }
 
 func (ra ResourceAssociation) Ref() Value {
-	return Uf("aws_resource_association.%s", ra.Label)
+	return Uf("aws_ram_resource_association.%s", ra.Label)
 }
 
 func (ResourceAssociation) Template() string {

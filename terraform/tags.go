@@ -8,6 +8,7 @@ import (
 // in another account and shared into this one (because their tags don't get
 // shared along).
 type EC2Tag struct {
+	DependsOn  ValueSlice
 	ForEach    Value
 	Key, Value Value
 	Label      Value
@@ -21,6 +22,9 @@ func (t EC2Tag) Ref() Value {
 
 func (EC2Tag) Template() string {
 	return `resource "aws_ec2_tag" {{.Label.Value}} {
+{{- if .DependsOn}}
+  depends_on = {{.DependsOn.Value}}
+{{- end}}
 {{- if .ForEach}}
   for_each = {{.ForEach.Value}}
 {{- end}}
