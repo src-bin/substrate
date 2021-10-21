@@ -329,7 +329,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 					roles.OrganizationAccountAccessRole,
 				))
 			}
-			if _, err := EnsureCloudWatchCrossAccountSharingRole(svc, canned.AdminAccountPrincipals); err != nil { // TODO canned.OrgAccountPrincipals?
+			if _, err := EnsureCloudWatchCrossAccountSharingRole(svc, canned.OrgAccountPrincipals); err != nil {
 				ui.Printf(
 					"could not create the CloudWatch-CrossAccountSharingRole role in account %s; it might be because this account has only half-joined the organization",
 					account.Id,
