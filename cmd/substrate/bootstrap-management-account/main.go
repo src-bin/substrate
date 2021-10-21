@@ -227,6 +227,33 @@ func Main() {
 					Resource: []string{"*"},
 				},
 
+				// TODO uncomment these blocks in 2021.11 or 2021.12
+				/*
+					// Enforce exclusive IMDSv2 use at ec2:RunInstances.
+					policies.Statement{
+						Action: []string{"ec2:RunInstances"},
+						Condition: policies.Condition{
+							"StringNotEquals": {
+								"ec2:MetadataHttpTokens": "required",
+							},
+						},
+						Effect:   policies.Deny,
+						Resource: []string{"*"},
+					},
+
+					// Also enforce exclusive IMDSv2 use by voiding credentials from IMDSv1.
+					policies.Statement{
+						Action: []string{"*"},
+						Condition: policies.Condition{
+							"NumericLessThan": {
+								"ec2:RoleDelivery": "2.0",
+							},
+						},
+						Effect:   policies.Deny,
+						Resource: []string{"*"},
+					},
+				*/
+
 				policies.Statement{
 					Action:   []string{"*"},
 					Resource: []string{"*"},
