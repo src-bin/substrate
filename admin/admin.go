@@ -287,6 +287,10 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 			continue
 		}
 
+		// TODO if we try this block with Administrator as well as
+		// OrganizationAccountAccessRole before giving up we can end up with
+		// folks' original accounts in a much more managed (though still
+		// untagged) state.
 		svc := iam.New(awssessions.AssumeRole(
 			sess,
 			aws.StringValue(account.Id),
@@ -336,7 +340,6 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 
 		// Create the service-linked role CloudWatch will actually use to read logs
 		// and metrics from other accounts in your organization.
-		// TODO don't do this if we know we've already done it
 		ui.Spin("finding or creating CloudWatch's service-linked role for cross-account log and metric access")
 		for _, account := range allAccounts {
 			if account.Tags[tags.Domain] != "admin" {
