@@ -26,11 +26,10 @@ import (
 var noCloudWatch = flag.Bool("no-cloudwatch", false, "do not manage CloudWatch cross-account sharing roles (which is slow)")
 
 func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
-	canned struct{ AdminAccountPrincipals, AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
+	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
 	err error,
 ) {
 	cp, err := cannedPrincipals(svc)
-	canned.AdminAccountPrincipals = policies.AssumeRolePolicyDocument(cp.AdminAccountPrincipals)
 	canned.AdminRolePrincipals = policies.AssumeRolePolicyDocument(cp.AdminRolePrincipals)
 	canned.AuditorRolePrincipals = policies.AssumeRolePolicyDocument(cp.AuditorRolePrincipals)
 	canned.OrgAccountPrincipals = policies.AssumeRolePolicyDocument(cp.OrgAccountPrincipals)
@@ -497,7 +496,7 @@ func EnsureCloudWatchCrossAccountSharingRole(svc *iam.IAM, assumeRolePolicyDocum
 }
 
 func cannedPrincipals(svc *organizations.Organizations) (
-	canned struct{ AdminAccountPrincipals, AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
+	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
 	err error,
 ) {
 	var adminAccounts, allAccounts []*awsorgs.Account
@@ -513,11 +512,9 @@ func cannedPrincipals(svc *organizations.Organizations) (
 		return
 	}
 
-	canned.AdminAccountPrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts))}
 	canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
 	canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
 	for i, account := range adminAccounts {
-		canned.AdminAccountPrincipals.AWS[i] = aws.StringValue(account.Id)
 		canned.AdminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
 		canned.AuditorRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
 		canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
@@ -532,9 +529,8 @@ func cannedPrincipals(svc *organizations.Organizations) (
 		aws.StringValue(org.MasterAccountId),
 		users.OrganizationAdministrator,
 	)
-	sort.Strings(canned.AdminAccountPrincipals.AWS) // to avoid spurious policy diffs
-	sort.Strings(canned.AdminRolePrincipals.AWS)    // to avoid spurious policy diffs
-	sort.Strings(canned.AuditorRolePrincipals.AWS)  // to avoid spurious policy diffs
+	sort.Strings(canned.AdminRolePrincipals.AWS)   // to avoid spurious policy diffs
+	sort.Strings(canned.AuditorRolePrincipals.AWS) // to avoid spurious policy diffs
 
 	canned.OrgAccountPrincipals = &policies.Principal{AWS: make([]string, len(allAccounts))}
 	for i, account := range allAccounts {
