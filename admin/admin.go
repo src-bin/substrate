@@ -1,8 +1,10 @@
 package admin
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"sort"
 
@@ -14,6 +16,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -30,8 +33,36 @@ func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
 	err error,
 ) {
 	cp, err := cannedPrincipals(svc)
-	canned.AdminRolePrincipals = policies.AssumeRolePolicyDocument(cp.AdminRolePrincipals)
-	canned.AuditorRolePrincipals = policies.AssumeRolePolicyDocument(cp.AuditorRolePrincipals)
+
+	var extraAdmin, extraAuditor policies.Document
+	if err := jsonutil.Read("substrate.Administrator.assume-role-policy.json", &extraAdmin); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			ui.Printf("substrate.Administrator.assume-role-policy.json not found; create it if you wish to customize who can assume Administrator roles")
+		} else {
+			ui.Printf("error processing substrate.Administrator.assume-role-policy.json: %v", err)
+		}
+	}
+	if err := jsonutil.Read("substrate.Auditor.assume-role-policy.json", &extraAuditor); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			ui.Printf("substrate.Auditor.assume-role-policy.json not found; create it if you wish to customize who can assume Auditor roles")
+		} else {
+			ui.Printf("error processing substrate.Auditor.assume-role-policy.json: %v", err)
+		}
+	}
+	log.Printf("%+v", extraAdmin)
+	log.Printf("%+v", extraAuditor)
+
+	canned.AdminRolePrincipals = policies.Merge(
+		policies.AssumeRolePolicyDocument(cp.AdminRolePrincipals),
+		&extraAdmin,
+	)
+	canned.AuditorRolePrincipals = policies.Merge(
+		policies.AssumeRolePolicyDocument(cp.AuditorRolePrincipals),
+		&extraAuditor,
+	)
+	log.Printf("%+v", canned.AdminRolePrincipals)
+	log.Printf("%+v", canned.AuditorRolePrincipals)
+
 	canned.OrgAccountPrincipals = policies.AssumeRolePolicyDocument(cp.OrgAccountPrincipals)
 	return canned, err
 }
