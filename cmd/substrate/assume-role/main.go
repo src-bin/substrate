@@ -105,7 +105,7 @@ func Main() {
 	sess = awssessions.Must(awssessions.NewSession(awssessions.Config{}))
 	svc := sts.New(sess)
 
-	out, err := awssts.AssumeRole(
+	assumedRole, err := awssts.AssumeRole(
 		svc,
 		roles.Arn(accountId, *roleName),
 		u.Username,
@@ -114,10 +114,10 @@ func Main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	credentials := out.Credentials
+	credentials := assumedRole.Credentials
 
 	if *console {
-		consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials)
+		consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials, "")
 		if err != nil {
 			log.Fatal(err)
 		}

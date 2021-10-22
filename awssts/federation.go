@@ -15,7 +15,11 @@ import (
 // ConsoleSigninURL exchanges a set of STS credentials for a signin token that
 // grants the opener access to the AWS Console per the algorithm outlined in
 // <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-custom-url.html>.
-func ConsoleSigninURL(svc *sts.STS, credentials *sts.Credentials) (string, error) {
+func ConsoleSigninURL(
+	svc *sts.STS,
+	credentials *sts.Credentials,
+	destination string,
+) (string, error) {
 
 	// Step 1: AssumeRole, which is technically optional, as all that's really
 	// required is a set of credentials.
@@ -54,14 +58,20 @@ func ConsoleSigninURL(svc *sts.STS, credentials *sts.Credentials) (string, error
 	}
 
 	// Step 3: Construct the console signin URL.
+	if destination == "" {
+		destination = "https://console.aws.amazon.com/"
+	}
 	intranetDNSDomainName, err := fileutil.ReadFile(choices.IntranetDNSDomainNameFilename)
+	var issuer string
 	if err != nil {
-		return "", err
+		issuer = "https://src-bin.com/substrate/"
+	} else {
+		issuer = fmt.Sprintf("https://%s/login", intranetDNSDomainName)
 	}
 	u.RawQuery = url.Values{
 		"Action":      []string{"login"},
-		"Destination": []string{"https://console.aws.amazon.com/"},
-		"Issuer":      []string{fmt.Sprintf("https://%s/login", intranetDNSDomainName)},
+		"Destination": []string{destination},
+		"Issuer":      []string{issuer},
 		"SigninToken": []string{body.SigninToken},
 	}.Encode()
 

@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awsiam"
@@ -22,6 +23,7 @@ import (
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
@@ -171,7 +173,7 @@ func Main() {
 		log.Fatal(err)
 	}
 	assumeRolePolicyDocument.Statement[0] = canned.AuditorRolePrincipals.Statement[0] // this is why it must be at index 0
-	log.Printf("%+v", assumeRolePolicyDocument)
+	//log.Printf("%+v", assumeRolePolicyDocument)
 	if _, err := admin.EnsureAuditorRole(svc, assumeRolePolicyDocument); err != nil {
 		log.Fatal(err)
 	}
@@ -181,16 +183,31 @@ func Main() {
 	// roles created here.
 	admin.EnsureAdminRolesAndPolicies(sess)
 
-	// TODO need to print the how-to-give-yourself-console-access cue here so folks can actually get into the right account in the console to buy/transfer the domain
-	// TODO or maybe construct a magic console sign-in URL and give it to them right here, right now
-
 	// Make arrangements for a hosted zone to appear in this account so that
 	// the Intranet can configure itself.  It's possible to do this entirely
 	// programmatically but there's a lot of UI surface area involved in doing
 	// a really good job.
 	if !fileutil.Exists(choices.IntranetDNSDomainNameFilename) {
-		ui.Print("visit <https://console.aws.amazon.com/route53/home#DomainListing:> and buy or transfer a domain into this account")
-		ui.Print("or visit <https://console.aws.amazon.com/route53/home#hosted-zones:> and create a hosted zone you've delegated from elsewhere")
+		svc := sts.New(sess)
+		assumedRole, err := awssts.AssumeRole(
+			svc,
+			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+			"substrate-create-admin-account",
+			3600,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		consoleSigninURL, err := awssts.ConsoleSigninURL(
+			svc,
+			assumedRole.Credentials,
+			"https://console.aws.amazon.com/route53/home#DomainListing:",
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ui.OpenURL(consoleSigninURL)
+		ui.Print("buy or transfer a domain into this account or create a hosted zone for a subdomain you've delegated from elsewhere")
 		ui.Prompt("when you've finished, press <enter> to continue")
 	}
 	dnsDomainName, err := ui.PromptFile(
