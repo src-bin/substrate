@@ -43,7 +43,7 @@ func Main() {
 
 	pathname, err := fileutil.PathnameInParents(choices.IntranetDNSDomainNameFilename)
 	if err != nil {
-		ui.Fatal("substrate.* not found in this or any parent directory; change to your Substrate repository or set SUBSTRATE_ROOT to its path in your environment")
+		ui.Fatalf("substrate.* not found in this or any parent directory; change to your Substrate repository or set SUBSTRATE_ROOT to its path in your environment (%v)", err)
 	}
 	intranetDNSDomainName, err := fileutil.ReadFile(pathname)
 	if err != nil {
@@ -56,7 +56,7 @@ func Main() {
 		RawQuery: url.Values{"token": []string{token}}.Encode(),
 	}
 	ui.OpenURL(u.String())
-	ui.Print("authenticate in your web browser if prompted, then return here")
+	ui.Print("authenticate in your web browser, if prompted, then return here")
 
 	// Spin requesting /credentials/fetch?token=... until it responds 200 OK.
 	ui.Spin("fetching credentials")
