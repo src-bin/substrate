@@ -512,12 +512,14 @@ func cannedPrincipals(svc *organizations.Organizations) (
 		return
 	}
 
-	canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
-	canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
+	canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)}   // *2 for Administrator AND substrate-intranet; +2 for the management account and its IAM user
+	canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)} // *3 for Administrator AND Auditor AND substrate-intranet; +2 for the management account and its IAM user
 	for i, account := range adminAccounts {
-		canned.AdminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-		canned.AuditorRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-		canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
+		canned.AdminRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+		canned.AdminRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), "substrate-intranet")
+		canned.AuditorRolePrincipals.AWS[i*3] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+		canned.AuditorRolePrincipals.AWS[i*3+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
+		canned.AuditorRolePrincipals.AWS[i*3+2] = roles.Arn(aws.StringValue(account.Id), "substrate-intranet")
 	}
 	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
 	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
