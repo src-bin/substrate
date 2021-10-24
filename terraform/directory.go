@@ -74,11 +74,11 @@ Error:
 	pathname := filepath.Join(dirname, filename)
 	if err == nil {
 		err = os.Rename(fp.Name(), pathname)
+		ui.Printf("wrote %s", pathname)
 	} else {
 		if err := os.Remove(fp.Name()); err != nil {
 			log.Print(err)
 		}
 	}
-	ui.Printf("wrote %s", pathname)
 	return
 }
