@@ -17,6 +17,15 @@ import (
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
 
+// unlistedPaths are specific complete paths that are not worth listing in the
+// index. There are also patterns that are made unlisted below.
+var unlistedPaths = []string{
+	"/",
+	"/credential-factory/authorize",
+	"/credential-factory/fetch",
+	"/login",
+}
+
 func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	var debug string
@@ -43,19 +52,17 @@ func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*e
 	}
 	paths := make([]string, 0)
 	for _, item := range out.Items {
-		if path := aws.StringValue(item.Path); strings.Count(path, "/") < 3 {
-			switch path {
-
-			// Paths that are not worth listing on the index.
-			case "/":
-			case "/credential-factory/authorize":
-			case "/credential-factory/fetch":
-			case "/login":
-
-			default:
-				paths = append(paths, path)
-			}
+		path := aws.StringValue(item.Path)
+		if strings.Contains(path, "{") {
+			continue
 		}
+		if strings.Count(path, "/") >= 3 {
+			continue
+		}
+		if i := sort.SearchStrings(unlistedPaths, path); i < len(unlistedPaths) && unlistedPaths[i] == path {
+			continue
+		}
+		paths = append(paths, path)
 	}
 	sort.Strings(paths)
 
@@ -78,5 +85,6 @@ func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*e
 }
 
 func init() {
+	sort.Strings(unlistedPaths)
 	handlers["/"] = indexHandler
 }
