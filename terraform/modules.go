@@ -3,8 +3,7 @@ package terraform
 //go:generate go run ../tools/template/main.go -name intranetGlobalTemplate -o intranet-global.go modules/intranet/global
 func IntranetGlobalModule() *Directory {
 	return &Directory{
-		Files:       intranetGlobalTemplate(),
-		RemoveFiles: []string{"outputs.tf", "providers.tf"},
+		Files: intranetGlobalTemplate(),
 	}
 }
 
@@ -13,23 +12,20 @@ func IntranetRegionalModule() *Directory {
 	return &Directory{
 		ConfigurationAliases: []ProviderAlias{NetworkProviderAlias},
 		Files:                intranetRegionalTemplate(),
-		RemoveFiles:          []string{"providers.tf"},
 	}
 }
 
 //go:generate go run ../tools/template/main.go -name lambdaFunctionGlobalTemplate -o lambda-function-global.go modules/lambda-function/global
 func LambdaFunctionGlobalModule() *Directory {
 	return &Directory{
-		Files:       lambdaFunctionGlobalTemplate(),
-		RemoveFiles: []string{"providers.tf"},
+		Files: lambdaFunctionGlobalTemplate(),
 	}
 }
 
 //go:generate go run ../tools/template/main.go -name lambdaFunctionRegionalTemplate -o lambda-function-regional.go modules/lambda-function/regional
 func LambdaFunctionRegionalModule() *Directory {
 	return &Directory{
-		Files:       lambdaFunctionRegionalTemplate(),
-		RemoveFiles: []string{"providers.tf"},
+		Files: lambdaFunctionRegionalTemplate(),
 	}
 }
 
@@ -38,15 +34,13 @@ func PeeringConnectionModule() *Directory {
 	return &Directory{
 		ConfigurationAliases: []ProviderAlias{"aws.accepter", "aws.requester"},
 		Files:                peeringConnectionTemplate(),
-		RemoveFiles:          []string{"providers.tf"},
 	}
 }
 
 //go:generate go run ../tools/template/main.go -name substrateGlobalTemplate -o substrate-global.go modules/substrate/global
 func SubstrateGlobalModule() *Directory {
 	return &Directory{
-		Files:       substrateGlobalTemplate(),
-		RemoveFiles: []string{"providers.tf"},
+		Files: substrateGlobalTemplate(),
 	}
 }
 
@@ -55,6 +49,5 @@ func SubstrateRegionalModule() *Directory {
 	return &Directory{
 		ConfigurationAliases: []ProviderAlias{NetworkProviderAlias},
 		Files:                substrateRegionalTemplate(),
-		RemoveFiles:          []string{"providers.tf"},
 	}
 }
