@@ -284,6 +284,10 @@ func Main() {
 	if err := intranetRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional")); err != nil {
 		log.Fatal(err)
 	}
+	intranetRegionalProxyModule := terraform.IntranetRegionalProxyModule()
+	if err := intranetRegionalProxyModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional/proxy")); err != nil {
+		log.Fatal(err)
+	}
 	if err := ioutil.WriteFile(
 		filepath.Join(terraform.ModulesDirname, "intranet/regional/substrate-intranet.zip"),
 		SubstrateIntranetZip,

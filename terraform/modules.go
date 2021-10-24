@@ -15,6 +15,13 @@ func IntranetRegionalModule() *Directory {
 	}
 }
 
+//go:generate go run ../tools/template/main.go -name intranetRegionalProxyTemplate -o intranet-regional-proxy.go modules/intranet/regional/proxy
+func IntranetRegionalProxyModule() *Directory {
+	return &Directory{
+		Files: intranetRegionalProxyTemplate(),
+	}
+}
+
 //go:generate go run ../tools/template/main.go -name lambdaFunctionGlobalTemplate -o lambda-function-global.go modules/lambda-function/global
 func LambdaFunctionGlobalModule() *Directory {
 	return &Directory{
