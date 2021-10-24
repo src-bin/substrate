@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 	"text/template"
 
@@ -57,7 +57,7 @@ func (f *File) WriteIfNotExists(pathname string) (err error) {
 }
 
 func (f *File) write(pathname string, overwrite bool) (err error) {
-	dirname := path.Dir(pathname)
+	dirname := filepath.Dir(pathname)
 	if err = os.MkdirAll(dirname, 0777); err != nil {
 		return
 	}
@@ -68,7 +68,7 @@ func (f *File) write(pathname string, overwrite bool) (err error) {
 	}
 
 	var fp *os.File
-	fp, err = ioutil.TempFile(dirname, path.Base(pathname))
+	fp, err = ioutil.TempFile(dirname, filepath.Base(pathname))
 	if err != nil {
 		return
 	}
