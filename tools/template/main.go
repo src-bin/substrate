@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+
+	"github.com/src-bin/substrate/fileutil"
 )
 
 func init() {
@@ -71,11 +73,16 @@ func main() {
 				continue
 			}
 
+			pathname := filepath.Join(flag.Arg(0), filename)
+			if fileutil.IsDir(pathname) {
+				continue
+			}
+
 			content += fmt.Sprintf(
 				"\t\t%q: %s%s,\n",
 				filename,
 				strings.Repeat(" ", max-len(filename)),
-				readFile(filepath.Join(flag.Arg(0), filename)),
+				readFile(pathname),
 			)
 		}
 		content += "\t}"

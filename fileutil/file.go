@@ -34,6 +34,11 @@ func FromLines(ss []string) []byte {
 	return []byte(strings.Join(ss, "\n") + "\n")
 }
 
+func IsDir(pathname string) bool {
+	fi, err := os.Stat(pathname)
+	return err == nil && fi.IsDir()
+}
+
 // PathnameInParents searches the current working directory and each of its
 // parents for pathname. It returns the closest relative pathname in which the
 // given filename exists or an error if filename doesn't exist in any parent.
