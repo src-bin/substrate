@@ -78,44 +78,13 @@ resource "aws_api_gateway_base_path_mapping" "intranet" {
 }
 
 resource "aws_api_gateway_deployment" "intranet" {
+  depends_on = [time_sleep.wait-to-deploy]
   lifecycle {
     create_before_destroy = true
   }
   rest_api_id = aws_api_gateway_rest_api.intranet.id
   stage_name  = var.stage_name
-  triggers = {
-    redeployment = sha1(join(",", [
-      jsonencode(aws_api_gateway_authorizer.substrate),
-      jsonencode(aws_api_gateway_gateway_response.ACCESS_DENIED),
-      jsonencode(aws_api_gateway_gateway_response.UNAUTHORIZED),
-      jsonencode(aws_api_gateway_integration.GET-accounts),
-      jsonencode(aws_api_gateway_integration.GET-credential-factory),
-      jsonencode(aws_api_gateway_integration.GET-credential-factory-authorize),
-      jsonencode(aws_api_gateway_integration.GET-credential-factory-fetch),
-      jsonencode(aws_api_gateway_integration.GET-index),
-      jsonencode(aws_api_gateway_integration.GET-instance-factory),
-      jsonencode(aws_api_gateway_integration.GET-login),
-      jsonencode(aws_api_gateway_integration.POST-instance-factory),
-      jsonencode(aws_api_gateway_integration.POST-login),
-      jsonencode(aws_api_gateway_method.GET-accounts),
-      jsonencode(aws_api_gateway_method.GET-credential-factory),
-      jsonencode(aws_api_gateway_method.GET-credential-factory-authorize),
-      jsonencode(aws_api_gateway_method.GET-credential-factory-fetch),
-      jsonencode(aws_api_gateway_method.GET-index),
-      jsonencode(aws_api_gateway_method.GET-instance-factory),
-      jsonencode(aws_api_gateway_method.GET-login),
-      jsonencode(aws_api_gateway_method.POST-instance-factory),
-      jsonencode(aws_api_gateway_method.POST-login),
-      jsonencode(aws_api_gateway_resource.accounts),
-      jsonencode(aws_api_gateway_resource.credential-factory),
-      jsonencode(aws_api_gateway_resource.credential-factory-authorize),
-      jsonencode(aws_api_gateway_resource.credential-factory-fetch),
-      jsonencode(aws_api_gateway_resource.instance-factory),
-      jsonencode(aws_api_gateway_resource.login),
-      jsonencode(aws_cloudwatch_log_group.apigateway),
-      module.substrate-intranet.source_code_hash,
-    ]))
-  }
+  triggers    = { redeployment = timestamp() } # impossible to enumerate all the reasons to redeploy
   variables = {
     "OAuthOIDCClientID"              = var.oauth_oidc_client_id
     "OAuthOIDCClientSecretTimestamp" = var.oauth_oidc_client_secret_timestamp
@@ -437,4 +406,9 @@ resource "aws_security_group_rule" "ssh-ingress" {
   security_group_id = aws_security_group.substrate-instance-factory.id
   to_port           = 22
   type              = "ingress"
+}
+
+resource "time_sleep" "wait-to-deploy" {
+  create_duration = "60s"
+  #depends_on      = [] # TODO what can we even say here?
 }
