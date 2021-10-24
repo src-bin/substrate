@@ -16,6 +16,8 @@ import (
 	"github.com/src-bin/substrate/policies"
 )
 
+// TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
+
 type Handler func(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error)
 
 var handlers = map[string]Handler{}
