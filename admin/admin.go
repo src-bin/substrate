@@ -49,8 +49,8 @@ func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
 			ui.Printf("error processing substrate.Auditor.assume-role-policy.json: %v", err)
 		}
 	}
-	log.Printf("%+v", extraAdmin)
-	log.Printf("%+v", extraAuditor)
+	//log.Printf("%+v", extraAdmin)
+	//log.Printf("%+v", extraAuditor)
 
 	canned.AdminRolePrincipals = policies.Merge(
 		policies.AssumeRolePolicyDocument(cp.AdminRolePrincipals),
@@ -60,8 +60,8 @@ func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
 		policies.AssumeRolePolicyDocument(cp.AuditorRolePrincipals),
 		&extraAuditor,
 	)
-	log.Printf("%+v", canned.AdminRolePrincipals)
-	log.Printf("%+v", canned.AuditorRolePrincipals)
+	//log.Printf("%+v", canned.AdminRolePrincipals)
+	//log.Printf("%+v", canned.AuditorRolePrincipals)
 
 	canned.OrgAccountPrincipals = policies.AssumeRolePolicyDocument(cp.OrgAccountPrincipals)
 	return canned, err
