@@ -113,11 +113,14 @@ func main() {
 			if h, ok := handlers[event.Path]; ok {
 				return h(ctx, event)
 			}
-			return &events.APIGatewayProxyResponse{
-				Body:       "404 Not Found\n",
-				Headers:    map[string]string{"Content-Type": "text/plain"},
-				StatusCode: http.StatusNotFound,
-			}, nil
+
+			// If we end up here it means that an API Gateway resource
+			// referred to this Lambda function but at a path not
+			// explicitly recognized by the built-in functions. Thus,
+			// we're proxying, and will take direction from headers
+			// injected by the API Gateway integration.
+			return proxy(ctx, event)
+
 		})
 
 	default:

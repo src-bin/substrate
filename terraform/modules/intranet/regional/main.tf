@@ -79,12 +79,10 @@ resource "aws_api_gateway_base_path_mapping" "intranet" {
 
 resource "aws_api_gateway_deployment" "intranet" {
   depends_on = [time_sleep.wait-to-deploy]
-  lifecycle {
-    create_before_destroy = true
-  }
+  lifecycle { create_before_destroy = true }
   rest_api_id = aws_api_gateway_rest_api.intranet.id
   stage_name  = var.stage_name
-  triggers    = { redeployment = timestamp() } # impossible to enumerate all the reasons to redeploy
+  triggers    = { redeployment = timestamp() } # impossible to enumerate all the reasons to redeploy so just always deploy
   variables = {
     "OAuthOIDCClientID"              = var.oauth_oidc_client_id
     "OAuthOIDCClientSecretTimestamp" = var.oauth_oidc_client_secret_timestamp
@@ -411,5 +409,5 @@ resource "aws_security_group_rule" "ssh-ingress" {
 
 resource "time_sleep" "wait-to-deploy" {
   create_duration = "60s"
-  #depends_on      = [] # TODO what can we even say here?
+  triggers        = { redeployment = timestamp() } # always sleep
 }

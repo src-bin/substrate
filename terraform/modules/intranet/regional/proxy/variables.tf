@@ -2,6 +2,10 @@ variable "authorizer_id" {
   type = string
 }
 
+variable "destination" {
+  type = string
+}
+
 variable "invoke_arn" {
   type = string
 }
@@ -25,4 +29,9 @@ variable "rest_api_id" {
 
 variable "role_arn" {
   type = string
+}
+
+variable "strip_prefix" {
+  default = false
+  type    = bool
 }
