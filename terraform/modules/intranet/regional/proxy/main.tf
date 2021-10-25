@@ -20,10 +20,14 @@ resource "aws_api_gateway_integration" "GET-wildcard" {
   http_method             = aws_api_gateway_method.GET-wildcard[0].http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
-  resource_id             = aws_api_gateway_resource.wildcard.id
-  rest_api_id             = var.rest_api_id
-  type                    = "AWS_PROXY"
-  uri                     = var.invoke_arn
+  request_parameters = {
+    "integration.request.header.X-Substrate-Intranet-Proxy-Destination" = "'${var.destination}'"
+    "integration.request.header.X-Substrate-Intranet-Proxy-StripPrefix" = "'${var.strip_prefix}'"
+  }
+  resource_id = aws_api_gateway_resource.wildcard.id
+  rest_api_id = var.rest_api_id
+  type        = "AWS_PROXY"
+  uri         = var.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-proxy" {
@@ -32,10 +36,14 @@ resource "aws_api_gateway_integration" "POST-proxy" {
   http_method             = aws_api_gateway_method.POST-proxy[0].http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
-  resource_id             = aws_api_gateway_resource.proxy.id
-  rest_api_id             = var.rest_api_id
-  type                    = "AWS_PROXY"
-  uri                     = var.invoke_arn
+  request_parameters = {
+    "integration.request.header.X-Substrate-Intranet-Proxy-Destination" = "'${var.destination}'"
+    "integration.request.header.X-Substrate-Intranet-Proxy-StripPrefix" = "'${var.strip_prefix}'"
+  }
+  resource_id = aws_api_gateway_resource.proxy.id
+  rest_api_id = var.rest_api_id
+  type        = "AWS_PROXY"
+  uri         = var.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-wildcard" {
@@ -44,10 +52,14 @@ resource "aws_api_gateway_integration" "POST-wildcard" {
   http_method             = aws_api_gateway_method.POST-wildcard[0].http_method
   integration_http_method = "POST"
   passthrough_behavior    = "NEVER"
-  resource_id             = aws_api_gateway_resource.wildcard.id
-  rest_api_id             = var.rest_api_id
-  type                    = "AWS_PROXY"
-  uri                     = var.invoke_arn
+  request_parameters = {
+    "integration.request.header.X-Substrate-Intranet-Proxy-Destination" = "'${var.destination}'"
+    "integration.request.header.X-Substrate-Intranet-Proxy-StripPrefix" = "'${var.strip_prefix}'"
+  }
+  resource_id = aws_api_gateway_resource.wildcard.id
+  rest_api_id = var.rest_api_id
+  type        = "AWS_PROXY"
+  uri         = var.invoke_arn
 }
 
 resource "aws_api_gateway_method" "GET-proxy" {
