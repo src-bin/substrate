@@ -27,6 +27,10 @@ data "aws_route53_zone" "intranet" {
   private_zone = false
 }
 
+data "external" "zip" {
+  program = ["/bin/sh", "-c", "test -f \"${local.filename}\" || substrate intranet-zip >\"${local.filename}\"; echo \"{}\""]
+}
+
 locals {
   filename = "${path.module}/substrate-intranet.zip"
 

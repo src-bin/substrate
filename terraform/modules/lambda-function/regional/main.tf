@@ -1,7 +1,3 @@
-data "external" "zip" {
-  program = ["/bin/sh", "-c", "test -f \"${var.filename}\" || substrate intranet-zip >\"${var.filename}\"; echo \"{}\""]
-}
-
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${var.name}"
   retention_in_days = 1
