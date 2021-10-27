@@ -28,6 +28,8 @@ data "aws_route53_zone" "intranet" {
 }
 
 locals {
+  filename = "${path.module}/substrate-intranet.zip"
+
   response_parameters = {
     "gatewayresponse.header.Location"                  = "context.authorizer.Location" # use the authorizer for expensive string concatenation
     "gatewayresponse.header.Strict-Transport-Security" = "'max-age=31536000; includeSubDomains; preload'"
@@ -39,7 +41,7 @@ locals {
 
 module "intranet-apigateway-authorizer" {
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
-  filename                 = "${path.module}/substrate-intranet.zip"
+  filename                 = local.filename
   name                     = "IntranetAPIGatewayAuthorizer"
   progname                 = "substrate-intranet"
   role_arn                 = data.aws_iam_role.intranet-apigateway-authorizer.arn
@@ -48,7 +50,7 @@ module "intranet-apigateway-authorizer" {
 
 module "intranet" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-intranet.zip"
+  filename                 = local.filename
   name                     = "Intranet"
   progname                 = "substrate-intranet"
   role_arn                 = data.aws_iam_role.intranet.arn
@@ -57,7 +59,7 @@ module "intranet" {
 
 module "substrate-apigateway-authorizer" { // remove in 2021.11
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
-  filename                 = "${path.module}/substrate-intranet.zip"
+  filename                 = local.filename
   name                     = "substrate-apigateway-authorizer"
   progname                 = "substrate-intranet"
   role_arn                 = data.aws_iam_role.substrate-apigateway-authorizer.arn
@@ -66,7 +68,7 @@ module "substrate-apigateway-authorizer" { // remove in 2021.11
 
 module "substrate-intranet" { // remove in 2021.11
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = "${path.module}/substrate-intranet.zip"
+  filename                 = local.filename
   name                     = "substrate-intranet" # TODO duplicate, rename, delete
   role_arn                 = data.aws_iam_role.substrate-intranet.arn
   source                   = "../../lambda-function/regional"
