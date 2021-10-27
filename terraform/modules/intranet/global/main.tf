@@ -22,7 +22,7 @@ data "aws_iam_policy_document" "credential-factory" {
   }
 }
 
-data "aws_iam_policy_document" "substrate-apigateway-authorizer" { // TODO remove in 2021.10
+data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = ["*"]
@@ -104,7 +104,7 @@ data "aws_iam_user" "credential-factory" {
   user_name = "CredentialFactory"
 }
 
-module "substrate-apigateway-authorizer" { // TODO remove in 2021.10
+module "substrate-apigateway-authorizer" {
   name   = "substrate-apigateway-authorizer"
   policy = data.aws_iam_policy_document.substrate-apigateway-authorizer.json
   source = "../../lambda-function/global"

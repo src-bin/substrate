@@ -15,7 +15,7 @@ import (
 
 var TerraformVersion = "" // replaced at build time with the contents of terraform-version.txt; see Makefile
 
-// TODO remove archive and external in 2021.10.
+// TODO remove archive in 2021.11.
 const (
 	archiveVersion  = "2.2.0"
 	awsVersion      = "3.49.0"

@@ -24,12 +24,6 @@ clean:
 install:
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 	find ./cmd/substrate -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/substrate-%P\\n | xargs -n1 ln -f -s substrate
-	rm -f $(shell go env GOBIN)/substrate-apigateway-authenticator # remove in 2021.10
-	rm -f $(shell go env GOBIN)/substrate-apigateway-authorizer # remove in 2021.10
-	rm -f $(shell go env GOBIN)/substrate-apigateway-index # remove in 2021.10
-	rm -f $(shell go env GOBIN)/substrate-credential-factory # remove in 2021.10
-	rm -f $(shell go env GOBIN)/substrate-instance-factory # remove in 2021.10
-	rm -f $(shell go env GOBIN)/substrate-intranet # remove in 2021.10
 
 release:
 ifndef CODEBUILD_BUILD_ID
