@@ -4,6 +4,14 @@ data "aws_iam_role" "apigateway" {
   name = "IntranetAPIGateway"
 }
 
+data "aws_iam_role" "intranet-apigateway-authorizer" {
+  name = "IntranetAPIGatewayAuthorizer"
+}
+
+data "aws_iam_role" "intranet" {
+  name = "Intranet"
+}
+
 data "aws_iam_role" "substrate-apigateway-authorizer" {
   name = "substrate-apigateway-authorizer"
 }
@@ -29,7 +37,25 @@ locals {
   }
 }
 
-module "substrate-apigateway-authorizer" {
+module "intranet-apigateway-authorizer" {
+  apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
+  filename                 = "${path.module}/substrate-intranet.zip"
+  name                     = "IntranetAPIGatewayAuthorizer"
+  progname                 = "substrate-intranet"
+  role_arn                 = data.aws_iam_role.intranet-apigateway-authorizer.arn
+  source                   = "../../lambda-function/regional"
+}
+
+module "intranet" {
+  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
+  filename                 = "${path.module}/substrate-intranet.zip"
+  name                     = "Intranet"
+  progname                 = "substrate-intranet"
+  role_arn                 = data.aws_iam_role.intranet.arn
+  source                   = "../../lambda-function/regional"
+}
+
+module "substrate-apigateway-authorizer" { // remove in 2021.11
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
   filename                 = "${path.module}/substrate-intranet.zip"
   name                     = "substrate-apigateway-authorizer"
@@ -38,10 +64,10 @@ module "substrate-apigateway-authorizer" {
   source                   = "../../lambda-function/regional"
 }
 
-module "substrate-intranet" {
+module "substrate-intranet" { // remove in 2021.11
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   filename                 = "${path.module}/substrate-intranet.zip"
-  name                     = "substrate-intranet"
+  name                     = "substrate-intranet" # TODO duplicate, rename, delete
   role_arn                 = data.aws_iam_role.substrate-intranet.arn
   source                   = "../../lambda-function/regional"
 }

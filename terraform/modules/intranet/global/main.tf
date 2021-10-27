@@ -22,14 +22,7 @@ data "aws_iam_policy_document" "credential-factory" {
   }
 }
 
-data "aws_iam_policy_document" "substrate-apigateway-authorizer" {
-  statement {
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = ["*"]
-  }
-}
-
-data "aws_iam_policy_document" "substrate-intranet" {
+data "aws_iam_policy_document" "intranet" {
   statement {
     actions = [
       "organizations:DescribeOrganization",
@@ -91,6 +84,13 @@ data "aws_iam_policy_document" "substrate-intranet" {
   }
 }
 
+data "aws_iam_policy_document" "intranet-apigateway-authorizer" {
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = ["*"]
+  }
+}
+
 data "aws_iam_role" "admin" {
   name = "Administrator"
 }
@@ -104,15 +104,27 @@ data "aws_iam_user" "credential-factory" {
   user_name = "CredentialFactory"
 }
 
-module "substrate-apigateway-authorizer" {
-  name   = "substrate-apigateway-authorizer"
-  policy = data.aws_iam_policy_document.substrate-apigateway-authorizer.json
+module "intranet-apigateway-authorizer" {
+  name   = "IntranetAPIGatewayAuthorizer"
+  policy = data.aws_iam_policy_document.intranet-apigateway-authorizer.json
   source = "../../lambda-function/global"
 }
 
-module "substrate-intranet" {
+module "intranet" {
+  name   = "Intranet"
+  policy = data.aws_iam_policy_document.intranet.json
+  source = "../../lambda-function/global"
+}
+
+module "substrate-apigateway-authorizer" { // remove in 2021.11
+  name   = "substrate-apigateway-authorizer"
+  policy = data.aws_iam_policy_document.intranet-apigateway-authorizer.json
+  source = "../../lambda-function/global"
+}
+
+module "substrate-intranet" { // remove in 2021.11
   name   = "substrate-intranet"
-  policy = data.aws_iam_policy_document.substrate-intranet.json
+  policy = data.aws_iam_policy_document.intranet.json
   source = "../../lambda-function/global"
 }
 
