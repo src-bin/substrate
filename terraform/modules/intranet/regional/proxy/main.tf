@@ -2,7 +2,7 @@ module "intranet" {
   apigateway_execution_arn = "${var.apigateway_execution_arn}/*"
   environment_variables = {
     "PROXY_DESTINATION_URL" = var.proxy_destination_url,
-    "PROXY_PATH_PREFIX"     = var.proxy_path_prefix,
+    "PROXY_PATH_PREFIX"     = "/${var.proxy_path_prefix}",
     "STRIP_PATH_PREFIX"     = var.strip_path_prefix,
   }
   filename = "${path.module}/../substrate-intranet.zip"
