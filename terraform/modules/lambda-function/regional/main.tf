@@ -8,7 +8,13 @@ resource "aws_cloudwatch_log_group" "lambda" {
 }
 
 resource "aws_lambda_function" "function" {
-  depends_on       = [aws_cloudwatch_log_group.lambda]
+  depends_on = [aws_cloudwatch_log_group.lambda]
+  environment {
+    variables = merge(
+      { "PREVENT_EMPTY_ENVIRONMENT" = "lambda:CreateFunction fails when given an empty Environment" },
+      var.environment_variables,
+    )
+  }
   filename         = var.filename
   function_name    = var.name
   handler          = var.progname != "" ? var.progname : var.name
