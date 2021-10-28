@@ -9,7 +9,10 @@ module "intranet" {
   name     = "IntranetProxy-${var.proxy_path_prefix}"
   progname = "substrate-intranet"
   role_arn = var.lambda_role_arn
-  source   = "../../../lambda-function/regional"
+  # TODO security_group_ids = ["..."]
+  # TODO vpc_id = "..."
+
+  source = "../../../lambda-function/regional"
 }
 
 resource "aws_api_gateway_integration" "GET-proxy" {
