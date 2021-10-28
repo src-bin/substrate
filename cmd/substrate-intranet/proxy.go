@@ -18,20 +18,6 @@ import (
 
 func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
-	/*
-		b, err := json.MarshalIndent(event, "", "\t")
-		if err != nil {
-			return nil, err
-		}
-		body := string(b) + "\n" + strings.Join(os.Environ(), "\n")
-
-		return &events.APIGatewayProxyResponse{
-			Body:       body,
-			Headers:    map[string]string{"Content-Type": "text/plain"},
-			StatusCode: http.StatusOK,
-		}, nil
-	*/
-
 	u, err := url.Parse(os.Getenv("PROXY_DESTINATION_URL"))
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
@@ -45,30 +31,7 @@ func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.A
 	}
 	// TODO figure out why trailing slashes are stripped and whether it matters.
 
-	/*
-		return &events.APIGatewayProxyResponse{
-			Body: fmt.Sprintf(
-				"uOriginal: %q\nPROXY_DESTINATION_URL: %q\nPROXY_PATH_PREFIX: %q\nSTRIP_PATH_PREFIX: %q\nevent.Path: %q\nu.String(): %q\n",
-				uOriginal,
-				os.Getenv("PROXY_DESTINATION_URL"),
-				os.Getenv("PROXY_PATH_PREFIX"),
-				os.Getenv("STRIP_PATH_PREFIX"),
-				event.Path,
-				u.String(),
-			),
-			Headers:    map[string]string{"Content-Type": "text/plain"},
-			StatusCode: http.StatusOK,
-		}, nil
-	*/
-
 	req, err := http.NewRequest(event.HTTPMethod, u.String(), strings.NewReader(event.Body))
-	/*
-		for name, values := range event.MultiValueHeaders {
-			for _, value := range values {
-				req.Header.Add(name, value)
-			}
-		}
-	*/
 	req.Header = event.MultiValueHeaders
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -76,7 +39,7 @@ func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.A
 	}
 	headers := map[string]string{}
 	for name, values := range resp.Header {
-		if len(values) > 0 { // headers must be unique according to the return type
+		if len(values) > 0 { // headers must be unique according to the return type, which will be a problem for Set-Cookie headers eventually
 			headers[name] = values[0]
 		}
 	}
@@ -91,11 +54,4 @@ func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.A
 		StatusCode: resp.StatusCode,
 	}, nil
 
-	/*
-		return &events.APIGatewayProxyResponse{
-			Body:       "404 Not Found\n",
-			Headers:    map[string]string{"Content-Type": "text/plain"},
-			StatusCode: http.StatusNotFound,
-		}, nil
-	*/
 }
