@@ -1,4 +1,4 @@
-module "intranet" {
+module "intranet-proxy" {
   apigateway_execution_arn = "${var.apigateway_execution_arn}/*"
   environment_variables = {
     "PROXY_DESTINATION_URL" = var.proxy_destination_url,
@@ -24,7 +24,7 @@ resource "aws_api_gateway_integration" "GET-proxy" {
   resource_id             = aws_api_gateway_resource.proxy.id
   rest_api_id             = var.rest_api_id
   type                    = "AWS_PROXY"
-  uri                     = module.intranet.invoke_arn
+  uri                     = module.intranet-proxy.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-wildcard" {
@@ -36,7 +36,7 @@ resource "aws_api_gateway_integration" "GET-wildcard" {
   resource_id             = aws_api_gateway_resource.wildcard.id
   rest_api_id             = var.rest_api_id
   type                    = "AWS_PROXY"
-  uri                     = module.intranet.invoke_arn
+  uri                     = module.intranet-proxy.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-proxy" {
@@ -48,7 +48,7 @@ resource "aws_api_gateway_integration" "POST-proxy" {
   resource_id             = aws_api_gateway_resource.proxy.id
   rest_api_id             = var.rest_api_id
   type                    = "AWS_PROXY"
-  uri                     = module.intranet.invoke_arn
+  uri                     = module.intranet-proxy.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-wildcard" {
@@ -60,7 +60,7 @@ resource "aws_api_gateway_integration" "POST-wildcard" {
   resource_id             = aws_api_gateway_resource.wildcard.id
   rest_api_id             = var.rest_api_id
   type                    = "AWS_PROXY"
-  uri                     = module.intranet.invoke_arn
+  uri                     = module.intranet-proxy.invoke_arn
 }
 
 resource "aws_api_gateway_method" "GET-proxy" {
