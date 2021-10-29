@@ -31,7 +31,7 @@ func init() {
 func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	var instanceType, publicKeyMaterial, terminateConfirmed string
-	launched := event.QueryStringParameters["launched"]
+	launched := event.QueryStringParameters["launched"] // TODO don't propagate this into the HTML if the instance it references is in the "running" state
 	principalId := event.RequestContext.Authorizer["principalId"].(string)
 	region := event.QueryStringParameters["region"]
 	selectedRegions := strings.Split(event.StageVariables["SelectedRegions"], ",")
