@@ -13,9 +13,6 @@ import (
 	"github.com/src-bin/substrate/lambdautil"
 )
 
-// TODO put it in the admin VPC (with the same quality as this Intranet)
-// TODO assume it'll be able to reach anything it needs to since everything's peered with admin VPCs
-
 func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	u, err := url.Parse(os.Getenv("PROXY_DESTINATION_URL"))
@@ -33,6 +30,7 @@ func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.A
 
 	req, err := http.NewRequest(event.HTTPMethod, u.String(), strings.NewReader(event.Body))
 	req.Header = event.MultiValueHeaders
+	// TODO augment this with more straightforward identity information AND strip cookies
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
