@@ -32,5 +32,13 @@ resource "aws_lambda_permission" "permission" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.function.function_name
   principal     = "apigateway.amazonaws.com"
+
+  # It would be comforting to be very explicit here but, confirmed by
+  # real-world tests, this isn't the only line of defense keeping a malicious
+  # AWS account from referencing this Lambda function in its API Gateway
+  # configuration so this isn't a vulnerability. It's not possible to reference
+  # any Lambda function in another account unless it grants that account
+  # permission to do so.
   #source_arn    = var.apigateway_execution_arn
+
 }
