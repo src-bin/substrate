@@ -35,7 +35,17 @@ variable "rest_api_id" {
   type = string
 }
 
+variable "security_group_ids" {
+  default = []
+  type    = list(string)
+}
+
 variable "strip_path_prefix" {
   default = false
   type    = bool
+}
+
+variable "subnet_ids" {
+  default = []
+  type    = list(string)
 }

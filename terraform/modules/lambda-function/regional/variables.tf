@@ -23,3 +23,13 @@ variable "progname" {
 variable "role_arn" {
   type = string
 }
+
+variable "security_group_ids" {
+  default = []
+  type    = list(string)
+}
+
+variable "subnet_ids" {
+  default = []
+  type    = list(string)
+}

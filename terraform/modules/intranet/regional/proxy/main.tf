@@ -5,12 +5,12 @@ module "intranet" {
     "PROXY_PATH_PREFIX"     = "/${var.proxy_path_prefix}",
     "STRIP_PATH_PREFIX"     = var.strip_path_prefix,
   }
-  filename = "${path.module}/../substrate-intranet.zip"
-  name     = "IntranetProxy-${var.proxy_path_prefix}"
-  progname = "substrate-intranet"
-  role_arn = var.lambda_role_arn
-  # TODO security_group_ids = ["..."]
-  # TODO vpc_id = "..."
+  filename           = "${path.module}/../substrate-intranet.zip"
+  name               = "IntranetProxy-${var.proxy_path_prefix}"
+  progname           = "substrate-intranet"
+  role_arn           = var.lambda_role_arn
+  security_group_ids = var.security_group_ids
+  subnet_ids         = var.subnet_ids
 
   source = "../../../lambda-function/regional"
 }
