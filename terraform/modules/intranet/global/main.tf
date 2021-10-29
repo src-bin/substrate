@@ -82,6 +82,11 @@ data "aws_iam_policy_document" "intranet" {
     resources = ["*"]
     sid       = "Login"
   }
+  statement {
+    actions   = ["ec2:CreateNetworkInterface"]
+    resources = ["*"]
+    sid       = "Proxy"
+  }
 }
 
 data "aws_iam_policy_document" "intranet-apigateway-authorizer" {
