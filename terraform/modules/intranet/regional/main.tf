@@ -4,19 +4,19 @@ data "aws_iam_role" "apigateway" {
   name = "IntranetAPIGateway"
 }
 
-data "aws_iam_role" "intranet-apigateway-authorizer" {
-  name = "IntranetAPIGatewayAuthorizer"
-}
-
 data "aws_iam_role" "intranet" {
   name = "Intranet"
 }
 
-data "aws_iam_role" "substrate-apigateway-authorizer" {
+data "aws_iam_role" "intranet-apigateway-authorizer" {
+  name = "IntranetAPIGatewayAuthorizer"
+}
+
+data "aws_iam_role" "substrate-apigateway-authorizer" { # remove in 2021.11
   name = "substrate-apigateway-authorizer"
 }
 
-data "aws_iam_role" "substrate-intranet" {
+data "aws_iam_role" "substrate-intranet" { # remove in 2021.11
   name = "substrate-intranet"
 }
 
@@ -408,7 +408,18 @@ resource "aws_route53_record" "validation" {
   zone_id         = data.aws_route53_zone.intranet.zone_id
 }
 
-resource "aws_security_group" "substrate-instance-factory" {
+resource "aws_security_group" "instance-factory" {
+  name        = "InstanceFactory"
+  description = "Allow inbound SSH access to instances managed by the Instance Factory"
+  vpc_id      = module.substrate.vpc_id
+  tags = {
+    Environment = module.substrate.tags.environment
+    Name        = "InstanceFactory"
+    Quality     = module.substrate.tags.quality
+  }
+}
+
+resource "aws_security_group" "substrate-instance-factory" { // remove in 2022.05 with release notes about failure if Instance Factory instances have existed for more than six months
   name        = "substrate-instance-factory"
   description = "Allow inbound SSH access to instances managed by substrate-instance-factory"
   vpc_id      = module.substrate.vpc_id
@@ -419,7 +430,7 @@ resource "aws_security_group" "substrate-instance-factory" {
   }
 }
 
-resource "aws_security_group_rule" "egress" {
+resource "aws_security_group_rule" "egress" { // remove in 2022.05
   cidr_blocks       = ["0.0.0.0/0"]
   from_port         = 0
   ipv6_cidr_blocks  = ["::/0"]
@@ -429,7 +440,27 @@ resource "aws_security_group_rule" "egress" {
   type              = "egress"
 }
 
-resource "aws_security_group_rule" "ssh-ingress" {
+resource "aws_security_group_rule" "instance-factory-egress" {
+  cidr_blocks       = ["0.0.0.0/0"]
+  from_port         = 0
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "-1"
+  security_group_id = aws_security_group.instance-factory.id
+  to_port           = 0
+  type              = "egress"
+}
+
+resource "aws_security_group_rule" "instance-factory-ssh-ingress" {
+  cidr_blocks       = ["0.0.0.0/0"]
+  from_port         = 22
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "tcp"
+  security_group_id = aws_security_group.instance-factory.id
+  to_port           = 22
+  type              = "ingress"
+}
+
+resource "aws_security_group_rule" "ssh-ingress" { // remove in 2022.05
   cidr_blocks       = ["0.0.0.0/0"]
   from_port         = 22
   ipv6_cidr_blocks  = ["::/0"]

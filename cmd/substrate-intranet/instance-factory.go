@@ -267,7 +267,7 @@ func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRe
 	if err != nil {
 		return nil, err
 	}
-	securityGroups, err := awsec2.DescribeSecurityGroups(svc, aws.StringValue(subnet.VpcId), "substrate-instance-factory")
+	securityGroups, err := awsec2.DescribeSecurityGroups(svc, aws.StringValue(subnet.VpcId), "InstanceFactory")
 	if err != nil {
 		return nil, err
 	}
