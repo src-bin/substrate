@@ -83,7 +83,11 @@ data "aws_iam_policy_document" "intranet" {
     sid       = "Login"
   }
   statement {
-    actions   = ["ec2:CreateNetworkInterface"]
+    actions = [
+      "ec2:CreateNetworkInterface",
+      "ec2:DeleteNetworkInterface",
+      "ec2:DescribeNetworkInterfaces",
+    ]
     resources = ["*"]
     sid       = "Proxy"
   }
