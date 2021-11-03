@@ -29,15 +29,9 @@ func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.A
 	// TODO figure out why trailing slashes are stripped and whether it matters.
 
 	req, err := http.NewRequest(event.HTTPMethod, u.String(), strings.NewReader(event.Body))
+	req.Header = event.MultiValueHeaders
 	req.Header.Add("X-Substrate-Intranet-Proxy-Principal", event.RequestContext.Authorizer["principalId"].(string))
-	for name, values := range event.MultiValueHeaders {
-		if strings.ToLower(name) == "cookie" {
-			continue
-		}
-		for _, value := range values {
-			req.Header.Add(name, value)
-		}
-	}
+	//log.Printf("req: %+v", req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
