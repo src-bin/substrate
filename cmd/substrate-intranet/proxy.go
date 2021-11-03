@@ -36,21 +36,16 @@ func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.A
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
 	}
-	headers := map[string]string{}
-	for name, values := range resp.Header {
-		if len(values) > 0 { // headers must be unique according to the return type, which will be a problem for Set-Cookie headers eventually
-			headers[name] = values[0]
-		}
-	}
+	//log.Printf("resp: %+v", resp)
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
 	}
 	return &events.APIGatewayProxyResponse{
-		Body:       string(body),
-		Headers:    headers,
-		StatusCode: resp.StatusCode,
+		Body:              string(body),
+		MultiValueHeaders: resp.Header,
+		StatusCode:        resp.StatusCode,
 	}, nil
 
 }
