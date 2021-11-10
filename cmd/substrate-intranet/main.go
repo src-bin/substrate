@@ -26,10 +26,10 @@ func main() {
 	)
 	functionName := os.Getenv(varName)
 
-	if functionName == IntranetAPIGatewayAuthorizerFunctionName /* begin remove in 2021.11 */ || functionName == "substrate-apigateway-authorizer" /* end remove in 2021.11 */ {
+	if functionName == IntranetAPIGatewayAuthorizerFunctionName {
 		lambda.Start(authorizer)
 
-	} else if functionName == IntranetFunctionName /* begin remove in 2021.11 */ || functionName == "substrate-intranet" /* end remove in 2021.11 */ {
+	} else if functionName == IntranetFunctionName {
 		lambda.Start(func(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 			if h, ok := handlers[event.Path]; ok {
 				return h(ctx, event)

@@ -252,7 +252,7 @@ func Main() {
 						Effect:   policies.Deny,
 						Resource: []string{"*"},
 					},
-				*/
+					//*/
 
 				policies.Statement{
 					Action:   []string{"*"},
