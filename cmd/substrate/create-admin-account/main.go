@@ -92,6 +92,7 @@ func Main() {
 	// Ensure the account exists.
 	ui.Spin("finding the admin account")
 	var account *awsorgs.Account
+	createdAccount := false
 	{
 		svc := organizations.New(sess)
 		account, err = awsorgs.FindAccount(svc, accounts.Admin, accounts.Admin, *quality)
@@ -106,6 +107,7 @@ func Main() {
 			}
 			ui.Spin("creating the admin account")
 			account, err = awsorgs.EnsureAccount(svc, accounts.Admin, accounts.Admin, *quality)
+			createdAccount = true
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -181,7 +183,7 @@ func Main() {
 
 	// This must come before the Terraform run because it references the IAM
 	// roles created here.
-	admin.EnsureAdminRolesAndPolicies(sess)
+	admin.EnsureAdminRolesAndPolicies(sess, createdAccount)
 
 	// Make arrangements for a hosted zone to appear in this account so that
 	// the Intranet can configure itself.  It's possible to do this entirely

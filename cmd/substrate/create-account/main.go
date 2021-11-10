@@ -51,6 +51,7 @@ func Main() {
 
 	ui.Spin("finding the account")
 	var account *awsorgs.Account
+	createdAccount := false
 	{
 		svc := organizations.New(sess)
 		account, err = awsorgs.FindAccount(svc, *domain, *environment, *quality)
@@ -65,6 +66,7 @@ func Main() {
 			}
 			ui.Spin("creating the account")
 			account, err = awsorgs.EnsureAccount(svc, *domain, *environment, *quality)
+			createdAccount = true
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -76,7 +78,7 @@ func Main() {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
-	admin.EnsureAdminRolesAndPolicies(sess)
+	admin.EnsureAdminRolesAndPolicies(sess, createdAccount)
 
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between all of a domain's accounts.

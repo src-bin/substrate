@@ -2,7 +2,6 @@ package admin
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io/fs"
 	"log"
@@ -25,8 +24,6 @@ import (
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 )
-
-var noCloudWatch = flag.Bool("no-cloudwatch", false, "do not manage CloudWatch cross-account sharing roles (which is slow)")
 
 func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
 	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
@@ -71,8 +68,10 @@ func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
 // Administrator roles and policies to allow the management account and admin
 // accounts to move fairly freely throughout the organization.  The given
 // session must be for the OrganizationAdministrator user or role in the management
-// account.
-func EnsureAdminRolesAndPolicies(sess *session.Session) {
+// account. If doCloudWatch is true, it'll also reconfigure all the CloudWatch
+// cross-account, cross-region roles; this is slow so it's only done when a new
+// AWS account's being created since otherwise it's a no-op.
+func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	svc := organizations.New(sess)
 
 	// Gather lists of accounts.  These are used below in configuring policies
@@ -134,7 +133,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	}
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
-	if !*noCloudWatch {
+	if doCloudWatch {
 		ui.Spin("finding or creating a role to allow CloudWatch to discover accounts within your organization, too")
 		role, err = awsiam.EnsureRoleWithPolicy(
 			iam.New(sess),
@@ -341,7 +340,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session) {
 	}
 	ui.Stop("ok")
 
-	if !*noCloudWatch {
+	if doCloudWatch {
 
 		ui.Spinf("finding or creating the CloudWatch-CrossAccountSharingRole role in all accounts")
 		org, err := awsorgs.DescribeOrganization(svc)

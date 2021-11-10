@@ -297,7 +297,7 @@ func Main() {
 	}
 	ui.Stop("ok")
 
-	admin.EnsureAdminRolesAndPolicies(sess)
+	admin.EnsureAdminRolesAndPolicies(sess, true) // could detect if we created any special accounts but this way there's a simple do-it-anyway option if things get out of sync
 
 	ui.Print("next, commit substrate.* to version control, then run substrate-bootstrap-network-account")
 
