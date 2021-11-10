@@ -96,7 +96,7 @@ resource "aws_api_gateway_account" "current" {
 resource "aws_api_gateway_authorizer" "substrate" {
   authorizer_credentials           = data.aws_iam_role.apigateway.arn
   authorizer_result_ttl_in_seconds = 0 # disabled because we need the authorizer to calculate context.authorizer.Location
-  authorizer_uri                   = module.substrate-apigateway-authorizer.invoke_arn
+  authorizer_uri                   = module.intranet-apigateway-authorizer.invoke_arn
   identity_source                  = "method.request.header.Host" # force the authorizer to run every time because this header is present every time
   name                             = "Substrate"
   rest_api_id                      = aws_api_gateway_rest_api.intranet.id
@@ -159,7 +159,7 @@ resource "aws_api_gateway_integration" "GET-accounts" {
   resource_id             = aws_api_gateway_resource.accounts.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-credential-factory" {
@@ -170,7 +170,7 @@ resource "aws_api_gateway_integration" "GET-credential-factory" {
   resource_id             = aws_api_gateway_resource.credential-factory.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-credential-factory-authorize" {
@@ -181,7 +181,7 @@ resource "aws_api_gateway_integration" "GET-credential-factory-authorize" {
   resource_id             = aws_api_gateway_resource.credential-factory-authorize.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-credential-factory-fetch" {
@@ -192,7 +192,7 @@ resource "aws_api_gateway_integration" "GET-credential-factory-fetch" {
   resource_id             = aws_api_gateway_resource.credential-factory-fetch.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-index" {
@@ -203,7 +203,7 @@ resource "aws_api_gateway_integration" "GET-index" {
   resource_id             = aws_api_gateway_rest_api.intranet.root_resource_id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-instance-factory" {
@@ -214,7 +214,7 @@ resource "aws_api_gateway_integration" "GET-instance-factory" {
   resource_id             = aws_api_gateway_resource.instance-factory.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "GET-login" {
@@ -225,7 +225,7 @@ resource "aws_api_gateway_integration" "GET-login" {
   resource_id             = aws_api_gateway_resource.login.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-instance-factory" {
@@ -236,7 +236,7 @@ resource "aws_api_gateway_integration" "POST-instance-factory" {
   resource_id             = aws_api_gateway_resource.instance-factory.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_integration" "POST-login" {
@@ -247,7 +247,7 @@ resource "aws_api_gateway_integration" "POST-login" {
   resource_id             = aws_api_gateway_resource.login.id
   rest_api_id             = aws_api_gateway_rest_api.intranet.id
   type                    = "AWS_PROXY"
-  uri                     = module.substrate-intranet.invoke_arn
+  uri                     = module.intranet.invoke_arn
 }
 
 resource "aws_api_gateway_method" "GET-accounts" {
