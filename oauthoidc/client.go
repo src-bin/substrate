@@ -8,6 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/src-bin/substrate/awssecretsmanager"
 )
 
 const (
@@ -23,14 +27,33 @@ type Client struct {
 }
 
 func NewClient(
-	pathQualifier PathQualifier,
-	clientID, clientSecret string,
-) *Client {
+	sess *session.Session,
+	stageVariables map[string]string,
+) (*Client, error) {
+	clientSecret, err := awssecretsmanager.CachedSecret(
+		secretsmanager.New(sess),
+		fmt.Sprintf(
+			"%s-%s",
+			OAuthOIDCClientSecret,
+			stageVariables[OAuthOIDCClientID],
+		),
+		stageVariables[OAuthOIDCClientSecretTimestamp],
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathQualifier PathQualifier
+	if hostname := stageVariables[OktaHostname]; hostname == OktaHostnameValueForGoogleIDP {
+		pathQualifier = GooglePathQualifier()
+	} else {
+		pathQualifier = OktaPathQualifier(hostname, "default")
+	}
 	return &Client{
-		ClientID:      clientID,
+		ClientID:      stageVariables[OAuthOIDCClientID],
 		clientSecret:  clientSecret,
 		pathQualifier: pathQualifier,
-	}
+	}, nil
 }
 
 // Get requests the given path with the given query string from the client's

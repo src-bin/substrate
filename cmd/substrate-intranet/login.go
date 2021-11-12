@@ -8,8 +8,6 @@ import (
 	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
@@ -42,30 +40,11 @@ func loginHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*e
 		return nil, err
 	}
 
-	clientSecret, err := awssecretsmanager.CachedSecret(
-		secretsmanager.New(sess),
-		fmt.Sprintf(
-			"%s-%s",
-			oauthoidc.OAuthOIDCClientSecret,
-			event.StageVariables[oauthoidc.OAuthOIDCClientID],
-		),
-		event.StageVariables[oauthoidc.OAuthOIDCClientSecretTimestamp],
-	)
+	c, err := oauthoidc.NewClient(sess, event.StageVariables)
 	if err != nil {
 		return nil, err
 	}
 
-	var pathQualifier oauthoidc.PathQualifier
-	if hostname := event.StageVariables[oauthoidc.OktaHostname]; hostname == oauthoidc.OktaHostnameValueForGoogleIDP {
-		pathQualifier = oauthoidc.GooglePathQualifier()
-	} else {
-		pathQualifier = oauthoidc.OktaPathQualifier(hostname, "default")
-	}
-	c := oauthoidc.NewClient(
-		pathQualifier,
-		event.StageVariables[oauthoidc.OAuthOIDCClientID],
-		clientSecret,
-	)
 	redirectURI := &url.URL{
 		Scheme: "https",
 		Host:   event.Headers["Host"],
