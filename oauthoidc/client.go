@@ -20,10 +20,16 @@ const (
 	OAuthOIDCClientSecretTimestamp = "OAuthOIDCClientSecretTimestamp"
 )
 
+const (
+	ProviderGoogle Provider = iota
+	ProviderOkta
+)
+
 type Client struct {
 	ClientID      string
 	clientSecret  string
 	pathQualifier PathQualifier
+	provider      Provider
 }
 
 func NewClient(
@@ -43,17 +49,18 @@ func NewClient(
 		return nil, err
 	}
 
-	var pathQualifier PathQualifier
-	if hostname := stageVariables[OktaHostname]; hostname == OktaHostnameValueForGoogleIDP {
-		pathQualifier = GooglePathQualifier()
-	} else {
-		pathQualifier = OktaPathQualifier(hostname, "default")
+	c := &Client{
+		ClientID:     stageVariables[OAuthOIDCClientID],
+		clientSecret: clientSecret,
 	}
-	return &Client{
-		ClientID:      stageVariables[OAuthOIDCClientID],
-		clientSecret:  clientSecret,
-		pathQualifier: pathQualifier,
-	}, nil
+	if hostname := stageVariables[OktaHostname]; hostname == OktaHostnameValueForGoogleIDP {
+		c.pathQualifier = GooglePathQualifier()
+		c.provider = ProviderGoogle
+	} else {
+		c.pathQualifier = OktaPathQualifier(hostname, "default")
+		c.provider = ProviderOkta
+	}
+	return c, nil
 }
 
 // Get requests the given path with the given query string from the client's
@@ -68,6 +75,10 @@ func (c *Client) Get(path UnqualifiedPath, query url.Values, i interface{}) (*ht
 	}
 	return resp, unmarshalJSON(resp, i)
 }
+
+func (c *Client) IsGoogle() bool { return c.provider == ProviderGoogle }
+
+func (c *Client) IsOkta() bool { return c.provider == ProviderOkta }
 
 // Post requests the given path with the given body (form-encoded) from the
 // client's host and unmarshals the JSON response body into the given
@@ -84,6 +95,8 @@ func (c *Client) Post(path UnqualifiedPath, body url.Values, i interface{}) (*ht
 	}
 	return resp, unmarshalJSON(resp, i)
 }
+
+func (c *Client) Provider() Provider { return c.provider }
 
 func (c *Client) URL(path UnqualifiedPath, query url.Values) *url.URL {
 	u := c.pathQualifier(path)
@@ -138,6 +151,8 @@ func unmarshalJSON(resp *http.Response, i interface{}) error {
 }
 
 type PathQualifier func(UnqualifiedPath) *url.URL
+
+type Provider int // do not persist this type, as its values are assigned by iota and aren't stable
 
 type UnqualifiedPath string
 
