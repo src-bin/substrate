@@ -26,6 +26,7 @@ const (
 )
 
 type Client struct {
+	AccessToken   string
 	ClientID      string
 	clientSecret  string
 	pathQualifier PathQualifier
@@ -117,7 +118,9 @@ func (c *Client) request(method string, u *url.URL) *http.Request {
 		ProtoMinor: 1,
 		URL:        u,
 	}
-	if c.ClientID != "" && c.clientSecret != "" {
+	if c.AccessToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.AccessToken)
+	} else if c.ClientID != "" && c.clientSecret != "" {
 		req.Header.Set(
 			"Authorization",
 			"Basic "+base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(
