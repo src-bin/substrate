@@ -69,7 +69,13 @@ func NewClient(
 // returns the *http.Response, though its Body field is not usable, and an
 // error, if any.
 func (c *Client) Get(path UnqualifiedPath, query url.Values, i interface{}) (*http.Response, error) {
-	u := c.URL(path, query)
+	return c.GetURL(c.URL(path, query), nil, i)
+}
+
+func (c *Client) GetURL(u *url.URL, query url.Values, i interface{}) (*http.Response, error) {
+	if query != nil {
+		u.RawQuery = query.Encode()
+	}
 	resp, err := http.DefaultClient.Do(c.request("GET", u))
 	if err != nil {
 		return resp, err
@@ -86,7 +92,10 @@ func (c *Client) IsOkta() bool { return c.provider == ProviderOkta }
 // interface{}.  It returns the *http.Response, though its Body field is not
 // usable, and an error, if any.
 func (c *Client) Post(path UnqualifiedPath, body url.Values, i interface{}) (*http.Response, error) {
-	u := c.URL(path, nil)
+	return c.PostURL(c.URL(path, nil), body, i)
+}
+
+func (c *Client) PostURL(u *url.URL, body url.Values, i interface{}) (*http.Response, error) {
 	req := c.request("POST", u)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Body = ioutil.NopCloser(strings.NewReader(body.Encode()))
