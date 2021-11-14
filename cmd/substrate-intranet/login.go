@@ -116,7 +116,11 @@ func loginHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*e
 	q.Add("nonce", nonce)
 	q.Add("redirect_uri", redirectURI.String())
 	q.Add("response_type", "code")
-	q.Add("scope", "openid email profile")
+	scope := "openid email profile"
+	if c.IsGoogle() {
+		scope += " https://www.googleapis.com/auth/admin.directory.user.readonly"
+	}
+	q.Add("scope", scope)
 	state = &oauthoidc.State{
 		Next:  event.QueryStringParameters["next"],
 		Nonce: nonce,
