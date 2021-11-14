@@ -15,9 +15,7 @@ import (
 
 var TerraformVersion = "" // replaced at build time with the contents of terraform-version.txt; see Makefile
 
-// TODO remove archive in 2021.11.
 const (
-	archiveVersion  = "2.2.0"
 	awsVersion      = "3.49.0"
 	externalVersion = "2.1.0"
 )
@@ -39,11 +37,11 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 			return err
 		}
 		return tmpl.Execute(f, struct {
-			ArchiveVersion, AWSVersion, ExternalVersion string
-			ConfigurationAliases                        []ProviderAlias
-			TerraformVersion                            string
+			AWSVersion, ExternalVersion string
+			ConfigurationAliases        []ProviderAlias
+			TerraformVersion            string
 		}{
-			archiveVersion, awsVersion, externalVersion,
+			awsVersion, externalVersion,
 			configurationAliases,
 			TerraformVersion,
 		})
@@ -57,18 +55,16 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 		`# managed by Substrate; do not edit by hand`,
 	).ReplaceAllLiteral(b, []byte(`# partially managed by Substrate; do not edit the archive, aws, or external providers by hand`))
 
-	b = regexp.MustCompile(
-		`source\s+=\s+"hashicorp/archive"
-\s+version\s+=\s+">?(= )?\d+\.\d+\.\d+"`,
-	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
-		`source = "hashicorp/archive"
-      version = ">= %s"`,
-		archiveVersion,
-	)))
+	b = regexp.MustCompile( // remove in 2021.12
+		`\s*archive\s*=\s*\{
+\s*source\s*=\s*"hashicorp/archive"
+\s*version\s*=\s*">?=?\s*\d+\.\d+\.\d+"
+\s*\}`,
+	).ReplaceAllLiteral(b, []byte{})
 
 	b = regexp.MustCompile(
-		`source\s+=\s+"hashicorp/aws"
-\s+version\s+=\s+">?(= )?\d+\.\d+\.\d+"`,
+		`source\s*=\s*"hashicorp/aws"
+\s*version\s*=\s*">?(= )?\d+\.\d+\.\d+"`,
 	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
 		`source = "hashicorp/aws"
       version = ">= %s"`,
@@ -77,8 +73,8 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 	// TODO need to handle configuration_aliases for completeness (one customer was actually missing configuration_aliases because of this, though the consequences were extremely mild)
 
 	b = regexp.MustCompile(
-		`source\s+=\s+"hashicorp/external"
-\s+version\s+=\s+">?(= )?\d+\.\d+\.\d+"`,
+		`source\s*=\s*"hashicorp/external"
+\s*version\s*=\s*">?(= )?\d+\.\d+\.\d+"`,
 	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
 		`source = "hashicorp/external"
       version = ">= %s"`,
@@ -86,7 +82,7 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 	)))
 
 	b = regexp.MustCompile(
-		`required_version\s+=\s+">?(= )?\d+\.\d+\.\d+"`,
+		`required_version\s*=\s*">?(= )?\d+\.\d+\.\d+"`,
 	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
 		`required_version = "= %s"`,
 		TerraformVersion,

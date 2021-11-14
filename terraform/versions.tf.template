@@ -2,10 +2,6 @@
 
 terraform {
   required_providers {
-    archive = {
-      source  = "hashicorp/archive"
-      version = ">= {{.ArchiveVersion}}"
-    }
     aws = {
 {{- if .ConfigurationAliases}}
       configuration_aliases = [
