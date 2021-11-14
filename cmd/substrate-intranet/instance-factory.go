@@ -274,7 +274,7 @@ func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRe
 	if len(securityGroups) != 1 {
 		return nil, fmt.Errorf("security group not found in %s", aws.StringValue(subnet.VpcId))
 	}
-	reservation, err := awsec2.RunInstance(
+	reservation, err := awsec2.RunInstance( // TODO make this a lot simpler and let users customize the AMI, etc. by using a launch template
 		svc,
 		roles.Administrator, // there's an instance profile for this role with the same name; TODO parameterize as with AWS Console
 		aws.StringValue(image.ImageId),
