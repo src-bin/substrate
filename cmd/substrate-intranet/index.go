@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/oauthoidc"
 )
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
@@ -28,20 +29,40 @@ var unlistedPaths = []string{
 
 func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
+	sess, err := awssessions.NewSession(awssessions.Config{})
+	if err != nil {
+		return nil, err
+	}
+	svc := apigateway.New(sess)
+
 	var debug string
 	if _, ok := event.QueryStringParameters["debug"]; ok {
 		b, err := json.MarshalIndent(event, "", "\t")
 		if err != nil {
 			return nil, err
 		}
-		debug = string(b) + "\n" + strings.Join(os.Environ(), "\n")
-	}
+		debug += string(b) + "\n" + strings.Join(os.Environ(), "\n") + "\n"
 
-	sess, err := awssessions.NewSession(awssessions.Config{})
-	if err != nil {
-		return nil, err
+		c, err := oauthoidc.NewClient(sess, event.StageVariables)
+		if err != nil {
+			return nil, err
+		}
+		if c.IsGoogle() {
+			c.AccessToken = event.RequestContext.Authorizer["AccessToken"].(string)
+			body, err := oauthoidc.GoogleAdminDirectoryUser(
+				c,
+				event.RequestContext.Authorizer["principalId"].(string),
+			)
+			if err != nil {
+				return nil, err
+			}
+			b, err := json.MarshalIndent(body, "", "\t")
+			if err != nil {
+				return nil, err
+			}
+			debug += string(b) + "\n"
+		}
 	}
-	svc := apigateway.New(sess)
 
 	out, err := svc.GetResources(&apigateway.GetResourcesInput{
 		Limit:     aws.Int64(500),
