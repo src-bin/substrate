@@ -37,7 +37,7 @@ func NewClient(
 	sess *session.Session,
 	stageVariables map[string]string,
 ) (*Client, error) {
-	clientSecret, err := awssecretsmanager.CachedSecret(
+	clientSecret, err := awssecretsmanager.CachedSecret( // TODO memoize
 		secretsmanager.New(sess),
 		fmt.Sprintf(
 			"%s-%s",
