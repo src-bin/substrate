@@ -255,12 +255,11 @@ func getCredentials(sess *session.Session, principalId string) (*sts.Credentials
 	if err != nil {
 		return nil, err
 	}
+	adminAccountId := aws.StringValue(callerIdentity.Account)
+	adminRoleName := roles.Administrator // TODO parameterize from IdP
 	assumedRole, err := awssts.AssumeRole(
 		stsSvc,
-		roles.Arn(
-			aws.StringValue(callerIdentity.Account),
-			roles.Administrator, // TODO parameterize by user as with AWS Console
-		),
+		roles.Arn(adminAccountId, adminRoleName),
 		principalId,
 		43200,
 	)

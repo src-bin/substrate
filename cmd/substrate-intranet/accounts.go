@@ -20,6 +20,10 @@ import (
 
 func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
+	// Get the user's configured starting point from the IdP.
+	adminAccountId := event.RequestContext.AccountID
+	adminRoleName := roles.Administrator // TODO set this per-user from IdP
+
 	accountId := event.QueryStringParameters["number"]
 	roleName := event.QueryStringParameters["role"]
 	if accountId != "" && roleName != "" {
@@ -27,7 +31,10 @@ func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) 
 		if err != nil {
 			return nil, err
 		}
-		svc := sts.New(sess)
+
+		// We have to start from the user's configured starting point so that
+		// all questions of authorization are deferred to AWS.
+		svc := sts.New(awssessions.AssumeRole(sess, adminAccountId, adminRoleName))
 
 		assumedRole, err := awssts.AssumeRole(
 			svc,
