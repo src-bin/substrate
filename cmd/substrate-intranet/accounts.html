@@ -6,6 +6,7 @@
 <h1>Accounts</h1>
 <p class="context">Here are all the AWS accounts in your organization. Once you've logged into the AWS Console using your identity provider, use this table to assume roles in all your accounts in the AWS Console. If you need command-line access, use <kbd>eval $(substrate-credentials)</kbd>, the <a href="credential-factory">Credential Factory</a>, or the <a href="instance-factory">Instance Factory</a>.</p>
 <h2>Special accounts</h2>
+{{- $roleName := .RoleName}}
 <table border="1" cellpadding="2" cellspacing="2">
 <tr>
     <th nowrap>Name</th>
@@ -16,7 +17,7 @@
 <tr>
     <td>management</td>
     <td>{{.ManagementAccount.Id}}</td>
-    <td><a href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationAdministrator" target="_blank">OrganizationAdministrator</a></td>
+    <td>{{if eq $roleName "Administrator"}}<a href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationAdministrator" target="_blank">OrganizationAdministrator</a>{{else}}&nbsp;{{end}}</td>
     <td><a href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationReader" target="_blank">OrganizationReader</a></td>
     <td>{{.ManagementAccount.Email}}</td>
 </tr>
@@ -30,14 +31,14 @@
 <tr>
     <td>{{.DeployAccount.Name}}</td>
     <td>{{.DeployAccount.Id}}</td>
-    <td><a href="accounts?number={{.DeployAccount.Id}}&role=DeployAdministrator" target="_blank">DeployAdministrator</a></td>
+    <td>{{if eq $roleName "Administrator"}}<a href="accounts?number={{.DeployAccount.Id}}&role=DeployAdministrator" target="_blank">DeployAdministrator</a>{{else}}&nbsp;{{end}}</td>
     <td><a href="accounts?number={{.DeployAccount.Id}}&role=Auditor" target="_blank">Auditor</a></td>
     <td>{{.DeployAccount.Email}}</td>
 </tr>
 <tr>
     <td>{{.NetworkAccount.Name}}</td>
     <td>{{.NetworkAccount.Id}}</td>
-    <td><a href="accounts?number={{.NetworkAccount.Id}}&role=NetworkAdministrator" target="_blank">NetworkAdministrator</a></td>
+    <td>{{if eq $roleName "Administrator"}}<a href="accounts?number={{.NetworkAccount.Id}}&role=NetworkAdministrator" target="_blank">NetworkAdministrator</a>{{else}}&nbsp;{{end}}</td>
     <td><a href="accounts?number={{.NetworkAccount.Id}}&role=Auditor" target="_blank">Auditor</a></td>
     <td>{{.NetworkAccount.Email}}</td>
 </tr>
@@ -58,7 +59,7 @@
     <td>{{.Tags.Environment}}</td>
     <td>{{.Tags.Quality}}</td>
     <td>{{.Id}}</td>
-    <td><a href="accounts?number={{.Id}}&role=Administrator" target="_blank">Administrator</a></td>
+    <td><a href="accounts?number={{.Id}}&role={{$roleName}}" target="_blank">{{$roleName}}</a></td>
     <td><a href="accounts?number={{.Id}}&role=Auditor" target="_blank">Auditor</a></td>
     <td>{{.Email}}</td>
 </tr>
@@ -76,7 +77,7 @@
 <tr>
     <td>{{.Tags.Quality}}</td>
     <td>{{.Id}}</td>
-    <td><a href="accounts?number={{.Id}}&role=Administrator" target="_blank">Administrator</a></td>
+    <td><a href="accounts?number={{.Id}}&role={{$roleName}}" target="_blank">{{$roleName}}</a></td>
     <td><a href="accounts?number={{.Id}}&role=Auditor" target="_blank">Auditor</a></td>
     <td>{{.Email}}</td>
 </tr>

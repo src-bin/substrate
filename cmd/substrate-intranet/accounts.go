@@ -76,9 +76,11 @@ func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) 
 	body, err := lambdautil.RenderHTML(accountsTemplate(), struct {
 		AdminAccounts, ServiceAccounts                                 []*awsorgs.Account
 		AuditAccount, DeployAccount, ManagementAccount, NetworkAccount *awsorgs.Account
+		RoleName                                                       string
 	}{
 		adminAccounts, serviceAccounts,
 		auditAccount, deployAccount, managementAccount, networkAccount,
+		adminRoleName,
 	})
 	if err != nil {
 		return nil, err
