@@ -25,7 +25,6 @@ func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) 
 	if accountId != "" && roleName != "" {
 		sess, err := awssessions.NewSession(awssessions.Config{})
 		if err != nil {
-			return lambdautil.ErrorResponse(err) // TODO remove
 			return nil, err
 		}
 		svc := sts.New(sess)
