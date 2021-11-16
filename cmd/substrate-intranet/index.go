@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"sort"
@@ -14,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
-	"github.com/src-bin/substrate/oauthoidc"
 )
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
@@ -43,19 +41,6 @@ func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*e
 			return nil, err
 		}
 		debug += string(b) + "\n" + strings.Join(os.Environ(), "\n") + "\n"
-
-		c, err := oauthoidc.NewClient(sess, event.StageVariables)
-		if err != nil {
-			return nil, err
-		}
-		c.AccessToken = event.RequestContext.Authorizer["AccessToken"].(string)
-		roleName, err := c.RoleNameFromIdP(
-			event.RequestContext.Authorizer["principalId"].(string),
-		)
-		if err != nil {
-			return nil, err
-		}
-		debug += fmt.Sprintf("RoleName from IdP: %s\n", roleName)
 	}
 
 	out, err := svc.GetResources(&apigateway.GetResourcesInput{
