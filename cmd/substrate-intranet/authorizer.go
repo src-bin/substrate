@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -45,6 +46,7 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 		case "id":
 			if _, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, c, idToken); err != nil {
 				context["Error"] = err
+				log.Print(err)
 				idToken = &oauthoidc.IDToken{} // revert to zero-value and thus to denying access
 				continue
 			}
@@ -62,6 +64,7 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 			effect = policies.Allow
 		} else {
 			context["Error"] = err
+			log.Print(err)
 		}
 	}
 
