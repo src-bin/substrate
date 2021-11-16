@@ -42,15 +42,15 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 	for _, cookie := range req.Cookies() {
 		switch cookie.Name {
 		case "a":
-			context["AccessToken"] = cookie.Value
+			context[authorizer.AccessToken] = cookie.Value
 		case "id":
 			if _, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, c, idToken); err != nil {
-				context["Error"] = err
+				context[authorizer.Error] = err
 				log.Print(err)
 				idToken = &oauthoidc.IDToken{} // revert to zero-value and thus to denying access
 				continue
 			}
-			if context["IDToken"], err = idToken.JSONString(); err != nil {
+			if context[authorizer.IDToken], err = idToken.JSONString(); err != nil {
 				return nil, err
 			}
 		}
@@ -60,10 +60,10 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 	if idToken.Email != "" {
 		roleName, err := c.RoleNameFromIdP(idToken.Email)
 		if err == nil {
-			context["RoleName"] = roleName
+			context[authorizer.RoleName] = roleName
 			effect = policies.Allow
 		} else {
-			context["Error"] = err
+			context[authorizer.Error] = err
 			log.Print(err)
 		}
 	}
