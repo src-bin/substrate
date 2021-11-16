@@ -2,6 +2,9 @@ package roles
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/aws/aws-sdk-go/aws/arn"
 )
 
 const (
@@ -18,4 +21,12 @@ const (
 
 func Arn(accountId, roleName string) string {
 	return fmt.Sprintf("arn:aws:iam::%s:role/%s", accountId, roleName)
+}
+
+func Name(roleArn string) (string, error) {
+	parsed, err := arn.Parse(roleArn)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimPrefix(parsed.Resource, "role/"), nil
 }
