@@ -41,10 +41,15 @@ func GooglePathQualifier() PathQualifier {
 	}
 }
 
-func RoleNameFromGoogleIdP(c *Client, user string) (string, error) {
+func roleNameFromGoogleIdP(c *Client, user string) (string, error) {
 	var body struct {
-		CustomSchemas map[string]map[string]string `json:"customSchemas"`
-		PrimaryEmail  string                       `json:"primaryEmail"`
+		CustomSchemas struct {
+			AWS struct { // there's a risk the value we want is under "AWS1234" (or some such) since Google papers over duplicate category names in the UI
+				Role     string
+				RoleName string
+			}
+		} `json:"customSchemas"`
+		PrimaryEmail string `json:"primaryEmail"`
 		// lots of other fields that aren't relevant
 	}
 	resp, err := c.GetURL(&url.URL{
@@ -57,27 +62,14 @@ func RoleNameFromGoogleIdP(c *Client, user string) (string, error) {
 	}
 	log.Printf("resp: %+v", resp)
 	log.Printf("body: %+v", body)
-	const awsCategory = "AWS" // there's a risk the value we want is under "AWS1234" (or some such) since Google papers over duplicate category names in the UI
-	for category, m := range body.CustomSchemas {
-		if category == awsCategory {
-			for name, value := range m {
-				if name == "RoleName" {
-					return value, nil
-				}
-			}
-		}
+	if body.CustomSchemas.AWS.RoleName != "" {
+		return body.CustomSchemas.AWS.RoleName, nil
 	}
 
 	// Also check for (and then parse) the original AWS.Role attribute that
 	// included a role and SAML provider ARN with a comma between them.
-	for category, m := range body.CustomSchemas {
-		if category == awsCategory {
-			for name, value := range m {
-				if name == "Role" {
-					return roles.Name(strings.Split(value, ",")[0])
-				}
-			}
-		}
+	if body.CustomSchemas.AWS.Role != "" {
+		return roles.Name(strings.Split(body.CustomSchemas.AWS.Role, ",")[0])
 	}
 
 	return "", UndefinedRoleError(user)

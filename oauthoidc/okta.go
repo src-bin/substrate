@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/url"
 	"path"
+
+	"github.com/src-bin/substrate/roles"
 )
 
 const (
@@ -58,4 +60,8 @@ func OktaPathQualifier(hostname, authServerId string) PathQualifier {
 		}
 		return u
 	}
+}
+
+func roleNameFromOktaIdP() (string, error) {
+	return roles.Administrator, nil // TODO fetch from Okta instead of assuming they followed the old docs
 }

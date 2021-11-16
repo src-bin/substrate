@@ -48,17 +48,14 @@ func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*e
 		if err != nil {
 			return nil, err
 		}
-		if c.IsGoogle() {
-			c.AccessToken = event.RequestContext.Authorizer["AccessToken"].(string)
-			roleName, err := oauthoidc.RoleNameFromGoogleIdP(
-				c,
-				event.RequestContext.Authorizer["principalId"].(string),
-			)
-			if err != nil {
-				return nil, err
-			}
-			debug += fmt.Sprintf("RoleName from Google IdP: %s\n", roleName)
+		c.AccessToken = event.RequestContext.Authorizer["AccessToken"].(string)
+		roleName, err := c.RoleNameFromIdP(
+			event.RequestContext.Authorizer["principalId"].(string),
+		)
+		if err != nil {
+			return nil, err
 		}
+		debug += fmt.Sprintf("RoleName from IdP: %s\n", roleName)
 	}
 
 	out, err := svc.GetResources(&apigateway.GetResourcesInput{

@@ -108,6 +108,16 @@ func (c *Client) PostURL(u *url.URL, body url.Values, i interface{}) (*http.Resp
 
 func (c *Client) Provider() Provider { return c.provider }
 
+func (c *Client) RoleNameFromIdP(user string) (string, error) {
+	switch c.provider {
+	case ProviderGoogle:
+		return roleNameFromGoogleIdP(c, user)
+	case ProviderOkta:
+		return roleNameFromOktaIdP()
+	}
+	return "", UndefinedRoleError(fmt.Sprintf("%s IdP", c.provider))
+}
+
 func (c *Client) URL(path UnqualifiedPath, query url.Values) *url.URL {
 	u := c.pathQualifier(path)
 	if query != nil {
