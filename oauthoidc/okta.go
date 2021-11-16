@@ -8,7 +8,7 @@ import (
 
 const (
 	OktaHostname                  = "OktaHostname"
-	OktaHostnameValueForGoogleIDP = "unused-by-Google-IDP"
+	OktaHostnameValueForGoogleIdP = "unused-by-Google-IdP"
 )
 
 type OktaAccessToken struct {

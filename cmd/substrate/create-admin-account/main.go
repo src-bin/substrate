@@ -388,7 +388,7 @@ func Main() {
 		if hostname != "" {
 			arguments["okta_hostname"] = terraform.Q(hostname)
 		} else {
-			arguments["okta_hostname"] = terraform.Q(oauthoidc.OktaHostnameValueForGoogleIDP)
+			arguments["okta_hostname"] = terraform.Q(oauthoidc.OktaHostnameValueForGoogleIdP)
 		}
 		tags.Region = region
 		file.Push(terraform.Module{

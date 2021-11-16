@@ -54,7 +54,7 @@ func NewClient(
 		ClientID:     stageVariables[OAuthOIDCClientID],
 		clientSecret: clientSecret,
 	}
-	if hostname := stageVariables[OktaHostname]; hostname == OktaHostnameValueForGoogleIDP {
+	if hostname := stageVariables[OktaHostname]; hostname == OktaHostnameValueForGoogleIdP /* begin remove in 2021.12 */ || hostname == "unused-by-Google-IDP" /* end remove in 2021.12 */ {
 		c.pathQualifier = GooglePathQualifier()
 		c.provider = ProviderGoogle
 	} else {
