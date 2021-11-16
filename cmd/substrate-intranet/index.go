@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"sort"
@@ -49,18 +50,14 @@ func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*e
 		}
 		if c.IsGoogle() {
 			c.AccessToken = event.RequestContext.Authorizer["AccessToken"].(string)
-			body, err := oauthoidc.GoogleAdminDirectoryUser(
+			roleName, err := oauthoidc.RoleNameFromGoogleIdP(
 				c,
 				event.RequestContext.Authorizer["principalId"].(string),
 			)
 			if err != nil {
 				return nil, err
 			}
-			b, err := json.MarshalIndent(body, "", "\t")
-			if err != nil {
-				return nil, err
-			}
-			debug += string(b) + "\n"
+			debug += fmt.Sprintf("RoleName from Google IdP: %s\n", roleName)
 		}
 	}
 

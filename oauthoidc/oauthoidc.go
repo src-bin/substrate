@@ -107,3 +107,12 @@ type TokenResponse struct {
 	Scope       string `json:"scope"`
 	IDToken     string `json:"id_token"`
 }
+
+type UndefinedRoleError string
+
+func (err UndefinedRoleError) Error() string {
+	return fmt.Sprintf(
+		"UndefinedRoleError: %s doesn't define the AWS.RoleName or (legacy) AWS.Role attribute", // TODO these descriptors are Google-specific
+		string(err),
+	)
+}
