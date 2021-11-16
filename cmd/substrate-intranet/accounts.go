@@ -13,12 +13,24 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/roles"
 )
 
 //go:generate go run ../../tools/template/main.go -name accountsTemplate -package main accounts.html
 
 func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+
+	sess, err := awssessions.NewSession(awssessions.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := oauthoidc.NewClient(sess, event.StageVariables)
+	if err != nil {
+		return nil, err
+	}
+	_ = c
 
 	// Get the user's configured starting point from the IdP.
 	adminAccountId := event.RequestContext.AccountID
@@ -27,10 +39,6 @@ func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) 
 	accountId := event.QueryStringParameters["number"]
 	roleName := event.QueryStringParameters["role"]
 	if accountId != "" && roleName != "" {
-		sess, err := awssessions.NewSession(awssessions.Config{})
-		if err != nil {
-			return nil, err
-		}
 
 		// We have to start from the user's configured starting point so that
 		// all questions of authorization are deferred to AWS.
@@ -62,7 +70,7 @@ func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) 
 		}, nil
 	}
 
-	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
+	sess, err = awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
 	if err != nil {
 		return nil, err
 	}
