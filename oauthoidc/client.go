@@ -142,6 +142,21 @@ func (c *Client) request(method string, u *url.URL) *http.Request {
 	return req
 }
 
+type PathQualifier func(UnqualifiedPath) *url.URL
+
+type Provider int // do not persist this type, as its values are assigned by iota and aren't stable
+
+type UnqualifiedPath string
+
+// Names of well-known URLs in the OAuth OIDC flow.  PathQualifiers will turn
+// these into the actual fully-qualified URLs used by supported IdPs.
+const (
+	Authorize UnqualifiedPath = "authorize"
+	Issuer    UnqualifiedPath = "issuer"
+	Keys      UnqualifiedPath = "keys"
+	Token     UnqualifiedPath = "token"
+)
+
 func unmarshalJSON(resp *http.Response, i interface{}) error {
 	if i == nil {
 		return nil
@@ -161,18 +176,3 @@ func unmarshalJSON(resp *http.Response, i interface{}) error {
 	}
 	return nil
 }
-
-type PathQualifier func(UnqualifiedPath) *url.URL
-
-type Provider int // do not persist this type, as its values are assigned by iota and aren't stable
-
-type UnqualifiedPath string
-
-// Names of well-known URLs in the OAuth OIDC flow.  PathQualifiers will turn
-// these into the actual fully-qualified URLs used by supported IdPs.
-const (
-	Authorize UnqualifiedPath = "authorize"
-	Issuer    UnqualifiedPath = "issuer"
-	Keys      UnqualifiedPath = "keys"
-	Token     UnqualifiedPath = "token"
-)
