@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awsec2"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
@@ -249,7 +250,6 @@ func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRe
 	}
 
 	// Let's do this!
-	adminRoleName := roles.Administrator // TODO paramaterize via IdP
 	types, err := awsec2.DescribeInstanceTypes(svc, []string{instanceType})
 	if err != nil {
 		return nil, err
@@ -277,7 +277,7 @@ func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRe
 	}
 	reservation, err := awsec2.RunInstance( // TODO make this a lot simpler and let users customize the AMI, etc. by using a launch template
 		svc,
-		adminRoleName,
+		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 		aws.StringValue(image.ImageId),
 		instanceType,
 		aws.StringValue(keyPairs[0].KeyName),
