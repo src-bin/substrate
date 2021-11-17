@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -33,19 +34,28 @@ func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRe
 
 	var instanceType, publicKeyMaterial, terminateConfirmed string
 	launched := event.QueryStringParameters["launched"] // TODO don't propagate this into the HTML if the instance it references is in the "running" state
-	principalId := event.RequestContext.Authorizer["principalId"].(string)
+	principalId := event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string)
 	region := event.QueryStringParameters["region"]
+	log.Printf("GET region: %+v", region)
 	selectedRegions := strings.Split(event.StageVariables["SelectedRegions"], ",")
+	log.Printf("selectedRegions: %+v", selectedRegions)
 	terminate := event.QueryStringParameters["terminate"]
 	terminated := event.QueryStringParameters["terminated"]
 	if event.HTTPMethod == "POST" {
-		values, err := url.ParseQuery(event.Body)
+		body, err := lambdautil.EventBody(event)
+		if err != nil {
+			return lambdautil.ErrorResponse(err)
+		}
+		values, err := url.ParseQuery(body)
 		if err != nil {
 			return nil, err
 		}
+		log.Printf("POST values: %+v", values)
 		instanceType = values.Get("instance_type")
+		log.Printf("POST instanceType: %+v", instanceType)
 		publicKeyMaterial = values.Get("public_key_material")
 		region = values.Get("region")
+		log.Printf("POST region: %+v", region)
 		terminateConfirmed = values.Get("terminate")
 	}
 
@@ -54,6 +64,7 @@ func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRe
 	for _, r := range selectedRegions {
 		found = found || r == region
 	}
+	log.Printf("found: %v", found)
 	if !found {
 		v := struct {
 			Error                           error
@@ -226,6 +237,7 @@ func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRe
 			found = found || i == instanceType
 		}
 	}
+	log.Printf("found: %v", found)
 	if !found {
 		v := struct {
 			Error            error
