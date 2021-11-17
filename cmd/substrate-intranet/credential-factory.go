@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
@@ -32,19 +33,20 @@ const (
 
 	MinTokenLength = 40
 
-	TagKeyPrefix   = "substrate-credential-factory:"
-	TagValueFormat = "%s expiry %s"
+	TagKeyPrefix   = "CredentialFactory:"
+	TagValueFormat = "%s %s expiry %s"
 )
 
 type TagValue struct {
-	Expiry      time.Time
-	PrincipalId string
+	Expiry                time.Time
+	PrincipalId, RoleName string
 }
 
-func NewTagValue(principalId string) *TagValue {
+func NewTagValue(principalId, roleName string) *TagValue {
 	return &TagValue{
 		Expiry:      time.Now().Add(time.Minute),
 		PrincipalId: principalId,
+		RoleName:    roleName,
 	}
 }
 
@@ -54,7 +56,7 @@ func ParseTagValue(raw string) (*TagValue, error) {
 	}
 	var s string
 	v := &TagValue{}
-	_, err := fmt.Sscanf(raw, TagValueFormat, &v.PrincipalId, &s)
+	_, err := fmt.Sscanf(raw, TagValueFormat, &v.PrincipalId, &v.RoleName, &s)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +72,7 @@ func (v *TagValue) String() string {
 	return fmt.Sprintf(
 		TagValueFormat,
 		v.PrincipalId,
+		v.RoleName,
 		v.Expiry.Format(time.RFC3339),
 	)
 }
@@ -80,11 +83,11 @@ func credentialFactoryHandler(ctx context.Context, event *events.APIGatewayProxy
 		return nil, err
 	}
 
-	principalId, err := getPrincipalId(event)
-	if err != nil {
-		return nil, err
-	}
-	credentials, err := getCredentials(sess, principalId)
+	credentials, err := getCredentials(
+		sess,
+		event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string),
+		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
+	)
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
 	}
@@ -113,10 +116,6 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, event *events.APIGat
 	// because there won't be that many and it's free. We choose to use tags on
 	// an IAM resource because they're global and Substrate's Intranet is
 	// multi-region.
-	principalId, err := getPrincipalId(event)
-	if err != nil {
-		return nil, err
-	}
 	token, ok := event.QueryStringParameters["token"]
 	if !ok {
 		return lambdautil.ErrorResponse(errors.New("query string parameter token is required"))
@@ -128,7 +127,10 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, event *events.APIGat
 		iam.New(sess),
 		users.CredentialFactory,
 		TagKeyPrefix+token,
-		NewTagValue(principalId).String(),
+		NewTagValue(
+			event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string),
+			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
+		).String(),
 	); err != nil {
 		return nil, err
 	}
@@ -194,7 +196,7 @@ func credentialFactoryFetchHandler(ctx context.Context, event *events.APIGateway
 		return nil, err
 	}
 
-	credentials, err := getCredentials(sess, tagValue.PrincipalId)
+	credentials, err := getCredentials(sess, tagValue.PrincipalId, tagValue.RoleName)
 	if err != nil {
 		return lambdautil.ErrorResponseJSON(http.StatusInternalServerError, err)
 	}
@@ -210,7 +212,7 @@ func credentialFactoryFetchHandler(ctx context.Context, event *events.APIGateway
 	}, nil
 }
 
-func getCredentials(sess *session.Session, principalId string) (*sts.Credentials, error) {
+func getCredentials(sess *session.Session, principalId, roleName string) (*sts.Credentials, error) {
 	iamSvc := iam.New(sess)
 	var (
 		accessKey *iam.AccessKey
@@ -255,11 +257,9 @@ func getCredentials(sess *session.Session, principalId string) (*sts.Credentials
 	if err != nil {
 		return nil, err
 	}
-	adminAccountId := aws.StringValue(callerIdentity.Account)
-	adminRoleName := roles.Administrator // TODO parameterize from IdP
 	assumedRole, err := awssts.AssumeRole(
 		stsSvc,
-		roles.Arn(adminAccountId, adminRoleName),
+		roles.Arn(aws.StringValue(callerIdentity.Account), roleName),
 		principalId,
 		43200,
 	)
@@ -268,18 +268,6 @@ func getCredentials(sess *session.Session, principalId string) (*sts.Credentials
 	}
 
 	return assumedRole.Credentials, nil
-}
-
-func getPrincipalId(event *events.APIGatewayProxyRequest) (string, error) {
-	i, ok := event.RequestContext.Authorizer["principalId"]
-	if !ok {
-		return "", errors.New("could not read princpalId from Lambda request context")
-	}
-	principalId, ok := i.(string)
-	if !ok {
-		return "", fmt.Errorf("princpalId is %T not string", i)
-	}
-	return principalId, nil
 }
 
 func init() {

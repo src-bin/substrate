@@ -4,6 +4,7 @@ package authorizerutil
 const (
 	AccessToken = "AccessToken"
 	IDToken     = "IDToken"
+	PrincipalId = "principalId"
 	RoleName    = "RoleName"
 
 	Error = "Error"
