@@ -59,6 +59,7 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 
 	effect := policies.Deny
 	if idToken.Email != "" {
+		c.AccessToken = context[authorizerutil.AccessToken].(string)
 		roleName, err := c.RoleNameFromIdP(idToken.Email)
 		if err == nil {
 			context[authorizerutil.RoleName] = roleName
