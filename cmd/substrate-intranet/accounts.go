@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
@@ -32,17 +33,17 @@ func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) 
 	}
 	_ = c
 
-	// Get the user's configured starting point from the IdP.
-	adminAccountId := event.RequestContext.AccountID
-	adminRoleName := roles.Administrator // TODO set this per-user from IdP
-
 	accountId := event.QueryStringParameters["number"]
 	roleName := event.QueryStringParameters["role"]
 	if accountId != "" && roleName != "" {
 
 		// We have to start from the user's configured starting point so that
 		// all questions of authorization are deferred to AWS.
-		svc := sts.New(awssessions.AssumeRole(sess, adminAccountId, adminRoleName))
+		svc := sts.New(awssessions.AssumeRole(
+			sess,
+			event.RequestContext.AccountID,
+			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
+		))
 
 		assumedRole, err := awssts.AssumeRole(
 			svc,
@@ -88,7 +89,7 @@ func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) 
 	}{
 		adminAccounts, serviceAccounts,
 		auditAccount, deployAccount, managementAccount, networkAccount,
-		adminRoleName,
+		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 	})
 	if err != nil {
 		return nil, err
