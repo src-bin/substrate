@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
@@ -42,15 +43,15 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 	for _, cookie := range req.Cookies() {
 		switch cookie.Name {
 		case "a":
-			context[authorizer.AccessToken] = cookie.Value
+			context[authorizerutil.AccessToken] = cookie.Value
 		case "id":
 			if _, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, c, idToken); err != nil {
-				context[authorizer.Error] = err
+				context[authorizerutil.Error] = err
 				log.Print(err)
 				idToken = &oauthoidc.IDToken{} // revert to zero-value and thus to denying access
 				continue
 			}
-			if context[authorizer.IDToken], err = idToken.JSONString(); err != nil {
+			if context[authorizerutil.IDToken], err = idToken.JSONString(); err != nil {
 				return nil, err
 			}
 		}
@@ -60,10 +61,10 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 	if idToken.Email != "" {
 		roleName, err := c.RoleNameFromIdP(idToken.Email)
 		if err == nil {
-			context[authorizer.RoleName] = roleName
+			context[authorizerutil.RoleName] = roleName
 			effect = policies.Allow
 		} else {
-			context[authorizer.Error] = err
+			context[authorizerutil.Error] = err
 			log.Print(err)
 		}
 	}

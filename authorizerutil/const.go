@@ -1,4 +1,4 @@
-package authorizer
+package authorizerutil
 
 // event.RequestContext.Authorizer keys.
 const (
@@ -6,7 +6,7 @@ const (
 	IDToken     = "IDToken"
 	RoleName    = "RoleName"
 
-	Erro = "Error"
+	Error = "Error"
 
 	Location = "Location"
 )
