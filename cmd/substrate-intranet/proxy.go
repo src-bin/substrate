@@ -30,6 +30,13 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 		return errors.New("stopped after 10 redirects")
 	}
 
+	// If the redirect is anything other than appending a '/' to the URI path,
+	// let the user-agent handle it. We only even handle these redirects
+	// because AWS API Gateway insists on stripping trailing slashes.
+	if req.URL.Path != via[0].URL.Path+"/" {
+		return http.ErrUseLastResponse
+	}
+
 	req.Method = via[0].Method
 
 	req.Header.Add("Cookie", via[0].Header.Get("Cookie"))
