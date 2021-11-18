@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -30,13 +31,42 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 	}
 
 	req.Header.Add("Cookie", via[0].Header.Get("Cookie"))
-	// FIXME also need to modify req.URL to switch the Intranet host for the PROXY_DESTINATION_URL host (and port) plus implement STRIP_PATH_PREFIX again
+
+	headerScheme := req.Header.Get("X-Forwarded-Proto")
+	headerHost := req.Header.Get("X-Forwarded-Host")
+	headerPort := req.Header.Get("X-Forwarded-Port")
+	if headerScheme == "http" && headerPort != "80" || headerScheme == "https" && headerPort != "443" {
+		headerHost += ":" + headerPort
+	}
+	if req.URL.Scheme == headerScheme && req.URL.Host == headerHost {
+		s := fmt.Sprintf("%+v", req.URL)
+		req.URL.Scheme = via[0].URL.Scheme
+		req.URL.Host = via[0].URL.Host
+		log.Print("rewriting req.URL from %s to %+v", s, req.URL)
+	}
+
+	// FIXME also need to implement STRIP_PATH_PREFIX again
+
 	///*
 	log.Printf("req: %+v", req)
 	for i, v := range via {
 		log.Printf("via[%d]: %+v", i, v)
 	}
 	//*/
+	log.Printf(
+		`req.URL.Scheme == req.Header.Get("X-Forwarded-Proto"): %v`,
+		req.URL.Scheme == req.Header.Get("X-Forwarded-Proto"),
+	)
+	log.Printf(
+		`req.URL.Host == req.Header.Get("X-Forwarded-Host"): %v`,
+		req.URL.Host == req.Header.Get("X-Forwarded-Host"),
+	)
+	log.Printf(
+		`req.URL.Port() == req.Header.Get("X-Forwarded-Port"): %v, req.URL.Port(): %v, req.Header.Get("X-Forwarded-Port"): %v`,
+		req.URL.Port() == req.Header.Get("X-Forwarded-Port"),
+		req.URL.Port(),
+		req.Header.Get("X-Forwarded-Port"),
+	)
 	return nil
 }
 
