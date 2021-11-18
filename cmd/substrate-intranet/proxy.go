@@ -30,6 +30,8 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 		return errors.New("stopped after 10 redirects")
 	}
 
+	req.Method = via[0].Method
+
 	req.Header.Add("Cookie", via[0].Header.Get("Cookie"))
 
 	headerScheme := req.Header.Get("X-Forwarded-Proto")
@@ -42,7 +44,7 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 		s := fmt.Sprintf("%+v", req.URL)
 		req.URL.Scheme = via[0].URL.Scheme
 		req.URL.Host = via[0].URL.Host
-		log.Print("rewriting req.URL from %s to %+v", s, req.URL)
+		log.Printf("rewriting req.URL from %s to %+v", s, req.URL)
 	}
 
 	// FIXME also need to implement STRIP_PATH_PREFIX again
