@@ -117,3 +117,13 @@ func proxy(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.A
 	}, nil
 
 }
+
+// proxy2 is enough to prove that API Gateway v2 is now thankfully up to the
+// task and doesn't strip trailing slashes.
+func proxy2(ctx context.Context, event *events.APIGatewayV2HTTPRequest) (*events.APIGatewayV2HTTPResponse, error) {
+	log.Printf("%+v\n", event)
+	return &events.APIGatewayV2HTTPResponse{
+		Body:       fmt.Sprintf("%+v\n", event),
+		StatusCode: http.StatusOK,
+	}, nil
+}
