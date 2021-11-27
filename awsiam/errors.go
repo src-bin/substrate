@@ -4,4 +4,5 @@ const (
 	EntityAlreadyExists = "EntityAlreadyExists"
 	InvalidInput        = "InvalidInput"
 	LimitExceeded       = "LimitExceeded"
+	NoSuchEntity        = "NoSuchEntity"
 )

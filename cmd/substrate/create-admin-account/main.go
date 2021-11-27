@@ -1,8 +1,10 @@
 package createadminaccount
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -24,6 +27,7 @@ import (
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
@@ -79,16 +83,6 @@ func Main() {
 		log.Fatal(err)
 	}
 
-	lines, err := ui.EditFile(
-		SAMLMetadataFilename,
-		"here is your current identity provider metadata XML:",
-		"paste the XML metadata from your identity provider",
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	metadata := strings.Join(lines, "\n") + "\n" // ui.EditFile is line-oriented but this instance isn't
-
 	// Ensure the account exists.
 	ui.Spin("finding the admin account")
 	var account *awsorgs.Account
@@ -119,6 +113,27 @@ func Main() {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
+	// We used to collect this metadata XML interactively. Now if it's there
+	// we use it and if it's not we move along because we're not adding new
+	// SAML providers.
+	var idpName, metadata string
+	if b, err := fileutil.ReadFile(SAMLMetadataFilename); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			log.Fatal(err)
+		}
+	} else {
+		metadata = string(b)
+
+		// Set idpName early, too, since we'll need it to name the SAML
+		// provider we're still managing from the before times.
+		if strings.Contains(metadata, "google.com") {
+			idpName = Google
+		} else {
+			idpName = Okta
+		}
+
+	}
+
 	svc := iam.New(sess, &aws.Config{
 		Credentials: stscreds.NewCredentials(sess, roles.Arn(
 			aws.StringValue(account.Id),
@@ -126,20 +141,16 @@ func Main() {
 		)),
 	})
 
-	idpName := "IdP"
-	if strings.Contains(metadata, "google.com") {
-		idpName = Google
-	} else if strings.Contains(metadata, "okta.com") {
-		idpName = Okta
+	var saml *awsiam.SAMLProvider
+	if metadata != "" {
+		ui.Spinf("configuring %s as your organization's identity provider", idpName)
+		saml, err = awsiam.EnsureSAMLProvider(svc, idpName, metadata)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ui.Stopf("provider %s", saml.Arn)
+		//log.Printf("%+v", saml)
 	}
-
-	ui.Spinf("configuring %s as your organization's identity provider", idpName)
-	saml, err := awsiam.EnsureSAMLProvider(svc, idpName, metadata)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ui.Stopf("provider %s", saml.Arn)
-	//log.Printf("%+v", saml)
 
 	// Pre-create this user so that it may be referenced in policies attached to
 	// the Administrator user.  Terraform will attach policies to it later.
@@ -151,39 +162,14 @@ func Main() {
 	time.Sleep(5e9) // TODO wait only just long enough for IAM to become consistent, and probably do it in EnsureUser
 	ui.Stopf("user %s", user.UserName)
 
-	// Give Okta some entrypoints in the Admin account.
-	ui.Spinf("finding or creating roles for %s to use in this admin account", idpName)
-	canned, err := admin.CannedAssumeRolePolicyDocuments(organizations.New(sess))
-	if err != nil {
+	// Create the Administrator role, etc. even without all the principals
+	// that need to assume that role because the Terraform run needs to assume
+	// the Administrator role. Yes, this is a bit of a Catch-22 but it ends up
+	// in a really ergonomic steady state, so we deal with the first run
+	// complexity.
+	if err := ensureAdministrator(sess, svc, account, createdAccount, saml); err != nil {
 		log.Fatal(err)
 	}
-	assumeRolePolicyDocument := policies.Merge(
-		canned.AdminRolePrincipals, // must be at index 0
-		policies.AssumeRolePolicyDocument(&policies.Principal{
-			AWS: []string{users.Arn(
-				aws.StringValue(account.Id),
-				users.CredentialFactory,
-			)},
-			Service: []string{"ec2.amazonaws.com"},
-		}),
-		policies.AssumeRolePolicyDocument(&policies.Principal{
-			Federated: []string{saml.Arn},
-		}),
-	)
-	//log.Printf("%+v", assumeRolePolicyDocument)
-	if _, err := admin.EnsureAdministratorRole(svc, assumeRolePolicyDocument); err != nil {
-		log.Fatal(err)
-	}
-	assumeRolePolicyDocument.Statement[0] = canned.AuditorRolePrincipals.Statement[0] // this is why it must be at index 0
-	//log.Printf("%+v", assumeRolePolicyDocument)
-	if _, err := admin.EnsureAuditorRole(svc, assumeRolePolicyDocument); err != nil {
-		log.Fatal(err)
-	}
-	ui.Stop("ok")
-
-	// This must come before the Terraform run because it references the IAM
-	// roles created here.
-	admin.EnsureAdminRolesAndPolicies(sess, createdAccount)
 
 	// Make arrangements for a hosted zone to appear in this account so that
 	// the Intranet can configure itself.  It's possible to do this entirely
@@ -240,18 +226,8 @@ func Main() {
 		break
 	}
 
-	var hostname string
-	if idpName == Okta {
-		hostname, err = ui.PromptFile(
-			OktaHostnameFilename,
-			"paste the hostname of your Okta installation:",
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ui.Printf("using Okta hostname %s", hostname)
-	}
-
+	// Collect the OAuth OIDC client ID (and secret, below) early now, instead.
+	// We need a clue as to which IdP we're using for some of the later steps.
 	clientId, err := ui.PromptFile(
 		OAuthOIDCClientIdFilename,
 		"paste your OAuth OIDC client ID:",
@@ -274,6 +250,26 @@ func Main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	// We might not have gotten to detect idpName above but we'll definitely
+	// be able to now that we have an OAuth OIDC client ID.
+	if strings.Contains(clientId, "google.com") {
+		idpName = Google
+	} else {
+		idpName = Okta
+	}
+
+	var hostname string
+	if idpName == Okta {
+		hostname, err = ui.PromptFile(
+			OktaHostnameFilename,
+			"paste the hostname of your Okta installation:",
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ui.Printf("using Okta hostname %s", hostname)
 	}
 
 	// Copy module dependencies that are embedded in this binary into the
@@ -442,6 +438,28 @@ func Main() {
 			err = terraform.Plan(dirname)
 		} else {
 			err = terraform.Apply(dirname, *autoApprove)
+			/*
+			   TODO
+			   ╷
+			   │ Error: Error creating Security Group: InvalidVpcID.NotFound: The vpc ID 'vpc-07d00424f077dfefb' does not exist
+			   │ 	status code: 400, request id: 698779f3-d824-4fe9-bf92-8630201d8135
+			   │
+			   │   with module.intranet.aws_security_group.instance-factory,
+			   │   on ../../../../modules/intranet/regional/main.tf line 414, in resource "aws_security_group" "instance-factory":
+			   │  414: resource "aws_security_group" "instance-factory" {
+			   │
+			   ╵
+			   ╷
+			   │ Error: Error creating Security Group: InvalidVpcID.NotFound: The vpc ID 'vpc-07d00424f077dfefb' does not exist
+			   │ 	status code: 400, request id: 759bee77-0936-4fd4-be8e-9843632507e0
+			   │
+			   │   with module.intranet.aws_security_group.substrate-instance-factory,
+			   │   on ../../../../modules/intranet/regional/main.tf line 425, in resource "aws_security_group" "substrate-instance-factory":
+			   │  425: resource "aws_security_group" "substrate-instance-factory" { // remove in 2022.05 with release notes about failure if Instance Factory instances have existed for more than six months
+			   │
+			   ╵
+			   main.go:443: exit status 1
+			*/
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -463,7 +481,8 @@ func Main() {
 				),
 				fmt.Sprintf("%s-%s", oauthoidc.OAuthOIDCClientSecret, clientId),
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
-					roles.Arn(aws.StringValue(account.Id), "substrate-intranet"), // must match intranet/global/main.tf
+					roles.Arn(aws.StringValue(account.Id), roles.Intranet),       // must match intranet/global/main.tf
+					roles.Arn(aws.StringValue(account.Id), "substrate-intranet"), // remove in 2022.01
 				}}),
 				clientSecretTimestamp,
 				clientSecret,
@@ -478,64 +497,17 @@ func Main() {
 		ui.Printf("wrote %s, which you should commit to version control", OAuthOIDCClientSecretTimestampFilename)
 	}
 
+	// Recreate the Administrator and Auditor roles. This is a no-op in steady
+	// state but on the first run its assume role policy is missing some
+	// principals that were just created in the initial Terraform run.
+	if err := ensureAdministrator(sess, svc, account, createdAccount, saml); err != nil {
+		log.Fatal(err)
+	}
+
 	// Google asks GSuite admins to set custom attributes user by user.  Help
 	// these poor souls out by at least telling them exactly what value to set.
 	if idpName == Google {
-		ui.Printf(
-			`set the AWS/Role custom attribute in GSuite for every authorized AWS Console user to "%s,%s"`,
-			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
-			saml.Arn,
-		)
-	}
-
-	// Give Okta a user that can enumerate the roles it can assume.  Only Okta
-	// needs this.  Google puts more of the burden on GSuite admins.
-	if idpName == Okta {
-		ui.Spin("finding or creating a user for Okta to use to enumerate roles")
-		user, err := awsiam.EnsureUserWithPolicy(
-			svc,
-			Okta,
-			&policies.Document{
-				Statement: []policies.Statement{{
-					Action:   []string{"iam:ListAccountAliases", "iam:ListRoles"},
-					Resource: []string{"*"},
-				}},
-			},
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ui.Stopf("user %s", user.UserName)
-		//log.Printf("%+v", user)
-		var ok bool
-		if ui.Interactivity() == ui.FullyInteractive {
-			if ok, err = ui.Confirm( // TODO need to find a way to remove this as it is remarkably confusing and tedious if answered incorrectly; maybe only do it if IdP metadata was changed?
-				`answering "yes" will break any existing integration - do you need to configure Okta's AWS integration? (yes/no)`,
-			); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			ui.Print("if you need to reconfigure Okta, re-run this command with -fully-interactive")
-			time.Sleep(5e9)
-		}
-		if ok {
-			ui.Spin("deleting existing access keys and creating a new one")
-			if err := awsiam.DeleteAllAccessKeys(svc, Okta); err != nil {
-				log.Fatal(err)
-			}
-			accessKey, err := awsiam.CreateAccessKey(svc, aws.StringValue(user.UserName))
-			if err != nil {
-				log.Fatal(err)
-			}
-			ui.Stop("ok")
-			//log.Printf("%+v", accessKey)
-			ui.Printf("Okta needs this SAML provider ARN: %s", saml.Arn)
-			ui.Printf(".. and this access key ID: %s", accessKey.AccessKeyId)
-			ui.Printf("...and this secret access key: %s", accessKey.SecretAccessKey) // TODO can't put this into substrate.onboarding.txt; shit
-			if _, err := ui.Prompt("press <enter> after you've updated your Okta configuration"); err != nil {
-				log.Fatal(err)
-			}
-		}
+		ui.Printf("set the custom AWS.RoleName attribute in Google for every user to the name of the IAM role they're authorized to assume")
 	}
 
 	ui.Printf(
@@ -545,4 +517,59 @@ func Main() {
 	)
 	ui.Printf("you should also start using substrate-credentials or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
 
+}
+
+func ensureAdministrator(sess *session.Session, svc *iam.IAM, account *awsorgs.Account, createdAccount bool, saml *awsiam.SAMLProvider) error {
+
+	{
+		_, err := awsiam.GetRole(svc, roles.Intranet)
+		log.Print(awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity))
+	}
+	// Decide whether we're going to include principals created during the
+	// Terraform run in the assume role policy.
+	var bootstrapping bool
+	if _, err := awsiam.GetRole(svc, roles.Intranet); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+		bootstrapping = true
+	}
+
+	// Give the IdP and EC2 some entrypoints in the account.
+	ui.Spin("finding or creating roles for your IdP and EC2 to assume in this admin account")
+	canned, err := admin.CannedAssumeRolePolicyDocuments(sess, bootstrapping)
+	if err != nil {
+		return err
+	}
+	assumeRolePolicyDocument := policies.Merge(
+		canned.AdminRolePrincipals, // must be at index 0
+		policies.AssumeRolePolicyDocument(&policies.Principal{
+			AWS: []string{users.Arn(
+				aws.StringValue(account.Id),
+				users.CredentialFactory,
+			)},
+			Service: []string{"ec2.amazonaws.com"},
+		}),
+	)
+	if saml != nil {
+		assumeRolePolicyDocument = policies.Merge(
+			assumeRolePolicyDocument,
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				Federated: []string{saml.Arn},
+			}),
+		)
+	}
+	log.Printf("%+v", assumeRolePolicyDocument)
+	if _, err := admin.EnsureAdministratorRole(svc, assumeRolePolicyDocument); err != nil {
+		return err
+	}
+	assumeRolePolicyDocument.Statement[0] = canned.AuditorRolePrincipals.Statement[0] // this is why it must be at index 0
+	//log.Printf("%+v", assumeRolePolicyDocument)
+	if _, err := admin.EnsureAuditorRole(svc, assumeRolePolicyDocument); err != nil {
+		return err
+	}
+	ui.Stop("ok")
+
+	// This must come before the Terraform run because it references the IAM
+	// roles created here.
+	admin.EnsureAdminRolesAndPolicies(sess, createdAccount)
+
+	return nil
 }

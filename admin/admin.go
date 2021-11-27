@@ -25,11 +25,11 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-func CannedAssumeRolePolicyDocuments(svc *organizations.Organizations) (
+func CannedAssumeRolePolicyDocuments(sess *session.Session, bootstrapping bool) (
 	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
 	err error,
 ) {
-	cp, err := cannedPrincipals(svc)
+	cp, err := cannedPrincipals(organizations.New(sess), bootstrapping)
 
 	var extraAdmin, extraAuditor policies.Document
 	if err := jsonutil.Read("substrate.Administrator.assume-role-policy.json", &extraAdmin); err != nil {
@@ -78,7 +78,10 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	// to allow cross-account access.  On the first run they're basically
 	// no-ops but on subsequent runs this is key to not undoing the work of
 	// substrate-create-account and substrate-create-admin-account.
-	canned, err := CannedAssumeRolePolicyDocuments(svc)
+	canned, err := CannedAssumeRolePolicyDocuments(
+		sess,
+		true, // can always be true because we never jump from Intranet to Administrator in other accounts
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -155,7 +158,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 		ui.Stopf("role %s", role.Name)
 		//log.Printf("%+v", role)
 	} else {
-		ui.Print("-no-cloudwatch given so not managing CloudWatch cross-account sharing roles")
+		ui.Print("not managing CloudWatch cross-account sharing roles because no account was created")
 	}
 
 	// Ensure admin accounts can get into the audit account to look at
@@ -390,7 +393,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 		ui.Stopf("ok")
 
 	} else {
-		ui.Print("-no-cloudwatch given so not managing CloudWatch cross-account sharing roles")
+		ui.Print("not managing CloudWatch cross-account sharing roles because no account was created")
 	}
 
 	// Ensure every account can run Terraform with remote state centralized
@@ -525,7 +528,7 @@ func EnsureCloudWatchCrossAccountSharingRole(svc *iam.IAM, assumeRolePolicyDocum
 	return role, nil
 }
 
-func cannedPrincipals(svc *organizations.Organizations) (
+func cannedPrincipals(svc *organizations.Organizations, bootstrapping bool) (
 	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
 	err error,
 ) {
@@ -542,23 +545,39 @@ func cannedPrincipals(svc *organizations.Organizations) (
 		return
 	}
 
-	canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)}   // *3 for Administrator AND Intranet AND substrate-intranet; +2 for the management account and its IAM user
-	canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)} // *4 for Administrator AND Auditor AND Intranet AND substrate-intranet; +2 for the management account and its IAM user
-	for i, account := range adminAccounts {
-		canned.AdminRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-		canned.AdminRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), "Intranet")
-		canned.AdminRolePrincipals.AWS[i*2+2] = roles.Arn(aws.StringValue(account.Id), "substrate-intranet") // remove in 2021.12 (and in the comment above)
-		canned.AuditorRolePrincipals.AWS[i*3] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-		canned.AuditorRolePrincipals.AWS[i*3+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
-		canned.AuditorRolePrincipals.AWS[i*3+2] = roles.Arn(aws.StringValue(account.Id), "Intranet")
-		canned.AuditorRolePrincipals.AWS[i*3+3] = roles.Arn(aws.StringValue(account.Id), "substrate-intranet") // remove in 2021.12 (and in the comment above)
+	if bootstrapping {
+		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
+		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
+		for i, account := range adminAccounts {
+			canned.AdminRolePrincipals.AWS[i] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
+		}
+	} else {
+		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)}   // *3 for Administrator AND Intranet AND substrate-intranet; +2 for the management account and its IAM user
+		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*4+2)} // *4 for Administrator AND Auditor AND Intranet AND substrate-intranet; +2 for the management account and its IAM user
+		for i, account := range adminAccounts {
+			canned.AdminRolePrincipals.AWS[i*3] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+			canned.AdminRolePrincipals.AWS[i*3+1] = roles.Arn(aws.StringValue(account.Id), roles.Intranet)
+			canned.AdminRolePrincipals.AWS[i*3+2] = roles.Arn(aws.StringValue(account.Id), "substrate-intranet") // remove in 2021.12 (and in the comment above)
+			canned.AuditorRolePrincipals.AWS[i*4] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*4+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
+			canned.AuditorRolePrincipals.AWS[i*4+2] = roles.Arn(aws.StringValue(account.Id), roles.Intranet)
+			canned.AuditorRolePrincipals.AWS[i*4+3] = roles.Arn(aws.StringValue(account.Id), "substrate-intranet") // remove in 2021.12 (and in the comment above)
+		}
 	}
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = roles.Arn(
+		aws.StringValue(org.MasterAccountId),
+		roles.OrganizationAdministrator,
+	)
 	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
 		aws.StringValue(org.MasterAccountId),
 		users.OrganizationAdministrator,
 	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = aws.StringValue(org.MasterAccountId) // TODO this seems over-permissive
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = roles.Arn(
+		aws.StringValue(org.MasterAccountId),
+		roles.OrganizationAdministrator,
+	)
 	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.Arn(
 		aws.StringValue(org.MasterAccountId),
 		users.OrganizationAdministrator,

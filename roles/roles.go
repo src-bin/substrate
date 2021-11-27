@@ -11,6 +11,7 @@ const (
 	Administrator                 = "Administrator"
 	Auditor                       = "Auditor"
 	DeployAdministrator           = "DeployAdministrator"
+	Intranet                      = "Intranet"
 	NetworkAdministrator          = "NetworkAdministrator"
 	OrganizationAccountAccessRole = "OrganizationAccountAccessRole"
 	OrganizationAdministrator     = "OrganizationAdministrator"
