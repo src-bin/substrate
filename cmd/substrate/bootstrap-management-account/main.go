@@ -111,6 +111,17 @@ func Main() {
 	// of several account creations.
 	ui.Spin("finding or creating the audit account")
 	auditAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Audit)
+	/*
+	   TODO finding or creating the audit account ./main.go:115: ConstraintViolationException: You have exceeded the allowed number of AWS accounts.
+	   {
+	     RespMetadata: {
+	       StatusCode: 400,
+	       RequestID: "b56d6275-084d-4475-8628-d914ed8e37a2"
+	     },
+	     Message_: "You have exceeded the allowed number of AWS accounts.",
+	     Reason: "ACCOUNT_NUMBER_LIMIT_EXCEEDED"
+	   }
+	*/
 	if err != nil {
 		log.Fatal(err)
 	}
