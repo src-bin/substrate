@@ -254,7 +254,7 @@ func Main() {
 
 	// We might not have gotten to detect idpName above but we'll definitely
 	// be able to now that we have an OAuth OIDC client ID.
-	if strings.Contains(clientId, "google.com") {
+	if strings.HasSuffix(clientId, ".apps.googleusercontent.com") {
 		idpName = Google
 	} else {
 		idpName = Okta
