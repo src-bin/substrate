@@ -20,11 +20,6 @@ const (
 	OAuthOIDCClientSecretTimestamp = "OAuthOIDCClientSecretTimestamp"
 )
 
-const (
-	ProviderGoogle Provider = iota
-	ProviderOkta
-)
-
 type Client struct {
 	AccessToken   string
 	ClientID      string
@@ -56,10 +51,10 @@ func NewClient(
 	}
 	if hostname := stageVariables[OktaHostname]; hostname == OktaHostnameValueForGoogleIdP /* begin remove in 2021.12 */ || hostname == "unused-by-Google-IDP" /* end remove in 2021.12 */ {
 		c.pathQualifier = GooglePathQualifier()
-		c.provider = ProviderGoogle
+		c.provider = Google
 	} else {
 		c.pathQualifier = OktaPathQualifier(hostname, "default")
-		c.provider = ProviderOkta
+		c.provider = Okta
 	}
 	return c, nil
 }
@@ -83,9 +78,9 @@ func (c *Client) GetURL(u *url.URL, query url.Values, i interface{}) (*http.Resp
 	return resp, unmarshalJSON(resp, i)
 }
 
-func (c *Client) IsGoogle() bool { return c.provider == ProviderGoogle }
+func (c *Client) IsGoogle() bool { return c.provider == Google }
 
-func (c *Client) IsOkta() bool { return c.provider == ProviderOkta }
+func (c *Client) IsOkta() bool { return c.provider == Okta }
 
 // Post requests the given path with the given body (form-encoded) from the
 // client's host and unmarshals the JSON response body into the given
@@ -110,9 +105,9 @@ func (c *Client) Provider() Provider { return c.provider }
 
 func (c *Client) RoleNameFromIdP(user string) (string, error) {
 	switch c.provider {
-	case ProviderGoogle:
+	case Google:
 		return roleNameFromGoogleIdP(c, user)
-	case ProviderOkta:
+	case Okta:
 		return roleNameFromOktaIdP()
 	}
 	return "", UndefinedRoleError(fmt.Sprintf("%s IdP", c.provider))
@@ -154,7 +149,12 @@ func (c *Client) request(method string, u *url.URL) *http.Request {
 
 type PathQualifier func(UnqualifiedPath) *url.URL
 
-type Provider int // do not persist this type, as its values are assigned by iota and aren't stable
+type Provider string
+
+const (
+	Google Provider = "Google"
+	Okta   Provider = "Okta"
+)
 
 type UnqualifiedPath string
 
