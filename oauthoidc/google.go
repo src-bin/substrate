@@ -1,7 +1,6 @@
 package oauthoidc
 
 import (
-	"log"
 	"net/url"
 	"path"
 	"strings"
@@ -52,7 +51,7 @@ func roleNameFromGoogleIdP(c *Client, user string) (string, error) {
 		PrimaryEmail string `json:"primaryEmail"`
 		// lots of other fields that aren't relevant
 	}
-	resp, err := c.GetURL(&url.URL{
+	_, err := c.GetURL(&url.URL{
 		Scheme: "https",
 		Host:   "admin.googleapis.com",
 		Path:   path.Join("/admin/directory/v1/users", user),
@@ -60,8 +59,8 @@ func roleNameFromGoogleIdP(c *Client, user string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Printf("resp: %+v", resp)
-	log.Printf("body: %+v", body)
+	//log.Printf("resp: %+v", resp)
+	//log.Printf("body: %+v", body)
 	if body.CustomSchemas.AWS.RoleName != "" {
 		return body.CustomSchemas.AWS.RoleName, nil
 	}

@@ -556,7 +556,7 @@ func ensureAdministrator(sess *session.Session, svc *iam.IAM, account *awsorgs.A
 			}),
 		)
 	}
-	log.Printf("%+v", assumeRolePolicyDocument)
+	//log.Printf("%+v", assumeRolePolicyDocument)
 	if _, err := admin.EnsureAdministratorRole(svc, assumeRolePolicyDocument); err != nil {
 		return err
 	}
