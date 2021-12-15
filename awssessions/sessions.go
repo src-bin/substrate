@@ -46,6 +46,8 @@ func (c Config) AWS() aws.Config {
 
 	if c.AccessKeyId != "" && c.SecretAccessKey != "" {
 		a.Credentials = credentials.NewStaticCredentials(c.AccessKeyId, c.SecretAccessKey, c.SessionToken)
+	} else {
+		a.Credentials = credentials.NewEnvCredentials() // prevent reading ~/.aws/credentials, which we mightily discourage using at all
 	}
 	if c.AccessKeyId != "" && c.SecretAccessKey == "" {
 		ui.Print("ignoring access key ID without secret access key")
