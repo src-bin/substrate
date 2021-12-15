@@ -74,7 +74,7 @@ data "aws_iam_policy_document" "intranet" {
   }
   statement {
     actions   = ["iam:PassRole"]
-    resources = [data.aws_iam_role.admin.arn]
+    resources = ["*"]
     sid       = "InstanceFactoryIAM"
   }
   statement {
