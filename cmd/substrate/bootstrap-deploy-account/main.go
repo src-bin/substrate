@@ -50,7 +50,7 @@ func Main() {
 	}
 	{
 		dirname := filepath.Join(terraform.RootModulesDirname, accounts.Deploy, regions.Global)
-		region := "us-east-1"
+		region := choices.DefaultRegion()
 
 		file := terraform.NewFile()
 		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {

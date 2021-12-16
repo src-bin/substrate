@@ -329,7 +329,7 @@ func Main() {
 	}
 	{
 		dirname := filepath.Join(terraform.RootModulesDirname, Domain, *quality, regions.Global)
-		region := "us-east-1"
+		region := choices.DefaultRegion()
 
 		file := terraform.NewFile()
 		module := terraform.Module{
