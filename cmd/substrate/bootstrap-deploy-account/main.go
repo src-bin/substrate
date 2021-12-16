@@ -62,6 +62,9 @@ func Main() {
 			region,
 			roles.Arn(accountId, roles.DeployAdministrator),
 		))
+		providersFile.Push(terraform.UsEast1Provider(
+			roles.Arn(accountId, roles.DeployAdministrator),
+		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			log.Fatal(err)
 		}

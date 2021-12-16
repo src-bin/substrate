@@ -50,6 +50,22 @@ func ProviderFor(region, roleArn string) Provider {
 	}
 }
 
+// UsEast1Provider returns a Terraform provider that assumes the Administrator
+// role in sess's account in us-east-1 where it can configure services that are
+// exclusively offered in us-east-1 such as ACM certificates for CloudFront
+// distributions and Lambda@Edge.
+//
+// See also GlobalProvider, which is for all the other global services that may
+// be configured anywhere.
+func UsEast1Provider(roleArn string) Provider {
+	return Provider{
+		Alias:       "us-east-1",
+		Region:      "us-east-1",
+		RoleArn:     roleArn,
+		SessionName: "Terraform",
+	}
+}
+
 func (p Provider) Ref() Value {
 	return Uf("aws.%s", p.Region)
 }
