@@ -511,7 +511,7 @@ func Main() {
 	}
 
 	ui.Printf(
-		"next, commit modules/intranet/, modules/lambda-function/, modules/substrate/, and root-modules/%s/%s/ to version control, then run substrate-create-account as many times as you need",
+		"next, commit substrate.*, modules/intranet/, modules/lambda-function/, modules/substrate/, and root-modules/%s/%s/ to version control, then run substrate-create-account as many times as you need",
 		Domain,
 		*quality,
 	)

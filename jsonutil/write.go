@@ -20,5 +20,6 @@ func Write(document interface{}, pathname string) error {
 	if err != nil {
 		return err
 	}
+	b = append(b, '\n') // I wish there was a less wasteful way to do this
 	return ioutil.WriteFile(pathname, b, 0666)
 }
