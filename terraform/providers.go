@@ -3,8 +3,6 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/src-bin/substrate/choices"
-	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -12,22 +10,6 @@ type Provider struct {
 	Alias, AliasPrefix, AliasSuffix, Region string // if unset, Alias is constructed from the other three
 	RoleArn                                 string
 	SessionName, ExternalId                 string
-}
-
-// GlobalProvider returns a Terraform provider that assumes the Administrator
-// role in sess's account in the configured default region. The alias of this
-// provider is "global" so that it may exist alongside other providers.
-//
-// See also UsEast1Provider, which is for those few services that may only be
-// configured in us-east-1, like ACM certificates for CloudFront distributions
-// or Lambda@Edge.
-func GlobalProvider(roleArn string) Provider {
-	return Provider{
-		Alias:       regions.Global,
-		Region:      choices.DefaultRegion(),
-		RoleArn:     roleArn,
-		SessionName: "Terraform",
-	}
 }
 
 // NetworkProviderFor returns a Terraform provider for discovering the VPCs and

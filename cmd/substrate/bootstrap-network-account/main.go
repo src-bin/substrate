@@ -294,11 +294,6 @@ func Main() {
 				roles.Arn(accountId, roles.NetworkAdministrator),
 			))
 
-			// A provider for data sources referencing global resources to use.
-			providersFile.Push(terraform.GlobalProvider(
-				roles.Arn(accountId, roles.NetworkAdministrator),
-			))
-
 			// A provider for the substrate module to use, if for some reason it's
 			// desired in this context.
 			networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InManagementAccount(
