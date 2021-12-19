@@ -198,7 +198,8 @@ func Main() {
 	}
 
 	ui.Printf(
-		"next, commit modules/substrate/ and root-modules/%s/%s/%s/ to version control, then write Terraform code there to define the rest of your infrastructure or run substrate-create-account again for other domains, environments, and/or qualities",
+		"next, commit substrate.*, modules/%s/, modules/substrate/ and root-modules/%s/%s/%s/ to version control, then write Terraform code there to define the rest of your infrastructure or run substrate-create-account again for other domains, environments, and/or qualities",
+		*domain,
 		*domain,
 		*environment,
 		*quality,
