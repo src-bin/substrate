@@ -87,6 +87,7 @@ type ProviderAlias string
 const (
 	DefaultProviderAlias = ProviderAlias("aws")
 	NetworkProviderAlias = ProviderAlias("aws.network")
+	UsEast1ProviderAlias = ProviderAlias("aws.us-east-1")
 )
 
 func ProviderAliasFor(region string) ProviderAlias {

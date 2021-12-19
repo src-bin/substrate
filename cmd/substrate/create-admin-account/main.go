@@ -336,7 +336,11 @@ func Main() {
 			Arguments: map[string]terraform.Value{
 				"dns_domain_name": terraform.Q(dnsDomainName),
 			},
-			Label:  terraform.Q("intranet"),
+			Label: terraform.Q("intranet"),
+			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
+				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
+				terraform.UsEast1ProviderAlias: terraform.UsEast1ProviderAlias,
+			},
 			Source: terraform.Q("../../../../modules/intranet/global"),
 		}
 		file.Push(module)

@@ -3,8 +3,9 @@ package terraform
 //go:generate go run ../tools/template/main.go -name intranetGlobalTemplate -o intranet-global.go modules/intranet/global
 func IntranetGlobalModule() *Directory {
 	return &Directory{
-		Files:       intranetGlobalTemplate(),
-		RemoveFiles: []string{"outputs.tf"},
+		ConfigurationAliases: []ProviderAlias{UsEast1ProviderAlias},
+		Files:                intranetGlobalTemplate(),
+		RemoveFiles:          []string{"outputs.tf"},
 	}
 }
 
