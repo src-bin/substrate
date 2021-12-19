@@ -86,7 +86,6 @@ type ProviderAlias string
 
 const (
 	DefaultProviderAlias = ProviderAlias("aws")
-	GlobalProviderAlias  = ProviderAlias("aws.global")
 	NetworkProviderAlias = ProviderAlias("aws.network")
 )
 
