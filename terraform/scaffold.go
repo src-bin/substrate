@@ -27,7 +27,13 @@ func Scaffold(domain string) error {
 			return err
 		}
 
-		if err := versions(dirname, nil); err != nil {
+		if err := versions(
+			dirname,
+			[]ProviderAlias{
+				DefaultProviderAlias,
+				UsEast1ProviderAlias,
+			},
+		); err != nil {
 			return err
 		}
 

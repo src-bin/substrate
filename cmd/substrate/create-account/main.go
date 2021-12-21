@@ -97,7 +97,11 @@ func Main() {
 
 		file := terraform.NewFile()
 		file.Push(terraform.Module{
-			Label:  terraform.Q(*domain),
+			Label: terraform.Q(*domain),
+			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
+				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
+				terraform.UsEast1ProviderAlias: terraform.UsEast1ProviderAlias,
+			},
 			Source: terraform.Q("../../../../../modules/", *domain, "/global"),
 		})
 		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
