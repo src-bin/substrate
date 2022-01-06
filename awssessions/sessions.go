@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -47,7 +48,10 @@ func (c Config) AWS() aws.Config {
 	if c.AccessKeyId != "" && c.SecretAccessKey != "" {
 		a.Credentials = credentials.NewStaticCredentials(c.AccessKeyId, c.SecretAccessKey, c.SessionToken)
 	} else {
-		a.Credentials = credentials.NewEnvCredentials() // prevent reading ~/.aws/credentials, which we mightily discourage using at all
+		a.Credentials = credentials.NewChainCredentials([]credentials.Provider{
+			&credentials.EnvProvider{},
+			&ec2rolecreds.EC2RoleProvider{},
+		}) // prevent reading ~/.aws/credentials, which we mightily discourage using at all
 	}
 	if c.AccessKeyId != "" && c.SecretAccessKey == "" {
 		ui.Print("ignoring access key ID without secret access key")
