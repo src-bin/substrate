@@ -3,6 +3,7 @@
 <meta charset="utf-8">
 <title>Intranet</title>
 <body>
+{{template "nav"}}
 <h1>Intranet</h1>
 <p>Hello, <a href="mailto:{{.IDToken.Email}}">{{.IDToken.Email}}</a>!</p>
 {{- if .Location}}
