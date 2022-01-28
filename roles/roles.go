@@ -24,10 +24,25 @@ func Arn(accountId, roleName string) string {
 	return fmt.Sprintf("arn:aws:iam::%s:role/%s", accountId, roleName)
 }
 
+type ArnError string
+
+func (err ArnError) Error() string {
+	return fmt.Sprintf(
+		"ArnError: %s isn't an anticipated format for an AWS IAM role ARN",
+		string(err),
+	)
+}
+
 func Name(roleArn string) (string, error) {
 	parsed, err := arn.Parse(roleArn)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimPrefix(parsed.Resource, "role/"), nil
+	if strings.HasPrefix(parsed.Resource, "assumed-role/") {
+		return strings.Split(parsed.Resource, "/")[1], nil
+	}
+	if strings.HasPrefix(parsed.Resource, "role/") {
+		return strings.TrimPrefix(parsed.Resource, "role/"), nil
+	}
+	return "", ArnError(roleArn)
 }

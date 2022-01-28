@@ -2,10 +2,12 @@ package assumerole
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"os/user"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -61,39 +63,71 @@ func Main() {
 	if *management && *number != "" {
 		ui.Fatal(`can't mix -management with -number="..."`)
 	}
-	if *roleName == "" {
-		ui.Fatal(`-role="..." is required`)
-	}
 	if *quiet {
 		ui.Quiet()
 	}
 
-	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
+	sess := awssessions.Must(awssessions.NewSession(awssessions.Config{}))
+	svc := sts.New(sess)
+	callerIdentity, err := awssts.GetCallerIdentity(svc)
 	if err != nil {
-
-		// Mask the AWS-native error because we're 99% sure OrganizationReaderError
-		// is a better explanation of what went wrong.
-		if _, ok := err.(awserr.Error); ok {
-			ui.Fatal(awssessions.NewOrganizationReaderError(err, *roleName))
-		}
-
 		ui.Fatal(err)
 	}
+	currentRoleName, err := roles.Name(aws.StringValue(callerIdentity.Arn))
+	if err != nil {
+		ui.Fatal(err)
+	}
+
 	var accountId string
 	{
+		sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
+		if err != nil {
+
+			// Mask the AWS-native error because we're 99% sure OrganizationReaderError
+			// is a better explanation of what went wrong.
+			if _, ok := err.(awserr.Error); ok {
+				ui.Fatal(awssessions.NewOrganizationReaderError(err, *roleName))
+			}
+
+			ui.Fatal(err)
+		}
 		svc := organizations.New(sess)
 		if *number != "" {
 			accountId = *number
+			if *roleName == "" {
+				ui.Fatal(`-role="..." is required with -number="..."`)
+			}
 		} else if *management {
 			org, err := awsorgs.DescribeOrganization(svc)
 			if err != nil {
 				log.Fatal(err)
 			}
 			accountId = aws.StringValue(org.MasterAccountId)
+			if *roleName == "" {
+				if currentRoleName == roles.Auditor {
+					roleName = aws.String(roles.OrganizationReader)
+				} else {
+					roleName = aws.String(roles.OrganizationAdministrator)
+				}
+			}
 		} else if *special != "" {
 			accountId = aws.StringValue(awsorgs.Must(awsorgs.FindSpecialAccount(svc, *special)).Id)
+			if *roleName == "" {
+				if *special == "audit" || currentRoleName == roles.Auditor {
+					roleName = aws.String(roles.Auditor)
+				} else {
+					roleName = aws.String(fmt.Sprintf("%s%s", strings.Title(*special), roles.Administrator))
+				}
+			}
 		} else {
 			accountId = aws.StringValue(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id)
+			if *roleName == "" {
+				if currentRoleName == roles.OrganizationAdministrator {
+					roleName = aws.String(roles.Administrator)
+				} else {
+					roleName = aws.String(currentRoleName)
+				}
+			}
 		}
 	}
 
@@ -101,9 +135,6 @@ func Main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	sess = awssessions.Must(awssessions.NewSession(awssessions.Config{}))
-	svc := sts.New(sess)
 
 	assumedRole, err := awssts.AssumeRole(
 		svc,
