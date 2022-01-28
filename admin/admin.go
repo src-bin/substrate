@@ -15,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -178,12 +179,40 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 		log.Fatal(err)
 	}
 	{
+		bucketName := fmt.Sprintf("%s-cloudtrail", choices.Prefix()) // TODO don't repeat cmd/substrate/bootstrap-management-account/main.go
 		svc := iam.New(awssessions.AssumeRole(
 			sess,
 			aws.StringValue(auditAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		role, err = awsiam.EnsureRole(svc, roles.Auditor, canned.AuditorRolePrincipals)
+		role, err = awsiam.EnsureRoleWithPolicy(
+			svc,
+			roles.Auditor,
+			canned.AuditorRolePrincipals,
+			&policies.Document{
+				Statement: []policies.Statement{
+					{
+						Action: []string{
+							"s3:GetBucketLocation",
+							"s3:GetObject",
+							"s3:ListBucket",
+							"s3:ListBucketMultipartUploads",
+							"s3:ListMultipartUploadParts",
+							"s3:AbortMultipartUpload",
+							"s3:PutObject",
+						},
+						Resource: []string{"*"},
+					},
+					{
+						Effect: policies.Deny,
+						Action: []string{"s3:PutObject"},
+						Resource: []string{
+							fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
+						},
+					},
+				},
+			},
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
