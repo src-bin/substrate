@@ -216,6 +216,9 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		if err := awsiam.AttachRolePolicy(svc, roles.Auditor, "arn:aws:iam::aws:policy/AmazonAthenaFullAccess"); err != nil {
+			log.Fatal(err)
+		}
 		if err := awsiam.AttachRolePolicy(svc, roles.Auditor, "arn:aws:iam::aws:policy/ReadOnlyAccess"); err != nil {
 			log.Fatal(err)
 		}
