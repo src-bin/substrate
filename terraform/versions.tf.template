@@ -11,11 +11,11 @@ terraform {
       ]
 {{- end}}
       source  = "hashicorp/aws"
-      version = ">= {{.AWSVersion}}"
+      version = "{{.AWSVersionConstraint}}"
     }
     external = {
       source  = "hashicorp/external"
-      version = ">= {{.ExternalVersion}}"
+      version = " {{.ExternalVersionConstraint}}"
     }
   }
   required_version = "= {{.TerraformVersion}}"

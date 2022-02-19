@@ -16,8 +16,8 @@ import (
 var TerraformVersion = "" // replaced at build time with the contents of terraform-version.txt; see Makefile
 
 const (
-	awsVersion      = "3.49.0"
-	externalVersion = "2.1.0"
+	awsVersionConstraint      = "~> 3.49"
+	externalVersionConstraint = "~> 2.1"
 )
 
 //go:generate go run ../tools/template/main.go -name versionsTemplate versions.tf.template
@@ -37,11 +37,11 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 			return err
 		}
 		return tmpl.Execute(f, struct {
-			AWSVersion, ExternalVersion string
-			ConfigurationAliases        []ProviderAlias
-			TerraformVersion            string
+			AWSVersionConstraint, ExternalVersionConstraint string
+			ConfigurationAliases                            []ProviderAlias
+			TerraformVersion                                string
 		}{
-			awsVersion, externalVersion,
+			awsVersionConstraint, externalVersionConstraint,
 			configurationAliases,
 			TerraformVersion,
 		})
@@ -67,8 +67,8 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 \s*version\s*=\s*">?(= )?\d+\.\d+\.\d+"`,
 	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
 		`source = "hashicorp/aws"
-      version = ">= %s"`,
-		awsVersion,
+      version = "%s"`,
+		awsVersionConstraint,
 	)))
 	// TODO need to handle configuration_aliases for completeness (one customer was actually missing configuration_aliases because of this, though the consequences were extremely mild)
 
@@ -77,8 +77,8 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 \s*version\s*=\s*">?(= )?\d+\.\d+\.\d+"`,
 	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
 		`source = "hashicorp/external"
-      version = ">= %s"`,
-		externalVersion,
+      version = "%s"`,
+		externalVersionConstraint,
 	)))
 
 	b = regexp.MustCompile(
