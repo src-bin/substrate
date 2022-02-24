@@ -17,9 +17,6 @@ import (
 )
 
 func main() {
-
-	accountId := flag.String("account-number", "", "AWS account number")
-	roleName := flag.String("role", "", "AWS IAM role name to assume")
 	region := flag.String("region", "", "AWS region in which the service quota should be shown or increased")
 	listServices := flag.Bool("list-services", false, "list all services that have service limits to learn their -service-code values")
 	listQuotas := flag.Bool("list-quotas", false, "list all service quotes for -service-code to learn their -quota-code values")
@@ -42,12 +39,7 @@ func main() {
 		regionSlice = []string{*region}
 	}
 
-	// TODO factor this part out into substrate-assume-role to simplify this tools interface
-	sess := awssessions.AssumeRole(
-		awssessions.Must(awssessions.NewSession(awssessions.Config{})),
-		*accountId,
-		*roleName,
-	)
+	sess := awssessions.Must(awssessions.NewSession(awssessions.Config{}))
 
 	if *listServices {
 		var lines []string
