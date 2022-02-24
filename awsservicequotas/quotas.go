@@ -2,7 +2,6 @@ package awsservicequotas
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -21,10 +20,21 @@ func (err DeadlinePassed) Error() string {
 	return fmt.Sprintf("deadline passed raising quota %s %s; continuing", err.QuotaCode, err.ServiceCode)
 }
 
+// EnsureServiceQuota tries to find the current value of the given quota (or
+// its default, if the true current value isn't available) and raise it to
+// desiredValue if it is (believed to be) lower than requiredValue. The
+// separation of desiredValue from requiredValue enables callers to raise
+// limits only when necessary and to raise them far enough that foreseeable
+// future calls don't need to raise the limit again.
+//
+// Limits for which only the default value is available are awkward to use
+// once the limit has been raised from the default value. In these cases it's
+// best to attempt to create the resource, receive a LimitExceeded (or similar)
+// exception, and then call EnsureServiceQuota.
 func EnsureServiceQuota(
 	svc *servicequotas.ServiceQuotas,
 	quotaCode, serviceCode string,
-	desiredValue float64,
+	requiredValue, desiredValue float64,
 	deadline time.Time,
 ) error {
 
@@ -44,21 +54,31 @@ func EnsureServiceQuota(
 		return nil // the presumption being we don't need to raise limits we can't see
 	}
 	if err != nil {
-		log.Println(aws.StringValue(svc.Client.Config.Region), quotaCode, serviceCode)
+		ui.Print(aws.StringValue(svc.Client.Config.Region), quotaCode, serviceCode)
 		return err
 	}
 	//log.Printf("%+v", quota)
 
-	if aws.Float64Value(quota.Value) >= desiredValue {
+	if aws.Float64Value(quota.Value) >= requiredValue {
 		ui.Printf(
-			"service quota %s in %s is already %.0f",
+			"service quota %s in %s is already %.0f >= %.0f",
 			quotaCode,
 			aws.StringValue(svc.Client.Config.Region),
 			aws.Float64Value(quota.Value),
+			requiredValue,
 		)
 		return nil
 	}
 
+	if desiredValue < requiredValue {
+		ui.Print(
+			"desired quota value %.0f < required quota value %.0f; raising quota to %.0f",
+			desiredValue,
+			requiredValue,
+			requiredValue,
+		)
+		desiredValue = requiredValue
+	}
 	requested := false
 	changes, err := ListRequestedServiceQuotaChangeHistoryByQuota(
 		svc,
@@ -134,7 +154,7 @@ func EnsureServiceQuota(
 func EnsureServiceQuotaInAllRegions(
 	sess *session.Session,
 	quotaCode, serviceCode string,
-	desiredValue float64,
+	requiredValue, desiredValue float64,
 	deadline time.Time,
 ) error {
 	ch := make(chan error, len(regions.Selected()))
@@ -147,7 +167,7 @@ func EnsureServiceQuotaInAllRegions(
 			deadline time.Time,
 			ch chan<- error,
 		) {
-			ch <- EnsureServiceQuota(svc, quotaCode, serviceCode, desiredValue, deadline)
+			ch <- EnsureServiceQuota(svc, quotaCode, serviceCode, requiredValue, desiredValue, deadline)
 		}(
 			servicequotas.New(
 				sess,

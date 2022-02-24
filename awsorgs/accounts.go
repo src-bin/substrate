@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tags"
@@ -16,12 +17,13 @@ import (
 )
 
 const (
-	EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS"
-	FAILED               = "FAILED"
-	SUCCEEDED            = "SUCCEEDED"
+	ACCOUNT_NUMBER_LIMIT_EXCEEDED   = "ACCOUNT_NUMBER_LIMIT_EXCEEDED"
+	ConstraintViolationException    = "ConstraintViolationException"
+	EMAIL_ALREADY_EXISTS            = "EMAIL_ALREADY_EXISTS"
+	FAILED                          = "FAILED"
+	FinalizingOrganizationException = "FinalizingOrganizationException"
+	SUCCEEDED                       = "SUCCEEDED"
 )
-
-const FinalizingOrganizationException = "FinalizingOrganizationException"
 
 type Account struct {
 	organizations.Account
@@ -199,6 +201,26 @@ func createAccount(
 	)
 	for {
 		out, err = svc.CreateAccount(in)
+
+		// If we're at the organization's limit on the number of AWS accounts
+		// it can contain, raise the limit and retry.
+		if cveErr, ok := err.(*organizations.ConstraintViolationException); ok && aws.StringValue(cveErr.Reason) == ACCOUNT_NUMBER_LIMIT_EXCEEDED {
+			accounts, err := ListAccounts(svc)
+			if err != nil {
+				return nil, err
+			}
+			if err := awsservicequotas.EnsureServiceQuota(
+				qsvc,
+				"L-29A0C5DF", "organizations", // AWS accounts in an organization
+				float64(len(accounts)+1),
+				float64(len(accounts)*2), // avoid dealing with service limits very often
+				time.Time{},
+			); err != nil {
+				return nil, err
+			}
+			continue
+		}
+
 		if !awsutil.ErrorCodeIs(err, FinalizingOrganizationException) {
 			break
 		}
@@ -208,8 +230,6 @@ func createAccount(
 		return nil, err
 	}
 	//log.Printf("%+v", out)
-
-	// TODO we might need to raise {"L-29A0C5DF", "organizations"} ("Number of AWS accounts in an organization") to proceed
 
 	status := out.CreateAccountStatus
 	for {

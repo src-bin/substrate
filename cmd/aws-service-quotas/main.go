@@ -25,8 +25,9 @@ func main() {
 	listQuotas := flag.Bool("list-quotas", false, "list all service quotes for -service-code to learn their -quota-code values")
 	allRegions := flag.Bool("all-regions", false, "show or increase the service quota in all AWS regions")
 	quotaCode := flag.String("quota-code", "", "quota code to pass to AWS")
-	serviceCode := flag.String("service-code", "", "quota code to pass to AWS")
-	desiredValue := flag.Float64("desired-value", 0, "minimum desired value for the service quota")
+	serviceCode := flag.String("service-code", "", "service code to pass to AWS")
+	requiredValue := flag.Float64("required-value", 0, "minimum required value for the service quota")
+	desiredValue := flag.Float64("desired-value", 0, "desired value for the service quota, used if the quota's current value is below -required-value")
 	flag.Parse()
 	version.Flag()
 	if !*allRegions && !regions.IsRegion(*region) {
@@ -96,13 +97,14 @@ func main() {
 	if *quotaCode == "" || *serviceCode == "" {
 		log.Fatal("-quota-code and -service-code are required without -list-services or -list-quotas")
 	}
-	if *desiredValue > 0 {
+	if *requiredValue > 0 {
 		if *allRegions {
 
 			if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 				sess,
 				*quotaCode,
 				*serviceCode,
+				*requiredValue,
 				*desiredValue,
 				time.Time{},
 			); err != nil {
@@ -115,6 +117,7 @@ func main() {
 				servicequotasNew(sess, *region),
 				*quotaCode,
 				*serviceCode,
+				*requiredValue,
 				*desiredValue,
 				time.Time{},
 			); err != nil {
