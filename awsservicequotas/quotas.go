@@ -34,6 +34,13 @@ func EnsureServiceQuota(
 		serviceCode,
 	)
 	if awsutil.ErrorCodeIs(err, NoSuchResourceException) {
+		quota, err = GetAWSDefaultServiceQuota(
+			svc,
+			quotaCode,
+			serviceCode,
+		)
+	}
+	if awsutil.ErrorCodeIs(err, NoSuchResourceException) {
 		return nil // the presumption being we don't need to raise limits we can't see
 	}
 	if err != nil {
@@ -166,6 +173,22 @@ func EnsureServiceQuotaInAllRegions(
 		desiredValue,
 	)
 	return nil
+}
+
+func GetAWSDefaultServiceQuota(
+	svc *servicequotas.ServiceQuotas,
+	quotaCode, serviceCode string,
+) (*servicequotas.ServiceQuota, error) {
+	in := &servicequotas.GetAWSDefaultServiceQuotaInput{
+		QuotaCode:   aws.String(quotaCode),
+		ServiceCode: aws.String(serviceCode),
+	}
+	out, err := svc.GetAWSDefaultServiceQuota(in)
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", out)
+	return out.Quota, nil
 }
 
 func GetServiceQuota(
