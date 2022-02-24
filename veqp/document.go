@@ -51,6 +51,10 @@ func (d *Document) EnsurePair(eqp0 EnvironmentQualityPair) error {
 	return d.Write()
 }
 
+func (d *Document) Len() int {
+	return len(d.ValidEnvironmentQualityPairs)
+}
+
 // Valid returns true iff the given Environment and Quality appear together in
 // the Document.
 func (d *Document) Valid(environment, quality string) bool {
