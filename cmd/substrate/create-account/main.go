@@ -10,6 +10,7 @@ import (
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
@@ -66,7 +67,13 @@ func Main() {
 				}
 			}
 			ui.Spin("creating the account")
-			account, err = awsorgs.EnsureAccount(svc, *domain, *environment, *quality)
+			account, err = awsorgs.EnsureAccount(
+				svc,
+				awsservicequotas.NewGlobal(sess),
+				*domain,
+				*environment,
+				*quality,
+			)
 			createdAccount = true
 		}
 		if err != nil {

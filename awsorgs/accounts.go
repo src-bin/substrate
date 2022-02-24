@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tags"
@@ -55,10 +56,12 @@ func DescribeAccount(svc *organizations.Organizations, accountId string) (*Accou
 
 func EnsureAccount(
 	svc *organizations.Organizations,
+	qsvc *servicequotas.ServiceQuotas,
 	domain, environment, quality string,
 ) (*Account, error) {
 	return ensureAccount(
 		svc,
+		qsvc,
 		NameFor(domain, environment, quality),
 		map[string]string{
 			tags.Domain:           domain,
@@ -73,9 +76,10 @@ func EnsureAccount(
 
 func EnsureSpecialAccount(
 	svc *organizations.Organizations,
+	qsvc *servicequotas.ServiceQuotas,
 	name string,
 ) (*Account, error) {
-	return ensureAccount(svc, name, map[string]string{
+	return ensureAccount(svc, qsvc, name, map[string]string{
 		tags.Manager:                 tags.Substrate,
 		tags.Name:                    name,
 		tags.SubstrateSpecialAccount: name, // TODO get rid of this
@@ -181,6 +185,7 @@ func Tag(
 
 func createAccount(
 	svc *organizations.Organizations,
+	qsvc *servicequotas.ServiceQuotas,
 	name, email string,
 ) (*organizations.CreateAccountStatus, error) {
 
@@ -243,6 +248,7 @@ func emailFor(svc *organizations.Organizations, name string) (string, error) {
 
 func ensureAccount(
 	svc *organizations.Organizations,
+	qsvc *servicequotas.ServiceQuotas,
 	name string,
 	tags map[string]string,
 ) (*Account, error) {
@@ -252,7 +258,7 @@ func ensureAccount(
 		return nil, err
 	}
 
-	status, err := createAccount(svc, name, email)
+	status, err := createAccount(svc, qsvc, name, email)
 	if err != nil {
 		return nil, err
 	}

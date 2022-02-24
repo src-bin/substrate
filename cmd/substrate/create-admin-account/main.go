@@ -25,6 +25,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
+	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
@@ -100,7 +101,13 @@ func Main() {
 				}
 			}
 			ui.Spin("creating the admin account")
-			account, err = awsorgs.EnsureAccount(svc, accounts.Admin, accounts.Admin, *quality)
+			account, err = awsorgs.EnsureAccount(
+				svc,
+				awsservicequotas.NewGlobal(sess),
+				accounts.Admin,
+				accounts.Admin,
+				*quality,
+			)
 			createdAccount = true
 		}
 		if err != nil {

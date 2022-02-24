@@ -19,6 +19,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awss3"
+	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
@@ -110,18 +111,11 @@ func Main() {
 	// being a little slow in bootstrapping the organization for this the first
 	// of several account creations.
 	ui.Spin("finding or creating the audit account")
-	auditAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Audit)
-	/*
-	   TODO finding or creating the audit account ./main.go:115: ConstraintViolationException: You have exceeded the allowed number of AWS accounts.
-	   {
-	     RespMetadata: {
-	       StatusCode: 400,
-	       RequestID: "b56d6275-084d-4475-8628-d914ed8e37a2"
-	     },
-	     Message_: "You have exceeded the allowed number of AWS accounts.",
-	     Reason: "ACCOUNT_NUMBER_LIMIT_EXCEEDED"
-	   }
-	*/
+	auditAccount, err := awsorgs.EnsureSpecialAccount(
+		svc,
+		awsservicequotas.NewGlobal(sess),
+		accounts.Audit,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -175,14 +169,22 @@ func Main() {
 
 	// Ensure the deploy and network accounts exist.
 	ui.Spinf("finding or creating the deploy account")
-	deployAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Deploy)
+	deployAccount, err := awsorgs.EnsureSpecialAccount(
+		svc,
+		awsservicequotas.NewGlobal(sess),
+		accounts.Deploy,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 	ui.Stopf("account %s", deployAccount.Id)
 	//log.Printf("%+v", account)
 	ui.Spinf("finding or creating the network account")
-	networkAccount, err := awsorgs.EnsureSpecialAccount(svc, accounts.Network)
+	networkAccount, err := awsorgs.EnsureSpecialAccount(
+		svc,
+		awsservicequotas.NewGlobal(sess),
+		accounts.Network,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

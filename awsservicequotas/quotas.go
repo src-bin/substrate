@@ -275,6 +275,13 @@ func ListServices(
 	return
 }
 
+// NewGlobal creates a client from a session, unconditionally in us-east-1
+// because Service Quota appears to just require quotas for global services
+// to be inspected and manipulated from us-east-1. Hateful.
+func NewGlobal(sess *session.Session) *servicequotas.ServiceQuotas {
+	return servicequotas.New(sess, &aws.Config{Region: aws.String("us-east-1")})
+}
+
 func RequestServiceQuotaIncrease(
 	svc *servicequotas.ServiceQuotas,
 	quotaCode, serviceCode string,
