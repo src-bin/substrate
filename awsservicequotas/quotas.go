@@ -23,7 +23,7 @@ const (
 type DeadlinePassed struct{ QuotaCode, ServiceCode string }
 
 func (err DeadlinePassed) Error() string {
-	return fmt.Sprintf("deadline passed raising quota %s %s; continuing", err.QuotaCode, err.ServiceCode)
+	return fmt.Sprintf("deadline passed raising quota %s; continuing", err.QuotaCode)
 }
 
 // EnsureServiceQuota tries to find the current value of the given quota (or

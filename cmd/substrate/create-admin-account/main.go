@@ -59,10 +59,11 @@ const (
 )
 
 func Main() {
-	quality := flag.String("quality", "", "quality for this new AWS account")
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
+	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
+	quality := flag.String("quality", "", "quality for this new AWS account")
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()
@@ -101,12 +102,17 @@ func Main() {
 				}
 			}
 			ui.Spin("creating the admin account")
+			var deadline time.Time
+			if *ignoreServiceQuotas {
+				deadline = time.Now()
+			}
 			account, err = awsorgs.EnsureAccount(
 				svc,
 				awsservicequotas.NewGlobal(sess),
 				accounts.Admin,
 				accounts.Admin,
 				*quality,
+				deadline,
 			)
 			createdAccount = true
 		}
