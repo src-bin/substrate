@@ -149,10 +149,12 @@ func EnsureServiceQuota(
 			quotaCode,
 			serviceCode,
 		)
+		//log.Printf("%+v %v", quota, err)
 		if awsutil.ErrorCodeIs(err, NoSuchResourceException) {
 			// This is an invisible limit. GetServiceQuota can't break out of
 			// the loop so we fall through.
 		} else if awsutil.ErrorCodeIs(err, awsutil.RequestError) {
+			//log.Print(err)
 			continue
 		} else if err != nil {
 			return err
@@ -168,7 +170,9 @@ func EnsureServiceQuota(
 			quotaCode,
 			serviceCode,
 		)
+		//log.Printf("%+v %v", changes, err)
 		if awsutil.ErrorCodeIs(err, awsutil.RequestError) {
+			//log.Print(err)
 			continue
 		} else if err != nil {
 			return err
