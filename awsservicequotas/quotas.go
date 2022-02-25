@@ -14,6 +14,7 @@ import (
 
 const (
 	APPROVED    = "APPROVED"
+	CASE_CLOSED = "CASE_CLOSED"
 	CASE_OPENED = "CASE_OPENED"
 	PENDING     = "PENDING"
 
@@ -176,7 +177,7 @@ func EnsureServiceQuota(
 			if aws.Float64Value(change.DesiredValue) < desiredValue {
 				continue
 			}
-			if status := aws.StringValue(change.Status); status == APPROVED {
+			if status := aws.StringValue(change.Status); status == APPROVED || status == CASE_CLOSED {
 				break
 			}
 		}
