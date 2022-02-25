@@ -12,7 +12,13 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-const NoSuchResourceException = "NoSuchResourceException"
+const (
+	APPROVED    = "APPROVED"
+	CASE_OPENED = "CASE_OPENED"
+	PENDING     = "PENDING"
+
+	NoSuchResourceException = "NoSuchResourceException"
+)
 
 type DeadlinePassed struct{ QuotaCode, ServiceCode string }
 
@@ -92,7 +98,7 @@ func EnsureServiceQuota(
 		if aws.Float64Value(change.DesiredValue) < desiredValue {
 			continue
 		}
-		if status := aws.StringValue(change.Status); status == "PENDING" || status == "CASE_OPENED" {
+		if status := aws.StringValue(change.Status); status == PENDING || status == CASE_OPENED {
 			ui.Printf(
 				"found a previous request to increase service quota %s in %s to %.0f; waiting for it to be resolved",
 				quotaCode,
@@ -124,30 +130,65 @@ func EnsureServiceQuota(
 
 	var zero time.Time
 	for {
+
+		// Check the deadline first so that calls can set a deadline in the
+		// past to get quick is-the-limit-sufficient feedback.
 		if deadline != zero && time.Now().After(deadline) {
 			return DeadlinePassed{quotaCode, serviceCode}
 		}
+
+		// Sleep before the real work so we can `continue` without risk of
+		// being throttled.
+		time.Sleep(time.Minute)
+
+		// First try to directly query the limit, which may not work because
+		// some limits aren't visible to Service Quotas.
 		quota, err := GetServiceQuota(
 			svc,
 			quotaCode,
 			serviceCode,
 		)
-		if err != nil {
+		if awsutil.ErrorCodeIs(err, NoSuchResourceException) {
+			// This is an invisible limit. GetServiceQuota can't break out of
+			// the loop so we fall through.
+		} else if awsutil.ErrorCodeIs(err, awsutil.RequestError) {
+			continue
+		} else if err != nil {
 			return err
-		}
-		//log.Printf("%+v", quota)
-		if value := aws.Float64Value(quota.Value); value >= desiredValue {
-			ui.Printf(
-				"received an increase to service quota %s in %s to %.0f",
-				quotaCode,
-				aws.StringValue(svc.Client.Config.Region),
-				value,
-			)
+		} else if value := aws.Float64Value(quota.Value); value >= desiredValue {
 			break
 		}
-		time.Sleep(time.Minute)
+
+		// If that didn't work, try to see if the limit increase was approved,
+		// which would be a good sign but doesn't definitely mean the
+		// operation's going to work immediately.
+		changes, err := ListRequestedServiceQuotaChangeHistoryByQuota(
+			svc,
+			quotaCode,
+			serviceCode,
+		)
+		if awsutil.ErrorCodeIs(err, awsutil.RequestError) {
+			continue
+		} else if err != nil {
+			return err
+		}
+		for _, change := range changes {
+			if aws.Float64Value(change.DesiredValue) < desiredValue {
+				continue
+			}
+			if status := aws.StringValue(change.Status); status == APPROVED {
+				break
+			}
+		}
+
 	}
 
+	ui.Printf(
+		"service quota %s in %s increased to %.0f",
+		quotaCode,
+		aws.StringValue(svc.Client.Config.Region),
+		desiredValue,
+	)
 	return nil
 }
 

@@ -2,6 +2,8 @@ package awsutil
 
 import "github.com/aws/aws-sdk-go/aws/awserr"
 
+const RequestError = "RequestError"
+
 func ErrorCode(err error) string {
 	if e, ok := err.(awserr.Error); ok {
 		return e.Code()

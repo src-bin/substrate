@@ -17,20 +17,24 @@ import (
 )
 
 func main() {
+	global := flag.Bool("global", false, "show or increase the service quota for a global AWS service")
+	allRegions := flag.Bool("all-regions", false, "show or increase the service quota in all AWS regions")
 	region := flag.String("region", "", "AWS region in which the service quota should be shown or increased")
 	listServices := flag.Bool("list-services", false, "list all services that have service limits to learn their -service-code values")
 	listQuotas := flag.Bool("list-quotas", false, "list all service quotes for -service-code to learn their -quota-code values")
-	allRegions := flag.Bool("all-regions", false, "show or increase the service quota in all AWS regions")
 	quotaCode := flag.String("quota-code", "", "quota code to pass to AWS")
 	serviceCode := flag.String("service-code", "", "service code to pass to AWS")
 	requiredValue := flag.Float64("required-value", 0, "minimum required value for the service quota")
 	desiredValue := flag.Float64("desired-value", 0, "desired value for the service quota, used if the quota's current value is below -required-value")
 	flag.Parse()
 	version.Flag()
-	if !*allRegions && !regions.IsRegion(*region) {
-		log.Fatal("one of -all-regions or a valid -region is required")
+	if !*global && !*allRegions && !regions.IsRegion(*region) || *global && *allRegions || *global && regions.IsRegion(*region) || *allRegions && regions.IsRegion(*region) {
+		log.Fatal("exactly one of -global, -all-regions, or a valid -region is required")
 	}
 	var regionSlice []string
+	if *global {
+		*region = "us-east-1" // Service Quotas has a hard dependency on us-east-1 for global services
+	}
 	if *allRegions {
 		for _, region := range regions.Selected() {
 			regionSlice = append(regionSlice, region)
