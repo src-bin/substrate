@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -64,7 +65,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var dirnames []string
+	var dirnames, params []string
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -82,8 +83,19 @@ func main() {
 			for _, file := range pkg.Files {
 				for name, object := range file.Scope.Objects {
 					if name == Main && object.Kind == ast.Fun {
-						if list := object.Decl.(*ast.FuncDecl).Type.Params.List; len(list) == 0 {
-							dirnames = append(dirnames, entry.Name())
+						dirnames = append(dirnames, entry.Name())
+						params = []string{}
+						for _, item := range object.Decl.(*ast.FuncDecl).Type.Params.List {
+							param := ""
+							t := item.Type
+							if starExpr, ok := t.(*ast.StarExpr); ok {
+								param = "*"
+								t = starExpr.X
+							}
+							if selectorExpr, ok := t.(*ast.SelectorExpr); ok {
+								param = fmt.Sprintf("%s%s.%s", param, selectorExpr.X, selectorExpr.Sel)
+							}
+							params = append(params, param)
 						}
 					}
 				}
@@ -106,9 +118,8 @@ func main() {
 		} else {
 			fmt.Fprintf(b, "\t\"%s/%s\"\n", pkgPath, dirname)
 		}
-
 	}
-	fmt.Fprintf(b, ")\n\nvar %s = map[string]func(){\n", *name)
+	fmt.Fprintf(b, ")\n\nvar %s = map[string]func(%s){\n", *name, strings.Join(params, ", "))
 	for _, dirname := range dirnames {
 		fmt.Fprintf(
 			b,
@@ -129,6 +140,17 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := ioutil.WriteFile(*out, p, 0666); err != nil {
+		log.Fatal(err)
+	}
+
+	// Now run goimports against the generated code in order to resolve
+	// package paths for funciton parameters. This is the lazy way, perhaps,
+	// but the AST does not make it at all easy to get at the package path.
+	cmd := exec.Command("goimports", "-w", *out)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
 		log.Fatal(err)
 	}
 
