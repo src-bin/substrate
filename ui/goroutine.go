@@ -52,6 +52,9 @@ func init() {
 			if err != nil {
 				width = 80
 			}
+			if width == 0 {
+				isTerminal = false
+			}
 
 			select {
 
