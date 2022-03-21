@@ -10,7 +10,7 @@ import (
 
 func vpcAccoutrements(
 	sess *session.Session,
-	noNATGateways bool,
+	natGateways bool,
 	region string,
 	org terraform.Organization,
 	vpc terraform.VPC,
@@ -147,7 +147,7 @@ func vpcAccoutrements(
 
 		// NAT Gateway for this private subnet.
 		eip := terraform.EIP{
-			Commented:          noNATGateways,
+			Commented:          !natGateways,
 			InternetGatewayRef: igw.Ref(),
 			Label:              terraform.Label(tags),
 			Tags:               tags,
@@ -155,7 +155,7 @@ func vpcAccoutrements(
 		eip.Tags.Name = vpc.Tags.Name + "-nat-gateway-" + az
 		file.Push(eip)
 		ngw := terraform.NATGateway{
-			Commented: noNATGateways,
+			Commented: !natGateways,
 			Label:     terraform.Label(tags),
 			SubnetId:  natGatewaySubnetId,
 			Tags:      tags,
@@ -163,7 +163,7 @@ func vpcAccoutrements(
 		ngw.Tags.Name = vpc.Tags.Name + "-" + az
 		file.Push(ngw)
 		file.Push(terraform.Route{
-			Commented:       noNATGateways,
+			Commented:       !natGateways,
 			DestinationIPv4: terraform.Q("0.0.0.0/0"),
 			Label:           terraform.Label(tags),
 			NATGatewayId:    terraform.U(ngw.Ref(), ".id"),

@@ -30,6 +30,7 @@ import (
 
 const (
 	EnvironmentsFilename = "substrate.environments"
+	NATGatewaysFilename  = "substrate.nat-gateways"
 	QualitiesFilename    = "substrate.qualities"
 )
 
@@ -37,7 +38,6 @@ func Main(cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
-	noNATGateways := flag.Bool("no-nat-gateways", false, "comment out NAT Gateways in generated Terraform (this saves about $100 per month per region but renders your private subnets useless)")
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()
@@ -138,6 +138,15 @@ func Main(cfg *awscfg.Config) {
 		log.Fatal(err)
 	}
 
+	natGateways, err := ui.ConfirmFile(
+		NATGatewaysFilename,
+		"do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; costs about $100 per month per environment and quality pair)",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//log.Printf("%v", natGateways)
+
 	// Configure the allocator for admin networks to use 192.168.0.0/16 and
 	// 21-bit subnet masks which yields 2,048 IP addresses per VPC and 32
 	// possible VPCs while keeping a tidy source IP address range for granting
@@ -206,7 +215,7 @@ func Main(cfg *awscfg.Config) {
 				Tags:      tags,
 			}
 			file.Push(vpc)
-			vpcAccoutrements(sess, *noNATGateways, region, org, vpc, file)
+			vpcAccoutrements(sess, natGateways, region, org, vpc, file)
 			if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 				log.Fatal(err)
 			}
@@ -251,7 +260,7 @@ func Main(cfg *awscfg.Config) {
 			}
 		}
 	}
-	if !*noNATGateways {
+	if natGateways {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 			sess,
 			"L-FE5A380F", "vpc", // NAT Gateways per availability zone
