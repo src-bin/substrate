@@ -4,13 +4,14 @@ import (
 	"flag"
 	"log"
 
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
-func Main() {
+func Main(cfg *awscfg.Config) {
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()

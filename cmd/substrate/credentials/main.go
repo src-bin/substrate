@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
@@ -19,7 +20,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main() {
+func Main(cfg *awscfg.Config) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	cmdutil.MustChdir()

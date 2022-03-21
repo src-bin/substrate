@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscloudtrail"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsram"
@@ -38,7 +39,7 @@ const (
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
 )
 
-func Main() {
+func Main(cfg *awscfg.Config) {
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()

@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
@@ -24,7 +25,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main() {
+func Main(cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
 	domain := flag.String("domain", "", "domain for this new AWS account")

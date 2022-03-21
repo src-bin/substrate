@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
@@ -22,7 +23,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main() {
+func Main(cfg *awscfg.Config) {
 	admin := flag.Bool("admin", false, `shorthand for -domain="admin" -environment="admin"`)
 	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")

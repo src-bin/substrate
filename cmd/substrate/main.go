@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -15,6 +16,8 @@ import (
 //go:generate go run ../../tools/dispatch-map/main.go -package main
 
 func main() {
+
+	cfg := &awscfg.Config{}
 
 	// If we were invoked directly, expect to find a subcommand in the first
 	// position. Reconfigure the arguments to make it look like we were invoked
@@ -69,7 +72,7 @@ func main() {
 		}
 		os.Exit(0)
 	}
-	f()
+	f(cfg)
 
 }
 
