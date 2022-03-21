@@ -11,6 +11,38 @@ import (
 	"github.com/src-bin/substrate/fileutil"
 )
 
+// ConfirmFile wraps Confirm in ReadFile and ioutil.WriteFile to avoid
+// interactivity on subsequent invocations. If pathname exists, its contents
+// (chomped) will be taken as the confirmation.  If not, the confirmation given
+// is written to pathname with a trailing newline and a notice is printed
+// instructing the user to commit that file to version control.
+func ConfirmFile(pathname string, args ...interface{}) (bool, error) {
+	b, err := fileutil.ReadFile(pathname)
+	yesno := strings.ToLower(strings.Trim(string(b), "\r\n"))
+	if err == nil {
+		if yesno == "yes" {
+			return true, nil
+		} else if yesno == "no" {
+			return false, nil
+		}
+		Printf("invalid yes/no %q read from %s", yesno, pathname)
+	}
+	ok, err := Confirm(args...)
+	if err != nil {
+		return false, err
+	}
+	if ok {
+		yesno = "yes"
+	} else {
+		yesno = "no"
+	}
+	if err := ioutil.WriteFile(pathname, []byte(yesno+"\n"), 0666); err != nil {
+		return false, err
+	}
+	Printf("%q written to %s, which you should commit to version control", yesno, pathname)
+	return ok, nil
+}
+
 // EditFile guides a user to edit a plaintext file to provide input.  If the
 // file exists, it is first read and the user is offered the opportunity to
 // accept it without modification via the notice argument to this function.  If
@@ -78,7 +110,7 @@ func PromptFile(pathname string, args ...interface{}) (string, error) {
 		if err := ioutil.WriteFile(pathname, []byte(s+"\n"), 0666); err != nil {
 			return "", err
 		}
-		Printf("\"%s\" written to %s, which you should commit to version control", s, pathname)
+		Printf("%q written to %s, which you should commit to version control", s, pathname)
 	}
 	return s, nil
 }
