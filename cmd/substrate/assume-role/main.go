@@ -23,7 +23,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Config) {
+func Main(cfg *awscfg.Main) {
 	admin := flag.Bool("admin", false, `shorthand for -domain="admin" -environment="admin"`)
 	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")

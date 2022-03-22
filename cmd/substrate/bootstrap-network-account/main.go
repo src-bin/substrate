@@ -34,7 +34,7 @@ const (
 	QualitiesFilename    = "substrate.qualities"
 )
 
-func Main(cfg *awscfg.Config) {
+func Main(cfg *awscfg.Main) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")

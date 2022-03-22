@@ -7,6 +7,6 @@ import (
 	createadminaccount "github.com/src-bin/substrate/cmd/substrate/create-admin-account"
 )
 
-func Main(*awscfg.Config) {
+func Main(*awscfg.Main) {
 	os.Stdout.Write(createadminaccount.SubstrateIntranetZip)
 }

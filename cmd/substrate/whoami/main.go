@@ -17,7 +17,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-func Main(cfg *awscfg.Config) {
+func Main(cfg *awscfg.Main) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Parse()

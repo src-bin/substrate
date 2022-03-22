@@ -59,7 +59,7 @@ const (
 	SAMLMetadataFilename = "substrate.saml-metadata.xml"
 )
 
-func Main(cfg *awscfg.Config) {
+func Main(cfg *awscfg.Main) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")

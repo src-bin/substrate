@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,8 +17,6 @@ import (
 //go:generate go run ../../tools/dispatch-map/main.go -package main
 
 func main() {
-
-	cfg := &awscfg.Config{}
 
 	// If we were invoked directly, expect to find a subcommand in the first
 	// position. Reconfigure the arguments to make it look like we were invoked
@@ -55,7 +54,8 @@ func main() {
 
 	// Dispatch to the package named like the subcommand with a Main function
 	// or to the appropriate substrate-* program.
-	f, ok := dispatchMap[strings.TrimPrefix(filepath.Base(os.Args[0]), "substrate-")]
+	subcommand := strings.TrimPrefix(filepath.Base(os.Args[0]), "substrate-")
+	f, ok := dispatchMap[subcommand]
 	if !ok {
 		if _, err := exec.LookPath(os.Args[0]); err != nil {
 			ui.Fatalf("%s not found", os.Args[0])
@@ -72,6 +72,21 @@ func main() {
 		}
 		os.Exit(0)
 	}
+
+	ctx := context.WithValue(
+		context.WithValue(
+			context.Background(),
+			"Command",
+			"substrate",
+		),
+		"Subcommand",
+		subcommand,
+	)
+	cfg, err := awscfg.NewMain(ctx)
+	if err != nil {
+		ui.Fatal(err)
+	}
+
 	f(cfg)
 
 }

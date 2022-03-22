@@ -11,7 +11,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Config) {
+func Main(cfg *awscfg.Main) {
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()
