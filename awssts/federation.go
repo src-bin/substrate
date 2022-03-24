@@ -8,8 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/naming"
 )
 
 // ConsoleSigninURL exchanges a set of STS credentials for a signin token that
@@ -61,7 +61,7 @@ func ConsoleSigninURL(
 	if destination == "" {
 		destination = "https://console.aws.amazon.com/"
 	}
-	intranetDNSDomainName, err := fileutil.ReadFile(choices.IntranetDNSDomainNameFilename)
+	intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename)
 	var issuer string
 	if err != nil {
 		issuer = "https://src-bin.com/substrate/"

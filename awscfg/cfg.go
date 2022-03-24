@@ -98,7 +98,7 @@ func defaultLoadOptions() []func(*config.LoadOptions) error {
 		// outset confirms that, indeed, when credentials are present, the AWS
 		// SDK v2 does, in fact, figure out an appropriate region, whether or
 		// not the caller is in EC2.
-		//config.WithRegion(choices.DefaultRegionNoninteractive()),
+		//config.WithRegion(regions.DefaultNoninteractive()),
 
 		config.WithSharedConfigFiles(nil),
 		config.WithSharedConfigProfile(""),

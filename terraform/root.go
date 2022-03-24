@@ -18,7 +18,7 @@ import (
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
-	"github.com/src-bin/substrate/choices"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
@@ -70,7 +70,7 @@ func Root(dirname, region string) error {
 }
 
 func S3BucketName(region string) string {
-	return fmt.Sprintf("%s-terraform-state-%s", choices.Prefix(), region)
+	return fmt.Sprintf("%s-terraform-state-%s", naming.Prefix(), region)
 }
 
 func gitignore(dirname string) error {

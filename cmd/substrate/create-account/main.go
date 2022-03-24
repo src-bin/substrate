@@ -15,7 +15,6 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
@@ -109,7 +108,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	{
 		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, regions.Global)
-		region := choices.DefaultRegion()
+		region := regions.Default()
 
 		file := terraform.NewFile()
 		file.Push(terraform.Module{

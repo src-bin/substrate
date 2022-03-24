@@ -31,9 +31,9 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
@@ -190,7 +190,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	// the Intranet can configure itself.  It's possible to do this entirely
 	// programmatically but there's a lot of UI surface area involved in doing
 	// a really good job.
-	if !fileutil.Exists(choices.IntranetDNSDomainNameFilename) {
+	if !fileutil.Exists(naming.IntranetDNSDomainNameFilename) {
 		svc := sts.New(sess)
 		assumedRole, err := awssts.AssumeRole(
 			svc,
@@ -214,7 +214,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		ui.Prompt("when you've finished, press <enter> to continue")
 	}
 	dnsDomainName, err := ui.PromptFile(
-		choices.IntranetDNSDomainNameFilename,
+		naming.IntranetDNSDomainNameFilename,
 		"what DNS domain name (the one you just bought, transferred, or shared) will you use for your organization's Intranet?",
 	)
 	if err != nil {
@@ -344,7 +344,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	{
 		dirname := filepath.Join(terraform.RootModulesDirname, Domain, *quality, regions.Global)
-		region := choices.DefaultRegion()
+		region := regions.Default()
 
 		file := terraform.NewFile()
 		module := terraform.Module{

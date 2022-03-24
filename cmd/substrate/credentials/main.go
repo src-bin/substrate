@@ -14,9 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssts"
-	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -43,7 +43,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	token := base64.RawURLEncoding.EncodeToString(b)
 
-	pathname, err := fileutil.PathnameInParents(choices.IntranetDNSDomainNameFilename)
+	pathname, err := fileutil.PathnameInParents(naming.IntranetDNSDomainNameFilename)
 	if err != nil {
 		ui.Fatalf("substrate.* not found in this or any parent directory; change to your Substrate repository or set SUBSTRATE_ROOT to its path in your environment (%v)", err)
 	}

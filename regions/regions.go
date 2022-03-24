@@ -10,7 +10,9 @@ import (
 )
 
 const (
-	Filename = "substrate.regions"
+	CloudTrailRegionFilename = "substrate.CloudTrail-region"
+	DefaultRegionFilename    = "substrate.default-region"
+	RegionsFilename          = "substrate.regions"
 
 	Global = "global" // special value used in the same place as region sometimes
 )
@@ -39,6 +41,36 @@ func Avoiding() []string {
 	} // this list must remain sorted
 }
 
+func Default() string {
+	region, err := ui.PromptFile(
+		DefaultRegionFilename,
+		"what region is your default for hosting shared resources e.g. the S3 bucket that stores your CloudTrail logs?",
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !IsRegion(region) {
+		log.Fatalf("%s is not an AWS region", region)
+	}
+	if !printedDefaultRegion {
+		ui.Printf("using region %s as your default", region)
+		printedDefaultRegion = true
+	}
+	return region
+}
+
+func DefaultNoninteractive() string {
+	pathname, err := fileutil.PathnameInParents(DefaultRegionFilename)
+	if err != nil {
+		ui.Fatal(err)
+	}
+	b, err := fileutil.ReadFile(pathname)
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return fileutil.Tidy(b)
+}
+
 func IsBeingAvoided(region string) bool {
 	avoiding := Avoiding()
 	i := sort.SearchStrings(avoiding, region)
@@ -58,7 +90,7 @@ func Select() ([]string, error) {
 	//    potentially costs a lot just for the NAT Gateways.
 	// 2. It breaks the signal to the various levels of interactivity.
 	/*
-		if !fileutil.Exists(Filename) {
+		if !fileutil.Exists(RegionsFilename) {
 			regions := []string{}
 			for _, region := range All() {
 				if !IsBeingAvoided(region) {
@@ -66,7 +98,7 @@ func Select() ([]string, error) {
 				}
 			}
 			if err := ioutil.WriteFile(
-				Filename,
+				RegionsFilename,
 				fileutil.FromLines(regions),
 				0666,
 			); err != nil {
@@ -76,7 +108,7 @@ func Select() ([]string, error) {
 	*/
 
 	regions, err := ui.EditFile(
-		Filename,
+		RegionsFilename,
 		"your Substrate-managed infrastructure is currently configured to use the following AWS regions:",
 		// "remove regions you don't want to use or add regions you wish to expand into, one per line",
 		"add regions you wish to expand into, one per line",
@@ -89,7 +121,7 @@ func Select() ([]string, error) {
 }
 
 func Selected() []string {
-	b, err := fileutil.ReadFile(Filename)
+	b, err := fileutil.ReadFile(RegionsFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -101,3 +133,5 @@ func Selected() []string {
 func all() map[string]endpoints.Region {
 	return endpoints.AwsPartition().Regions()
 }
+
+var printedDefaultRegion bool

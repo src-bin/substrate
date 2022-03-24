@@ -10,9 +10,9 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
@@ -40,7 +40,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 
-	intranetDNSDomainName, err := fileutil.ReadFile(choices.IntranetDNSDomainNameFilename)
+	intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename)
 	if err != nil {
 		log.Fatal(err)
 	}

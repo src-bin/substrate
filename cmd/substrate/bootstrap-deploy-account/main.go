@@ -15,8 +15,8 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
-	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -44,7 +44,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	prefix := choices.Prefix()
+	prefix := naming.Prefix()
 
 	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect every AWS region in rapid succession")
@@ -52,7 +52,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	{
 		dirname := filepath.Join(terraform.RootModulesDirname, accounts.Deploy, regions.Global)
-		region := choices.DefaultRegion()
+		region := regions.Default()
 
 		file := terraform.NewFile()
 		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
