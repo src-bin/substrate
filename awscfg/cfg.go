@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	stsv1 "github.com/aws/aws-sdk-go/service/sts"
-	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/telemetry"
 )
 
@@ -48,6 +47,7 @@ func NewMain(ctx context.Context) (cfg *Main, err error) {
 		return nil
 	}
 	if err := f(); err != nil {
+		//log.Print(err)
 		cfg.deferredTelemetry = f
 	}
 
@@ -57,10 +57,7 @@ func NewMain(ctx context.Context) (cfg *Main, err error) {
 func (cfg *Main) SetCredentials(ctx context.Context, creds *aws.Credentials) (err error) {
 	if cfg.cfg, err = config.LoadDefaultConfig(
 		ctx,
-		append(
-			defaultLoadOptions(),
-			config.WithCredentialsProvider(credentials.StaticCredentialsProvider{*creds}),
-		)...,
+		loadOptions(config.WithCredentialsProvider(credentials.StaticCredentialsProvider{*creds}))...,
 	); err != nil {
 		return
 	}
@@ -86,9 +83,32 @@ func (cfg *Main) Telemetry() *telemetry.Event {
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
 	return []func(*config.LoadOptions) error{
-		config.WithRegion(choices.DefaultRegionNoninteractive()),
+
+		// Errors like
+		//
+		//     operation error Organizations: DescribeOrganization, failed
+		//     to resolve service endpoint, an AWS region is required, but
+		//     was not found
+		//
+		// strongly imply that the AWS SDK v2 does not figure out an
+		// appropriate region (which v1 does). We encounter that error (on a
+		// global AWS service, no less) when calling without credentials,
+		// which we handle by retrying later when we definitely do have
+		// credentials. That plus later testing having credentials at the
+		// outset confirms that, indeed, when credentials are present, the AWS
+		// SDK v2 does, in fact, figure out an appropriate region, whether or
+		// not the caller is in EC2.
+		//config.WithRegion(choices.DefaultRegionNoninteractive()),
+
 		config.WithSharedConfigFiles(nil),
 		config.WithSharedConfigProfile(""),
 		config.WithSharedCredentialsFiles(nil),
 	}
+}
+
+func loadOptions(options ...func(*config.LoadOptions) error) []func(*config.LoadOptions) error {
+	return append(
+		defaultLoadOptions(),
+		options...,
+	)
 }
