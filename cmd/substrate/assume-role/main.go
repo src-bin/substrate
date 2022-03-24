@@ -1,6 +1,7 @@
 package assumerole
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -23,7 +24,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Main) {
 	admin := flag.Bool("admin", false, `shorthand for -domain="admin" -environment="admin"`)
 	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")

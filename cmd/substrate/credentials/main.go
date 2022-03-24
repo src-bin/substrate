@@ -1,6 +1,7 @@
 package credentials
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -20,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Main) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	cmdutil.MustChdir()

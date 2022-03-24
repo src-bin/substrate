@@ -1,6 +1,7 @@
 package deletestaticaccesskeys
 
 import (
+	"context"
 	"flag"
 	"log"
 	"strings"
@@ -18,7 +19,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Main) {
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()

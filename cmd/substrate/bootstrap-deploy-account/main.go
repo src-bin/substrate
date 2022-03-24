@@ -1,6 +1,7 @@
 package bootstrapdeployaccount
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -24,7 +25,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Main) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	cmdutil.MustChdir()

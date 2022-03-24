@@ -86,8 +86,7 @@ func main() {
 	if err != nil {
 		ui.Fatal(err)
 	}
-
-	f(cfg)
+	f(ctx, cfg)
 
 }
 

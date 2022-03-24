@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Main) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
 	cmdutil.MustChdir()
 	flag.Parse()

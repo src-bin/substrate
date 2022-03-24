@@ -1,6 +1,7 @@
 package bootstrapmanagementaccount
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -39,7 +40,7 @@ const (
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
 )
 
-func Main(cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Main) {
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()

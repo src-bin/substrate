@@ -1,6 +1,7 @@
 package createterraformmodule
 
 import (
+	"context"
 	"flag"
 	"log"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Main) {
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()

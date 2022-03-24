@@ -1,6 +1,7 @@
 package createaccount
 
 import (
+	"context"
 	"flag"
 	"log"
 	"path/filepath"
@@ -25,7 +26,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Main) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
 	domain := flag.String("domain", "", "domain for this new AWS account")
