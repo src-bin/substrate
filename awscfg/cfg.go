@@ -5,15 +5,18 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	stsv1 "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/choices"
 	"github.com/src-bin/substrate/telemetry"
 )
 
 type Main struct {
-	cfg   aws.Config
-	event *telemetry.Event
+	cfg               aws.Config
+	deferredTelemetry func() error
+	event             *telemetry.Event
 }
 
 func NewMain(ctx context.Context) (cfg *Main, err error) {
@@ -27,12 +30,58 @@ func NewMain(ctx context.Context) (cfg *Main, err error) {
 		return
 	}
 
+	f := func() error {
+		describeOrganization, err := organizations.NewFromConfig(cfg.cfg).DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
+		if err != nil {
+			return err
+		}
+		cfg.event.SetEmailDomainName(aws.ToString(describeOrganization.Organization.MasterAccountEmail))
+		getCallerIdentity, err := sts.NewFromConfig(cfg.cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+		if err != nil {
+			return err
+		}
+		cfg.event.SetInitialAccountNumber(aws.ToString(getCallerIdentity.Account))
+		if err := cfg.event.SetInitialRoleName(aws.ToString(getCallerIdentity.Arn)); err != nil {
+			return err
+		}
+		//log.Printf("%+v", cfg.event)
+		return nil
 	}
-		return
+	if err := f(); err != nil {
+		cfg.deferredTelemetry = f
 	}
-	//log.Printf("%+v", cfg.event)
 
 	return
+}
+
+func (cfg *Main) SetCredentials(ctx context.Context, creds *aws.Credentials) (err error) {
+	if cfg.cfg, err = config.LoadDefaultConfig(
+		ctx,
+		append(
+			defaultLoadOptions(),
+			config.WithCredentialsProvider(credentials.StaticCredentialsProvider{*creds}),
+		)...,
+	); err != nil {
+		return
+	}
+
+	if cfg.deferredTelemetry != nil {
+		err = cfg.deferredTelemetry()
+	}
+	cfg.deferredTelemetry = nil
+	return
+}
+
+func (cfg *Main) SetCredentialsV1(ctx context.Context, creds *stsv1.Credentials) error {
+	return cfg.SetCredentials(ctx, &aws.Credentials{
+		AccessKeyID:     aws.ToString(creds.AccessKeyId),
+		SecretAccessKey: aws.ToString(creds.SecretAccessKey),
+		SessionToken:    aws.ToString(creds.SessionToken),
+	})
+}
+
+func (cfg *Main) Telemetry() *telemetry.Event {
+	return cfg.event
 }
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
