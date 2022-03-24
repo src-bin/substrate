@@ -7,6 +7,12 @@ VERSION := $(shell date +%Y.%m)
 # All release tarballs are annotated with a short commit SHA and a dirty bit for the work tree.
 COMMIT := $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
 
+ifndef CODEBUILD_BUILD_ID
+ENDPOINT := https://src-bin.org/telemetry/
+else
+ENDPOINT := https://src-bin.com/telemetry/
+endif
+
 all:
 	go generate ./lambdautil # dependency of several packages with go:generate directives
 	go generate ./cmd/substrate-intranet # dependency of cmd/substrate-create-admin-account's go:generate directives
@@ -22,7 +28,7 @@ clean:
 	rm -f substrate-*-*-*.tar.gz
 
 install:
-	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
+	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform-version.txt) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 	find ./cmd/substrate -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/substrate-%P\\n | xargs -n1 ln -f -s substrate
 
 release:
