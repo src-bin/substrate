@@ -10,9 +10,8 @@ import (
 )
 
 const (
-	CloudTrailRegionFilename = "substrate.CloudTrail-region"
-	DefaultRegionFilename    = "substrate.default-region"
-	RegionsFilename          = "substrate.regions"
+	DefaultRegionFilename = "substrate.default-region"
+	RegionsFilename       = "substrate.regions"
 
 	Global = "global" // special value used in the same place as region sometimes
 )
