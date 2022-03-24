@@ -18,6 +18,7 @@ import (
 	"github.com/src-bin/substrate/roles"
 )
 
+// TODO revamp accounts.html to bounce login requests through the logout page per <https://src-bin.slack.com/archives/C015H14T9UY/p1645052508548779>
 //go:generate go run ../../tools/template/main.go -name accountsTemplate -package main accounts.html
 
 func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {

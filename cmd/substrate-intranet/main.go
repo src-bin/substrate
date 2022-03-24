@@ -41,7 +41,7 @@ func main() {
 				"Subcommand",
 				event.Path,
 			)
-			_, err := awscfg.NewMain(ctx)
+			cfg, err := awscfg.NewMain(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -49,6 +49,9 @@ func main() {
 			if h, ok := handlers[event.Path]; ok {
 				return h(ctx, event)
 			}
+
+			go cfg.Telemetry().Post(ctx)
+
 			return &events.APIGatewayProxyResponse{
 				Body:       "404 Not Found\n",
 				Headers:    map[string]string{"Content-Type": "text/plain"},
