@@ -18,13 +18,7 @@ type Main struct {
 
 func NewMain(ctx context.Context) (cfg *Main, err error) {
 	cfg = &Main{}
-	cfg.cfg, err = config.LoadDefaultConfig(
-		ctx,
-		config.WithRegion(choices.DefaultRegion()),
-		config.WithSharedConfigFiles(nil),
-		config.WithSharedConfigProfile(""),
-		config.WithSharedCredentialsFiles(nil),
-	)
+	cfg.cfg, err = config.LoadDefaultConfig(ctx, defaultLoadOptions()...)
 	if err != nil {
 		return
 	}
@@ -33,10 +27,7 @@ func NewMain(ctx context.Context) (cfg *Main, err error) {
 		return
 	}
 
-	if err = cfg.organizationsTelemetry(ctx); err != nil {
-		return
 	}
-	if err = cfg.stsTelemetry(ctx); err != nil {
 		return
 	}
 	//log.Printf("%+v", cfg.event)
@@ -44,25 +35,11 @@ func NewMain(ctx context.Context) (cfg *Main, err error) {
 	return
 }
 
-func (cfg *Main) organizationsTelemetry(ctx context.Context) error {
-	svc := organizations.NewFromConfig(cfg.cfg)
-	out, err := svc.DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
-	if err != nil {
-		return err
+func defaultLoadOptions() []func(*config.LoadOptions) error {
+	return []func(*config.LoadOptions) error{
+		config.WithRegion(choices.DefaultRegionNoninteractive()),
+		config.WithSharedConfigFiles(nil),
+		config.WithSharedConfigProfile(""),
+		config.WithSharedCredentialsFiles(nil),
 	}
-	cfg.event.SetEmailDomainName(aws.ToString(out.Organization.MasterAccountEmail))
-	return nil
-}
-
-func (cfg *Main) stsTelemetry(ctx context.Context) error {
-	svc := sts.NewFromConfig(cfg.cfg)
-	out, err := svc.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
-	if err != nil {
-		return err
-	}
-	cfg.event.SetAccountNumber(aws.ToString(out.Account))
-	if err := cfg.event.SetRoleName(aws.ToString(out.Arn)); err != nil {
-		return err
-	}
-	return nil
 }

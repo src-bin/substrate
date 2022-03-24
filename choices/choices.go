@@ -3,6 +3,7 @@ package choices
 import (
 	"log"
 
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
 )
@@ -32,6 +33,14 @@ func DefaultRegion() string {
 		printedDefaultRegion = true
 	}
 	return region
+}
+
+func DefaultRegionNoninteractive() string {
+	b, err := fileutil.ReadFile(DefaultRegionFilename)
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return fileutil.Tidy(b)
 }
 
 func Prefix() string {
