@@ -543,10 +543,6 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 
 func ensureAdministrator(sess *session.Session, svc *iam.IAM, account *awsorgs.Account, createdAccount bool, saml *awsiam.SAMLProvider) error {
 
-	{
-		_, err := awsiam.GetRole(svc, roles.Intranet)
-		log.Print(awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity))
-	}
 	// Decide whether we're going to include principals created during the
 	// Terraform run in the assume role policy.
 	var bootstrapping bool
