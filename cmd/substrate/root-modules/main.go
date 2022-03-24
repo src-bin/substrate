@@ -29,6 +29,8 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		ui.Quiet()
 	}
 
+	go cfg.Telemetry().Post(ctx)
+
 	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
 	if err != nil {
 		log.Fatal(err)
