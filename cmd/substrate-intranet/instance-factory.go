@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/authorizerutil"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsec2"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
@@ -30,7 +31,7 @@ func init() {
 	handlers["/instance-factory"] = instanceFactoryHandler
 }
 
-func instanceFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	var instanceType, publicKeyMaterial, terminateConfirmed string
 	launched := event.QueryStringParameters["launched"] // TODO don't propagate this into the HTML if the instance it references is in the "running" state

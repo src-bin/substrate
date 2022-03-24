@@ -14,7 +14,7 @@ import (
 
 // TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
 
-type Handler func(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error)
+type Handler func(context.Context, *awscfg.Main, *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error)
 
 var handlers = map[string]Handler{}
 
@@ -47,7 +47,7 @@ func main() {
 			}
 
 			if h, ok := handlers[event.Path]; ok {
-				return h(ctx, event)
+				return h(ctx, cfg, event)
 			}
 
 			go cfg.Telemetry().Post(ctx)

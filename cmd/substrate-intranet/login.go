@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
@@ -31,7 +32,7 @@ func init() {
 	handlers["/login"] = loginHandler
 }
 
-func loginHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func loginHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	// TODO logout per <https://developer.okta.com/docs/reference/api/oidc/#logout>
 

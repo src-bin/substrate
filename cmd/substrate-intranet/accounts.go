@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/authorizerutil"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
@@ -21,7 +22,7 @@ import (
 // TODO revamp accounts.html to bounce login requests through the logout page per <https://src-bin.slack.com/archives/C015H14T9UY/p1645052508548779>
 //go:generate go run ../../tools/template/main.go -name accountsTemplate -package main accounts.html
 
-func accountsHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func accountsHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {

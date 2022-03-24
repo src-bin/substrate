@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/authorizerutil"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
@@ -77,7 +78,7 @@ func (v *TagValue) String() string {
 	)
 }
 
-func credentialFactoryHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
 		return nil, err
@@ -103,7 +104,7 @@ func credentialFactoryHandler(ctx context.Context, event *events.APIGatewayProxy
 	}, nil
 }
 
-func credentialFactoryAuthorizeHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
 		return nil, err
@@ -146,7 +147,7 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, event *events.APIGat
 	}, nil
 }
 
-func credentialFactoryFetchHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
 		return nil, err

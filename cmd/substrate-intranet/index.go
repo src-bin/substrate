@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 )
@@ -26,7 +27,7 @@ var unlistedPaths = []string{
 	"/login",
 }
 
-func indexHandler(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func indexHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
