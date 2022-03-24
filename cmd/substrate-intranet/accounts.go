@@ -47,9 +47,12 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGat
 			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 		))
 
+		roleArn := roles.Arn(accountId, roleName)
+		cfg.Telemetry().SetFinalAccountNumber(accountId)
+		cfg.Telemetry().SetFinalRoleName(roleArn)
 		assumedRole, err := awssts.AssumeRole(
 			svc,
-			roles.Arn(accountId, roleName),
+			roleArn,
 			fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
 			3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> // TODO 43200?
 		)
