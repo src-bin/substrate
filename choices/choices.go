@@ -36,7 +36,11 @@ func DefaultRegion() string {
 }
 
 func DefaultRegionNoninteractive() string {
-	b, err := fileutil.ReadFile(DefaultRegionFilename)
+	pathname, err := fileutil.PathnameInParents(DefaultRegionFilename)
+	if err != nil {
+		ui.Fatal(err)
+	}
+	b, err := fileutil.ReadFile(pathname)
 	if err != nil {
 		ui.Fatal(err)
 	}
