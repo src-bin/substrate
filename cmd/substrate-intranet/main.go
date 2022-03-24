@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/src-bin/substrate/awscfg"
 )
 
 // TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
@@ -31,6 +32,20 @@ func main() {
 
 	} else if functionName == IntranetFunctionName {
 		lambda.Start(func(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+			ctx = context.WithValue(
+				context.WithValue(
+					ctx,
+					"Command",
+					"substrate-intranet",
+				),
+				"Subcommand",
+				event.Path,
+			)
+			_, err := awscfg.NewMain(ctx)
+			if err != nil {
+				return nil, err
+			}
+
 			if h, ok := handlers[event.Path]; ok {
 				return h(ctx, event)
 			}
