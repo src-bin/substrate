@@ -3,15 +3,26 @@ package naming
 import (
 	"log"
 
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
 )
 
 const (
+	EnvironmentsFilename = "substrate.environments"
+	QualitiesFilename    = "substrate.qualities"
+
 	IntranetDNSDomainNameFilename = "substrate.intranet-dns-domain-name"
-	PrefixFilename                = "substrate.prefix"
+
+	PrefixFilename = "substrate.prefix"
 )
 
-var printedPrefix bool
+func Environments() ([]string, error) {
+	b, err := fileutil.ReadFile(EnvironmentsFilename)
+	if err != nil {
+		return nil, err
+	}
+	return fileutil.ToLines(b), nil
+}
 
 func Prefix() string {
 	prefix, err := ui.PromptFile(
@@ -27,3 +38,13 @@ func Prefix() string {
 	}
 	return prefix
 }
+
+func Qualities() ([]string, error) {
+	b, err := fileutil.ReadFile(QualitiesFilename)
+	if err != nil {
+		return nil, err
+	}
+	return fileutil.ToLines(b), nil
+}
+
+var printedPrefix bool

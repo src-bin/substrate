@@ -20,6 +20,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -30,9 +31,7 @@ import (
 )
 
 const (
-	EnvironmentsFilename = "substrate.environments"
-	NATGatewaysFilename  = "substrate.nat-gateways"
-	QualitiesFilename    = "substrate.qualities"
+	NATGatewaysFilename = "substrate.nat-gateways"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Main) {
@@ -52,7 +51,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 
 	// Gather the definitive list of environments and qualities first.
 	environments, err := ui.EditFile(
-		EnvironmentsFilename,
+		naming.EnvironmentsFilename,
 		"the following environments are currently valid in your Substrate-managed infrastructure:",
 		`list all your environments, one per line, in order of progression from e.g. development through e.g. production; your list MUST include "admin"`,
 	)
@@ -74,7 +73,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	ui.Printf("using environments %s", strings.Join(environments, ", "))
 	qualities, err := ui.EditFile(
-		QualitiesFilename,
+		naming.QualitiesFilename,
 		"the following qualities are currently valid in your Substrate-managed infrastructure:",
 		`list all your qualities, one per line, in order from least to greatest quality (Substrate recommends "alpha", "beta", and "gamma")`,
 	)

@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
@@ -157,6 +158,7 @@ func Grouped(svc *organizations.Organizations) (adminAccounts, serviceAccounts [
 	if err != nil {
 		return
 	}
+
 	for _, account := range allAccounts {
 		if account.Tags[tags.SubstrateSpecialAccount] != "" {
 			switch account.Tags[tags.SubstrateSpecialAccount] {
@@ -175,21 +177,33 @@ func Grouped(svc *organizations.Organizations) (adminAccounts, serviceAccounts [
 			serviceAccounts = append(serviceAccounts, account)
 		}
 	}
+
+	var environments, qualities []string
+	environments, err = naming.Environments()
+	if err != nil {
+		return
+	}
+	qualities, err = naming.Qualities()
+	if err != nil {
+		return
+	}
+
 	sort.Slice(adminAccounts, func(i, j int) bool {
-		return adminAccounts[i].Tags[tags.Quality] < adminAccounts[j].Tags[tags.Quality]
+		return searchUnsorted(qualities, adminAccounts[i].Tags[tags.Quality]) < searchUnsorted(qualities, adminAccounts[j].Tags[tags.Quality])
 	})
 	sort.Slice(serviceAccounts, func(i, j int) bool {
 		if serviceAccounts[i].Tags[tags.Domain] != serviceAccounts[j].Tags[tags.Domain] {
 			return serviceAccounts[i].Tags[tags.Domain] < serviceAccounts[j].Tags[tags.Domain]
 		}
 		if serviceAccounts[i].Tags[tags.Environment] != serviceAccounts[j].Tags[tags.Environment] {
-			return serviceAccounts[i].Tags[tags.Environment] < serviceAccounts[j].Tags[tags.Environment]
+			return searchUnsorted(environments, serviceAccounts[i].Tags[tags.Environment]) < searchUnsorted(environments, serviceAccounts[j].Tags[tags.Environment])
 		}
 		if serviceAccounts[i].Tags[tags.Quality] != serviceAccounts[j].Tags[tags.Quality] {
-			return serviceAccounts[i].Tags[tags.Quality] < serviceAccounts[j].Tags[tags.Quality]
+			return searchUnsorted(qualities, serviceAccounts[i].Tags[tags.Quality]) < searchUnsorted(qualities, serviceAccounts[j].Tags[tags.Quality])
 		}
 		return false
 	})
+
 	return
 }
 
@@ -206,4 +220,15 @@ func WriteManagementAccountIdToDisk(managementAccountId string) error {
 		}
 	}
 	return nil
+}
+
+// searchUnsorted is like sort.SearchStrings but it allows for the search
+// space to be unsorted and assumes it's pretty small.
+func searchUnsorted(a []string, x string) int {
+	for i, s := range a {
+		if s == x {
+			return i
+		}
+	}
+	return -1
 }
