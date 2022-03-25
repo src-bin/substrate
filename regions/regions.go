@@ -58,16 +58,16 @@ func Default() string {
 	return region
 }
 
-func DefaultNoninteractive() string {
+func DefaultNoninteractive() (string, error) {
 	pathname, err := fileutil.PathnameInParents(DefaultRegionFilename)
 	if err != nil {
-		ui.Fatal(err)
+		return "", err
 	}
 	b, err := fileutil.ReadFile(pathname)
 	if err != nil {
-		ui.Fatal(err)
+		return "", err
 	}
-	return fileutil.Tidy(b)
+	return fileutil.Tidy(b), nil
 }
 
 func IsBeingAvoided(region string) bool {

@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	stsv1 "github.com/aws/aws-sdk-go/service/sts"
+	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/telemetry"
 )
 
@@ -82,28 +83,15 @@ func (cfg *Main) Telemetry() *telemetry.Event {
 }
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
-	return []func(*config.LoadOptions) error{
-
-		// Errors like
-		//
-		//     operation error Organizations: DescribeOrganization, failed
-		//     to resolve service endpoint, an AWS region is required, but
-		//     was not found
-		//
-		// strongly imply that the AWS SDK v2 does not figure out an
-		// appropriate region (which v1 does). We encounter that error (on a
-		// global AWS service, no less) when calling without credentials,
-		// which we handle by retrying later when we definitely do have
-		// credentials. That plus later testing having credentials at the
-		// outset confirms that, indeed, when credentials are present, the AWS
-		// SDK v2 does, in fact, figure out an appropriate region, whether or
-		// not the caller is in EC2.
-		//config.WithRegion(regions.DefaultNoninteractive()),
-
+	options := []func(*config.LoadOptions) error{
 		config.WithSharedConfigFiles(nil),
 		config.WithSharedConfigProfile(""),
 		config.WithSharedCredentialsFiles(nil),
 	}
+	if region, err := regions.DefaultNoninteractive(); err == nil {
+		options = append(options, config.WithRegion(region))
+	}
+	return options
 }
 
 func loadOptions(options ...func(*config.LoadOptions) error) []func(*config.LoadOptions) error {
