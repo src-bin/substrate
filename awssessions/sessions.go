@@ -322,15 +322,7 @@ func NewSession(config Config) (*session.Session, error) {
 
 	// Override the environment and any discovered credentials for all child
 	// processes, which smooths out Terraform runs initiated by this process.
-	// TODO factor this out and also do it in configWithRootCredentials
-	// FIXME it doesn't appear like these are working, or perhaps we're not getting here when we grab credentials from standard input; Terraform fails when the environment starts out empty; can't reproduce so I'm committing and moving on
-	if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(accessKey.AccessKeyId)); err != nil {
-		return nil, err
-	}
-	if err := os.Setenv("AWS_SECRET_ACCESS_KEY", aws.StringValue(accessKey.SecretAccessKey)); err != nil {
-		return nil, err
-	}
-	if err := os.Unsetenv("AWS_SESSION_TOKEN"); err != nil {
+	if err := setenvAccessKeyV1(accessKey); err != nil {
 		return nil, err
 	}
 
@@ -395,6 +387,9 @@ func configWithRootCredentials(roleName string, config Config) Config {
 	ui.Print("if you also have a session token, set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN in your environment")
 	config.AccessKeyId, config.SecretAccessKey = awsutil.ReadAccessKeyFromStdin()
 	config.SessionToken = ""
+	if err := setenvConfigV1(config); err != nil {
+		ui.Fatal(err)
+	}
 	ui.Printf("using access key ID %s", config.AccessKeyId)
 	return config
 }
@@ -404,4 +399,27 @@ func options(config aws.Config) session.Options {
 		Config:            config,
 		SharedConfigState: session.SharedConfigDisable,
 	}
+}
+
+func setenv(accessKeyId, secretAccessKey, sessionToken string) (err error) {
+	if err = os.Setenv("AWS_ACCESS_KEY_ID", accessKeyId); err != nil {
+		return
+	}
+	if err = os.Setenv("AWS_SECRET_ACCESS_KEY", secretAccessKey); err != nil {
+		return
+	}
+	if sessionToken == "" {
+		err = os.Unsetenv("AWS_SESSION_TOKEN")
+	} else {
+		err = os.Setenv("AWS_SESSION_TOKEN", sessionToken)
+	}
+	return
+}
+
+func setenvAccessKeyV1(accessKey *iam.AccessKey) error {
+	return setenv(aws.StringValue(accessKey.AccessKeyId), aws.StringValue(accessKey.SecretAccessKey), "")
+}
+
+func setenvConfigV1(config Config) error {
+	return setenv(config.AccessKeyId, config.SecretAccessKey, config.SessionToken)
 }
