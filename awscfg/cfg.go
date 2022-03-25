@@ -2,13 +2,16 @@ package awscfg
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/regions"
+	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/telemetry"
 )
 
@@ -77,8 +80,31 @@ func (cfg *Main) SetCredentialsV1(ctx context.Context, accessKeyId, secretAccess
 	})
 }
 
+func (cfg *Main) Special(ctx context.Context, name, roleName string) (s *Special, err error) {
+	accountNumber := "TODO" // TODO
+	s = &Special{main: cfg}
+	s.cfg, err = config.LoadDefaultConfig(
+		ctx,
+		loadOptions(config.WithAssumeRoleCredentialOptions(func(options *stscreds.AssumeRoleOptions) {
+			options.Client = sts.NewFromConfig(cfg.cfg)
+			options.Duration = 60 * 60 * time.Second
+			options.RoleARN = roles.Arn(accountNumber, roleName)
+		}))...,
+	)
+	return
+}
+
 func (cfg *Main) Telemetry() *telemetry.Event {
 	return cfg.event
+}
+
+type Special struct {
+	cfg  aws.Config
+	main *Main
+}
+
+func (cfg *Special) Telemetry() *telemetry.Event {
+	return cfg.main.Telemetry()
 }
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
