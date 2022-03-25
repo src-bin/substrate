@@ -57,6 +57,7 @@ func main() {
 	subcommand := strings.TrimPrefix(filepath.Base(os.Args[0]), "substrate-")
 	f, ok := dispatchMap[subcommand]
 	if !ok {
+		ui.Printf("dispatching %s, which is deprecated", os.Args[0])
 		if _, err := exec.LookPath(os.Args[0]); err != nil {
 			ui.Fatalf("%s not found", os.Args[0])
 		}
