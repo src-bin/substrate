@@ -31,7 +31,8 @@ type Event struct {
 	EmailDomainName                          string // avoid PII in local portion
 	InitialRoleName, FinalRoleName           string // "Administrator", "Auditor", or "Other" (avoid disclosing custom role names)
 	IsEC2                                    bool
-	Format                                   string `json:",omitempty"` // -format, if applicable
+	Format                                   string        `json:",omitempty"` // -format, if applicable
+	post, wait                               chan struct{} // `json:"-"`
 }
 
 func NewEvent(ctx context.Context) (*Event, error) {
@@ -40,6 +41,8 @@ func NewEvent(ctx context.Context) (*Event, error) {
 		Subcommand: stringFromContext(ctx, "Subcommand"),
 		Version:    version.Version,
 		//Format // TODO when cmdutil.SerializationFormat.Set is called
+		post: make(chan struct{}),
+		wait: make(chan struct{}),
 	}
 
 	ctx, _ = context.WithTimeout(ctx, 100*time.Millisecond)
@@ -64,6 +67,14 @@ func (e *Event) Post(ctx context.Context) error {
 	if e == nil || Endpoint == "" {
 		return nil
 	}
+	select {
+	case <-e.post:
+		return nil
+	case <-e.wait:
+		return nil
+	default:
+	}
+	close(e.post)
 	b := &bytes.Buffer{}
 	if err := json.NewEncoder(b).Encode(e); err != nil {
 		return err
@@ -75,6 +86,7 @@ func (e *Event) Post(ctx context.Context) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	_, err = http.DefaultClient.Do(req)
+	close(e.wait)
 	return err
 }
 
@@ -111,6 +123,15 @@ func (e *Event) SetFinalRoleName(roleArn string) (err error) {
 	}
 	e.FinalRoleName, err = roleNameFromArn(roleArn)
 	return
+}
+
+func (e *Event) Wait(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-e.wait:
+	}
+	return nil
 }
 
 func roleNameFromArn(roleArn string) (string, error) {

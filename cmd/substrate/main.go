@@ -90,6 +90,7 @@ func main() {
 
 	// If no one's posted telemetry yet, post it now, and wait for it to finish.
 	cfg.Telemetry().Post(ctx)
+	cfg.Telemetry().Wait(ctx)
 
 }
 
