@@ -97,9 +97,6 @@ func (e *Event) SetInitialAccountNumber(accountNumber string) {
 	}
 }
 func (e *Event) SetFinalAccountNumber(accountNumber string) {
-	if e.InitialAccountNumber == "" {
-		e.InitialAccountNumber = accountNumber
-	}
 	e.FinalAccountNumber = accountNumber
 }
 
@@ -118,9 +115,6 @@ func (e *Event) SetInitialRoleName(roleArn string) (err error) {
 }
 
 func (e *Event) SetFinalRoleName(roleArn string) (err error) {
-	if e.InitialRoleName == "" {
-		e.InitialRoleName, err = roleNameFromArn(roleArn)
-	}
 	e.FinalRoleName, err = roleNameFromArn(roleArn)
 	return
 }
