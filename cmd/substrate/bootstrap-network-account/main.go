@@ -223,6 +223,14 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		}
 	}
 
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg.Telemetry().FinalAccountNumber = accountId
+	cfg.Telemetry().FinalRoleName = roles.NetworkAdministrator
+
 	// Write to substrate.admin-networks.json and substrate.networks.json once
 	// more so that, even if no changes were made, formatting changes and
 	// SubstrateVersion are changed.

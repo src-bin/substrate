@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssts"
@@ -76,7 +77,12 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	ui.Stop("ok")
 
-	cfg.SetCredentialsV1(ctx, credentials)
+	cfg.SetCredentialsV1(
+		ctx,
+		aws.StringValue(credentials.AccessKeyId),
+		aws.StringValue(credentials.SecretAccessKey),
+		aws.StringValue(credentials.SessionToken),
+	)
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	// Print credentials in whatever format was requested.

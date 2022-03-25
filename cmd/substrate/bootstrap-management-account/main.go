@@ -109,6 +109,14 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	//log.Printf("%+v", callerIdentity)
 	//log.Printf("%+v", org)
 
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg.Telemetry().FinalAccountNumber = aws.StringValue(callerIdentity.Account)
+	cfg.Telemetry().FinalRoleName = roles.OrganizationAdministrator
+
 	// Ensure the audit account exists.  This one comes first so we can enable
 	// CloudTrail ASAP.  We might be _too_ fast, though, so we accommodate AWS
 	// being a little slow in bootstrapping the organization for this the first

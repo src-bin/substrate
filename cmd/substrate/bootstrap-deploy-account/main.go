@@ -46,6 +46,14 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	prefix := naming.Prefix()
 
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg.Telemetry().FinalAccountNumber = accountId
+	cfg.Telemetry().FinalRoleName = roles.DeployAdministrator
+
 	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect every AWS region in rapid succession")
 		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")

@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	stsv1 "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/telemetry"
 )
@@ -70,11 +69,11 @@ func (cfg *Main) SetCredentials(ctx context.Context, creds *aws.Credentials) (er
 	return
 }
 
-func (cfg *Main) SetCredentialsV1(ctx context.Context, creds *stsv1.Credentials) error {
+func (cfg *Main) SetCredentialsV1(ctx context.Context, accessKeyId, secretAccessKey, sessionToken string) error {
 	return cfg.SetCredentials(ctx, &aws.Credentials{
-		AccessKeyID:     aws.ToString(creds.AccessKeyId),
-		SecretAccessKey: aws.ToString(creds.SecretAccessKey),
-		SessionToken:    aws.ToString(creds.SessionToken),
+		AccessKeyID:     accessKeyId,
+		SecretAccessKey: secretAccessKey,
+		SessionToken:    sessionToken,
 	})
 }
 
