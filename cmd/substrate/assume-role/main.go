@@ -149,6 +149,8 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	credentials := assumedRole.Credentials
 
+	cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+
 	if *console {
 		consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials, "")
 		if err != nil {

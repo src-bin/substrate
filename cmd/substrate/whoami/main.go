@@ -26,7 +26,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		ui.Quiet()
 	}
 
-	go cfg.Telemetry().Post(ctx)
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	callerIdentity, err := awssts.GetCallerIdentity(sts.New(awssessions.Must(awssessions.NewSession(awssessions.Config{}))))
 	if err != nil {

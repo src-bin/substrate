@@ -26,6 +26,8 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 
 	sess := awssessions.Must(awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{}))
 
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+
 	ui.Spin("deleting all access keys for the OrganizationAdministrator user")
 	if err := awsiam.DeleteAllAccessKeys(
 		iam.New(sess),

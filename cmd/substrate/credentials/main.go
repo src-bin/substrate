@@ -77,7 +77,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	ui.Stop("ok")
 
 	cfg.SetCredentialsV1(ctx, credentials)
-	cfg.Telemetry().Post(ctx)
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	// Print credentials in whatever format was requested.
 	awssts.PrintCredentials(format, credentials)

@@ -26,7 +26,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	flag.Parse()
 	version.Flag()
 
-	go cfg.Telemetry().Post(ctx)
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
 	if err != nil {

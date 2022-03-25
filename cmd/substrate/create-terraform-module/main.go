@@ -20,7 +20,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		ui.Fatal("need at least one module name to create")
 	}
 
-	go cfg.Telemetry().Post(ctx)
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	for _, name := range flag.Args() {
 		if err := terraform.Scaffold(name); err != nil {
