@@ -49,6 +49,8 @@ func Printf(format string, args ...interface{}) {
 }
 
 func Prompt(args ...interface{}) (string, error) {
+	op(opBlock, "")
+	defer op(opUnblock, "")
 	args = dereference(args)
 	fmt.Print(append(args, " ")...)
 	if Interactivity() == NonInteractive {

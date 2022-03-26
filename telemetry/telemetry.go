@@ -12,8 +12,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
+
+const Filename = "substrate.telemetry"
 
 // Endpoint is an HTTP(S) URL where telemetry is sent, if it's not an empty
 // string. The following values are useful:
@@ -75,6 +78,19 @@ func (e *Event) Post(ctx context.Context) error {
 	default:
 	}
 	close(e.post)
+
+	ok, err := ui.ConfirmFile(
+		Filename,
+		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://src.bin.com/substrate/manual/telemetry/>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
+	)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		close(e.wait)
+		return nil
+	}
+
 	b := &bytes.Buffer{}
 	if err := json.NewEncoder(b).Encode(e); err != nil {
 		return err
@@ -87,6 +103,7 @@ func (e *Event) Post(ctx context.Context) error {
 	req.Header.Set("Content-Type", "application/json")
 	_, err = http.DefaultClient.Do(req)
 	close(e.wait)
+
 	return err
 }
 

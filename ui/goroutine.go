@@ -16,6 +16,8 @@ const (
 	opQuiet
 	opSpin
 	opStop
+	opBlock
+	opUnblock
 )
 
 const hz = 10 // spins per second
@@ -38,11 +40,12 @@ var (
 // variables they imply are probably worse.  This is useful, though.
 func init() {
 	log.SetFlags(log.Lshortfile)
-	ch := make(chan instruction)
+	ch := make(chan instruction, 100) // buffered for requeuing while blocked
 	chInst = ch
 	stdin = bufio.NewReader(os.Stdin)
 	stderr := os.Stderr
-	go func(ch <-chan instruction) {
+	go func(ch chan instruction) {
+		blocked := false
 		dots, s, spinner := "", "", ""
 		tick := time.Tick(time.Second / hz)
 		ticks := 1
@@ -59,7 +62,21 @@ func init() {
 			select {
 
 			case inst := <-ch:
+
+				if blocked {
+					if inst.opcode == opUnblock {
+						blocked = false
+					} else {
+						ch <- inst // requeue
+						continue
+					}
+				}
+				if inst.opcode == opBlock {
+					blocked = true
+				}
+
 				switch inst.opcode {
+
 				case opPrint:
 
 					// Print called between Spin and Stop
