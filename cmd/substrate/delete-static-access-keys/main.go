@@ -6,10 +6,13 @@ import (
 	"log"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
@@ -26,7 +29,8 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 
 	sess := awssessions.Must(awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{}))
 
-	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	cfg.Telemetry().FinalAccountNumber = aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
+	cfg.Telemetry().FinalRoleName = roles.OrganizationAdministrator
 
 	ui.Spin("deleting all access keys for the OrganizationAdministrator user")
 	if err := awsiam.DeleteAllAccessKeys(

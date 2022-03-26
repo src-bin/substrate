@@ -128,6 +128,14 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg.Telemetry().FinalAccountNumber = aws.StringValue(account.Id)
+	cfg.Telemetry().FinalRoleName = roles.Administrator
+
 	// We used to collect this metadata XML interactively. Now if it's there
 	// we use it and if it's not we move along because we're not adding new
 	// SAML providers.

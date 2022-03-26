@@ -94,6 +94,14 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg.Telemetry().FinalAccountNumber = aws.StringValue(account.Id)
+	cfg.Telemetry().FinalRoleName = roles.Administrator
+
 	admin.EnsureAdminRolesAndPolicies(sess, createdAccount)
 
 	// Leave the user a place to put their own Terraform code that can be

@@ -138,6 +138,10 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 
+	cfg.Telemetry().FinalAccountNumber = accountId
+	cfg.Telemetry().FinalRoleName = *roleName
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+
 	assumedRole, err := awssts.AssumeRole(
 		svc,
 		roles.Arn(accountId, *roleName),
@@ -148,8 +152,6 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 	credentials := assumedRole.Credentials
-
-	cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	if *console {
 		consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials, "")
