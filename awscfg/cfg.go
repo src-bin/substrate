@@ -33,6 +33,7 @@ func NewMain(ctx context.Context) (cfg *Main, err error) {
 	}
 
 	f := func() error {
+		ctx, _ = context.WithTimeout(ctx, time.Second)
 		describeOrganization, err := organizations.NewFromConfig(cfg.cfg).DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
 		if err != nil {
 			return err
