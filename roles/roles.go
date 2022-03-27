@@ -44,5 +44,15 @@ func Name(roleArn string) (string, error) {
 	if strings.HasPrefix(parsed.Resource, "role/") {
 		return strings.TrimPrefix(parsed.Resource, "role/"), nil
 	}
+
+	// There's an OrganizationAdministrator IAM user to go along with the IAM
+	// role to facilitate bootstrapping.
+	if strings.HasPrefix(parsed.Resource, "user/") {
+		name := strings.TrimPrefix(parsed.Resource, "user/")
+		if name == OrganizationAdministrator {
+			return name, nil
+		}
+	}
+
 	return "", ArnError(roleArn)
 }
