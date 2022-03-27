@@ -79,6 +79,7 @@ func (e *Event) Post(ctx context.Context) error {
 	default:
 	}
 	close(e.post)
+	defer close(e.wait)
 
 	pathname, err := fileutil.PathnameInParents(Filename)
 	if err != nil {
@@ -92,7 +93,6 @@ func (e *Event) Post(ctx context.Context) error {
 		return err
 	}
 	if !ok {
-		close(e.wait)
 		return nil
 	}
 
@@ -107,8 +107,6 @@ func (e *Event) Post(ctx context.Context) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	_, err = http.DefaultClient.Do(req)
-	close(e.wait)
-
 	return err
 }
 
