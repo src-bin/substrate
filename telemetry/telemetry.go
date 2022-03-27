@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -79,8 +80,12 @@ func (e *Event) Post(ctx context.Context) error {
 	}
 	close(e.post)
 
+	pathname, err := fileutil.PathnameInParents(Filename)
+	if err != nil {
+		return nil // surpress this error and just don't post telemetry
+	}
 	ok, err := ui.ConfirmFile(
-		Filename,
+		pathname,
 		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://src.bin.com/substrate/manual/telemetry/>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
 	)
 	if err != nil {
