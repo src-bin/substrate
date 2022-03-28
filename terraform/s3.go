@@ -20,17 +20,17 @@ func (b S3Bucket) Ref() Value {
 func (S3Bucket) Template() string {
 	return `resource "aws_s3_bucket" {{.Label.Value}} {
   bucket = {{.Bucket.Value}}
-{{- if .Policy}}
-  policy = {{.Policy.Value}}
-{{- end}}
 {{- if .Provider}}
   provider = {{.Provider}}
 {{- end}}
   tags = {{.Tags.Value}}
-  versioning {
-    enabled = true
-  }
 }
+{{- if .Policy}}
+resource "aws_s3_bucket_policy" {{.Label.Value}} {
+  bucket = {{.Bucket.Value}}
+  policy = {{.Policy.Value}}
+}
+{{- end}}
 resource "aws_s3_bucket_public_access_block" {{.Label.Value}} {
   block_public_acls = true
   block_public_policy = true
@@ -40,6 +40,12 @@ resource "aws_s3_bucket_public_access_block" {{.Label.Value}} {
   provider = {{.Provider}}
 {{- end}}
   restrict_public_buckets = true
+}
+resource "aws_s3_bucket_versioning" {{.Label.Value}} {
+  bucket = {{.Bucket.Value}}
+  versioning_configuration {
+    status = "Enabled"
+  }
 }`
 }
 
