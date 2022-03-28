@@ -140,6 +140,10 @@ func (e *Event) SetFinalRoleName(roleArn string) (err error) {
 }
 
 func (e *Event) Wait(ctx context.Context) error {
+	if e == nil || Endpoint == "" {
+		return nil
+	}
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
