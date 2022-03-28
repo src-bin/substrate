@@ -178,15 +178,30 @@ func Grouped(svc *organizations.Organizations) (adminAccounts, serviceAccounts [
 		}
 	}
 
+	// Try to get the authoritative order of environments and qualities from
+	// substrate.{environments,qualities}. We won't have access to that in
+	// Lambda, though, so we've got to come up with something. I decided to
+	// guess based on how I see folks using Substrate, how I advise folks to
+	// use Substrate, and how folks name environments and release channels in
+	// the broader world. I hope Substrate thrives sufficiently for me to
+	// regret this.
 	var environments, qualities []string
-	environments, err = naming.Environments()
-	if err != nil {
-		return
+	if environments, err = naming.Environments(); err != nil {
+		environments = []string{
+			"dev", "devel", "development",
+			"qa", "test", "testing",
+			"stage", "staging",
+			"prod", "production",
+		}
 	}
-	qualities, err = naming.Qualities()
-	if err != nil {
-		return
+	if qualities, err = naming.Qualities(); err != nil {
+		qualities = []string{
+			"alpha",
+			"beta", "canary",
+			"gamma", "default",
+		}
 	}
+	err = nil
 
 	sort.Slice(adminAccounts, func(i, j int) bool {
 		return searchUnsorted(qualities, adminAccounts[i].Tags[tags.Quality]) < searchUnsorted(qualities, adminAccounts[j].Tags[tags.Quality])
