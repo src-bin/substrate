@@ -21,7 +21,7 @@ func main() {
 		slack(fmt.Sprintf(
 			"Substrate build %s of https://github.com/src-bin/substrate/tree/%s failed!\nhttps://%s.console.aws.amazon.com/codesuite/codebuild/%s/projects/substrate/build/substrate%%3A%s",
 			os.Getenv("CODEBUILD_BUILD_NUMBER"),
-			os.Getenv("CODEBUILD_SOURCE_VERSION"),
+			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
 			parts[3],
 			parts[4],
 			parts[6],
