@@ -22,7 +22,7 @@ phases:
       - unzip "terraform.zip" -d "$HOME/bin"
       - rm -f "terraform.zip"
     finally:
-      - go run "tools/slack/main.go" "install"
+      - go run "tools/slack-codebuild/main.go" "install"
   pre_build:
     commands:
       - go version
@@ -31,12 +31,12 @@ phases:
       - git diff --exit-code
       - make test
     finally:
-      - go run "tools/slack/main.go" "pre_build"
+      - go run "tools/slack-codebuild/main.go" "pre_build"
   build:
     commands:
       - make release
     finally:
-      - go run "tools/slack/main.go" "build"
+      - go run "tools/slack-codebuild/main.go" "build"
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
