@@ -17,14 +17,11 @@ func main() {
 
 	// If the build's failing, report it to Slack.
 	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
-		parts := strings.Split(os.Getenv("CODEBUILD_BUILD_ARN"), ":")
 		slack(fmt.Sprintf(
-			"Substrate build %s of https://github.com/src-bin/substrate/tree/%s failed!\nhttps://%s.console.aws.amazon.com/codesuite/codebuild/%s/projects/substrate/build/substrate%%3A%s",
+			"Substrate build %s of https://github.com/src-bin/substrate/tree/%s failed!\n%s",
 			os.Getenv("CODEBUILD_BUILD_NUMBER"),
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
-			parts[3],
-			parts[4],
-			parts[6],
+			os.Getenv("CODEBUILD_BUILD_URL"),
 		))
 		return
 	}
