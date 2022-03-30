@@ -21,6 +21,8 @@ phases:
       - cat "terraform-version.txt" | xargs -I"VERSION" curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/VERSION/terraform_VERSION_linux_amd64.zip"
       - unzip "terraform.zip" -d "$HOME/bin"
       - rm -f "terraform.zip"
+    finally:
+      - go run "tools/slack/main.go" "install"
   pre_build:
     commands:
       - go version
@@ -28,12 +30,13 @@ phases:
       - make
       - git diff --exit-code
       - make test
+    finally:
+      - go run "tools/slack/main.go" "pre_build"
   build:
     commands:
       - make release
-  post_build:
-    commands:
-      - go run "tools/slack/main.go"
+    finally:
+      - go run "tools/slack/main.go" "build"
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz

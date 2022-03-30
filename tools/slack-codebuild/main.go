@@ -15,6 +15,7 @@ import (
 
 func main() {
 
+	// If the build's failing, report it to Slack.
 	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
 		parts := strings.Split(os.Getenv("CODEBUILD_BUILD_ARN"), ":")
 		slack(fmt.Sprintf(
@@ -27,6 +28,15 @@ func main() {
 		))
 		return
 	}
+
+	// If it's succeeding but it's still early, sit tight.
+	if true {
+		return
+	}
+
+	// But if the build's succeeding and this is the end, announce it.
+
+	// Send the release announcement to be shared with customers.
 	out, err := exec.Command("make", "release-filenames").Output()
 	if err != nil {
 		log.Fatal(err)
@@ -62,15 +72,18 @@ https://src-bin.com/{{.}}
 	slack(text)
 	slack("Push release notes and documentation updates to https://src-bin.com/substrate/manual/.")
 
+	// Send the checklist of customers who need the announcement.
 	for _, customer := range split(os.Getenv("CUSTOMERS_ANNOUNCE")) {
 		slack(fmt.Sprintf("Share or copy/paste the release announcement to *%s*", customer))
 	}
 
+	// Send the checklist of customers I'm supposed to upgrade myself.
 	for _, customer := range split(os.Getenv("CUSTOMERS_UPGRADE")) {
 		slack(fmt.Sprintf("Upgrade Substrate for *%s*", customer))
 	}
 
-	for _, customer := range split(os.Getenv("CUSTOMERS_PIN")) { // not alphabetical but comes after upgrades in the TODO list
+	// Send the checklist of customers for whom I have other obligations.
+	for _, customer := range split(os.Getenv("CUSTOMERS_PIN")) { // not alphabetical but these happen after upgrades
 		slack(fmt.Sprintf("Pin the new version of Substrate for *%s*", customer))
 	}
 
