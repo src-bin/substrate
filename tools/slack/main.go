@@ -15,6 +15,18 @@ import (
 
 func main() {
 
+	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
+		parts := strings.Split(os.Getenv("CODEBUILD_BUILD_ARN"), ":")
+		slack(fmt.Sprintf(
+			"Substrate build %s of https://github.com/src-bin/substrate/tree/%s failed!\nhttps://%s.console.aws.amazon.com/codesuite/codebuild/%s/projects/substrate/build/substrate%%3A%s",
+			os.Getenv("CODEBUILD_BUILD_NUMBER"),
+			os.Getenv("CODEBUILD_SOURCE_VERSION"),
+			parts[3],
+			parts[4],
+			parts[6],
+		))
+		return
+	}
 	out, err := exec.Command("make", "release-filenames").Output()
 	if err != nil {
 		log.Fatal(err)
