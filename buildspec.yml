@@ -17,6 +17,7 @@ phases:
       - curl -L -o"golang.tar.gz" -s "https://redirector.gvt1.com/edgedl/go/go$GO_VERSION.linux-amd64.tar.gz"
       - tar -C"$HOME" -f"golang.tar.gz" -x
       - rm -f "golang.tar.gz"
+      - go get "golang.org/x/tools/cmd/goimports"
       - cat "terraform-version.txt" | xargs -I"VERSION" curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/VERSION/terraform_VERSION_linux_amd64.zip"
       - unzip "terraform.zip" -d "$HOME/bin"
       - rm -f "terraform.zip"
