@@ -27,7 +27,6 @@ func main() {
 	}
 
 	// If it's succeeding but it's still early, sit tight.
-	log.Printf("%v", os.Args)
 	if os.Args[1] != "build" {
 		return
 	}
