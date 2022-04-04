@@ -31,7 +31,10 @@ func main() {
 	out := flag.String("o", "dispatch-map.go", "filename where generated Go code will be written (defaults to \"dispatch-map.go\")")
 	pkg := flag.String("package", "main", "package name for the generated Go code (defaults to \"main\")")
 	flag.Parse()
-	if flag.NArg() > 0 {
+	if flag.NArg() < 1 {
+		log.Fatal("too few arguments")
+	}
+	if flag.NArg() > 1 {
 		log.Fatal("too many arguments")
 	}
 
@@ -58,10 +61,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	pkgPath = filepath.Join(mod.Module.Mod.Path, pkgPath)
+	pkgPath = filepath.Clean(filepath.Join(filepath.Join(mod.Module.Mod.Path, pkgPath), flag.Arg(0)))
+	//log.Print(pkgPath)
 
 	// Look for packages that export a Main function that accepts zero parameters.
-	entries, err := os.ReadDir(".")
+	entries, err := os.ReadDir(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +76,7 @@ func main() {
 		}
 		//log.Printf("%+v", entry)
 		fset := token.NewFileSet()
-		pkgs, err := parser.ParseDir(fset, entry.Name(), nil, parser.ParseComments)
+		pkgs, err := parser.ParseDir(fset, filepath.Join(flag.Arg(0), entry.Name()), nil, parser.ParseComments)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -113,25 +117,31 @@ func main() {
 		if strings.Contains(dirname, "-") {
 
 			// Remove dashes from directory names as is convention for package names.
-			fmt.Fprintf(b, "\t%s \"%s/%s\"\n", strings.ReplaceAll(dirname, "-", ""), pkgPath, dirname)
+			if dirnameNoDashes := strings.ReplaceAll(dirname, "-", ""); dirnameNoDashes != *pkg {
+				fmt.Fprintf(b, "\t%s \"%s/%s\"\n", dirnameNoDashes, pkgPath, dirname)
+			}
 
-		} else {
+		} else if dirname != *pkg {
 			fmt.Fprintf(b, "\t\"%s/%s\"\n", pkgPath, dirname)
 		}
 	}
 	fmt.Fprintf(b, ")\n\nvar %s = map[string]func(%s){\n", *name, strings.Join(params, ", "))
 	for _, dirname := range dirnames {
+		qualifiedMain := Main
+		if dirnameNoDashes := strings.ReplaceAll(dirname, "-", ""); dirnameNoDashes != *pkg {
+			qualifiedMain = fmt.Sprintf("%s.%s", dirnameNoDashes, qualifiedMain)
+		}
 		fmt.Fprintf(
 			b,
-			"\t%q: %s.%s,\n",
+			"\t%q: %s,\n",
 
 			// Turn camelCase and snake_case into dash-case for the command-line argument.
+			// (This is probably superfluous.)
 			re.ReplaceAllStringFunc(dirname, func(s string) string {
 				return fmt.Sprintf("-%s", strings.ReplaceAll(strings.ToLower(s), "_", "-"))
 			}),
 
-			strings.ReplaceAll(dirname, "-", ""),
-			Main,
+			qualifiedMain,
 		)
 	}
 	fmt.Fprint(b, "}\n")

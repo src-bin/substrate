@@ -14,7 +14,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-//go:generate go run ../../tools/dispatch-map/main.go -package main
+//go:generate go run ../../tools/dispatch-map/main.go -package main .
 
 func main() {
 
