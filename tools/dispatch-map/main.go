@@ -127,22 +127,29 @@ func main() {
 	}
 	fmt.Fprintf(b, ")\n\nvar %s = map[string]func(%s){\n", *name, strings.Join(params, ", "))
 	for _, dirname := range dirnames {
-		qualifiedMain := Main
-		if dirnameNoDashes := strings.ReplaceAll(dirname, "-", ""); dirnameNoDashes != *pkg {
-			qualifiedMain = fmt.Sprintf("%s.%s", dirnameNoDashes, qualifiedMain)
+
+		// Turn camelCase and snake_case into dash-case for the command-line argument.
+		// (This is probably superfluous.)
+		subcommand := re.ReplaceAllStringFunc(dirname, func(s string) string {
+			return fmt.Sprintf("-%s", strings.ReplaceAll(strings.ToLower(s), "_", "-"))
+		})
+
+		dirnameNoDashes := strings.ReplaceAll(dirname, "-", "")
+		if dirnameNoDashes == *pkg {
+			fmt.Fprintf(
+				b,
+				"\t%q: func(context.Context, *awscfg.Main) {},\n",
+				subcommand,
+			)
+		} else {
+			fmt.Fprintf(
+				b,
+				"\t%q: %s.%s,\n",
+				subcommand,
+				strings.ReplaceAll(dirname, "-", ""),
+				Main,
+			)
 		}
-		fmt.Fprintf(
-			b,
-			"\t%q: %s,\n",
-
-			// Turn camelCase and snake_case into dash-case for the command-line argument.
-			// (This is probably superfluous.)
-			re.ReplaceAllStringFunc(dirname, func(s string) string {
-				return fmt.Sprintf("-%s", strings.ReplaceAll(strings.ToLower(s), "_", "-"))
-			}),
-
-			qualifiedMain,
-		)
 	}
 	fmt.Fprint(b, "}\n")
 	p, err := format.Source(b.Bytes())
