@@ -38,17 +38,25 @@ func main() {
 		if len(os.Args) < 2 {
 			usage(1)
 		}
+		switch os.Args[1] {
 
 		// Respond to `substrate -h` but not `substrate-* -h` or
 		// `substrate * -h`, which are handled by main.main or *.Main.
-		switch os.Args[1] {
 		case "-h", "-help", "--help":
 			usage(0)
+
+		// Dispatch shell completion from here so we can get in and out before
+		// we go into all the awscfg business, which is too slow to do
+		// keystroke-by-keystroke.
+		case "-shell-completion", "--shell-completion", "-shell-completion=bash", "--shell-completion=bash":
+			shellCompletion()
+
+		// Respond to -version or --version, however folks want to call it.
 		case "-version", "--version":
 			version.Print()
 			os.Exit(0)
-		}
 
+		}
 		os.Args = append([]string{fmt.Sprintf("substrate-%s", os.Args[1])}, os.Args[2:]...)
 	}
 
@@ -92,6 +100,40 @@ func main() {
 	// If no one's posted telemetry yet, post it now, and wait for it to finish.
 	cfg.Telemetry().Post(ctx)
 	cfg.Telemetry().Wait(ctx)
+
+}
+
+func shellCompletion() {
+	defer os.Exit(0)
+
+	// The argument structure bash(1) uses with `complete -C` appears to
+	// follow typical calling convention with argv[0], then give the most
+	// recently typed argument, and then the previously typed argument as
+	// some kind of confusing convenience. If the command needs the entire
+	// typed command, it's available in the COMP_LINE environment variable.
+	word := os.Args[3]
+	//log.Printf("word: %q", word)
+	previousWord := os.Args[4]
+	//log.Printf("previousWord: %q", previousWord)
+
+	if previousWord == "substrate" {
+		if _, ok := dispatchMap[word]; ok {
+			fmt.Println(word)
+			return
+		}
+		var subcommands []string
+		for subcommand, _ := range dispatchMap {
+			if strings.HasPrefix(subcommand, word) {
+				subcommands = append(subcommands, subcommand)
+				//log.Printf("prefix match: %q for %q", word, subcommand)
+			}
+		}
+		sort.Strings(subcommands)
+		for _, subcommand := range subcommands {
+			fmt.Println(subcommand)
+		}
+		return
+	}
 
 }
 
