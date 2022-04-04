@@ -144,6 +144,16 @@ func (e *Event) Wait(ctx context.Context) error {
 		return nil
 	}
 
+	// If e.post is still open, e.wait will block forever. Return early since
+	// this means no one ever called Post.
+	/*
+		select {
+		case <-e.post:
+		default:
+			return nil
+		}
+	*/
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
