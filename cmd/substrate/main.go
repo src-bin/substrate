@@ -141,7 +141,7 @@ func usage(status int) {
 	var commands []string
 
 	for subcommand, _ := range dispatchMap {
-		commands = append(commands, fmt.Sprintf("substrate-%s", subcommand))
+		commands = append(commands, fmt.Sprintf("substrate %s", subcommand))
 	}
 
 	executable, err := os.Executable()
@@ -153,12 +153,12 @@ func usage(status int) {
 		ui.Fatal(err)
 	}
 	for _, entry := range entries {
-		if name := entry.Name(); strings.HasPrefix(name, "substrate-") {
+		if name := entry.Name(); strings.HasPrefix(name, "substrate-") && entry.Type() != os.ModeSymlink {
 			commands = append(commands, name)
 		}
 	}
 
-	ui.Print("Substrate is an opinionated suite of tools that manage secure, reliable, and compliant cloud infrastructure in AWS")
+	ui.Print("Substrate is a suite of tools for managing secure, reliable, and compliant cloud infrastructure in AWS")
 	ui.Print("the following commands are available:")
 	sort.Strings(commands)
 	var previousCommand string
