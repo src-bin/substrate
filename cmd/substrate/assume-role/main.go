@@ -29,7 +29,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")
 	quality := flag.String("quality", "", "quality of an AWS account in which to assume a role")
-	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "management" or "network"`)
+	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "management" or "network")`)
 	management := flag.Bool("management", false, "assume a role in the organization's management AWS account")
 	master := flag.Bool("master", false, "deprecated name for -management")
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
