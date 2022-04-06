@@ -21,7 +21,7 @@ func shellCompletion() {
 	word := os.Args[3]
 	previousWord := os.Args[4]
 	compLine := strings.Split(os.Getenv("COMP_LINE"), " ") // not strictly correct but good enough to get non-space-containing subcommands
-	fmt.Fprintf(os.Stderr, "\nword: %q, previousWord: %q, compLine: %#v\n\n", word, previousWord, compLine)
+	//fmt.Fprintf(os.Stderr, "\nword: %q, previousWord: %q, compLine: %#v\n\n", word, previousWord, compLine)
 
 	// This should never happen since `complete -C "substrate
 	// --shell-completion" "substrate"` would never even invoke this program
