@@ -58,13 +58,13 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 	b = regexp.MustCompile( // remove in 2021.12
 		`\s*archive\s*=\s*\{
 \s*source\s*=\s*"hashicorp/archive"
-\s*version\s*=\s*">?=?\s*\d+\.\d+\.\d+"
+\s*version\s*=\s*"(=|>=|~>)?\s*\d+(\.\d+)*"
 \s*\}`,
 	).ReplaceAllLiteral(b, []byte{})
 
 	b = regexp.MustCompile(
 		`source\s*=\s*"hashicorp/aws"
-\s*version\s*=\s*">?(= )?\d+\.\d+\.\d+"`,
+\s*version\s*=\s*"(=|>=|~>)?\s*\d+(\.\d+)*"`,
 	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
 		`source = "hashicorp/aws"
       version = "%s"`,
@@ -74,7 +74,7 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 
 	b = regexp.MustCompile(
 		`source\s*=\s*"hashicorp/external"
-\s*version\s*=\s*">?(= )?\d+\.\d+\.\d+"`,
+\s*version\s*=\s*"(=|>=|~>)?\s*\d+(\.\d+)*"`,
 	).ReplaceAllLiteral(b, []byte(fmt.Sprintf(
 		`source = "hashicorp/external"
       version = "%s"`,
