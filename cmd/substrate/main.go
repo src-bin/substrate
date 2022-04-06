@@ -52,7 +52,7 @@ func main() {
 			shellCompletion()
 
 		// Respond to -version or --version, however folks want to call it.
-		case "-version", "--version":
+		case "-v", "-version", "--version":
 			version.Print()
 			os.Exit(0)
 
