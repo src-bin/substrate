@@ -58,6 +58,7 @@ func PrintCredentialsExportWithHistory(credentials *sts.Credentials) {
 
 func PrintCredentialsJSON(credentials *sts.Credentials) {
 	ui.PrettyPrintJSON(struct {
-		Credentials *sts.Credentials // nested to behave exactly like `aws sts assume-role`
-	}{credentials})
+		*sts.Credentials
+		Version int
+	}{credentials, 1})
 }
