@@ -103,40 +103,6 @@ func main() {
 
 }
 
-func shellCompletion() {
-	defer os.Exit(0)
-
-	// The argument structure bash(1) uses with `complete -C` appears to
-	// follow typical calling convention with argv[0], then give the most
-	// recently typed argument, and then the previously typed argument as
-	// some kind of confusing convenience. If the command needs the entire
-	// typed command, it's available in the COMP_LINE environment variable.
-	word := os.Args[3]
-	//log.Printf("word: %q", word)
-	previousWord := os.Args[4]
-	//log.Printf("previousWord: %q", previousWord)
-
-	if previousWord == "substrate" {
-		if _, ok := dispatchMap[word]; ok {
-			fmt.Println(word)
-			return
-		}
-		var subcommands []string
-		for subcommand, _ := range dispatchMap {
-			if strings.HasPrefix(subcommand, word) {
-				subcommands = append(subcommands, subcommand)
-				//log.Printf("prefix match: %q for %q", word, subcommand)
-			}
-		}
-		sort.Strings(subcommands)
-		for _, subcommand := range subcommands {
-			fmt.Println(subcommand)
-		}
-		return
-	}
-
-}
-
 func usage(status int) {
 	var commands []string
 
