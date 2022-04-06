@@ -54,15 +54,15 @@ func ShareVPC(
 		Tags:     eqTags,
 	}
 	f.Push(dataVPC)
-	dataSubnetIds := terraform.DataSubnetIds{
+	dataSubnets := terraform.DataSubnets{
 		Label:    terraform.Label(rs.Tags),
 		Provider: terraform.NetworkProviderAlias,
 		Tags:     eqTags,
 		VpcId:    terraform.U(dataVPC.Ref(), ".id"),
 	}
-	f.Push(dataSubnetIds)
+	f.Push(dataSubnets)
 	dataSubnet := terraform.DataSubnet{
-		ForEach:  terraform.U(dataSubnetIds.Ref(), ".ids"),
+		ForEach:  terraform.U("toset(", dataSubnets.Ref(), ".ids)"),
 		Id:       terraform.U("each.value"),
 		Label:    terraform.Label(rs.Tags),
 		Provider: terraform.NetworkProviderAlias,

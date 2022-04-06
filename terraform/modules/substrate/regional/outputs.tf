@@ -3,11 +3,11 @@ output "tags" {
 }
 
 output "private_subnet_ids" {
-  value = module.global.tags.environment == "admin" ? [] : data.aws_subnet_ids.private[0].ids
+  value = module.global.tags.environment == "admin" ? [] : data.aws_subnets.private[0].ids
 }
 
 output "public_subnet_ids" {
-  value = data.aws_subnet_ids.public.ids
+  value = data.aws_subnets.public.ids
 }
 
 output "vpc_id" {

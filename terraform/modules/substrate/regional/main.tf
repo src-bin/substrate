@@ -1,22 +1,42 @@
-data "aws_subnet_ids" "private" {
-  count    = module.global.tags.environment == "admin" ? 0 : 1
-  provider = aws.network
-  tags = {
-    Connectivity = "private"
-    Environment  = module.global.tags.environment
-    Quality      = module.global.tags.quality
+data "aws_subnets" "private" {
+  count = module.global.tags.environment == "admin" ? 0 : 1
+  filter {
+    name   = "tag:Connectivity"
+    values = ["private"]
   }
-  vpc_id = data.aws_vpc.network.id
+  filter {
+    name   = "tag:Environment"
+    values = [module.global.tags.environment]
+  }
+  filter {
+    name   = "tag:Quality"
+    values = [module.global.tags.quality]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.network.id]
+  }
+  provider = aws.network
 }
 
-data "aws_subnet_ids" "public" {
-  provider = aws.network
-  tags = {
-    Connectivity = "public"
-    Environment  = module.global.tags.environment
-    Quality      = module.global.tags.quality
+data "aws_subnets" "public" {
+  filter {
+    name   = "tag:Connectivity"
+    values = ["public"]
   }
-  vpc_id = data.aws_vpc.network.id
+  filter {
+    name   = "tag:Environment"
+    values = [module.global.tags.environment]
+  }
+  filter {
+    name   = "tag:Quality"
+    values = [module.global.tags.quality]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.network.id]
+  }
+  provider = aws.network
 }
 
 data "aws_vpc" "network" {
