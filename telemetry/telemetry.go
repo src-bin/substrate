@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -83,7 +85,11 @@ func (e *Event) Post(ctx context.Context) error {
 
 	pathname, err := fileutil.PathnameInParents(Filename)
 	if err != nil {
-		return nil // surpress this error and just don't post telemetry
+		pathname, err = fileutil.PathnameInParents(naming.PrefixFilename) // we'll be able to find this one in case substrate.telemetry doesn't exist yet
+		if err != nil {
+			return nil // surpress this error and just don't post telemetry
+		}
+		pathname = filepath.Join(filepath.Dir(pathname), Filename)
 	}
 	ok, err := ui.ConfirmFile(
 		pathname,
