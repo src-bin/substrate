@@ -37,12 +37,6 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	svc := organizations.New(sess)
 
-	// Update substrate.accounts.txt unconditionally as this is the expected
-	// side-effect of running this program.
-	if err := accounts.CheatSheet(svc); err != nil {
-		log.Fatal(err)
-	}
-
 	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(svc)
 	if err != nil {
 		log.Fatal(err)
@@ -125,6 +119,12 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 
 	default:
 		ui.Fatalf("-format=%q not supported", format)
+	}
+
+	// Update substrate.accounts.txt unconditionally as this is the expected
+	// side-effect of running this program.
+	if err := accounts.CheatSheet(svc); err != nil {
+		log.Fatal(err)
 	}
 
 }
