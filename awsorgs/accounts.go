@@ -196,6 +196,7 @@ func Tag(
 		Tags:       tagStructs,
 	}
 	_, err := svc.TagResource(in)
+	//log.Printf("awsorgs.Tag accountId: %v, in: %+v, out: %+v, err: %v", accountId, in, out, err)
 	return err
 }
 
