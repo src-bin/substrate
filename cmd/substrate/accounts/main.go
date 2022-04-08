@@ -55,12 +55,12 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		}, adminAccounts...), serviceAccounts...))
 
 	case cmdutil.SerializationFormatShell:
-		fmt.Println("substrate-bootstrap-management-account")
-		fmt.Println("substrate-bootstrap-network-account")
-		fmt.Println("substrate-bootstrap-deploy-account")
+		fmt.Println("substrate bootstrap-management-account")
+		fmt.Println("substrate bootstrap-network-account")
+		fmt.Println("substrate bootstrap-deploy-account")
 		for _, account := range adminAccounts {
 			fmt.Printf(
-				"substrate-create-admin-account -quality=%q\n",
+				"substrate create-admin-account -quality=%q\n",
 				account.Tags[tags.Quality],
 			)
 		}
@@ -69,7 +69,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 				continue
 			}
 			fmt.Printf(
-				"substrate-create-account -domain=%q -environment=%q -quality=%q\n",
+				"substrate create-account -domain=%q -environment=%q -quality=%q\n",
 				account.Tags[tags.Domain],
 				account.Tags[tags.Environment],
 				account.Tags[tags.Quality],
