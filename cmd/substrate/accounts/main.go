@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
@@ -22,6 +23,8 @@ import (
 
 func Main(ctx context.Context, cfg *awscfg.Main) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
+	number := flag.String("number", "", `with -format="json", account number of the single AWS account to output`)
+	onlyTags := flag.Bool("only-tags", false, `with -format="json" and -number="...", output only the tags on the account`)
 	cmdutil.MustChdir()
 	flag.Parse()
 	version.Flag()
@@ -47,6 +50,42 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	switch format.String() {
 
 	case cmdutil.SerializationFormatJSON:
+
+		// Maybe only print one account.
+		prettyPrintJSON := func(account *awsorgs.Account) {
+			if *onlyTags {
+				ui.PrettyPrintJSON(account.Tags)
+			} else {
+				ui.PrettyPrintJSON(account)
+			}
+		}
+		if *number == aws.StringValue(managementAccount.Id) {
+			prettyPrintJSON(managementAccount)
+			return
+		} else if *number == aws.StringValue(auditAccount.Id) {
+			prettyPrintJSON(auditAccount)
+			return
+		} else if *number == aws.StringValue(networkAccount.Id) {
+			prettyPrintJSON(networkAccount)
+			return
+		} else if *number == aws.StringValue(deployAccount.Id) {
+			prettyPrintJSON(deployAccount)
+			return
+		}
+		for _, account := range adminAccounts {
+			if *number == aws.StringValue(account.Id) {
+				prettyPrintJSON(account)
+				return
+			}
+		}
+		for _, account := range serviceAccounts {
+			if *number == aws.StringValue(account.Id) {
+				prettyPrintJSON(account)
+				return
+			}
+		}
+
+		// We're still here so print them all.
 		ui.PrettyPrintJSON(append(append([]*awsorgs.Account{
 			managementAccount,
 			auditAccount,
