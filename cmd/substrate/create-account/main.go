@@ -19,6 +19,7 @@ import (
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
@@ -83,6 +84,12 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 				deadline,
 			)
 			createdAccount = true
+		} else {
+			err = awsorgs.Tag(
+				svc,
+				aws.StringValue(account.Id),
+				map[string]string{tags.SubstrateVersion: version.Version},
+			)
 		}
 		if err != nil {
 			log.Fatal(err)
