@@ -131,7 +131,19 @@ func FindSpecialAccount(svc *organizations.Organizations, name string) (*Account
 	return FindAccountByName(svc, name)
 }
 
-func ListAccounts(svc *organizations.Organizations) (accounts []*Account, err error) {
+func ListAccounts(svc *organizations.Organizations) ([]*Account, error) {
+
+	// TODO manage a cache here to buy back some performance if we need it.
+	// Might see benefits by caching for even one minute. Invalidation rules
+	// are simple: Proactively clear it on account creation. Refresh it on
+	// cache miss. Don't worry about staleness since we won't be looking for
+	// an account that's been closed and anyway we'll figure it out pretty
+	// quickly if we try to access it.
+
+	return ListAccountsFresh(svc)
+}
+
+func ListAccountsFresh(svc *organizations.Organizations) (accounts []*Account, err error) {
 	var nextToken *string
 	for {
 		in := &organizations.ListAccountsInput{NextToken: nextToken}
