@@ -6,12 +6,14 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/src-bin/substrate/awsutil"
 )
 
 const (
 	ALL                               = "ALL"
 	AlreadyInOrganizationException    = "AlreadyInOrganizationException"
 	AWSOrganizationsNotInUseException = "AWSOrganizationsNotInUseException"
+	TooManyRequestsException          = "TooManyRequestsException"
 )
 
 func CreateOrganization(svc *organizations.Organizations) (*organizations.Organization, error) {
@@ -27,12 +29,18 @@ func CreateOrganization(svc *organizations.Organizations) (*organizations.Organi
 }
 
 func DescribeOrganization(svc *organizations.Organizations) (*organizations.Organization, error) {
-	in := &organizations.DescribeOrganizationInput{}
-	out, err := svc.DescribeOrganization(in)
-	if err != nil {
-		return nil, err
+	for {
+		in := &organizations.DescribeOrganizationInput{}
+		out, err := svc.DescribeOrganization(in)
+		if err != nil {
+			if awsutil.ErrorCodeIs(err, TooManyRequestsException) {
+				time.Sleep(time.Second) // TODO exponential backoff
+				continue
+			}
+			return nil, err
+		}
+		return out.Organization, nil
 	}
-	return out.Organization, nil
 }
 
 func EnableAWSServiceAccess(svc *organizations.Organizations, principal string) error {
