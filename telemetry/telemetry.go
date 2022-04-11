@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -38,7 +39,8 @@ type Event struct {
 	InitialRoleName, FinalRoleName           string // "Administrator", "Auditor", or "Other" (avoid disclosing custom role names)
 	IsEC2                                    bool
 	Format                                   string        `json:",omitempty"` // -format, if applicable
-	post, wait                               chan struct{} // `json:"-"`
+	post                                     int32         // `json:"-"` for compare-and-swap
+	wait                                     chan struct{} // `json:"-"`
 }
 
 func NewEvent(ctx context.Context) (*Event, error) {
@@ -47,7 +49,6 @@ func NewEvent(ctx context.Context) (*Event, error) {
 		Subcommand: stringFromContext(ctx, "Subcommand"),
 		Version:    version.Version,
 		//Format // TODO when cmdutil.SerializationFormat.Set is called
-		post: make(chan struct{}),
 		wait: make(chan struct{}),
 	}
 
@@ -73,14 +74,14 @@ func (e *Event) Post(ctx context.Context) error {
 	if e == nil || Endpoint == "" {
 		return nil
 	}
-	select {
-	case <-e.post:
+	if !atomic.CompareAndSwapInt32(&e.post, 0, 1) {
 		return nil
+	}
+	select {
 	case <-e.wait:
 		return nil
 	default:
 	}
-	close(e.post)
 	defer close(e.wait)
 
 	pathname, err := fileutil.PathnameInParents(Filename)
