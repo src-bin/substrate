@@ -88,5 +88,8 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 		TerraformVersion,
 	)))
 
-	return ioutil.WriteFile(pathname, b, 0666)
+	if err := ioutil.WriteFile(pathname, b, 0666); err != nil {
+		return err
+	}
+	return Fmt(dirname)
 }
