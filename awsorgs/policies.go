@@ -13,6 +13,7 @@ import (
 type PolicyType string
 
 const (
+	ConcurrentModificationException               = "ConcurrentModificationException"
 	DuplicatePolicyAttachmentException            = "DuplicatePolicyAttachmentException"
 	DuplicatePolicyException                      = "DuplicatePolicyException"
 	PolicyTypeAlreadyEnabledException             = "PolicyTypeAlreadyEnabledException"
@@ -21,7 +22,8 @@ const (
 )
 
 func EnablePolicyType(svc *organizations.Organizations, policyType PolicyType) error {
-	defer time.Sleep(1e9) // TODO should be more graceful but one last sleep should prevent ConcurrentModificationException
+	time.Sleep(5e9)       // halfhearted attempt to avoid "ConcurrentModificationException: AWS Organizations can't complete your request because it conflicts with another attempt to modify the same entity. Try again later."
+	defer time.Sleep(5e9) // should be more graceful but one last sleep should prevent ConcurrentModificationException
 	for {
 		root, err := Root(svc)
 		if err != nil {
@@ -35,10 +37,10 @@ func EnablePolicyType(svc *organizations.Organizations, policyType PolicyType) e
 		if _, err := svc.EnablePolicyType(&organizations.EnablePolicyTypeInput{
 			PolicyType: aws.String(string(policyType)),
 			RootId:     root.Id,
-		}); err != nil {
+		}); err != nil && !awsutil.ErrorCodeIs(err, ConcurrentModificationException) {
 			return err
 		}
-		time.Sleep(1e9) // TODO exponential backoff
+		time.Sleep(5e9) // TODO exponential backoff
 	}
 }
 

@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -232,7 +231,6 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	// attached and up-to-date.
 	//
 	// This MUST happen AFTER configuring CloudTrail.
-	time.Sleep(1e9) // halfhearted attempt to avoid "ConcurrentModificationException: AWS Organizations can't complete your request because it conflicts with another attempt to modify the same entity. Try again later."
 	if err := awsorgs.EnablePolicyType(svc, awsorgs.SERVICE_CONTROL_POLICY); err != nil {
 		log.Fatal(err)
 	}
