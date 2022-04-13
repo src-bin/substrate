@@ -27,7 +27,7 @@ func (S3Bucket) Template() string {
 }
 {{- if .Policy}}
 resource "aws_s3_bucket_policy" {{.Label.Value}} {
-  bucket = {{.Bucket.Value}}
+  bucket = {{.Ref.Value}}.bucket
   policy = {{.Policy.Value}}
 }
 {{- end}}
@@ -42,7 +42,7 @@ resource "aws_s3_bucket_public_access_block" {{.Label.Value}} {
   restrict_public_buckets = true
 }
 resource "aws_s3_bucket_versioning" {{.Label.Value}} {
-  bucket = {{.Bucket.Value}}
+  bucket = {{.Ref.Value}}.bucket
   versioning_configuration {
     status = "Enabled"
   }
