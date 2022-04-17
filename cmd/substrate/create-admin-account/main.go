@@ -210,7 +210,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		assumedRole, err := awssts.AssumeRole(
 			svc,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
-			"substrate-create-admin-account",
+			"substrate-create-admin-account", // RoleSessionName can't contain spaces
 			3600,
 		)
 		if err != nil {
@@ -548,11 +548,11 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 
 	ui.Printf(
-		"next, commit substrate.*, modules/intranet/, modules/lambda-function/, modules/substrate/, and root-modules/%s/%s/ to version control, then run substrate-create-account as many times as you need",
+		"next, commit substrate.*, modules/intranet/, modules/lambda-function/, modules/substrate/, and root-modules/%s/%s/ to version control, then run `substrate create-account` as many times as you need",
 		Domain,
 		*quality,
 	)
-	ui.Printf("you should also start using substrate-credentials or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
+	ui.Printf("you should also start using `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
 
 }
 

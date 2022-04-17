@@ -57,7 +57,7 @@ func (ngw NATGateway) Ref() Value {
 
 func (NATGateway) Template() string {
 	return `{{if .Commented -}}
-/* commented because -no-nat-gateways was passed to substrate-bootstrap-network-account
+/* commented because substrate.nat-gateways contains "no"
 {{end -}}
 resource "aws_nat_gateway" {{.Label.Value}} {
   allocation_id = aws_eip.{{.Label}}.id

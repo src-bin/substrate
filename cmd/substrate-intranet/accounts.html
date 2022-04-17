@@ -5,7 +5,7 @@
 <body>
 {{template "nav"}}
 <h1>Accounts</h1>
-<p class="context">Here are all the AWS accounts in your organization. Once you've logged into the AWS Console using your identity provider, use this table to assume roles in all your accounts in the AWS Console. If you need command-line access, use <kbd>eval $(substrate-credentials)</kbd>, the <a href="credential-factory">Credential Factory</a>, or the <a href="instance-factory">Instance Factory</a>.</p>
+<p class="context">Here are all the AWS accounts in your organization. Once you've logged into the AWS Console using your identity provider, use this table to assume roles in all your accounts in the AWS Console. If you need command-line access, use <kbd>eval $(substrate credentials)</kbd>, the <a href="credential-factory">Credential Factory</a>, or the <a href="instance-factory">Instance Factory</a>.</p>
 <h2>Special accounts</h2>
 {{- $roleName := .RoleName}}
 <table border="1" cellpadding="2" cellspacing="2">

@@ -77,7 +77,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	// Gather lists of accounts.  These are used below in configuring policies
 	// to allow cross-account access.  On the first run they're basically
 	// no-ops but on subsequent runs this is key to not undoing the work of
-	// substrate-create-account and substrate-create-admin-account.
+	// `substrate create-account` and `substrate create-admin-account`.
 	canned, err := CannedAssumeRolePolicyDocuments(
 		sess,
 		true, // can always be true because we never jump from Intranet to Administrator in other accounts
@@ -405,7 +405,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	sort.Strings(terraformPrincipals) // to avoid spurious policy diffs
 	//log.Printf("%+v", terraformPrincipals)
 	var resources []string
-	for _, region := range regions.All() { // we can't use regions.Selected() in the first substrate-bootstrap-management-account
+	for _, region := range regions.All() { // we can't use regions.Selected() in the first `substrate bootstrap-management-account`
 		bucketName := terraform.S3BucketName(region)
 		resources = append(
 			resources,

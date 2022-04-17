@@ -14,7 +14,7 @@ func (eip EIP) Ref() Value {
 
 func (EIP) Template() string {
 	return `{{if .Commented -}}
-/* commented because -no-nat-gateways was passed to substrate-bootstrap-network-account
+/* commented because substrate.nat-gateways contains "no"
 {{end -}}
 resource "aws_eip" {{.Label.Value}} {
   depends_on = [{{.InternetGatewayRef}}]

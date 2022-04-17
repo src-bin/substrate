@@ -15,7 +15,7 @@ func (r Route) Ref() Value {
 
 func (Route) Template() string {
 	return `{{if .Commented -}}
-/* commented because -no-nat-gateways was passed to substrate-bootstrap-network-account
+/* commented because substrate.nat-gateways contains "no"
 {{end -}}
 resource "aws_route" {{.Label.Value}} {
 {{- if .DestinationIPv4}}

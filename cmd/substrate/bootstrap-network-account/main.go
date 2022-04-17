@@ -455,5 +455,5 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
 	}
 
-	ui.Print("next, commit substrate.*, modules/peering-connection/, and root-modules/network/ to version control, then run substrate-bootstrap-deploy-account")
+	ui.Print("next, commit substrate.*, modules/peering-connection/, and root-modules/network/ to version control, then run `substrate bootstrap-deploy-account`")
 }

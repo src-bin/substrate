@@ -51,7 +51,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 	ui.Printf(
-		"from now on, use substrate-credentials or <https://%s/credential-factory> to mint short-lived AWS access keys",
+		"from now on, use `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys",
 		strings.Trim(string(intranetDNSDomainName), "\r\n"),
 	)
 

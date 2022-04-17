@@ -196,5 +196,5 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
 	}
 
-	ui.Print("next, commit root-modules/deploy/ to version control, then run substrate-create-admin-account")
+	ui.Print("next, commit root-modules/deploy/ to version control, then run `substrate create-admin-account`")
 }
