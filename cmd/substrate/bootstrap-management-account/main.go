@@ -259,7 +259,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 						},
 					},
 					Effect:   policies.Deny,
-					Resource: []string{"*"},
+					Resource: []string{"arn:aws:ec2:*:*:instance/*"},
 				},
 
 				// Also enforce exclusive IMDSv2 use by voiding credentials from IMDSv1.
