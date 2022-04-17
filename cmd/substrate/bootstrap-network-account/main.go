@@ -75,7 +75,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	qualities, err := ui.EditFile(
 		naming.QualitiesFilename,
 		"the following qualities are currently valid in your Substrate-managed infrastructure:",
-		`list all your qualities, one per line, in order from least to greatest quality (Substrate recommends "alpha", "beta", and "gamma")`,
+		`list all your qualities, one per line, in order from least to greatest quality (Substrate recommends starting out with just "default")`,
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -140,7 +140,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 
 	natGateways, err := ui.ConfirmFile(
 		NATGatewaysFilename,
-		"do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; costs about $100 per month per environment and quality pair)",
+		"do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; costs about $100 per month per region per environment/quality pair)",
 	)
 	if err != nil {
 		log.Fatal(err)

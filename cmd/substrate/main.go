@@ -124,7 +124,7 @@ func usage(status int) {
 		}
 	}
 
-	ui.Print("Substrate is a suite of tools for managing secure, reliable, and compliant cloud infrastructure in AWS")
+	ui.Print("Substrate manages secure, reliable, and compliant cloud infrastructure in AWS")
 	ui.Print("the following commands are available:")
 	sort.Strings(commands)
 	var previousCommand string
