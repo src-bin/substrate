@@ -93,8 +93,11 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *events
 				svc,
 				[]*ec2.Filter{
 					&ec2.Filter{
-						Name:   aws.String(fmt.Sprintf("tag:%s", tags.Manager)),
-						Values: []*string{aws.String(tags.SubstrateInstanceFactory)},
+						Name: aws.String(fmt.Sprintf("tag:%s", tags.Manager)),
+						Values: []*string{
+							aws.String(tags.Substrate),
+							aws.String(tags.SubstrateInstanceFactory), // remove in 2022.10
+						},
 					},
 					&ec2.Filter{
 						Name:   aws.String("key-name"),
@@ -299,7 +302,7 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *events
 		aws.StringValue(subnet.SubnetId),
 		[]*ec2.Tag{&ec2.Tag{
 			Key:   aws.String(tags.Manager),
-			Value: aws.String(tags.SubstrateInstanceFactory),
+			Value: aws.String(tags.Substrate),
 		}},
 	)
 	if err != nil {

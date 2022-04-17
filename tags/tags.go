@@ -18,5 +18,5 @@ const (
 // Values.
 const (
 	Substrate                = "Substrate"
-	SubstrateInstanceFactory = "substrate-instance-factory"
+	SubstrateInstanceFactory = "substrate-instance-factory" // remove in 2022.10
 )
