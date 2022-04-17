@@ -12,14 +12,6 @@ data "aws_iam_role" "intranet-apigateway-authorizer" {
   name = "IntranetAPIGatewayAuthorizer"
 }
 
-data "aws_iam_role" "substrate-apigateway-authorizer" { # remove in 2021.12
-  name = "substrate-apigateway-authorizer"
-}
-
-data "aws_iam_role" "substrate-intranet" { # remove in 2021.12
-  name = "substrate-intranet"
-}
-
 data "aws_region" "current" {}
 
 data "aws_route53_zone" "intranet" {
@@ -58,23 +50,6 @@ module "intranet" {
   name                     = "Intranet"
   progname                 = "substrate-intranet"
   role_arn                 = data.aws_iam_role.intranet.arn
-  source                   = "../../lambda-function/regional"
-}
-
-module "substrate-apigateway-authorizer" { // remove in 2021.12
-  apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
-  filename                 = local.filename
-  name                     = "substrate-apigateway-authorizer"
-  progname                 = "substrate-intranet"
-  role_arn                 = data.aws_iam_role.substrate-apigateway-authorizer.arn
-  source                   = "../../lambda-function/regional"
-}
-
-module "substrate-intranet" { // remove in 2021.12
-  apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = local.filename
-  name                     = "substrate-intranet" # TODO duplicate, rename, delete
-  role_arn                 = data.aws_iam_role.substrate-intranet.arn
   source                   = "../../lambda-function/regional"
 }
 

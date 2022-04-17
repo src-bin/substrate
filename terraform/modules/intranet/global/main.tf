@@ -125,18 +125,6 @@ module "intranet" {
   source = "../../lambda-function/global"
 }
 
-module "substrate-apigateway-authorizer" { // remove in 2021.12
-  name   = "substrate-apigateway-authorizer"
-  policy = data.aws_iam_policy_document.intranet-apigateway-authorizer.json
-  source = "../../lambda-function/global"
-}
-
-module "substrate-intranet" { // remove in 2021.12
-  name   = "substrate-intranet"
-  policy = data.aws_iam_policy_document.intranet.json
-  source = "../../lambda-function/global"
-}
-
 resource "aws_iam_instance_profile" "admin" {
   name = "Administrator"
   role = data.aws_iam_role.admin.name

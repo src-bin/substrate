@@ -557,16 +557,14 @@ func cannedPrincipals(svc *organizations.Organizations, bootstrapping bool) (
 			canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
 		}
 	} else {
-		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)}   // *3 for Administrator AND Intranet AND substrate-intranet; +2 for the management account and its IAM user
-		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*4+2)} // *4 for Administrator AND Auditor AND Intranet AND substrate-intranet; +2 for the management account and its IAM user
+		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)}   // *2 for Administrator AND Intranet; +2 for the management account and its IAM user
+		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)} // *3 for Administrator AND Auditor AND Intranet; +2 for the management account and its IAM user
 		for i, account := range adminAccounts {
-			canned.AdminRolePrincipals.AWS[i*3] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-			canned.AdminRolePrincipals.AWS[i*3+1] = roles.Arn(aws.StringValue(account.Id), roles.Intranet)
-			canned.AdminRolePrincipals.AWS[i*3+2] = roles.Arn(aws.StringValue(account.Id), "substrate-intranet") // remove in 2021.12 (and in the comment above)
-			canned.AuditorRolePrincipals.AWS[i*4] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*4+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
-			canned.AuditorRolePrincipals.AWS[i*4+2] = roles.Arn(aws.StringValue(account.Id), roles.Intranet)
-			canned.AuditorRolePrincipals.AWS[i*4+3] = roles.Arn(aws.StringValue(account.Id), "substrate-intranet") // remove in 2021.12 (and in the comment above)
+			canned.AdminRolePrincipals.AWS[i*2] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+			canned.AdminRolePrincipals.AWS[i*2+1] = roles.Arn(aws.StringValue(account.Id), roles.Intranet)
+			canned.AuditorRolePrincipals.AWS[i*3] = roles.Arn(aws.StringValue(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*3+1] = roles.Arn(aws.StringValue(account.Id), roles.Auditor)
+			canned.AuditorRolePrincipals.AWS[i*3+2] = roles.Arn(aws.StringValue(account.Id), roles.Intranet)
 		}
 	}
 	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = roles.Arn(

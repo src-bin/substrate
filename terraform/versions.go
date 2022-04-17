@@ -55,13 +55,6 @@ func versions(dirname string, configurationAliases []ProviderAlias) error {
 		`# managed by Substrate; do not edit by hand`,
 	).ReplaceAllLiteral(b, []byte(`# partially managed by Substrate; do not edit the archive, aws, or external providers by hand`))
 
-	b = regexp.MustCompile( // remove in 2021.12
-		`\s*archive\s*=\s*\{
-\s*source\s*=\s*"hashicorp/archive"
-\s*version\s*=\s*"(=|>=|~>)?\s*\d+(\.\d+)*"
-\s*\}`,
-	).ReplaceAllLiteral(b, []byte{})
-
 	b = regexp.MustCompile(
 		`source\s*=\s*"hashicorp/aws"
 \s*version\s*=\s*"(=|>=|~>)?\s*\d+(\.\d+)*"`,

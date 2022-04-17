@@ -518,8 +518,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 				),
 				fmt.Sprintf("%s-%s", oauthoidc.OAuthOIDCClientSecret, clientId),
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
-					roles.Arn(aws.StringValue(account.Id), roles.Intranet),       // must match intranet/global/main.tf
-					roles.Arn(aws.StringValue(account.Id), "substrate-intranet"), // remove in 2022.01
+					roles.Arn(aws.StringValue(account.Id), roles.Intranet), // must match intranet/global/main.tf
 				}}),
 				clientSecretTimestamp,
 				clientSecret,
