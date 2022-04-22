@@ -26,6 +26,10 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	cmdutil.MustChdir()
+	flag.Usage = func() {
+		ui.Print("Usage: substrate credentials [-format <format>] [-quiet]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	version.Flag()
 	if *quiet {
@@ -33,7 +37,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	}
 	/*
 		if awssts.CredentialFormatValid(*format) {
-			ui.Fatalf(`-format="%s" not supported`, *format)
+			ui.Fatalf(`-format %q not supported`, *format)
 		}
 	*/
 

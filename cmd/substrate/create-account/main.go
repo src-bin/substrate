@@ -35,17 +35,21 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	quality := flag.String("quality", "", "quality for this new AWS account")
 	cmdutil.MustChdir()
+	flag.Usage = func() {
+		ui.Print("Usage: substrate create-account [-create] -domain <domain> -environment <environment> -quality <quality> [-auto-approve|-no-apply] [-ignore-service-quotas]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	version.Flag()
 	if *domain == "" || *environment == "" || *quality == "" {
-		ui.Fatal(`-domain="..." -environment="..." -quality"..." are required`)
+		ui.Fatal(`-domain "..." -environment "..." -quality"..." are required`)
 	}
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !veqpDoc.Valid(*environment, *quality) {
-		ui.Fatalf(`-environment="%s" -quality="%s" is not a valid environment and quality pair in your organization`, *environment, *quality)
+		ui.Fatalf(`-environment %q -quality %q is not a valid environment and quality pair in your organization`, *environment, *quality)
 	}
 
 	sess, err := awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{

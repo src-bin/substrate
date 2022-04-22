@@ -107,7 +107,7 @@ func (d *Document) validateEnvironment(environment string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf(`environment "%s" not paired with any quality`, environment)
+	return fmt.Errorf(`environment %q not paired with any quality`, environment)
 }
 
 // validateEnvironmentQualityPair returns nil iff both components of the given
@@ -123,14 +123,14 @@ func (d *Document) validateEnvironmentQualityPair(
 		}
 	}
 	if !validEnvironment {
-		return fmt.Errorf(`environment "%s" is not valid`, eqp.Environment)
+		return fmt.Errorf(`environment %q is not valid`, eqp.Environment)
 	}
 	for _, quality := range qualities {
 		if eqp.Quality == quality {
 			return nil
 		}
 	}
-	return fmt.Errorf(`quality "%s" is not valid`, eqp.Quality)
+	return fmt.Errorf(`quality %q is not valid`, eqp.Quality)
 }
 
 // validateQuality returns nil iff the given Quality appears in the Document.
@@ -140,7 +140,7 @@ func (d *Document) validateQuality(quality string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf(`quality "%s" not paired with any environment`, quality)
+	return fmt.Errorf(`quality %q not paired with any environment`, quality)
 }
 
 type EnvironmentQualityPair struct {

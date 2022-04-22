@@ -29,6 +29,10 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	cmdutil.MustChdir()
+	flag.Usage = func() {
+		ui.Print("Usage: substrate bootstrap-deploy-account [-auto-approve|-no-apply]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	version.Flag()
 

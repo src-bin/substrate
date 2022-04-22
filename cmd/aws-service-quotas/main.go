@@ -13,6 +13,7 @@ import (
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/regions"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -26,6 +27,12 @@ func main() {
 	serviceCode := flag.String("service-code", "", "service code to pass to AWS")
 	requiredValue := flag.Float64("required-value", 0, "minimum required value for the service quota")
 	desiredValue := flag.Float64("desired-value", 0, "desired value for the service quota, used if the quota's current value is below -required-value")
+	flag.Usage = func() {
+		ui.Print("Usage: aws-service-quotas -global|-all-regions|-region <region> -list-services")
+		ui.Print("       aws-service-quotas -global|-all-regions|-region <region> -service-code <code> -list-quotas")
+		ui.Print("       aws-service-quotas -global|-all-regions|-region <region> -service-code <code> -quota-code <code> [-required-value <value> [-desired-value <value>]]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	version.Flag()
 	if !*global && !*allRegions && !regions.IsRegion(*region) || *global && *allRegions || *global && regions.IsRegion(*region) || *allRegions && regions.IsRegion(*region) {

@@ -14,6 +14,10 @@ import (
 
 func Main(ctx context.Context, cfg *awscfg.Main) {
 	cmdutil.MustChdir()
+	flag.Usage = func() {
+		ui.Print("Usage: substrate create-terraform-module <name> [...]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	version.Flag()
 	if flag.NArg() == 0 {

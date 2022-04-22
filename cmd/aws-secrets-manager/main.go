@@ -33,6 +33,10 @@ func main() {
 	flag.Var(principals, "principal", "principal ARN to be allowed to GetSecretValue (if any are provided, the secret's policy will be updated to allow exactly and only those principals given)")
 	stage := flag.String("stage", "", "identifier for this stage (or version) of the secret (to be provided when fetching it later)")
 	value := flag.String("value", "", "secret value to associate with -name (does not overwrite prior versions)") // XXX do this with a prompt instead!
+	flag.Usage = func() {
+		ui.Print("Usage: aws-secrets-manager -name <name> [-principal <principal> [...]] [-stage <stage>] [-value <value>]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	version.Flag()
 	if *name == "" {

@@ -25,7 +25,7 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Main) {
-	admin := flag.Bool("admin", false, `shorthand for -domain="admin" -environment="admin"`)
+	admin := flag.Bool("admin", false, `shorthand for -domain "admin" -environment "admin"`)
 	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")
 	quality := flag.String("quality", "", "quality of an AWS account in which to assume a role")
@@ -38,6 +38,14 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	oldpwd := cmdutil.MustChdir()
+	flag.Usage = func() {
+		ui.Print("Usage: substrate assume-role -management|-special <special> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -admin -quality <quality> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -domain <domain> -environment <environment -quality <quality> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -number <number> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		flag.PrintDefaults()
+		ui.Print("  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment")
+	}
 	flag.Parse()
 	*management = *management || *master
 	version.Flag()
@@ -45,25 +53,25 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		*domain, *environment = "admin", "admin"
 	}
 	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*management && *number == "" {
-		ui.Fatal(`one of -domain="..." -environment="..." -quality"..." or -special="..." or -management or -number="..." is required`)
+		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -special "..." or -management or -number "..." is required`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *special != "" {
-		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -special="..."`)
+		ui.Fatal(`can't mix -domain "..." -environment "..." -quality"..." with -special "..."`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *management {
-		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -management`)
+		ui.Fatal(`can't mix -domain "..." -environment "..." -quality"..." with -management`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *number != "" {
-		ui.Fatal(`can't mix -domain="..." -environment="..." -quality"..." with -number="..."`)
+		ui.Fatal(`can't mix -domain "..." -environment "..." -quality"..." with -number "..."`)
 	}
 	if *special != "" && *management {
-		ui.Fatal(`can't mix -special="..." with -management`)
+		ui.Fatal(`can't mix -special "..." with -management`)
 	}
 	if *special != "" && *number != "" {
-		ui.Fatal(`can't mix -special="..." with -number="..."`)
+		ui.Fatal(`can't mix -special "..." with -number "..."`)
 	}
 	if *management && *number != "" {
-		ui.Fatal(`can't mix -management with -number="..."`)
+		ui.Fatal(`can't mix -management with -number "..."`)
 	}
 	if *quiet {
 		ui.Quiet()
@@ -97,7 +105,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		if *number != "" {
 			accountId = *number
 			if *roleName == "" {
-				ui.Fatal(`-role="..." is required with -number="..."`)
+				ui.Fatal(`-role "..." is required with -number "..."`)
 			}
 		} else if *management {
 			org, err := awsorgs.DescribeOrganization(svc)

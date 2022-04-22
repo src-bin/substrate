@@ -39,6 +39,10 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	cmdutil.MustChdir()
+	flag.Usage = func() {
+		ui.Print("Usage: substrate bootstrap-network-account [-auto-approve|-no-apply] [-ignore-service-quotas]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	version.Flag()
 

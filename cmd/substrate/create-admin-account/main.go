@@ -68,17 +68,21 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	quality := flag.String("quality", "", "quality for this new AWS account")
 	cmdutil.MustChdir()
+	flag.Usage = func() {
+		ui.Print("Usage: substrate create-admin-account [-create] -quality <quality> [-auto-approve|-no-apply] [-ignore-service-quotas]")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	version.Flag()
 	if *quality == "" {
-		ui.Fatal(`-quality"..." is required`)
+		ui.Fatal(`-quality "..." is required`)
 	}
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !veqpDoc.Valid(Environment, *quality) {
-		ui.Fatalf(`-quality="%s" is not a valid quality for an admin account in your organization`, *quality)
+		ui.Fatalf(`-quality %q is not a valid quality for an admin account in your organization`, *quality)
 	}
 
 	sess, err := awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{
