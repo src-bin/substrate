@@ -270,13 +270,24 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *events
 	if err != nil {
 		return nil, err
 	}
-	if len(types) != 1 {
+	if len(types) == 0 {
 		return nil, fmt.Errorf("instance type %s not found", instanceType)
 	}
-	if len(types[0].ProcessorInfo.SupportedArchitectures) != 1 {
-		return nil, fmt.Errorf("instance type %s supports multiple CPU architectures", instanceType)
+	if len(types) > 1 {
+		return nil, fmt.Errorf("%d instance types %s found", len(types), instanceType)
 	}
-	image, err := awsec2.LatestAmazonLinux2AMI(svc, aws.StringValue(types[0].ProcessorInfo.SupportedArchitectures[0]))
+	archs := types[0].ProcessorInfo.SupportedArchitectures
+	if len(archs) == 0 {
+		return nil, fmt.Errorf("instance type %s supports zero CPU architectures")
+	}
+	if len(archs) > 2 {
+		return nil, fmt.Errorf("instance type %s supports more than two CPU architectures")
+	}
+	arch := aws.StringValue(archs[0])
+	if arch == "i386" && len(archs) == 2 {
+		arch = aws.StringValue(archs[1])
+	}
+	image, err := awsec2.LatestAmazonLinux2AMI(svc, arch)
 	if err != nil {
 		return nil, err
 	}
