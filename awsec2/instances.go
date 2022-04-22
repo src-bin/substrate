@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/src-bin/substrate/awsutil"
 )
 
 const (
@@ -14,6 +15,8 @@ const (
 
 	ARM    = "arm64"
 	X86_64 = "x86_64"
+
+	UnsupportedOperation = "UnsupportedOperation"
 )
 
 func DescribeImages(svc *ec2.EC2, arch, name, owner string) ([]*ec2.Image, error) {
@@ -137,6 +140,10 @@ func RunInstance(
 	}
 	//log.Print(in)
 	reservation, err := svc.RunInstances(in)
+	if awsutil.ErrorCodeIs(err, UnsupportedOperation) {
+		in.MetadataOptions.HttpProtocolIpv6 = nil
+		reservation, err = svc.RunInstances(in)
+	}
 	if err != nil {
 		return nil, err
 	}
