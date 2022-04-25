@@ -278,10 +278,10 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *events
 	}
 	archs := types[0].ProcessorInfo.SupportedArchitectures
 	if len(archs) == 0 {
-		return nil, fmt.Errorf("instance type %s supports zero CPU architectures")
+		return nil, fmt.Errorf("instance type %s supports zero CPU architectures", instanceType)
 	}
 	if len(archs) > 2 {
-		return nil, fmt.Errorf("instance type %s supports more than two CPU architectures")
+		return nil, fmt.Errorf("instance type %s supports more than two CPU architectures", instanceType)
 	}
 	arch := aws.StringValue(archs[0])
 	if arch == "i386" && len(archs) == 2 {
