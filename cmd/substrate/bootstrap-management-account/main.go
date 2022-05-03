@@ -247,9 +247,13 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 			Statement: []policies.Statement{
 
 				// It's catastrophically expensive to create a second trail
-				// so let's not let anyone do it.
+				// so let's not let anyone do it. Also don't let them delete
+				// the one existing trail.
 				policies.Statement{
-					Action:   []string{"cloudtrail:CreateTrail"},
+					Action: []string{
+						"cloudtrail:CreateTrail",
+						"cloudtrail:DeleteTrail",
+					},
 					Effect:   policies.Deny,
 					Resource: []string{"*"},
 				},
