@@ -10,7 +10,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-func Main(context.Context, *awscfg.Main) {
+func Main(context.Context, *awscfg.Config) {
 	flag.Usage = func() {
 		ui.Print("Usage: substrate intranet-zip")
 		flag.PrintDefaults()

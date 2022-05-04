@@ -27,7 +27,7 @@ var unlistedPaths = []string{
 	"/login",
 }
 
-func indexHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func indexHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {

@@ -14,7 +14,7 @@ import (
 
 // TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
 
-type Handler func(context.Context, *awscfg.Main, *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error)
+type Handler func(context.Context, *awscfg.Config, *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error)
 
 var handlers = map[string]Handler{}
 
@@ -41,7 +41,7 @@ func main() {
 				"Subcommand",
 				event.Path,
 			)
-			cfg, err := awscfg.NewMain(ctx)
+			cfg, err := awscfg.NewConfig(ctx)
 			if err != nil {
 				return nil, err
 			}

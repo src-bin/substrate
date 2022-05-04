@@ -32,7 +32,7 @@ func init() {
 	handlers["/login"] = loginHandler
 }
 
-func loginHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	// TODO logout per <https://developer.okta.com/docs/reference/api/oidc/#logout>
 

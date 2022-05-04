@@ -11,8 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
@@ -22,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	cmdutil.MustChdir()
@@ -68,7 +67,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	// Spin requesting /credentials/fetch?token=... until it responds 200 OK.
 	ui.Spin("fetching credentials")
 	u.Path = "/credential-factory/fetch"
-	var credentials *sts.Credentials
+	var credentials *aws.Credentials
 	for range time.Tick(time.Second) {
 		var err error
 		credentials, err = fetch(u)
@@ -83,18 +82,18 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 
 	cfg.SetCredentialsV1(
 		ctx,
-		aws.StringValue(credentials.AccessKeyId),
-		aws.StringValue(credentials.SecretAccessKey),
-		aws.StringValue(credentials.SessionToken),
+		credentials.AccessKeyID,
+		credentials.SecretAccessKey,
+		credentials.SessionToken,
 	)
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	// Print credentials in whatever format was requested.
-	awssts.PrintCredentials(format, credentials)
+	awssts.PrintCredentials(format, *credentials)
 
 }
 
-func fetch(u *url.URL) (*sts.Credentials, error) {
+func fetch(u *url.URL) (*aws.Credentials, error) {
 	resp, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
@@ -103,7 +102,7 @@ func fetch(u *url.URL) (*sts.Credentials, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, nil
 	}
-	var credentials sts.Credentials
+	var credentials aws.Credentials
 	if err := json.NewDecoder(resp.Body).Decode(&credentials); err != nil {
 		return nil, err
 	}

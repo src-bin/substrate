@@ -26,7 +26,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
 	domain := flag.String("domain", "", "domain for this new AWS account")
@@ -110,7 +110,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-	cfg.Telemetry().FinalAccountNumber = aws.StringValue(account.Id)
+	cfg.Telemetry().FinalAccountId = aws.StringValue(account.Id)
 	cfg.Telemetry().FinalRoleName = roles.Administrator
 
 	admin.EnsureAdminRolesAndPolicies(sess, createdAccount)

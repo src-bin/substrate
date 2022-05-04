@@ -25,7 +25,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	cmdutil.MustChdir()
@@ -55,7 +55,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-	cfg.Telemetry().FinalAccountNumber = accountId
+	cfg.Telemetry().FinalAccountId = accountId
 	cfg.Telemetry().FinalRoleName = roles.DeployAdministrator
 
 	if !*autoApprove && !*noApply {

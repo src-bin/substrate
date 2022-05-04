@@ -7,16 +7,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"os/user"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/roles"
@@ -24,7 +18,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	admin := flag.Bool("admin", false, `shorthand for -domain "admin" -environment "admin"`)
 	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
 	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")
@@ -77,96 +71,81 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		ui.Quiet()
 	}
 
-	sess := awssessions.Must(awssessions.NewSession(awssessions.Config{}))
-	svc := sts.New(sess)
-	callerIdentity, err := awssts.GetCallerIdentity(svc)
+	callerIdentity, err := cfg.GetCallerIdentity(ctx)
 	if err != nil {
 		ui.Fatal(err)
 	}
-	currentRoleName, err := roles.Name(aws.StringValue(callerIdentity.Arn))
+	currentRoleName, err := roles.Name(aws.ToString(callerIdentity.Arn))
 	if err != nil {
 		ui.Fatal(err)
 	}
 
-	var accountId string
-	{
-		sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
-		if err != nil {
-
-			// Mask the AWS-native error because we're 99% sure OrganizationReaderError
-			// is a better explanation of what went wrong.
-			if _, ok := err.(awserr.Error); ok {
-				ui.Fatal(awssessions.NewOrganizationReaderError(err, *roleName))
-			}
-
-			ui.Fatal(err)
+	if *number != "" {
+		//accountId = *number // FIXME
+		if *roleName == "" {
+			ui.Fatal(`-role "..." is required with -number "..."`)
 		}
-		svc := organizations.New(sess)
-		if *number != "" {
-			accountId = *number
-			if *roleName == "" {
-				ui.Fatal(`-role "..." is required with -number "..."`)
-			}
-		} else if *management {
-			org, err := awsorgs.DescribeOrganization(svc)
-			if err != nil {
-				log.Fatal(err)
-			}
-			accountId = aws.StringValue(org.MasterAccountId)
-			if *roleName == "" {
-				if currentRoleName == roles.Auditor {
-					roleName = aws.String(roles.OrganizationReader)
-				} else {
-					roleName = aws.String(roles.OrganizationAdministrator)
-				}
-			}
-		} else if *special != "" {
-			accountId = aws.StringValue(awsorgs.Must(awsorgs.FindSpecialAccount(svc, *special)).Id)
-			if *roleName == "" {
-				if *special == "audit" || currentRoleName == roles.Auditor {
-					roleName = aws.String(roles.Auditor)
-				} else {
-					roleName = aws.String(fmt.Sprintf("%s%s", strings.Title(*special), roles.Administrator))
-				}
-			}
-		} else {
-			accountId = aws.StringValue(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id)
-			if *roleName == "" {
-				if currentRoleName == roles.OrganizationAdministrator {
-					roleName = aws.String(roles.Administrator)
-				} else {
-					roleName = aws.String(currentRoleName)
-				}
+		// FIXME cfg, err = cfg.AssumeRole(ctx, *number, *roleName)
+	} else if *management {
+		if *roleName == "" {
+			if currentRoleName == roles.Auditor {
+				roleName = aws.String(roles.OrganizationReader)
+			} else {
+				roleName = aws.String(roles.OrganizationAdministrator)
 			}
 		}
+		cfg, err = cfg.AssumeManagementRole(ctx, *roleName)
+	} else if *special != "" {
+		if *roleName == "" {
+			if *special == "audit" || currentRoleName == roles.Auditor {
+				roleName = aws.String(roles.Auditor)
+			} else {
+				roleName = aws.String(fmt.Sprintf("%s%s", strings.Title(*special), roles.Administrator))
+			}
+		}
+		cfg, err = cfg.AssumeSpecialRole(ctx, *special, *roleName)
+	} else {
+		//			accountId = aws.ToString(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id) // FIXME
+		if *roleName == "" {
+			if currentRoleName == roles.OrganizationAdministrator {
+				roleName = aws.String(roles.Administrator)
+			} else {
+				roleName = aws.String(currentRoleName)
+			}
+		}
+		cfg, err = cfg.AssumeServiceRole(ctx, *domain, *environment, *quality, *roleName)
 	}
-
-	u, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 
-	cfg.Telemetry().FinalAccountNumber = accountId
-	cfg.Telemetry().FinalRoleName = *roleName
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
-	assumedRole, err := awssts.AssumeRole(
-		svc,
-		roles.Arn(accountId, *roleName),
-		u.Username,
-		3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> // TODO 43200?
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	credentials := assumedRole.Credentials
-
-	if *console {
-		consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials, "")
+	/*
+		assumedRole, err := awssts.AssumeRole(
+			svc,
+			roles.Arn(accountId, *roleName),
+			u.Username,
+			3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> // TODO 43200?
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
-		ui.OpenURL(consoleSigninURL)
+		credentials := assumedRole.Credentials
+	*/
+	credentials, err := cfg.Retrieve(ctx)
+	if err != nil {
+		ui.Fatal(err)
+	}
+
+	if *console {
+		/*
+			consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials, "")
+			if err != nil {
+				log.Fatal(err)
+			}
+			ui.OpenURL(consoleSigninURL)
+		*/
 		return
 	}
 
@@ -174,13 +153,13 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
 	// other environment variables in case they're relevant to the command.
 	if args := flag.Args(); len(args) > 0 {
-		if err := os.Setenv("AWS_ACCESS_KEY_ID", aws.StringValue(credentials.AccessKeyId)); err != nil {
+		if err := os.Setenv("AWS_ACCESS_KEY_ID", credentials.AccessKeyID); err != nil {
 			log.Fatal(err)
 		}
-		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", aws.StringValue(credentials.SecretAccessKey)); err != nil {
+		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", credentials.SecretAccessKey); err != nil {
 			log.Fatal(err)
 		}
-		if err := os.Setenv("AWS_SESSION_TOKEN", aws.StringValue(credentials.SessionToken)); err != nil {
+		if err := os.Setenv("AWS_SESSION_TOKEN", credentials.SessionToken); err != nil {
 			log.Fatal(err)
 		}
 

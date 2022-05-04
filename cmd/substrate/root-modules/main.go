@@ -21,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/veqp"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value // TODO only support text and JSON
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {

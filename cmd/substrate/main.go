@@ -91,7 +91,7 @@ func main() {
 		"Subcommand",
 		subcommand,
 	)
-	cfg, err := awscfg.NewMain(ctx)
+	cfg, err := awscfg.NewConfig(ctx)
 	if err != nil {
 		ui.Fatal(err)
 	}

@@ -20,3 +20,5 @@ const (
 	Substrate                = "Substrate"
 	SubstrateInstanceFactory = "substrate-instance-factory" // remove in 2022.10
 )
+
+type Tags map[string]string

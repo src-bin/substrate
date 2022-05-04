@@ -22,7 +22,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate delete-static-access-keys")
@@ -33,7 +33,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 
 	sess := awssessions.Must(awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{}))
 
-	cfg.Telemetry().FinalAccountNumber = aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
+	cfg.Telemetry().FinalAccountId = aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
 	cfg.Telemetry().FinalRoleName = roles.OrganizationAdministrator
 
 	ui.Spin("deleting all access keys for the OrganizationAdministrator user")

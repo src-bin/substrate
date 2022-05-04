@@ -22,7 +22,7 @@ import (
 // TODO revamp accounts.html to bounce login requests through the logout page per <https://src-bin.slack.com/archives/C015H14T9UY/p1645052508548779>
 //go:generate go run ../../tools/template/main.go -name accountsTemplate -package main accounts.html
 
-func accountsHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
@@ -48,7 +48,7 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGat
 		))
 
 		roleArn := roles.Arn(accountId, roleName)
-		cfg.Telemetry().SetFinalAccountNumber(accountId)
+		cfg.Telemetry().SetFinalAccountId(accountId)
 		cfg.Telemetry().SetFinalRoleName(roleArn)
 		assumedRole, err := awssts.AssumeRole(
 			svc,

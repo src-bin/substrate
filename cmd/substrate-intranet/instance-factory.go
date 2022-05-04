@@ -31,7 +31,7 @@ func init() {
 	handlers["/instance-factory"] = instanceFactoryHandler
 }
 
-func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
 	var instanceType, publicKeyMaterial, terminateConfirmed string
 	launched := event.QueryStringParameters["launched"] // TODO don't propagate this into the HTML if the instance it references is in the "running" state

@@ -78,7 +78,7 @@ func (v *TagValue) String() string {
 	)
 }
 
-func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Main, event *even
 	}, nil
 }
 
-func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Main, ev
 	}, nil
 }
 
-func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Main, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	sess, err := awssessions.NewSession(awssessions.Config{})
 	if err != nil {
 		return nil, err

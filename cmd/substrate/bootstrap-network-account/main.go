@@ -34,7 +34,7 @@ const (
 	NATGatewaysFilename = "substrate.nat-gateways"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
@@ -232,7 +232,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-	cfg.Telemetry().FinalAccountNumber = accountId
+	cfg.Telemetry().FinalAccountId = accountId
 	cfg.Telemetry().FinalRoleName = roles.NetworkAdministrator
 
 	// Write to substrate.admin-networks.json and substrate.networks.json once

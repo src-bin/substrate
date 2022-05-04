@@ -21,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
 	number := flag.String("number", "", `with -format "json", account number of the single AWS account to output`)
 	onlyTags := flag.Bool("only-tags", false, `with -format "json" and -number "...", output only the tags on the account`)

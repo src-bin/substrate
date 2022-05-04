@@ -61,7 +61,7 @@ const (
 	SAMLMetadataFilename = "substrate.saml-metadata.xml"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
@@ -144,7 +144,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-	cfg.Telemetry().FinalAccountNumber = aws.StringValue(account.Id)
+	cfg.Telemetry().FinalAccountId = aws.StringValue(account.Id)
 	cfg.Telemetry().FinalRoleName = roles.Administrator
 
 	// We used to collect this metadata XML interactively. Now if it's there

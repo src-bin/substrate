@@ -40,7 +40,7 @@ const (
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Main) {
+func Main(ctx context.Context, cfg *awscfg.Config) {
 	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate bootstrap-management-account")
@@ -117,7 +117,7 @@ func Main(ctx context.Context, cfg *awscfg.Main) {
 		log.Fatal(err)
 	}
 	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-	cfg.Telemetry().FinalAccountNumber = aws.StringValue(callerIdentity.Account)
+	cfg.Telemetry().FinalAccountId = aws.StringValue(callerIdentity.Account)
 	cfg.Telemetry().FinalRoleName = roles.OrganizationAdministrator
 
 	// Ensure the audit account exists.  This one comes first so we can enable
