@@ -120,18 +120,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
-	/*
-		assumedRole, err := awssts.AssumeRole(
-			svc,
-			roles.Arn(accountId, *roleName),
-			u.Username,
-			3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> // TODO 43200?
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		credentials := assumedRole.Credentials
-	*/
 	credentials, err := cfg.Retrieve(ctx)
 	if err != nil {
 		ui.Fatal(err)
