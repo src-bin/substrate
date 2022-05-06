@@ -85,7 +85,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if *roleName == "" {
 			ui.Fatal(`-role "..." is required with -number "..."`)
 		}
-		// FIXME cfg, err = cfg.AssumeRole(ctx, *number, *roleName)
+		cfg, err = cfg.AssumeRole(ctx, *number, *roleName)
 	} else if *management {
 		if *roleName == "" {
 			if currentRoleName == roles.Auditor {
@@ -105,7 +105,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		cfg, err = cfg.AssumeSpecialRole(ctx, *special, *roleName)
 	} else {
-		//			accountId = aws.ToString(awsorgs.Must(awsorgs.FindAccount(svc, *domain, *environment, *quality)).Id) // FIXME
 		if *roleName == "" {
 			if currentRoleName == roles.OrganizationAdministrator {
 				roleName = aws.String(roles.Administrator)

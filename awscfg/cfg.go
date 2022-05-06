@@ -70,8 +70,7 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 }
 
 func (c *Config) AssumeAdminRole(ctx context.Context, quality, roleName string) (*Config, error) {
-	accountId := "TODO" // TODO
-	return c.AssumeRole(ctx, accountId, roleName)
+	return c.AssumeServiceRole(ctx, accounts.Admin, accounts.Admin, quality, roleName)
 }
 
 func (c *Config) AssumeManagementRole(ctx context.Context, roleName string) (*Config, error) {
@@ -115,7 +114,7 @@ func (c *Config) AssumeRole(ctx context.Context, accountId, roleName string) (*C
 
 	cfg := &Config{
 		cfg:               c.cfg.Copy(),
-		deferredTelemetry: c.deferredTelemetry, // FIXME does this start a race?
+		deferredTelemetry: c.deferredTelemetry, // better twice than not at all
 		event:             c.event,
 	}
 
@@ -138,13 +137,33 @@ func (c *Config) AssumeRole(ctx context.Context, accountId, roleName string) (*C
 }
 
 func (c *Config) AssumeServiceRole(ctx context.Context, domain, environment, quality, roleName string) (*Config, error) {
-	accountId := "TODO" // TODO
-	return c.AssumeRole(ctx, accountId, roleName)
+	account, _, err := c.findAccount(ctx, func(_ Account, t tags.Tags) bool {
+		//log.Print(jsonutil.MustString(t))
+		return t[tags.Domain] == domain && t[tags.Environment] == environment && t[tags.Quality] == quality
+	})
+	if err != nil {
+		return nil, err
+	}
+	if account == nil {
+		return nil, NewAccountNotFound(domain, environment, quality)
+	}
+	//log.Print(jsonutil.MustString(account))
+	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName)
 }
 
 func (c *Config) AssumeSpecialRole(ctx context.Context, name, roleName string) (*Config, error) {
-	accountId := "TODO" // TODO
-	return c.AssumeRole(ctx, accountId, roleName)
+	account, _, err := c.findAccount(ctx, func(a Account, _ tags.Tags) bool {
+		//log.Print(jsonutil.MustString(a))
+		return aws.ToString(a.Name) == name
+	})
+	if err != nil {
+		return nil, err
+	}
+	if account == nil {
+		return nil, NewAccountNotFound(name)
+	}
+	//log.Print(jsonutil.MustString(account))
+	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName)
 }
 
 func (c *Config) DescribeOrganization(ctx context.Context) (*types.Organization, error) {

@@ -1,6 +1,24 @@
 package awscfg
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/src-bin/substrate/accounts"
+)
+
+type AccountNotFound string
+
+func NewAccountNotFound(tags ...string) error {
+	if len(tags) == 3 && tags[0] == accounts.Admin && tags[1] == accounts.Admin {
+		return AccountNotFound(fmt.Sprintf("%s/%s", accounts.Admin, tags[2]))
+	}
+	return AccountNotFound(strings.Join(tags, "/"))
+}
+
+func (err AccountNotFound) Error() string {
+	return fmt.Sprintf("account not found: %s", string(err))
+}
 
 type OrganizationReaderError struct {
 	error
