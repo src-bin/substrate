@@ -19,7 +19,7 @@ phases:
       - rm -f "golang.tar.gz"
       - go get "golang.org/x/tools/cmd/goimports"
       - go install "golang.org/x/tools/cmd/goimports"
-      - cat "terraform-version.txt" | xargs -I"VERSION" curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/VERSION/terraform_VERSION_linux_amd64.zip"
+      - cat "terraform.version" | xargs -I"VERSION" curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/VERSION/terraform_VERSION_linux_amd64.zip"
       - unzip "terraform.zip" -d "$HOME/bin"
       - rm -f "terraform.zip"
     finally:

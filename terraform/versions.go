@@ -13,7 +13,7 @@ import (
 	"github.com/src-bin/substrate/fileutil"
 )
 
-var TerraformVersion = "" // replaced at build time with the contents of terraform-version.txt; see Makefile
+var TerraformVersion = "" // replaced at build time with the contents of terraform.version; see Makefile
 
 const (
 	awsVersionConstraint      = "~> 4.9.0"
