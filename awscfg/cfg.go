@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
-	organizationstypes "github.com/aws/aws-sdk-go-v2/service/organizations/types"
+	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsutil"
@@ -22,9 +22,9 @@ import (
 	"github.com/src-bin/substrate/telemetry"
 )
 
-type Account = organizationstypes.Account
-
 const TooManyRequestsException = "TooManyRequestsException"
+
+type Account = types.Account
 
 type Config struct {
 	cfg               aws.Config
@@ -147,7 +147,7 @@ func (c *Config) AssumeSpecialRole(ctx context.Context, name, roleName string) (
 	return c.AssumeRole(ctx, accountId, roleName)
 }
 
-func (c *Config) DescribeOrganization(ctx context.Context) (*organizationstypes.Organization, error) {
+func (c *Config) DescribeOrganization(ctx context.Context) (*types.Organization, error) {
 	client := organizations.NewFromConfig(c.cfg)
 	for {
 		out, err := client.DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
