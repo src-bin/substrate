@@ -2,7 +2,6 @@ package awscfg
 
 import (
 	"context"
-	"log"
 	"os/user"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
@@ -131,7 +129,7 @@ func (c *Config) AssumeRole(ctx context.Context, accountId, roleName string) (*C
 
 	callerIdentity, err := sts.NewFromConfig(cfg.cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	_ = callerIdentity
-	log.Print(jsonutil.MustString(callerIdentity))
+	//log.Print(jsonutil.MustString(callerIdentity))
 
 	return cfg, err
 }
