@@ -1,4 +1,4 @@
-package awssts
+package federation
 
 import (
 	"encoding/json"
@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 )
 
@@ -16,8 +16,7 @@ import (
 // grants the opener access to the AWS Console per the algorithm outlined in
 // <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-custom-url.html>.
 func ConsoleSigninURL(
-	svc *sts.STS,
-	credentials *sts.Credentials,
+	credentials aws.Credentials,
 	destination string,
 ) (string, error) {
 
@@ -25,26 +24,22 @@ func ConsoleSigninURL(
 	// required is a set of credentials.
 
 	// Step 2: Exchange the credentials for a signin token.
-	session, err := json.Marshal(struct {
-		ID    string `json:"sessionId"`
-		Key   string `json:"sessionKey"`
-		Token string `json:"sessionToken"`
-	}{
-		aws.StringValue(credentials.AccessKeyId),
-		aws.StringValue(credentials.SecretAccessKey),
-		aws.StringValue(credentials.SessionToken),
-	})
-	if err != nil {
-		return "", err
-	}
 	u := &url.URL{
 		Scheme: "https",
 		Host:   "signin.aws.amazon.com",
 		Path:   "/federation",
 		RawQuery: url.Values{
-			"Action":  []string{"getSigninToken"},
-			"Session": []string{string(session)},
-			// "SessionDuration": []string{"600"}, // FIXME it breaks if this is uncommented, with seemingly any value
+			"Action": []string{"getSigninToken"},
+			"Session": []string{jsonutil.MustString(struct {
+				ID    string `json:"sessionId"`
+				Key   string `json:"sessionKey"`
+				Token string `json:"sessionToken"`
+			}{
+				credentials.AccessKeyID,
+				credentials.SecretAccessKey,
+				credentials.SessionToken,
+			})},
+			// "SessionDuration": []string{"600"}, // it breaks if this is uncommented, with seemingly any value
 		}.Encode(),
 	}
 	resp, err := http.Get(u.String())
@@ -61,11 +56,9 @@ func ConsoleSigninURL(
 	if destination == "" {
 		destination = "https://console.aws.amazon.com/"
 	}
-	intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename)
-	var issuer string
-	if err != nil {
-		issuer = "https://src-bin.com/substrate/"
-	} else {
+	issuer := "https://src-bin.com/substrate/"
+	// TODO try event.RequestContext.DomainName/login
+	if intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename); err == nil {
 		issuer = fmt.Sprintf("https://%s/login", intranetDNSDomainName)
 	}
 	u.RawQuery = url.Values{

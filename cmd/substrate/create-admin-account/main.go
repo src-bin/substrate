@@ -19,7 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscfg"
@@ -29,9 +28,9 @@ import (
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/networks"
@@ -220,9 +219,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		consoleSigninURL, err := awssts.ConsoleSigninURL(
-			svc,
-			assumedRole.Credentials,
+		credentials, err := cfg.Retrieve(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		consoleSigninURL, err := federation.ConsoleSigninURL(
+			credentials,
 			"https://console.aws.amazon.com/route53/home#DomainListing:",
 		)
 		if err != nil {

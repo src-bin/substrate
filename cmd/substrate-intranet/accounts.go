@@ -7,13 +7,12 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awssts"
+	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/roles"
@@ -61,7 +60,7 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 		}
 		credentials := assumedRole.Credentials
 
-		consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials, "")
+		consoleSigninURL, err := federation.ConsoleSigninURL(credentials, "")
 		if err != nil {
 			return lambdautil.ErrorResponse(err)
 		}

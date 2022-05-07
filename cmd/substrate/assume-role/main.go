@@ -13,6 +13,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -126,13 +127,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 
 	if *console {
-		/*
-			consoleSigninURL, err := awssts.ConsoleSigninURL(svc, credentials, "")
-			if err != nil {
-				log.Fatal(err)
-			}
-			ui.OpenURL(consoleSigninURL)
-		*/
+		consoleSigninURL, err := federation.ConsoleSigninURL(credentials, "")
+		if err != nil {
+			log.Fatal(err)
+		}
+		ui.OpenURL(consoleSigninURL)
 		return
 	}
 
