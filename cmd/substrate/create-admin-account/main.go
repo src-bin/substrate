@@ -30,6 +30,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
@@ -39,6 +40,7 @@ import (
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/telemetry"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
@@ -209,12 +211,15 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// programmatically but there's a lot of UI surface area involved in doing
 	// a really good job.
 	if !fileutil.Exists(naming.IntranetDNSDomainNameFilename) {
-		svc := sts.New(sess)
-		assumedRole, err := awssts.AssumeRole(
-			svc,
-			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
-			"substrate-create-admin-account", // RoleSessionName can't contain spaces
-			3600,
+		cfg, err = cfg.AssumeRole(
+			ctx,
+			aws.StringValue(account.Id),
+			roles.Administrator,
+			fmt.Sprintf(
+				"%s-%s",
+				contextutil.ValueString(ctx, telemetry.Command),
+				contextutil.ValueString(ctx, telemetry.Subcommand),
+			),
 		)
 		if err != nil {
 			log.Fatal(err)

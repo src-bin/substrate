@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
@@ -20,7 +21,12 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-const Filename = "substrate.telemetry"
+const (
+	Filename = "substrate.telemetry"
+
+	Command    = "Command"
+	Subcommand = "Subcommand"
+)
 
 // Endpoint is an HTTP(S) URL where telemetry is sent, if it's not an empty
 // string. The following values are useful:
@@ -45,8 +51,8 @@ type Event struct {
 
 func NewEvent(ctx context.Context) (*Event, error) {
 	e := &Event{
-		Command:    stringFromContext(ctx, "Command"),
-		Subcommand: stringFromContext(ctx, "Subcommand"),
+		Command:    contextutil.ValueString(ctx, Command),
+		Subcommand: contextutil.ValueString(ctx, Subcommand),
 		Version:    version.Version,
 		//Format // TODO when cmdutil.SerializationFormat.Set is called
 		wait: make(chan struct{}),
@@ -178,9 +184,4 @@ func roleNameFromArn(roleArn string) (string, error) {
 		return ss[1], nil
 	}
 	return "Other", nil // don't disclose customer-defined role names
-}
-
-func stringFromContext(ctx context.Context, key string) string {
-	value, _ := ctx.Value(key).(string) // let it be empty if it wants
-	return value
 }

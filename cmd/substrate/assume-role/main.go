@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -80,13 +81,17 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		ui.Fatal(err)
 	}
+	u, err := user.Current()
+	if err != nil {
+		ui.Fatal(err)
+	}
 
 	if *number != "" {
 		//accountId = *number // FIXME
 		if *roleName == "" {
 			ui.Fatal(`-role "..." is required with -number "..."`)
 		}
-		cfg, err = cfg.AssumeRole(ctx, *number, *roleName)
+		cfg, err = cfg.AssumeRole(ctx, *number, *roleName, u.Username)
 	} else if *management {
 		if *roleName == "" {
 			if currentRoleName == roles.Auditor {
@@ -95,7 +100,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(roles.OrganizationAdministrator)
 			}
 		}
-		cfg, err = cfg.AssumeManagementRole(ctx, *roleName)
+		cfg, err = cfg.AssumeManagementRole(ctx, *roleName, u.Username)
 	} else if *special != "" {
 		if *roleName == "" {
 			if *special == "audit" || currentRoleName == roles.Auditor {
@@ -104,7 +109,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(fmt.Sprintf("%s%s", strings.Title(*special), roles.Administrator))
 			}
 		}
-		cfg, err = cfg.AssumeSpecialRole(ctx, *special, *roleName)
+		cfg, err = cfg.AssumeSpecialRole(ctx, *special, *roleName, u.Username)
 	} else {
 		if *roleName == "" {
 			if currentRoleName == roles.OrganizationAdministrator {
@@ -113,7 +118,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(currentRoleName)
 			}
 		}
-		cfg, err = cfg.AssumeServiceRole(ctx, *domain, *environment, *quality, *roleName)
+		cfg, err = cfg.AssumeServiceRole(ctx, *domain, *environment, *quality, *roleName, u.Username)
 	}
 	if err != nil {
 		ui.Fatal(err)

@@ -40,25 +40,29 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 
 		// We have to start from the user's configured starting point so that
 		// all questions of authorization are deferred to AWS.
-		svc := sts.New(awssessions.AssumeRole(
-			sess,
+		cfg, err = cfg.AssumeRole(
+			ctx,
 			event.RequestContext.AccountID,
 			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
-		))
+			fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
+		)
 
 		roleArn := roles.Arn(accountId, roleName)
 		cfg.Telemetry().SetFinalAccountId(accountId)
 		cfg.Telemetry().SetFinalRoleName(roleArn)
-		assumedRole, err := awssts.AssumeRole(
-			svc,
-			roleArn,
+		cfg, err = cfg.AssumeRole(
+			ctx,
+			accountId,
+			roleName,
 			fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
-			3600, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> // TODO 43200?
 		)
 		if err != nil {
 			return lambdautil.ErrorResponse(err)
 		}
-		credentials := assumedRole.Credentials
+		credentials, err := cfg.Retrieve(ctx)
+		if err != nil {
+			return lambdautil.ErrorResponse(err)
+		}
 
 		consoleSigninURL, err := federation.ConsoleSigninURL(credentials, "")
 		if err != nil {
