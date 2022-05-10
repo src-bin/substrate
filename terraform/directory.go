@@ -14,6 +14,7 @@ type Directory struct {
 	ConfigurationAliases []ProviderAlias // for replacing deprecated `provider "aws" { alias = "..." }` blocks
 	Files                map[string]string
 	RemoveFiles          []string // it's not enough to remove a file from terraform/modules/..., we must know to remove it from end-user systems
+	VersionConstraints   bool
 }
 
 func NewDirectory() *Directory {
@@ -42,7 +43,7 @@ func (d *Directory) Write(dirname string) error {
 		}
 	}
 
-	if err := versions(dirname, d.ConfigurationAliases); err != nil {
+	if err := versions(dirname, d.ConfigurationAliases, d.VersionConstraints); err != nil {
 		return err
 	}
 	/*

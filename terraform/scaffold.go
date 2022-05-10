@@ -33,6 +33,7 @@ func Scaffold(domain string) error {
 				DefaultProviderAlias,
 				UsEast1ProviderAlias,
 			},
+			false,
 		); err != nil {
 			return err
 		}
@@ -58,7 +59,7 @@ func Scaffold(domain string) error {
 			return err
 		}
 
-		if err := versions(dirname, []ProviderAlias{NetworkProviderAlias}); err != nil {
+		if err := versions(dirname, []ProviderAlias{NetworkProviderAlias}, false); err != nil {
 			return err
 		}
 
