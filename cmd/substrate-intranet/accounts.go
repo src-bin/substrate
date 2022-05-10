@@ -64,7 +64,11 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 			return lambdautil.ErrorResponse(err)
 		}
 
-		consoleSigninURL, err := federation.ConsoleSigninURL(credentials, "")
+		consoleSigninURL, err := federation.ConsoleSigninURL(
+			credentials,
+			"", // destination (empty means the AWS Console homepage)
+			event,
+		)
 		if err != nil {
 			return lambdautil.ErrorResponse(err)
 		}

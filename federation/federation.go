@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
@@ -18,6 +19,7 @@ import (
 func ConsoleSigninURL(
 	credentials aws.Credentials,
 	destination string,
+	event *events.APIGatewayProxyRequest,
 ) (string, error) {
 
 	// Step 1: AssumeRole, which is technically optional, as all that's really
@@ -52,14 +54,16 @@ func ConsoleSigninURL(
 		return "", err
 	}
 
-	// Step 3: Construct the console signin URL.
+	// Step 3: Construct the console signin URL. Try slightly to come up with
+	// good defaults for destination and issuer URLs.
 	if destination == "" {
 		destination = "https://console.aws.amazon.com/"
 	}
 	issuer := "https://src-bin.com/substrate/"
-	// TODO try event.RequestContext.DomainName/login
-	if intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename); err == nil {
-		issuer = fmt.Sprintf("https://%s/login", intranetDNSDomainName)
+	if event != nil {
+		issuer = fmt.Sprintf("https://%s/", event.RequestContext.DomainName)
+	} else if intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename); err == nil {
+		issuer = fmt.Sprintf("https://%s/", intranetDNSDomainName)
 	}
 	u.RawQuery = url.Values{
 		"Action":      []string{"login"},

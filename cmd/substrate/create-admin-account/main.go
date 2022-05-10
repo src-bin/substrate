@@ -230,7 +230,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		consoleSigninURL, err := federation.ConsoleSigninURL(
 			credentials,
-			"https://console.aws.amazon.com/route53/home#DomainListing:",
+			"https://console.aws.amazon.com/route53/home#DomainListing:", // destination
+			nil,
 		)
 		if err != nil {
 			log.Fatal(err)

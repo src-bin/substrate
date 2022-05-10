@@ -132,7 +132,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 
 	if *console {
-		consoleSigninURL, err := federation.ConsoleSigninURL(credentials, "")
+		consoleSigninURL, err := federation.ConsoleSigninURL(
+			credentials,
+			"", // destination (empty means the AWS Console homepage)
+			nil,
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
