@@ -86,7 +86,7 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 		replacement += fmt.Sprintf("required_version = \"= %s\"\n", TerraformVersion)
 	}
 	b = regexp.MustCompile(
-		`required_version\s*=\s*"\s*>?(= )?\d+\.\d+\.\d+"
+		`(  )?required_version\s*=\s*"\s*>?(= )?\d+\.\d+\.\d+"
 `, // if later we need to make this reversible, look for the trailing }\n}\n$
 	).ReplaceAllLiteral(b, []byte(replacement))
 

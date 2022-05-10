@@ -48,7 +48,7 @@ type Tags struct {
 
 func (t Tags) Value() Value {
 	format := "\n    %s = %q"
-	s := "  {"
+	s := "{" // no leading spaces to follow `tags = `
 	if t.AvailabilityZone != "" {
 		s += fmt.Sprintf(format, "AvailabilityZone", t.AvailabilityZone)
 	}
@@ -73,6 +73,6 @@ func (t Tags) Value() Value {
 	if t.Special != "" {
 		//s += fmt.Sprintf(format, "Special", t.Special)
 	}
-	s += "\n  }"
+	s += "\n  }" // leading spaces to align with indentation
 	return U(s)
 }
