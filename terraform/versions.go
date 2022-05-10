@@ -16,7 +16,7 @@ import (
 var TerraformVersion = "" // replaced at build time with the contents of terraform.version; see Makefile
 
 const (
-	awsVersionConstraint      = "~> 4.9.0"
+	awsVersionConstraint      = "~> 4.12"
 	externalVersionConstraint = "~> 2.1"
 )
 
