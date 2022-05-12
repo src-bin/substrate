@@ -1,4 +1,4 @@
-package awssts
+package awsutil
 
 import (
 	"fmt"

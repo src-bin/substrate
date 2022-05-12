@@ -12,7 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awssts"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/roles"
@@ -186,6 +186,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 
 	// Print the credentials for the user to copy into their environment.
-	awssts.PrintCredentials(format, credentials)
+	awsutil.PrintCredentials(format, credentials)
 
 }
