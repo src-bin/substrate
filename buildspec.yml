@@ -38,6 +38,7 @@ phases:
       - make release
     finally:
       - go run "tools/slack-codebuild/main.go" "build"
+      - sh "tools/tweet-codebuild.sh"
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
