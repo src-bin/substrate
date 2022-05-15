@@ -72,13 +72,15 @@ func (c *Config) AssumeAdminRole(
 	ctx context.Context,
 	quality string,
 	roleName, roleSessionName string,
+	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
-	return c.AssumeServiceRole(ctx, accounts.Admin, accounts.Admin, quality, roleName, roleSessionName)
+	return c.AssumeServiceRole(ctx, accounts.Admin, accounts.Admin, quality, roleName, roleSessionName, duration)
 }
 
 func (c *Config) AssumeManagementRole(
 	ctx context.Context,
 	roleName, roleSessionName string,
+	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
 
 	callerIdentity, err := c.GetCallerIdentity(ctx)
@@ -111,13 +113,14 @@ func (c *Config) AssumeManagementRole(
 		}
 	*/
 
-	return c.AssumeRole(ctx, mgmtAccountId, roleName, roleSessionName)
+	return c.AssumeRole(ctx, mgmtAccountId, roleName, roleSessionName, duration)
 }
 
 func (c *Config) AssumeRole(
 	ctx context.Context,
 	accountId string,
 	roleName, roleSessionName string,
+	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
 	c.event.FinalAccountId = accountId
 	c.event.FinalRoleName = roleName
@@ -132,7 +135,7 @@ func (c *Config) AssumeRole(
 		sts.NewFromConfig(c.cfg),
 		roles.Arn(accountId, roleName),
 		func(options *stscreds.AssumeRoleOptions) {
-			options.Duration = time.Hour // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> // TODO 12 hours?
+			options.Duration = duration
 			options.RoleSessionName = roleSessionName
 		},
 	))
@@ -148,6 +151,7 @@ func (c *Config) AssumeServiceRole(
 	ctx context.Context,
 	domain, environment, quality string,
 	roleName, roleSessionName string,
+	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
 	account, _, err := c.findAccount(ctx, func(_ Account, t tags.Tags) bool {
 		//log.Print(jsonutil.MustString(t))
@@ -160,13 +164,14 @@ func (c *Config) AssumeServiceRole(
 		return nil, NewAccountNotFound(domain, environment, quality)
 	}
 	//log.Print(jsonutil.MustString(account))
-	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName, roleSessionName)
+	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName, roleSessionName, duration)
 }
 
 func (c *Config) AssumeSpecialRole(
 	ctx context.Context,
 	name string,
 	roleName, roleSessionName string,
+	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
 	account, _, err := c.findAccount(ctx, func(a Account, _ tags.Tags) bool {
 		//log.Print(jsonutil.MustString(a))
@@ -179,7 +184,7 @@ func (c *Config) AssumeSpecialRole(
 		return nil, NewAccountNotFound(name)
 	}
 	//log.Print(jsonutil.MustString(account))
-	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName, roleSessionName)
+	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName, roleSessionName, duration)
 }
 
 func (c *Config) DescribeOrganization(ctx context.Context) (*types.Organization, error) {
@@ -245,7 +250,7 @@ func (c *Config) findAccount(
 		"%s-%s",
 		contextutil.ValueString(ctx, telemetry.Command),
 		contextutil.ValueString(ctx, telemetry.Subcommand),
-	))
+	), time.Hour)
 	if err != nil {
 		return nil, nil, err
 	}

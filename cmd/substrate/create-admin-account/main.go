@@ -220,6 +220,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				contextutil.ValueString(ctx, telemetry.Command),
 				contextutil.ValueString(ctx, telemetry.Subcommand),
 			),
+			time.Hour,
 		)
 		if err != nil {
 			log.Fatal(err)

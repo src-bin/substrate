@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/service/organizations"
@@ -45,6 +46,7 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 			event.RequestContext.AccountID,
 			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 			fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
+			time.Hour,
 		)
 
 		roleArn := roles.Arn(accountId, roleName)
@@ -55,6 +57,7 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 			accountId,
 			roleName,
 			fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
+			time.Hour,
 		)
 		if err != nil {
 			return lambdautil.ErrorResponse(err)
