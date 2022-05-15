@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -205,6 +206,10 @@ func (c *Config) DescribeOrganization(ctx context.Context) (*types.Organization,
 		}
 		return out.Organization, nil
 	}
+}
+
+func (c *Config) ClientForIAM() *iam.Client {
+	return iam.NewFromConfig(c.cfg) // TODO memoize
 }
 
 func (c *Config) GetCallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {

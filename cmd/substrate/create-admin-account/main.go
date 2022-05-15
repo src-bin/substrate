@@ -179,7 +179,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	var saml *awsiam.SAMLProvider
 	if metadata != "" {
 		ui.Spinf("configuring %s as your organization's identity provider", idpName)
-		saml, err = awsiam.EnsureSAMLProvider(svc, idpName, metadata)
+		saml, err = awsiam.EnsureSAMLProviderV1(svc, idpName, metadata)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -190,7 +190,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Pre-create this user so that it may be referenced in policies attached to
 	// the Administrator user.  Terraform will attach policies to it later.
 	ui.Spin("finding or creating an IAM user for your Credential Factory, so it can get 12-hour credentials")
-	user, err := awsiam.EnsureUser(svc, users.CredentialFactory)
+	user, err := awsiam.EnsureUserV1(svc, users.CredentialFactory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -573,7 +573,7 @@ func ensureAdministrator(sess *session.Session, svc *iam.IAM, account *awsorgs.A
 	// Decide whether we're going to include principals created during the
 	// Terraform run in the assume role policy.
 	var bootstrapping bool
-	if _, err := awsiam.GetRole(svc, roles.Intranet); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+	if _, err := awsiam.GetRoleV1(svc, roles.Intranet); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 		bootstrapping = true
 	}
 

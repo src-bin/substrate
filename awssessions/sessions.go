@@ -275,7 +275,7 @@ func NewSession(config Config) (*session.Session, error) {
 	ui.Spin("switching from root credentials to an IAM user that can assume roles")
 	svc := iam.New(sess)
 
-	user, err := awsiam.EnsureUserWithPolicy(
+	user, err := awsiam.EnsureUserWithPolicyV1(
 		svc,
 		users.OrganizationAdministrator,
 		&policies.Document{
@@ -292,20 +292,20 @@ func NewSession(config Config) (*session.Session, error) {
 	}
 	//log.Printf("%+v", user)
 
-	if err := awsiam.DeleteAllAccessKeys(
+	if err := awsiam.DeleteAllAccessKeysV1(
 		svc,
 		users.OrganizationAdministrator,
 	); err != nil {
 		return nil, err
 	}
 
-	accessKey, err := awsiam.CreateAccessKey(svc, aws.StringValue(user.UserName))
+	accessKey, err := awsiam.CreateAccessKeyV1(svc, aws.StringValue(user.UserName))
 	if err != nil {
 		return nil, err
 	}
 	//log.Printf("%+v", accessKey)
 	/*
-		defer awsiam.DeleteAllAccessKeys(
+		defer awsiam.DeleteAllAccessKeysV1(
 			svc,
 			users.OrganizationAdministrator,
 		) // TODO ensure this succeeds even when we exit via log.Fatal

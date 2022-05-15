@@ -10,18 +10,13 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
-	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/lambdautil"
-	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/users"
 )
 
@@ -79,13 +74,10 @@ func (v *TagValue) String() string {
 }
 
 func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	sess, err := awssessions.NewSession(awssessions.Config{})
-	if err != nil {
-		return nil, err
-	}
 
 	credentials, err := getCredentials(
-		sess,
+		ctx,
+		cfg,
 		event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string),
 		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 	)
@@ -105,10 +97,6 @@ func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *ev
 }
 
 func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	sess, err := awssessions.NewSession(awssessions.Config{})
-	if err != nil {
-		return nil, err
-	}
 
 	// TODO arrange some kind of garbage collection of stale tags
 
@@ -125,7 +113,8 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, 
 		return lambdautil.ErrorResponse(fmt.Errorf("token must be at least %d characters long", MinTokenLength))
 	}
 	if err := awsiam.TagUser(
-		iam.New(sess),
+		ctx,
+		cfg,
 		users.CredentialFactory,
 		TagKeyPrefix+token,
 		NewTagValue(
@@ -148,11 +137,6 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, 
 }
 
 func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	sess, err := awssessions.NewSession(awssessions.Config{})
-	if err != nil {
-		return nil, err
-	}
-	svc := iam.New(sess)
 
 	// Requests to this endpoint are not authenticated or authorized by API
 	// Gateway. Instead, we authorize requests by their presentation of a
@@ -165,7 +149,7 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 			errors.New("query string parameter token is required"),
 		)
 	}
-	tags, err := awsiam.ListUserTags(svc, users.CredentialFactory)
+	tags, err := awsiam.ListUserTags(ctx, cfg, users.CredentialFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -190,14 +174,15 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 
 	// Tokens are one-time use.
 	if err := awsiam.UntagUser(
-		svc,
+		ctx,
+		cfg,
 		users.CredentialFactory,
 		TagKeyPrefix+token,
 	); err != nil {
 		return nil, err
 	}
 
-	credentials, err := getCredentials(sess, tagValue.PrincipalId, tagValue.RoleName)
+	credentials, err := getCredentials(ctx, cfg, tagValue.PrincipalId, tagValue.RoleName)
 	if err != nil {
 		return lambdautil.ErrorResponseJSON(http.StatusInternalServerError, err)
 	}
@@ -213,18 +198,14 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 	}, nil
 }
 
-func getCredentials(sess *session.Session, principalId, roleName string) (*sts.Credentials, error) {
-	iamSvc := iam.New(sess)
-	var (
-		accessKey *iam.AccessKey
-		err       error
-	)
+func getCredentials(ctx context.Context, cfg *awscfg.Config, principalId, roleName string) (credentials aws.Credentials, err error) {
+	var accessKey *types.AccessKey
 	for i := 0; i < CreateAccessKeyTriesTotal; i++ {
-		accessKey, err = awsiam.CreateAccessKey(iamSvc, users.CredentialFactory)
+		accessKey, err = awsiam.CreateAccessKey(ctx, cfg, users.CredentialFactory)
 		if awsutil.ErrorCodeIs(err, awsiam.LimitExceeded) {
 			if i == CreateAccessKeyTriesBeforeDeleteAll {
-				if err := awsiam.DeleteAllAccessKeys(iamSvc, users.CredentialFactory); err != nil {
-					return nil, err
+				if err = awsiam.DeleteAllAccessKeys(ctx, cfg, users.CredentialFactory); err != nil {
+					return
 				}
 			}
 			continue
@@ -232,13 +213,14 @@ func getCredentials(sess *session.Session, principalId, roleName string) (*sts.C
 		break
 	}
 	if err != nil {
-		return nil, err
+		return
 	}
 	defer func() {
 		if err := awsiam.DeleteAccessKey(
-			iamSvc,
+			ctx,
+			cfg,
 			users.CredentialFactory,
-			aws.StringValue(accessKey.AccessKeyId),
+			aws.ToString(accessKey.AccessKeyId),
 		); err != nil {
 			log.Print(err)
 		}
@@ -246,29 +228,29 @@ func getCredentials(sess *session.Session, principalId, roleName string) (*sts.C
 
 	time.Sleep(5e9) // I really wish I didn't have to do this
 
-	userSess, err := awssessions.NewSession(awssessions.Config{
-		AccessKeyId:     aws.StringValue(accessKey.AccessKeyId),
-		SecretAccessKey: aws.StringValue(accessKey.SecretAccessKey),
+	cfg.SetCredentials(ctx, aws.Credentials{
+		AccessKeyID:     aws.ToString(accessKey.AccessKeyId),
+		SecretAccessKey: aws.ToString(accessKey.SecretAccessKey),
 	})
 	if err != nil {
-		return nil, err
+		return
 	}
-	stsSvc := sts.New(userSess)
-	callerIdentity, err := awssts.GetCallerIdentity(stsSvc)
+	callerIdentity, err := cfg.GetCallerIdentity(ctx)
 	if err != nil {
-		return nil, err
+		return
 	}
-	assumedRole, err := awssts.AssumeRole(
-		stsSvc,
-		roles.Arn(aws.StringValue(callerIdentity.Account), roleName),
+	cfg, err = cfg.AssumeRole(
+		ctx,
+		aws.ToString(callerIdentity.Account),
+		roleName,
 		principalId,
-		43200,
+		12*time.Hour,
 	)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return assumedRole.Credentials, nil
+	return cfg.Retrieve(ctx)
 }
 
 func init() {

@@ -91,7 +91,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	// is something of a no-op but it provides a place for them to attach
 	// themselves as they're created.
 	ui.Spin("finding or creating a role to allow admin accounts to administer your organization")
-	role, err := awsiam.EnsureRoleWithPolicy(
+	role, err := awsiam.EnsureRoleWithPolicyV1(
 		iam.New(sess),
 		roles.OrganizationAdministrator,
 		canned.AdminRolePrincipals,
@@ -115,7 +115,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	// implies it does.  As above, this is almost a no-op for now because, while it grants access to
 	// the special accounts, no admin accounts exist yet.
 	ui.Spin("finding or creating a role to allow account discovery within your organization")
-	role, err = awsiam.EnsureRoleWithPolicy(
+	role, err = awsiam.EnsureRoleWithPolicyV1(
 		iam.New(sess),
 		roles.OrganizationReader,
 		canned.OrgAccountPrincipals,
@@ -138,7 +138,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	//log.Printf("%+v", role)
 	if doCloudWatch {
 		ui.Spin("finding or creating a role to allow CloudWatch to discover accounts within your organization, too")
-		role, err = awsiam.EnsureRoleWithPolicy(
+		role, err = awsiam.EnsureRoleWithPolicyV1(
 			iam.New(sess),
 			"CloudWatch-CrossAccountSharing-ListAccountsRole",
 			canned.OrgAccountPrincipals,
@@ -183,18 +183,18 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 			aws.StringValue(auditAccount.Id),
 			roles.OrganizationAccountAccessRole,
 		))
-		role, err = awsiam.EnsureRole(svc, roles.Auditor, canned.AuditorRolePrincipals)
+		role, err = awsiam.EnsureRoleV1(svc, roles.Auditor, canned.AuditorRolePrincipals)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := awsiam.AttachRolePolicy(svc, roles.Auditor, "arn:aws:iam::aws:policy/AmazonAthenaFullAccess"); err != nil {
+		if err := awsiam.AttachRolePolicyV1(svc, roles.Auditor, "arn:aws:iam::aws:policy/AmazonAthenaFullAccess"); err != nil {
 			log.Fatal(err)
 		}
-		if err := awsiam.AttachRolePolicy(svc, roles.Auditor, "arn:aws:iam::aws:policy/ReadOnlyAccess"); err != nil {
+		if err := awsiam.AttachRolePolicyV1(svc, roles.Auditor, "arn:aws:iam::aws:policy/ReadOnlyAccess"); err != nil {
 			log.Fatal(err)
 		}
 		/*
-			if err := awsiam.AttachRolePolicy(svc, roles.Auditor, "arn:aws:iam::aws:policy/SecurityAudit"); err != nil {
+			if err := awsiam.AttachRolePolicyV1(svc, roles.Auditor, "arn:aws:iam::aws:policy/SecurityAudit"); err != nil {
 				log.Fatal(err)
 			}
 		*/
@@ -209,7 +209,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	role, err = awsiam.EnsureRoleWithPolicy(
+	role, err = awsiam.EnsureRoleWithPolicyV1(
 		iam.New(awssessions.AssumeRole(
 			sess,
 			aws.StringValue(deployAccount.Id),
@@ -248,7 +248,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	role, err = awsiam.EnsureRoleWithPolicy(
+	role, err = awsiam.EnsureRoleWithPolicyV1(
 		iam.New(awssessions.AssumeRole(
 			sess,
 			aws.StringValue(networkAccount.Id),
@@ -385,7 +385,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 				aws.StringValue(account.Id),
 				roles.OrganizationAccountAccessRole,
 			))
-			if _, err := awsiam.EnsureServiceLinkedRole(
+			if _, err := awsiam.EnsureServiceLinkedRoleV1(
 				svc,
 				"AWSServiceRoleForCloudWatchCrossAccount",
 				"cloudwatch-crossaccount.amazonaws.com",
@@ -413,7 +413,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 			fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
 		)
 	}
-	role, err = awsiam.EnsureRoleWithPolicy(
+	role, err = awsiam.EnsureRoleWithPolicyV1(
 		iam.New(awssessions.AssumeRole(
 			sess,
 			aws.StringValue(deployAccount.Id),
@@ -448,7 +448,7 @@ func EnsureAdminRolesAndPolicies(sess *session.Session, doCloudWatch bool) {
 // referenced by the given IAM client.  The only restrictions on the APIs
 // this role may call are set by the organization's service control policies.
 func EnsureAdministratorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document) (*awsiam.Role, error) {
-	return awsiam.EnsureRoleWithPolicy(
+	return awsiam.EnsureRoleWithPolicyV1(
 		svc,
 		roles.Administrator,
 		assumeRolePolicyDocument,
@@ -469,7 +469,7 @@ func EnsureAdministratorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Do
 // via AllowAssumeRolePolicyDocument but the roles that allows it to assume
 // them will (presumably) also be read-only Auditor-like roles.
 func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document) (*awsiam.Role, error) {
-	role, err := awsiam.EnsureRoleWithPolicy(
+	role, err := awsiam.EnsureRoleWithPolicyV1(
 		svc,
 		roles.Auditor,
 		assumeRolePolicyDocument,
@@ -481,7 +481,7 @@ func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document
 	if err != nil {
 		return nil, err
 	}
-	if err := awsiam.AttachRolePolicy(
+	if err := awsiam.AttachRolePolicyV1(
 		svc,
 		roles.Auditor,
 		"arn:aws:iam::aws:policy/ReadOnlyAccess",
@@ -489,7 +489,7 @@ func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document
 		return nil, err
 	}
 	/*
-		if err := awsiam.AttachRolePolicy(
+		if err := awsiam.AttachRolePolicyV1(
 			svc,
 			roles.Auditor,
 			"arn:aws:iam::aws:policy/SecurityAudit",
@@ -506,7 +506,7 @@ func EnsureAuditorRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document
 // metrics via a service-linked role in the admin account(s).
 func EnsureCloudWatchCrossAccountSharingRole(svc *iam.IAM, assumeRolePolicyDocument *policies.Document) (*awsiam.Role, error) {
 	const roleName = "CloudWatch-CrossAccountSharingRole"
-	role, err := awsiam.EnsureRole(
+	role, err := awsiam.EnsureRoleV1(
 		svc,
 		roleName,
 		assumeRolePolicyDocument,
@@ -515,16 +515,16 @@ func EnsureCloudWatchCrossAccountSharingRole(svc *iam.IAM, assumeRolePolicyDocum
 		return nil, err
 	}
 
-	if err := awsiam.AttachRolePolicy(svc, roleName, "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"); err != nil {
+	if err := awsiam.AttachRolePolicyV1(svc, roleName, "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"); err != nil {
 		return nil, err
 	}
-	if err := awsiam.AttachRolePolicy(svc, roleName, "arn:aws:iam::aws:policy/AWSXrayReadOnlyAccess"); err != nil {
+	if err := awsiam.AttachRolePolicyV1(svc, roleName, "arn:aws:iam::aws:policy/AWSXrayReadOnlyAccess"); err != nil {
 		return nil, err
 	}
-	if err := awsiam.AttachRolePolicy(svc, roleName, "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"); err != nil {
+	if err := awsiam.AttachRolePolicyV1(svc, roleName, "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"); err != nil {
 		return nil, err
 	}
-	if err := awsiam.AttachRolePolicy(svc, roleName, "arn:aws:iam::aws:policy/CloudWatchAutomaticDashboardsAccess"); err != nil {
+	if err := awsiam.AttachRolePolicyV1(svc, roleName, "arn:aws:iam::aws:policy/CloudWatchAutomaticDashboardsAccess"); err != nil {
 		return nil, err
 	}
 

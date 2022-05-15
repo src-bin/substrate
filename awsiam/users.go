@@ -1,19 +1,26 @@
 package awsiam
 
 import (
+	"context"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/iam/types"
+	iamv1 "github.com/aws/aws-sdk-go/service/iam"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
 )
 
-func CreateAccessKey(svc *iam.IAM, username string) (*iam.AccessKey, error) {
-	in := &iam.CreateAccessKeyInput{
+func CreateAccessKey(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username string,
+) (*types.AccessKey, error) {
+	out, err := cfg.ClientForIAM().CreateAccessKey(ctx, &iam.CreateAccessKeyInput{
 		UserName: aws.String(username),
-	}
-	out, err := svc.CreateAccessKey(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -21,12 +28,29 @@ func CreateAccessKey(svc *iam.IAM, username string) (*iam.AccessKey, error) {
 	return out.AccessKey, nil
 }
 
-func CreateUser(svc *iam.IAM, username string) (*iam.User, error) {
-	in := &iam.CreateUserInput{
+func CreateAccessKeyV1(
+	svc *iamv1.IAM,
+	username string,
+) (*iamv1.AccessKey, error) {
+	out, err := svc.CreateAccessKey(&iamv1.CreateAccessKeyInput{
+		UserName: aws.String(username),
+	})
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", out)
+	return out.AccessKey, nil
+}
+
+func CreateUser(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username string,
+) (*types.User, error) {
+	out, err := cfg.ClientForIAM().CreateUser(ctx, &iam.CreateUserInput{
 		Tags:     tagsFor(username),
 		UserName: aws.String(username),
-	}
-	out, err := svc.CreateUser(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -35,52 +59,133 @@ func CreateUser(svc *iam.IAM, username string) (*iam.User, error) {
 	return out.User, nil
 }
 
-func DeleteAccessKey(svc *iam.IAM, username, accessKeyId string) error {
-	in := &iam.DeleteAccessKeyInput{
+func CreateUserV1(
+	svc *iamv1.IAM,
+	username string,
+) (*iamv1.User, error) {
+	out, err := svc.CreateUser(&iamv1.CreateUserInput{
+		Tags:     tagsForV1(username),
+		UserName: aws.String(username),
+	})
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", out)
+	time.Sleep(10e9) // give IAM time to become consistent (TODO do it gracefully)
+	return out.User, nil
+}
+
+func DeleteAccessKey(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username, accessKeyId string,
+) error {
+	_, err := cfg.ClientForIAM().DeleteAccessKey(ctx, &iam.DeleteAccessKeyInput{
 		AccessKeyId: aws.String(accessKeyId),
 		UserName:    aws.String(username),
-	}
-	_, err := svc.DeleteAccessKey(in)
+	})
 	return err
 }
 
-func DeleteAllAccessKeys(svc *iam.IAM, username string) error {
-	meta, err := ListAccessKeys(svc, username)
+func DeleteAccessKeyV1(
+	svc *iamv1.IAM,
+	username, accessKeyId string,
+) error {
+	_, err := svc.DeleteAccessKey(&iamv1.DeleteAccessKeyInput{
+		AccessKeyId: aws.String(accessKeyId),
+		UserName:    aws.String(username),
+	})
+	return err
+}
+
+func DeleteAllAccessKeys(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username string,
+) error {
+	meta, err := ListAccessKeys(ctx, cfg, username)
 	if err != nil {
 		return err
 	}
 	for _, m := range meta {
-		if err := DeleteAccessKey(svc, username, aws.StringValue(m.AccessKeyId)); err != nil {
+		if err := DeleteAccessKey(ctx, cfg, username, aws.ToString(m.AccessKeyId)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func EnsureUser(svc *iam.IAM, username string) (*iam.User, error) {
+func DeleteAllAccessKeysV1(
+	svc *iamv1.IAM,
+	username string,
+) error {
+	meta, err := ListAccessKeysV1(svc, username)
+	if err != nil {
+		return err
+	}
+	for _, m := range meta {
+		if err := DeleteAccessKeyV1(svc, username, aws.ToString(m.AccessKeyId)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-	user, err := CreateUser(svc, username)
+func EnsureUser(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username string,
+) (*types.User, error) {
+
+	user, err := CreateUser(ctx, cfg, username)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
-		user, err = GetUser(svc, username)
+		user, err = GetUser(ctx, cfg, username)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	in := &iam.TagUserInput{
+	if _, err := cfg.ClientForIAM().TagUser(ctx, &iam.TagUserInput{
 		Tags:     tagsFor(username),
 		UserName: aws.String(username),
-	}
-	if _, err := svc.TagUser(in); err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
 	return user, nil
 }
 
-func EnsureUserWithPolicy(svc *iam.IAM, username string, doc *policies.Document) (*iam.User, error) {
+func EnsureUserV1(
+	svc *iamv1.IAM,
+	username string,
+) (*iamv1.User, error) {
 
-	user, err := EnsureUser(svc, username)
+	user, err := CreateUserV1(svc, username)
+	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
+		user, err = GetUserV1(svc, username)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := svc.TagUser(&iamv1.TagUserInput{
+		Tags:     tagsForV1(username),
+		UserName: aws.String(username),
+	}); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func EnsureUserWithPolicy(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username string,
+	doc *policies.Document,
+) (*types.User, error) {
+
+	user, err := EnsureUser(ctx, cfg, username)
 	if err != nil {
 		return nil, err
 	}
@@ -90,23 +195,52 @@ func EnsureUserWithPolicy(svc *iam.IAM, username string, doc *policies.Document)
 	if err != nil {
 		return nil, err
 	}
-	in := &iam.PutUserPolicyInput{
+	if _, err := cfg.ClientForIAM().PutUserPolicy(ctx, &iam.PutUserPolicyInput{
 		PolicyDocument: aws.String(docJSON),
 		PolicyName:     aws.String(SubstrateManaged),
 		UserName:       aws.String(username),
-	}
-	if _, err := svc.PutUserPolicy(in); err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
 	return user, nil
 }
 
-func GetUser(svc *iam.IAM, username string) (*iam.User, error) {
-	in := &iam.GetUserInput{
-		UserName: aws.String(username),
+func EnsureUserWithPolicyV1(
+	svc *iamv1.IAM,
+	username string,
+	doc *policies.Document,
+) (*iamv1.User, error) {
+
+	user, err := EnsureUserV1(svc, username)
+	if err != nil {
+		return nil, err
 	}
-	out, err := svc.GetUser(in)
+
+	// TODO attach the managed AdministratorAccess policy instead of inlining.
+	docJSON, err := doc.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := svc.PutUserPolicy(&iamv1.PutUserPolicyInput{
+		PolicyDocument: aws.String(docJSON),
+		PolicyName:     aws.String(SubstrateManaged),
+		UserName:       aws.String(username),
+	}); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func GetUser(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username string,
+) (*types.User, error) {
+	out, err := cfg.ClientForIAM().GetUser(ctx, &iam.GetUserInput{
+		UserName: aws.String(username),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -114,11 +248,41 @@ func GetUser(svc *iam.IAM, username string) (*iam.User, error) {
 	return out.User, nil
 }
 
-func ListAccessKeys(svc *iam.IAM, username string) ([]*iam.AccessKeyMetadata, error) {
-	in := &iam.ListAccessKeysInput{
+func GetUserV1(
+	svc *iamv1.IAM,
+	username string,
+) (*iamv1.User, error) {
+	out, err := svc.GetUser(&iamv1.GetUserInput{
 		UserName: aws.String(username),
+	})
+	if err != nil {
+		return nil, err
 	}
-	out, err := svc.ListAccessKeys(in)
+	//log.Printf("%+v", out)
+	return out.User, nil
+}
+
+func ListAccessKeys(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username string,
+) ([]types.AccessKeyMetadata, error) {
+	out, err := cfg.ClientForIAM().ListAccessKeys(ctx, &iam.ListAccessKeysInput{
+		UserName: aws.String(username),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out.AccessKeyMetadata, err
+}
+
+func ListAccessKeysV1(
+	svc *iamv1.IAM,
+	username string,
+) ([]*iamv1.AccessKeyMetadata, error) {
+	out, err := svc.ListAccessKeys(&iamv1.ListAccessKeysInput{
+		UserName: aws.String(username),
+	})
 	if err != nil {
 		return nil, err
 	}
