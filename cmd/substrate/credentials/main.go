@@ -13,7 +13,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awssts"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
@@ -89,7 +89,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	// Print credentials in whatever format was requested.
-	awssts.PrintCredentials(format, *credentials)
+	awsutil.PrintCredentials(format, *credentials)
 
 }
 
