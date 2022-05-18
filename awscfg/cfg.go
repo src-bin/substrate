@@ -254,11 +254,7 @@ func (c *Config) findAccount(
 	ctx context.Context,
 	f func(Account, tags.Tags) bool,
 ) (*Account, tags.Tags, error) {
-	cfg, err := c.AssumeManagementRole(ctx, roles.OrganizationReader, fmt.Sprintf(
-		"%s-%s",
-		contextutil.ValueString(ctx, telemetry.Command),
-		contextutil.ValueString(ctx, telemetry.Subcommand),
-	), time.Hour)
+	cfg, err := c.organizationReader(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -308,6 +304,14 @@ func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tag
 		}
 	}
 	return tags, nil
+}
+
+func (c *Config) organizationReader(ctx context.Context) (*Config, error) {
+	return c.AssumeManagementRole(ctx, roles.OrganizationReader, fmt.Sprintf(
+		"%s-%s",
+		contextutil.ValueString(ctx, telemetry.Command),
+		contextutil.ValueString(ctx, telemetry.Subcommand),
+	), time.Hour)
 }
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
