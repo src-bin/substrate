@@ -17,6 +17,10 @@ data "aws_iam_policy_document" "apigateway-trust" {
 
 data "aws_iam_policy_document" "credential-factory" {
   statement {
+    actions   = ["organizations:DescribeOrganization"]
+    resources = ["*"]
+  }
+  statement {
     actions   = ["sts:AssumeRole"]
     resources = [data.aws_iam_role.admin.arn]
   }
