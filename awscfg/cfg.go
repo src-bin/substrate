@@ -28,7 +28,7 @@ type Account = types.Account
 
 type Config struct {
 	cfg               aws.Config
-	deferredTelemetry func() error
+	deferredTelemetry func(context.Context) error
 	event             *telemetry.Event
 }
 
@@ -43,8 +43,8 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 		return
 	}
 
-	f := func() error {
-		ctx, _ = context.WithTimeout(ctx, time.Second)
+	f := func(ctx context.Context) error {
+		ctx, _ = context.WithTimeout(ctx, time.Minute)
 		describeOrganization, err := organizations.NewFromConfig(c.cfg).DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
 		if err != nil {
 			return err
@@ -61,7 +61,7 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 		//log.Printf("%+v", c.event)
 		return nil
 	}
-	if err := f(); err != nil {
+	if err := f(ctx); err != nil {
 		//log.Print(err)
 		c.deferredTelemetry = f
 	}
@@ -229,9 +229,12 @@ func (c *Config) SetCredentials(ctx context.Context, creds aws.Credentials) (err
 	}
 
 	if c.deferredTelemetry != nil {
-		err = c.deferredTelemetry()
+		if err := c.deferredTelemetry(ctx); err == nil {
+			c.deferredTelemetry = nil
+		} else {
+			//log.Print(err)
+		}
 	}
-	c.deferredTelemetry = nil
 	return
 }
 
