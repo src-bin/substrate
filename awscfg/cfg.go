@@ -22,7 +22,11 @@ import (
 	"github.com/src-bin/substrate/telemetry"
 )
 
-const TooManyRequestsException = "TooManyRequestsException"
+const (
+	TooManyRequestsException = "TooManyRequestsException"
+
+	WaitUntilCredentialsWorkTries = 10
+)
 
 type Account = types.Account
 
@@ -141,7 +145,7 @@ func (c *Config) AssumeRole(
 		},
 	))
 
-	callerIdentity, err := sts.NewFromConfig(cfg.cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	callerIdentity, err := cfg.WaitUntilCredentialsWork(ctx)
 	_ = callerIdentity
 	//log.Print(jsonutil.MustString(callerIdentity))
 
@@ -220,13 +224,23 @@ func (c *Config) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return c.cfg.Credentials.Retrieve(ctx)
 }
 
-func (c *Config) SetCredentials(ctx context.Context, creds aws.Credentials) (err error) {
+func (c *Config) SetCredentials(
+	ctx context.Context,
+	creds aws.Credentials,
+) (
+	callerIdentity *sts.GetCallerIdentityOutput,
+	err error,
+) {
 	if c.cfg, err = config.LoadDefaultConfig(
 		ctx,
-		loadOptions(config.WithCredentialsProvider(credentials.StaticCredentialsProvider{creds}))...,
+		loadOptions(config.WithCredentialsProvider(
+			credentials.StaticCredentialsProvider{creds},
+		))...,
 	); err != nil {
 		return
 	}
+
+	callerIdentity, err = c.WaitUntilCredentialsWork(ctx)
 
 	if c.deferredTelemetry != nil {
 		if err := c.deferredTelemetry(ctx); err == nil {
@@ -238,7 +252,10 @@ func (c *Config) SetCredentials(ctx context.Context, creds aws.Credentials) (err
 	return
 }
 
-func (c *Config) SetCredentialsV1(ctx context.Context, accessKeyId, secretAccessKey, sessionToken string) error {
+func (c *Config) SetCredentialsV1(
+	ctx context.Context,
+	accessKeyId, secretAccessKey, sessionToken string,
+) (*sts.GetCallerIdentityOutput, error) {
 	return c.SetCredentials(ctx, aws.Credentials{
 		AccessKeyID:     accessKeyId,
 		SecretAccessKey: secretAccessKey,
@@ -248,6 +265,26 @@ func (c *Config) SetCredentialsV1(ctx context.Context, accessKeyId, secretAccess
 
 func (c *Config) Telemetry() *telemetry.Event {
 	return c.event
+}
+
+// WaitUntilCredentialsWork waits in a sleeping loop until the configured
+// credentials (whether provided via SetCredentials or discovered in
+// environment variables or an IAM instance profile) work, which it tests
+// using sts:GetCallerIdentity. This seems silly but IAM is an eventually
+// consistent global service so it's not guaranteed that newly created
+// credentials will work immediately. Typically when this has to wait it
+// waits about five seconds.
+func (c *Config) WaitUntilCredentialsWork(ctx context.Context) (
+	callerIdentity *sts.GetCallerIdentityOutput,
+	err error,
+) {
+	for i := 0; i < WaitUntilCredentialsWorkTries; i++ {
+		if callerIdentity, err = c.GetCallerIdentity(ctx); err == nil {
+			break
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
+	return
 }
 
 func (c *Config) findAccount(
