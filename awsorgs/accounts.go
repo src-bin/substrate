@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
+	organizationsv1 "github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awsutil"
@@ -26,7 +26,7 @@ const (
 )
 
 type Account struct {
-	organizations.Account
+	organizationsv1.Account
 	Tags map[string]string
 }
 
@@ -40,8 +40,8 @@ func (err AccountNotFound) Error() string {
 	return fmt.Sprintf("account not found: %s", string(err))
 }
 
-func DescribeAccount(svc *organizations.Organizations, accountId string) (*Account, error) {
-	in := &organizations.DescribeAccountInput{
+func DescribeAccountV1(svc *organizationsv1.Organizations, accountId string) (*Account, error) {
+	in := &organizationsv1.DescribeAccountInput{
 		AccountId: aws.String(accountId),
 	}
 	out, err := svc.DescribeAccount(in)
@@ -57,7 +57,7 @@ func DescribeAccount(svc *organizations.Organizations, accountId string) (*Accou
 }
 
 func EnsureAccount(
-	svc *organizations.Organizations,
+	svc *organizationsv1.Organizations,
 	qsvc *servicequotas.ServiceQuotas,
 	domain, environment, quality string,
 	deadline time.Time,
@@ -79,7 +79,7 @@ func EnsureAccount(
 }
 
 func EnsureSpecialAccount(
-	svc *organizations.Organizations,
+	svc *organizationsv1.Organizations,
 	qsvc *servicequotas.ServiceQuotas,
 	name string,
 ) (*Account, error) {
@@ -92,14 +92,14 @@ func EnsureSpecialAccount(
 }
 
 func FindAccount(
-	svc *organizations.Organizations,
+	svc *organizationsv1.Organizations,
 	domain, environment, quality string,
 ) (*Account, error) {
 	return FindAccountByName(svc, NameFor(domain, environment, quality))
 }
 
 func FindAccountsByDomain(
-	svc *organizations.Organizations,
+	svc *organizationsv1.Organizations,
 	domain string,
 ) (accounts []*Account, err error) {
 	allAccounts, err := ListAccounts(svc)
@@ -114,7 +114,7 @@ func FindAccountsByDomain(
 	return accounts, nil
 }
 
-func FindAccountByName(svc *organizations.Organizations, name string) (*Account, error) {
+func FindAccountByName(svc *organizationsv1.Organizations, name string) (*Account, error) {
 	accounts, err := ListAccounts(svc)
 	if err != nil {
 		return nil, err
@@ -127,11 +127,11 @@ func FindAccountByName(svc *organizations.Organizations, name string) (*Account,
 	return nil, AccountNotFound(name)
 }
 
-func FindSpecialAccount(svc *organizations.Organizations, name string) (*Account, error) {
+func FindSpecialAccount(svc *organizationsv1.Organizations, name string) (*Account, error) {
 	return FindAccountByName(svc, name)
 }
 
-func ListAccounts(svc *organizations.Organizations) ([]*Account, error) {
+func ListAccounts(svc *organizationsv1.Organizations) ([]*Account, error) {
 
 	// TODO manage a cache here to buy back some performance if we need it.
 	// Might see benefits by caching for even one minute. Invalidation rules
@@ -143,10 +143,10 @@ func ListAccounts(svc *organizations.Organizations) ([]*Account, error) {
 	return ListAccountsFresh(svc)
 }
 
-func ListAccountsFresh(svc *organizations.Organizations) (accounts []*Account, err error) {
+func ListAccountsFresh(svc *organizationsv1.Organizations) (accounts []*Account, err error) {
 	var nextToken *string
 	for {
-		in := &organizations.ListAccountsInput{NextToken: nextToken}
+		in := &organizationsv1.ListAccountsInput{NextToken: nextToken}
 		out, err := svc.ListAccounts(in)
 		if err != nil {
 			return nil, err
@@ -180,18 +180,18 @@ func NameFor(domain, environment, quality string) string {
 }
 
 func Tag(
-	svc *organizations.Organizations,
+	svc *organizationsv1.Organizations,
 	accountId string,
 	tags map[string]string,
 ) error {
-	tagStructs := make([]*organizations.Tag, 0, len(tags))
+	tagStructs := make([]*organizationsv1.Tag, 0, len(tags))
 	for key, value := range tags {
-		tagStructs = append(tagStructs, &organizations.Tag{
+		tagStructs = append(tagStructs, &organizationsv1.Tag{
 			Key:   aws.String(key),
 			Value: aws.String(value),
 		})
 	}
-	in := &organizations.TagResourceInput{
+	in := &organizationsv1.TagResourceInput{
 		ResourceId: aws.String(accountId),
 		Tags:       tagStructs,
 	}
@@ -201,18 +201,18 @@ func Tag(
 }
 
 func createAccount(
-	svc *organizations.Organizations,
+	svc *organizationsv1.Organizations,
 	qsvc *servicequotas.ServiceQuotas,
 	name, email string,
 	deadline time.Time,
-) (*organizations.CreateAccountStatus, error) {
+) (*organizationsv1.CreateAccountStatus, error) {
 
-	in := &organizations.CreateAccountInput{
+	in := &organizationsv1.CreateAccountInput{
 		AccountName: aws.String(name),
 		Email:       aws.String(email),
 	}
 	var (
-		out *organizations.CreateAccountOutput
+		out *organizationsv1.CreateAccountOutput
 		err error
 	)
 	for {
@@ -220,7 +220,7 @@ func createAccount(
 
 		// If we're at the organization's limit on the number of AWS accounts
 		// it can contain, raise the limit and retry.
-		if cveErr, ok := err.(*organizations.ConstraintViolationException); ok && aws.StringValue(cveErr.Reason) == ACCOUNT_NUMBER_LIMIT_EXCEEDED {
+		if cveErr, ok := err.(*organizationsv1.ConstraintViolationException); ok && aws.StringValue(cveErr.Reason) == ACCOUNT_NUMBER_LIMIT_EXCEEDED {
 			accounts, err := ListAccounts(svc)
 			if err != nil {
 				return nil, err
@@ -253,7 +253,7 @@ func createAccount(
 
 	status := out.CreateAccountStatus
 	for {
-		in := &organizations.DescribeCreateAccountStatusInput{
+		in := &organizationsv1.DescribeCreateAccountStatusInput{
 			CreateAccountRequestId: status.Id,
 		}
 		out, err := svc.DescribeCreateAccountStatus(in)
@@ -273,7 +273,7 @@ func createAccount(
 	return status, nil
 }
 
-func emailFor(svc *organizations.Organizations, name string) (string, error) {
+func emailFor(svc *organizationsv1.Organizations, name string) (string, error) {
 	org, err := DescribeOrganization(svc)
 	if err != nil {
 		return "", err
@@ -287,7 +287,7 @@ func emailFor(svc *organizations.Organizations, name string) (string, error) {
 }
 
 func ensureAccount(
-	svc *organizations.Organizations,
+	svc *organizationsv1.Organizations,
 	qsvc *servicequotas.ServiceQuotas,
 	name string,
 	tags map[string]string,
@@ -318,17 +318,17 @@ func ensureAccount(
 		return nil, err
 	}
 
-	return DescribeAccount(svc, accountId)
+	return DescribeAccountV1(svc, accountId)
 }
 
 func listTagsForResource(
-	svc *organizations.Organizations,
+	svc *organizationsv1.Organizations,
 	accountId string,
 ) (map[string]string, error) {
 	var nextToken *string
 	tags := make(map[string]string)
 	for {
-		in := &organizations.ListTagsForResourceInput{
+		in := &organizationsv1.ListTagsForResourceInput{
 			NextToken:  nextToken,
 			ResourceId: aws.String(accountId),
 		}

@@ -42,7 +42,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		ui.Fatal(err)
 	}
-	account, err := awsorgs.DescribeAccount(organizations.New(sess), aws.StringValue(callerIdentity.Account))
+	account, err := awsorgs.DescribeAccountV1(organizations.New(sess), aws.StringValue(callerIdentity.Account))
 	if err != nil {
 		ui.Fatal(err)
 	}
