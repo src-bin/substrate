@@ -224,6 +224,11 @@ func (c *Config) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return c.cfg.Credentials.Retrieve(ctx)
 }
 
+// SetCredentials reconfigures the receiver to use the given credentials
+// (whether root, user, or session credentials) and waits until they begin
+// working (which concerns mostly user credentials). It returns the caller
+// identity because it's already gone to the trouble of getting it and
+// callers often need it right afterward, anyway.
 func (c *Config) SetCredentials(
 	ctx context.Context,
 	creds aws.Credentials,

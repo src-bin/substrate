@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 )
 
@@ -198,7 +198,11 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 	}, nil
 }
 
-func getCredentials(ctx context.Context, cfg *awscfg.Config, principalId, roleName string) (credentials aws.Credentials, err error) {
+func getCredentials(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	principalId, roleName string,
+) (credentials aws.Credentials, err error) {
 	var accessKey *types.AccessKey
 	for i := 0; i < CreateAccessKeyTriesTotal; i++ {
 		accessKey, err = awsiam.CreateAccessKey(ctx, cfg, users.CredentialFactory)
@@ -222,20 +226,14 @@ func getCredentials(ctx context.Context, cfg *awscfg.Config, principalId, roleNa
 			users.CredentialFactory,
 			aws.ToString(accessKey.AccessKeyId),
 		); err != nil {
-			log.Print(err)
+			ui.Print(err)
 		}
 	}()
 
-	time.Sleep(5e9) // I really wish I didn't have to do this
-
-	cfg.SetCredentials(ctx, aws.Credentials{
+	callerIdentity, err := cfg.SetCredentials(ctx, aws.Credentials{
 		AccessKeyID:     aws.ToString(accessKey.AccessKeyId),
 		SecretAccessKey: aws.ToString(accessKey.SecretAccessKey),
 	})
-	if err != nil {
-		return
-	}
-	callerIdentity, err := cfg.GetCallerIdentity(ctx)
 	if err != nil {
 		return
 	}
