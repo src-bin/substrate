@@ -127,8 +127,10 @@ func (c *Config) AssumeRole(
 	roleName, roleSessionName string,
 	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
-	c.event.FinalAccountId = accountId
-	c.event.FinalRoleName = roleName
+	if roleName != roles.OrganizationReader {
+		c.event.FinalAccountId = accountId
+		c.event.FinalRoleName = roleName
+	}
 
 	cfg := &Config{
 		cfg:               c.cfg.Copy(),
