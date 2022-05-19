@@ -5,15 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 )
@@ -32,53 +25,42 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
-	callerIdentity, err := awssts.GetCallerIdentity(sts.New(awssessions.Must(awssessions.NewSession(awssessions.Config{}))))
+	identity, err := cfg.Identity(ctx)
 	if err != nil {
 		ui.Fatal(err)
 	}
-	//log.Printf("%+v", callerIdentity)
-
-	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
-	if err != nil {
-		ui.Fatal(err)
-	}
-	account, err := awsorgs.DescribeAccountV1(organizations.New(sess), aws.StringValue(callerIdentity.Account))
-	if err != nil {
-		ui.Fatal(err)
-	}
-	//log.Printf("%+v", account)
 
 	switch format.String() {
 	case cmdutil.SerializationFormatEnv:
 		fmt.Printf(
 			"DOMAIN=%q\nENVIRONMENT=%q\nQUALITY=%q\nROLE=%q\n",
-			account.Tags[tags.Domain],
-			account.Tags[tags.Environment],
-			account.Tags[tags.Quality],
-			aws.StringValue(callerIdentity.Arn),
+			identity.Tags.Domain,
+			identity.Tags.Environment,
+			identity.Tags.Quality,
+			identity.ARN,
 		)
 	case cmdutil.SerializationFormatExport, cmdutil.SerializationFormatExportWithHistory:
 		fmt.Printf(
 			"export DOMAIN=%q ENVIRONMENT=%q QUALITY=%q ROLE=%q\n",
-			account.Tags[tags.Domain],
-			account.Tags[tags.Environment],
-			account.Tags[tags.Quality],
-			aws.StringValue(callerIdentity.Arn),
+			identity.Tags.Domain,
+			identity.Tags.Environment,
+			identity.Tags.Quality,
+			identity.ARN,
 		)
 	case cmdutil.SerializationFormatJSON:
 		ui.PrettyPrintJSON(map[string]string{
-			tags.Domain:      account.Tags[tags.Domain],
-			tags.Environment: account.Tags[tags.Environment],
-			tags.Quality:     account.Tags[tags.Quality],
-			"Role":           aws.StringValue(callerIdentity.Arn),
+			tags.Domain:      identity.Tags.Domain,
+			tags.Environment: identity.Tags.Environment,
+			tags.Quality:     identity.Tags.Quality,
+			"Role":           identity.ARN,
 		})
 	case cmdutil.SerializationFormatText:
 		ui.Printf(
 			"you're %s in\nDomain:      %s\nEnvironment: %s\nQuality:     %s",
-			aws.StringValue(callerIdentity.Arn),
-			account.Tags[tags.Domain],
-			account.Tags[tags.Environment],
-			account.Tags[tags.Quality],
+			identity.ARN,
+			identity.Tags.Domain,
+			identity.Tags.Environment,
+			identity.Tags.Quality,
 		)
 	default:
 		ui.Fatalf("-format=%q not supported", format)
