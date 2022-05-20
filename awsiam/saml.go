@@ -77,7 +77,7 @@ func createSAMLProvider(
 	cfg *awscfg.Config,
 	name, metadata string,
 ) (*SAMLProvider, error) {
-	out, err := cfg.ClientForIAM().CreateSAMLProvider(ctx, &iam.CreateSAMLProviderInput{
+	out, err := cfg.IAM().CreateSAMLProvider(ctx, &iam.CreateSAMLProviderInput{
 		Name:                 aws.String(name),
 		SAMLMetadataDocument: aws.String(metadata),
 	})
@@ -104,7 +104,7 @@ func createSAMLProviderV1(
 }
 
 func listSAMLProviders(ctx context.Context, cfg *awscfg.Config) []types.SAMLProviderListEntry {
-	out, err := cfg.ClientForIAM().ListSAMLProviders(ctx, &iam.ListSAMLProvidersInput{})
+	out, err := cfg.IAM().ListSAMLProviders(ctx, &iam.ListSAMLProvidersInput{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func updateSAMLProvider(
 	cfg *awscfg.Config,
 	arn, metadata string,
 ) (*SAMLProvider, error) {
-	out, err := cfg.ClientForIAM().UpdateSAMLProvider(ctx, &iam.UpdateSAMLProviderInput{
+	out, err := cfg.IAM().UpdateSAMLProvider(ctx, &iam.UpdateSAMLProviderInput{
 		SAMLMetadataDocument: aws.String(metadata),
 		SAMLProviderArn:      aws.String(arn),
 	})

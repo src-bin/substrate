@@ -18,7 +18,7 @@ func CreateAccessKey(
 	cfg *awscfg.Config,
 	username string,
 ) (*types.AccessKey, error) {
-	out, err := cfg.ClientForIAM().CreateAccessKey(ctx, &iam.CreateAccessKeyInput{
+	out, err := cfg.IAM().CreateAccessKey(ctx, &iam.CreateAccessKeyInput{
 		UserName: aws.String(username),
 	})
 	if err != nil {
@@ -47,7 +47,7 @@ func CreateUser(
 	cfg *awscfg.Config,
 	username string,
 ) (*types.User, error) {
-	out, err := cfg.ClientForIAM().CreateUser(ctx, &iam.CreateUserInput{
+	out, err := cfg.IAM().CreateUser(ctx, &iam.CreateUserInput{
 		Tags:     tagsFor(username),
 		UserName: aws.String(username),
 	})
@@ -80,7 +80,7 @@ func DeleteAccessKey(
 	cfg *awscfg.Config,
 	username, accessKeyId string,
 ) error {
-	_, err := cfg.ClientForIAM().DeleteAccessKey(ctx, &iam.DeleteAccessKeyInput{
+	_, err := cfg.IAM().DeleteAccessKey(ctx, &iam.DeleteAccessKeyInput{
 		AccessKeyId: aws.String(accessKeyId),
 		UserName:    aws.String(username),
 	})
@@ -145,7 +145,7 @@ func EnsureUser(
 		return nil, err
 	}
 
-	if _, err := cfg.ClientForIAM().TagUser(ctx, &iam.TagUserInput{
+	if _, err := cfg.IAM().TagUser(ctx, &iam.TagUserInput{
 		Tags:     tagsFor(username),
 		UserName: aws.String(username),
 	}); err != nil {
@@ -195,7 +195,7 @@ func EnsureUserWithPolicy(
 	if err != nil {
 		return nil, err
 	}
-	if _, err := cfg.ClientForIAM().PutUserPolicy(ctx, &iam.PutUserPolicyInput{
+	if _, err := cfg.IAM().PutUserPolicy(ctx, &iam.PutUserPolicyInput{
 		PolicyDocument: aws.String(docJSON),
 		PolicyName:     aws.String(SubstrateManaged),
 		UserName:       aws.String(username),
@@ -238,7 +238,7 @@ func GetUser(
 	cfg *awscfg.Config,
 	username string,
 ) (*types.User, error) {
-	out, err := cfg.ClientForIAM().GetUser(ctx, &iam.GetUserInput{
+	out, err := cfg.IAM().GetUser(ctx, &iam.GetUserInput{
 		UserName: aws.String(username),
 	})
 	if err != nil {
@@ -267,7 +267,7 @@ func ListAccessKeys(
 	cfg *awscfg.Config,
 	username string,
 ) ([]types.AccessKeyMetadata, error) {
-	out, err := cfg.ClientForIAM().ListAccessKeys(ctx, &iam.ListAccessKeysInput{
+	out, err := cfg.IAM().ListAccessKeys(ctx, &iam.ListAccessKeysInput{
 		UserName: aws.String(username),
 	})
 	if err != nil {

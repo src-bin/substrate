@@ -45,7 +45,7 @@ func attachUserPolicy(ctx context.Context, cfg *awscfg.Config, username, policyA
 		PolicyArn: aws.String(policyArn),
 		UserName:  aws.String(username),
 	}
-	_, err := cfg.ClientForIAM().AttachUserPolicy(ctx, in)
+	_, err := cfg.IAM().AttachUserPolicy(ctx, in)
 	/*
 		if awsutil.ErrorCodeIs(err, DuplicatePolicyAttachmentException) {
 			err = nil
@@ -59,7 +59,7 @@ func createPolicy(ctx context.Context, cfg *awscfg.Config, name, content string)
 		PolicyDocument: aws.String(content),
 		PolicyName:     aws.String(name),
 	}
-	out, err := cfg.ClientForIAM().CreatePolicy(ctx, in)
+	out, err := cfg.IAM().CreatePolicy(ctx, in)
 	if err != nil {
 		return nil, err
 	}

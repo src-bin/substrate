@@ -19,7 +19,7 @@ func AttachRolePolicy(
 	cfg *awscfg.Config,
 	roleName, policyArn string,
 ) error {
-	_, err := cfg.ClientForIAM().AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
+	_, err := cfg.IAM().AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
 		RoleName:  aws.String(roleName),
 		PolicyArn: aws.String(policyArn),
 	})
@@ -48,7 +48,7 @@ func CreateRole(
 	if err != nil {
 		return nil, err
 	}
-	out, err := cfg.ClientForIAM().CreateRole(ctx, &iam.CreateRoleInput{
+	out, err := cfg.IAM().CreateRole(ctx, &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
 		MaxSessionDuration:       aws.Int32(43200),
 		// TODO permissionsBoundaryPolicyArn,
@@ -93,7 +93,7 @@ func CreateServiceLinkedRole(
 	cfg *awscfg.Config,
 	serviceName string,
 ) (*Role, error) {
-	out, err := cfg.ClientForIAM().CreateServiceLinkedRole(ctx, &iam.CreateServiceLinkedRoleInput{
+	out, err := cfg.IAM().CreateServiceLinkedRole(ctx, &iam.CreateServiceLinkedRoleInput{
 		AWSServiceName: aws.String(serviceName),
 	})
 	if err != nil {
@@ -120,7 +120,7 @@ func CreateServiceLinkedRoleV1(
 }
 
 func DeleteRolePolicy(ctx context.Context, cfg *awscfg.Config, roleName string) error {
-	_, err := cfg.ClientForIAM().DeleteRolePolicy(ctx, &iam.DeleteRolePolicyInput{
+	_, err := cfg.IAM().DeleteRolePolicy(ctx, &iam.DeleteRolePolicyInput{
 		PolicyName: aws.String(SubstrateManaged),
 		RoleName:   aws.String(roleName),
 	})
@@ -135,7 +135,7 @@ func EnsureRole(
 	// TODO permissionsBoundaryPolicyArn,
 ) (*Role, error) {
 	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
-	client := cfg.ClientForIAM()
+	client := cfg.IAM()
 
 	role, err := CreateRole(
 		ctx,
@@ -172,7 +172,7 @@ func EnsureRole(
 	if err != nil {
 		return nil, err
 	}
-	if _, err := cfg.ClientForIAM().UpdateAssumeRolePolicy(ctx, &iam.UpdateAssumeRolePolicyInput{
+	if _, err := cfg.IAM().UpdateAssumeRolePolicy(ctx, &iam.UpdateAssumeRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
 		RoleName:       aws.String(roleName),
 	}); err != nil {
@@ -253,7 +253,7 @@ func EnsureRoleWithPolicy(
 	if err != nil {
 		return nil, err
 	}
-	if _, err := cfg.ClientForIAM().PutRolePolicy(ctx, &iam.PutRolePolicyInput{
+	if _, err := cfg.IAM().PutRolePolicy(ctx, &iam.PutRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
 		PolicyName:     aws.String(SubstrateManaged),
 		RoleName:       aws.String(roleName),
@@ -308,7 +308,7 @@ func EnsureServiceLinkedRole(
 		return nil, err
 	}
 
-	if _, err := cfg.ClientForIAM().TagRole(ctx, &iam.TagRoleInput{
+	if _, err := cfg.IAM().TagRole(ctx, &iam.TagRoleInput{
 		RoleName: aws.String(roleName),
 		Tags:     tagsFor(roleName),
 	}); err != nil {
@@ -343,7 +343,7 @@ func EnsureServiceLinkedRoleV1(
 }
 
 func GetRole(ctx context.Context, cfg *awscfg.Config, roleName string) (*Role, error) {
-	out, err := cfg.ClientForIAM().GetRole(ctx, &iam.GetRoleInput{
+	out, err := cfg.IAM().GetRole(ctx, &iam.GetRoleInput{
 		RoleName: aws.String(roleName),
 	})
 	if err != nil {

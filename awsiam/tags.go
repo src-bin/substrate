@@ -20,7 +20,7 @@ func ListUserTags(
 	var marker *string
 	tags := make(map[string]string)
 	for {
-		out, err := cfg.ClientForIAM().ListUserTags(ctx, &iam.ListUserTagsInput{
+		out, err := cfg.IAM().ListUserTags(ctx, &iam.ListUserTagsInput{
 			Marker:   marker,
 			UserName: aws.String(userName),
 		})
@@ -43,7 +43,7 @@ func TagUser(
 	cfg *awscfg.Config,
 	userName, key, value string,
 ) error {
-	_, err := cfg.ClientForIAM().TagUser(ctx, &iam.TagUserInput{
+	_, err := cfg.IAM().TagUser(ctx, &iam.TagUserInput{
 		Tags: []types.Tag{
 			{Key: aws.String(key), Value: aws.String(value)},
 		},
@@ -70,7 +70,7 @@ func UntagUser(
 	cfg *awscfg.Config,
 	userName, key string,
 ) error { // make it keys ...string if needed
-	_, err := cfg.ClientForIAM().UntagUser(ctx, &iam.UntagUserInput{
+	_, err := cfg.IAM().UntagUser(ctx, &iam.UntagUserInput{
 		TagKeys:  []string{key},
 		UserName: aws.String(userName),
 	})
