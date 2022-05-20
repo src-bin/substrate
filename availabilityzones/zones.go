@@ -1,12 +1,14 @@
 package availabilityzones
 
 import (
+	"context"
+	"log"
 	"sort"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsec2"
+	"github.com/src-bin/substrate/jsonutil"
 )
 
 const NumberPerNetwork = 3
@@ -14,26 +16,31 @@ const NumberPerNetwork = 3
 // Select returns a list of up to n availability zone names in the given
 // region, chosen in order from newest to oldest but returned in lexically
 // sorted order.
-func Select(sess *session.Session, region string, n int) ([]string, error) {
+func Select(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	region string,
+	n int,
+) ([]string, error) {
 
-	zones, err := awsec2.DescribeAvailabilityZones(
-		ec2.New(sess, &aws.Config{Region: aws.String(region)}),
-		region,
-	)
+	zones, err := awsec2.DescribeAvailabilityZones(ctx, cfg, region)
 	if err != nil {
 		return nil, err
 	}
+	log.Print(jsonutil.MustString(zones))
 
 	s := make(zoneIdNameSlice, len(zones))
 	for i, az := range zones {
-		s[i] = zoneIdName{aws.StringValue(az.ZoneId), aws.StringValue(az.ZoneName)}
+		s[i] = zoneIdName{aws.ToString(az.ZoneId), aws.ToString(az.ZoneName)}
 	}
 	sort.Sort(s)
+	log.Print(jsonutil.MustString(s))
 	names := make([]string, 0, n)
 	for i := len(s) - 1; i >= 0 && len(s)-i <= n; i-- {
 		names = append(names, s[i].Name)
 	}
 	sort.Strings(names)
+	log.Print(jsonutil.MustString(names))
 
 	return names, nil
 }

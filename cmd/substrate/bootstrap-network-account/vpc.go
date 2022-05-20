@@ -1,14 +1,18 @@
 package bootstrapnetworkaccount
 
 import (
+	"context"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/src-bin/substrate/availabilityzones"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/terraform"
 )
 
 func vpcAccoutrements(
+	ctx context.Context,
+	cfg *awscfg.Config,
 	sess *session.Session,
 	natGateways bool,
 	region string,
@@ -70,7 +74,7 @@ func vpcAccoutrements(
 
 	// Create a public and private subnet in each of (up to, and the newest)
 	// three availability zones in the region.
-	azs, err := availabilityzones.Select(sess, region, availabilityzones.NumberPerNetwork)
+	azs, err := availabilityzones.Select(ctx, cfg, region, availabilityzones.NumberPerNetwork)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -223,7 +223,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				Tags:      tags,
 			}
 			file.Push(vpc)
-			vpcAccoutrements(sess, natGateways, region, org, vpc, file)
+			vpcAccoutrements(ctx, cfg, sess, natGateways, region, org, vpc, file)
 			if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 				log.Fatal(err)
 			}

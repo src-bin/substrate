@@ -1,18 +1,25 @@
 package awsec2
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/src-bin/substrate/awscfg"
 )
 
-func DescribeAvailabilityZones(svc *ec2.EC2, region string) ([]*ec2.AvailabilityZone, error) {
-	in := &ec2.DescribeAvailabilityZonesInput{
-		Filters: []*ec2.Filter{&ec2.Filter{
+func DescribeAvailabilityZones(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	region string,
+) ([]types.AvailabilityZone, error) {
+	out, err := cfg.EC2().DescribeAvailabilityZones(ctx, &ec2.DescribeAvailabilityZonesInput{
+		Filters: []types.Filter{{
 			Name:   aws.String("region-name"),
-			Values: []*string{aws.String(region)},
+			Values: []string{region},
 		}},
-	}
-	out, err := svc.DescribeAvailabilityZones(in)
+	})
 	if err != nil {
 		return nil, err
 	}
