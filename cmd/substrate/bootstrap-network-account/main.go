@@ -46,6 +46,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	flag.Parse()
 	version.Flag()
 
+	cfg, err := cfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, "", time.Hour)
+	if err != nil {
+		ui.Fatal(err)
+	}
 	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{
 		FallbackToRootCredentials: true,
 	})
