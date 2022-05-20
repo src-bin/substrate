@@ -2,6 +2,7 @@ package awscfg
 
 import (
 	"context"
+	"os/user"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -69,6 +70,13 @@ func (c *Config) AssumeRole(
 	if roleName != roles.OrganizationReader {
 		c.event.FinalAccountId = accountId
 		c.event.FinalRoleName = roleName
+	}
+	if roleSessionName == "" {
+		u, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
+		roleSessionName = u.Username
 	}
 
 	cfg := &Config{

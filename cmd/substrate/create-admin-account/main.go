@@ -30,7 +30,6 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
@@ -40,7 +39,6 @@ import (
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
-	"github.com/src-bin/substrate/telemetry"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
@@ -215,11 +213,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			ctx,
 			aws.StringValue(account.Id),
 			roles.Administrator,
-			fmt.Sprintf(
-				"%s-%s",
-				contextutil.ValueString(ctx, telemetry.Command),
-				contextutil.ValueString(ctx, telemetry.Subcommand),
-			),
+			"",
 			time.Hour,
 		)
 		if err != nil {
