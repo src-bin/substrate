@@ -9,11 +9,13 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 )
 
+type AvailabilityZone = types.AvailabilityZone
+
 func DescribeAvailabilityZones(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	region string,
-) ([]types.AvailabilityZone, error) {
+) ([]AvailabilityZone, error) {
 	out, err := cfg.EC2().DescribeAvailabilityZones(ctx, &ec2.DescribeAvailabilityZonesInput{
 		Filters: []types.Filter{{
 			Name:   aws.String("region-name"),

@@ -3,6 +3,7 @@ package awscfg
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -70,6 +71,11 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 	return
 }
 
+func (c *Config) Copy() *Config {
+	c2 := *c
+	return &c2
+}
+
 func (c *Config) DescribeOrganization(ctx context.Context) (*types.Organization, error) {
 	client := organizations.NewFromConfig(c.cfg)
 	for {
@@ -92,6 +98,12 @@ func (c *Config) DescribeOrganization(ctx context.Context) (*types.Organization,
 
 func (c *Config) GetCallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {
 	return sts.NewFromConfig(c.cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+}
+
+func (c *Config) Regional(region string) *Config {
+	c2 := c.Copy()
+	c2.cfg.Region = region
+	return c2
 }
 
 func (c *Config) Retrieve(ctx context.Context) (aws.Credentials, error) {
@@ -223,10 +235,17 @@ func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tag
 }
 
 func (c *Config) organizationReader(ctx context.Context) (*Config, error) {
+	safeSubcommand, _, _ := strings.Cut(
+		strings.TrimPrefix(
+			contextutil.ValueString(ctx, telemetry.Subcommand),
+			"/",
+		),
+		"/",
+	)
 	return c.AssumeManagementRole(ctx, roles.OrganizationReader, fmt.Sprintf(
 		"%s-%s",
 		contextutil.ValueString(ctx, telemetry.Command),
-		contextutil.ValueString(ctx, telemetry.Subcommand),
+		safeSubcommand,
 	), time.Hour)
 }
 

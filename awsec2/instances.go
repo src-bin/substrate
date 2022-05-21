@@ -1,40 +1,56 @@
 package awsec2
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 )
 
 const (
 	Amazon       = "amazon"
-	AmazonLinux2 = "amzn2-ami-*-gp2"
+	AmazonLinux2 = "amzn2-ami-*-gp2" // TODO should this be updated to say gp3 or ...?
 
-	ARM    = "arm64"
-	X86_64 = "x86_64"
+	ARM    = types.ArchitectureTypeArm64
+	X86_64 = types.ArchitectureTypeX8664
 
 	UnsupportedOperation = "UnsupportedOperation"
 )
 
-func DescribeImages(svc *ec2.EC2, arch, name, owner string) ([]*ec2.Image, error) {
-	in := &ec2.DescribeImagesInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{
+type (
+	ArchitectureType   = types.ArchitectureType
+	Filter             = types.Filter
+	Image              = types.Image
+	Instance           = types.Instance
+	KeyPairInfo        = types.KeyPairInfo
+	RunInstancesOutput = ec2.RunInstancesOutput
+	Tag                = types.Tag
+)
+
+func DescribeImages(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	arch ArchitectureType,
+	name, owner string,
+) ([]Image, error) {
+	out, err := cfg.EC2().DescribeImages(ctx, &ec2.DescribeImagesInput{
+		Filters: []types.Filter{
+			{
 				Name:   aws.String("architecture"),
-				Values: []*string{aws.String(arch)},
+				Values: []string{string(arch)},
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("name"),
-				Values: []*string{aws.String(name)},
+				Values: []string{name},
 			},
 		},
-		Owners: []*string{aws.String(owner)},
-	}
-	//log.Print(in)
-	out, err := svc.DescribeImages(in)
+		Owners: []string{owner},
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -43,29 +59,30 @@ func DescribeImages(svc *ec2.EC2, arch, name, owner string) ([]*ec2.Image, error
 }
 
 func DescribeInstances(
-	svc *ec2.EC2,
-	filters []*ec2.Filter,
-) ([]*ec2.Instance, error) {
-	in := &ec2.DescribeInstancesInput{Filters: filters}
-	//log.Print(in)
-	out, err := svc.DescribeInstances(in)
+	ctx context.Context,
+	cfg *awscfg.Config,
+	filters []Filter,
+) ([]Instance, error) {
+	out, err := cfg.EC2().DescribeInstances(ctx, &ec2.DescribeInstancesInput{Filters: filters})
 	if err != nil {
 		return nil, err
 	}
 	//log.Print(out)
-	var instances []*ec2.Instance
+	var instances []types.Instance
 	for _, reservation := range out.Reservations {
 		instances = append(instances, reservation.Instances...)
 	}
 	return instances, nil
 }
 
-func DescribeKeyPairs(svc *ec2.EC2, name string) ([]*ec2.KeyPairInfo, error) {
-	in := &ec2.DescribeKeyPairsInput{
-		KeyNames: []*string{aws.String(name)},
-	}
-	//log.Print(in)
-	out, err := svc.DescribeKeyPairs(in)
+func DescribeKeyPairs(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	name string,
+) ([]KeyPairInfo, error) {
+	out, err := cfg.EC2().DescribeKeyPairs(ctx, &ec2.DescribeKeyPairsInput{
+		KeyNames: []string{name},
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +90,15 @@ func DescribeKeyPairs(svc *ec2.EC2, name string) ([]*ec2.KeyPairInfo, error) {
 	return out.KeyPairs, nil
 }
 
-func ImportKeyPair(svc *ec2.EC2, name, publicKeyMaterial string) (*ec2.ImportKeyPairOutput, error) {
-	in := &ec2.ImportKeyPairInput{
+func ImportKeyPair(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	name, publicKeyMaterial string,
+) (*ec2.ImportKeyPairOutput, error) {
+	out, err := cfg.EC2().ImportKeyPair(ctx, &ec2.ImportKeyPairInput{
 		KeyName:           aws.String(name),
 		PublicKeyMaterial: []byte(publicKeyMaterial),
-	}
-	//log.Print(in)
-	out, err := svc.ImportKeyPair(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +106,12 @@ func ImportKeyPair(svc *ec2.EC2, name, publicKeyMaterial string) (*ec2.ImportKey
 	return out, nil
 }
 
-func LatestAmazonLinux2AMI(svc *ec2.EC2, arch string) (*ec2.Image, error) {
-	images, err := DescribeImages(svc, arch, AmazonLinux2, Amazon)
+func LatestAmazonLinux2AMI(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	arch ArchitectureType,
+) (*Image, error) {
+	images, err := DescribeImages(ctx, cfg, arch, AmazonLinux2, Amazon)
 	if err != nil {
 		return nil, err
 	}
@@ -96,53 +119,57 @@ func LatestAmazonLinux2AMI(svc *ec2.EC2, arch string) (*ec2.Image, error) {
 		return nil, fmt.Errorf("Amazon Linux 2 AMI for %s not found", arch)
 	}
 	sort.Slice(images, func(i, j int) bool {
-		return aws.StringValue(images[j].CreationDate) < aws.StringValue(images[i].CreationDate) // descending
+		return aws.ToString(images[j].CreationDate) < aws.ToString(images[i].CreationDate) // descending
 	})
-	return images[0], nil
+	image := images[0] // don't leak the slice
+	return &image, nil
 }
 
 func RunInstance(
-	svc *ec2.EC2,
-	iamInstanceProfile, imageId, instanceType, keyName string,
-	rootVolumeSize int,
+	ctx context.Context,
+	cfg *awscfg.Config,
+	iamInstanceProfile, imageId string,
+	instanceType InstanceType,
+	keyName string,
+	rootVolumeSize int32,
 	securityGroupId, subnetId string,
-	tags []*ec2.Tag,
-) (*ec2.Reservation, error) {
+	tags []Tag,
+) (*RunInstancesOutput, error) {
 	in := &ec2.RunInstancesInput{
-		BlockDeviceMappings: []*ec2.BlockDeviceMapping{&ec2.BlockDeviceMapping{
+		BlockDeviceMappings: []types.BlockDeviceMapping{{
 			DeviceName: aws.String("/dev/xvda"),
-			Ebs: &ec2.EbsBlockDevice{
+			Ebs: &types.EbsBlockDevice{
 				DeleteOnTermination: aws.Bool(true),
-				VolumeSize:          aws.Int64(int64(rootVolumeSize)),
-				VolumeType:          aws.String("gp3"),
+				VolumeSize:          aws.Int32(rootVolumeSize),
+				VolumeType:          types.VolumeTypeGp3,
 			},
 		}},
 		//DryRun: aws.Bool(true),
-		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+		IamInstanceProfile: &types.IamInstanceProfileSpecification{
 			Name: aws.String(iamInstanceProfile),
 		},
 		ImageId:      aws.String(imageId),
-		InstanceType: aws.String(instanceType),
+		InstanceType: instanceType,
 		KeyName:      aws.String(keyName),
-		MaxCount:     aws.Int64(1),
-		MetadataOptions: &ec2.InstanceMetadataOptionsRequest{
-			HttpEndpoint:     aws.String("enabled"),
-			HttpProtocolIpv6: aws.String("enabled"),
-			HttpTokens:       aws.String("required"),
+		MaxCount:     aws.Int32(1),
+		MetadataOptions: &types.InstanceMetadataOptionsRequest{
+			HttpEndpoint:     types.InstanceMetadataEndpointStateEnabled,
+			HttpProtocolIpv6: types.InstanceMetadataProtocolStateEnabled,
+			HttpTokens:       types.HttpTokensStateRequired,
 		},
-		MinCount:         aws.Int64(1),
-		SecurityGroupIds: []*string{aws.String(securityGroupId)},
+		MinCount:         aws.Int32(1),
+		SecurityGroupIds: []string{securityGroupId},
 		SubnetId:         aws.String(subnetId),
-		TagSpecifications: []*ec2.TagSpecification{&ec2.TagSpecification{
-			ResourceType: aws.String("instance"),
+		TagSpecifications: []types.TagSpecification{{
+			ResourceType: types.ResourceTypeInstance,
 			Tags:         tags,
 		}},
 	}
 	//log.Print(in)
-	reservation, err := svc.RunInstances(in)
+	reservation, err := cfg.EC2().RunInstances(ctx, in)
 	if awsutil.ErrorCodeIs(err, UnsupportedOperation) {
-		in.MetadataOptions.HttpProtocolIpv6 = nil
-		reservation, err = svc.RunInstances(in)
+		in.MetadataOptions.HttpProtocolIpv6 = types.InstanceMetadataProtocolStateDisabled
+		reservation, err = cfg.EC2().RunInstances(ctx, in)
 	}
 	if err != nil {
 		return nil, err
@@ -152,12 +179,13 @@ func RunInstance(
 }
 
 func TerminateInstance(
-	svc *ec2.EC2, instanceId string) error {
-	in := &ec2.TerminateInstancesInput{
-		InstanceIds: []*string{aws.String(instanceId)},
-	}
-	//log.Print(in)
-	_, err := svc.TerminateInstances(in)
+	ctx context.Context,
+	cfg *awscfg.Config,
+	instanceId string,
+) error {
+	_, err := cfg.EC2().TerminateInstances(ctx, &ec2.TerminateInstancesInput{
+		InstanceIds: []string{instanceId},
+	})
 	if err != nil {
 		return err
 	}

@@ -1,17 +1,28 @@
 package awsec2
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/src-bin/substrate/awscfg"
 )
 
-func DescribeInstanceTypeOfferings(svc *ec2.EC2) (offerings []*ec2.InstanceTypeOffering, err error) {
+type (
+	InstanceTypeInfo     = types.InstanceTypeInfo
+	InstanceTypeOffering = types.InstanceTypeOffering
+	InstanceType         = types.InstanceType
+)
+
+func DescribeInstanceTypeOfferings(
+	ctx context.Context,
+	cfg *awscfg.Config,
+) (offerings []InstanceTypeOffering, err error) {
 	var nextToken *string
 	for {
-		in := &ec2.DescribeInstanceTypeOfferingsInput{
+		out, err := cfg.EC2().DescribeInstanceTypeOfferings(ctx, &ec2.DescribeInstanceTypeOfferingsInput{
 			NextToken: nextToken,
-		}
-		out, err := svc.DescribeInstanceTypeOfferings(in)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -23,14 +34,17 @@ func DescribeInstanceTypeOfferings(svc *ec2.EC2) (offerings []*ec2.InstanceTypeO
 	return
 }
 
-func DescribeInstanceTypes(svc *ec2.EC2, types []string) (infos []*ec2.InstanceTypeInfo, err error) {
+func DescribeInstanceTypes(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	instanceTypes []InstanceType,
+) (infos []InstanceTypeInfo, err error) {
 	var nextToken *string
 	for {
-		in := &ec2.DescribeInstanceTypesInput{
-			InstanceTypes: aws.StringSlice(types),
+		out, err := cfg.EC2().DescribeInstanceTypes(ctx, &ec2.DescribeInstanceTypesInput{
+			InstanceTypes: instanceTypes,
 			NextToken:     nextToken,
-		}
-		out, err := svc.DescribeInstanceTypes(in)
+		})
 		if err != nil {
 			return nil, err
 		}

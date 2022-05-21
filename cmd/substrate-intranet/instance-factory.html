@@ -32,13 +32,13 @@
 {{- $terminate := .Terminate}}
 {{- $terminated := .Terminated}}
 {{- range .Instances}}
-<tr{{if eq (StringValue .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (StringValue .InstanceId) $terminate}} bgcolor="#ffeeee"{{else if eq (StringValue .InstanceId) $terminated}} bgcolor="#ffeeee"{{end}}>
+<tr{{if eq (ToString .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (ToString .InstanceId) $terminate}} bgcolor="#ffeeee"{{else if eq (ToString .InstanceId) $terminated}} bgcolor="#ffeeee"{{end}}>
     <td><kbd>ssh -A ec2-user@{{.PublicDnsName}}</kbd></td>
     <td>{{.Placement.AvailabilityZone}}</td>
     <td>{{.InstanceType}}</td>
     <td>{{.LaunchTime}}</td>
     <td>{{.State.Name}}</td>
-    <td>{{if eq (StringValue .State.Name) "running"}}{{if eq (StringValue .InstanceId) $terminate}}
+    <td>{{if eq .State.Name "running"}}{{if eq (ToString .InstanceId) $terminate}}
         <form method="POST">
             <input type="submit" value="Yes, Terminate">
             <input name="region" type="hidden" value="{{.Placement.AvailabilityZone | RegionFromAZ}}">

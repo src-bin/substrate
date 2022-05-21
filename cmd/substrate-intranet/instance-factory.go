@@ -3,21 +3,19 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsec2"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
@@ -33,13 +31,16 @@ func init() {
 
 func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
-	var instanceType, publicKeyMaterial, terminateConfirmed string
+	var (
+		instanceType                          awsec2.InstanceType
+		publicKeyMaterial, terminateConfirmed string
+	)
 	launched := event.QueryStringParameters["launched"] // TODO don't propagate this into the HTML if the instance it references is in the "running" state
 	principalId := event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string)
 	region := event.QueryStringParameters["region"]
-	log.Printf("GET region: %+v", region)
+	//log.Printf("GET region: %+v", region)
 	selectedRegions := strings.Split(event.StageVariables["SelectedRegions"], ",")
-	log.Printf("selectedRegions: %+v", selectedRegions)
+	//log.Printf("selectedRegions: %+v", selectedRegions)
 	terminate := event.QueryStringParameters["terminate"]
 	terminated := event.QueryStringParameters["terminated"]
 	if event.HTTPMethod == "POST" {
@@ -51,12 +52,12 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("POST values: %+v", values)
-		instanceType = values.Get("instance_type")
-		log.Printf("POST instanceType: %+v", instanceType)
+		//log.Printf("POST values: %+v", values)
+		instanceType = awsec2.InstanceType(values.Get("instance_type"))
+		//log.Printf("POST instanceType: %+v", instanceType)
 		publicKeyMaterial = values.Get("public_key_material")
 		region = values.Get("region")
-		log.Printf("POST region: %+v", region)
+		//log.Printf("POST region: %+v", region)
 		terminateConfirmed = values.Get("terminate")
 	}
 
@@ -65,11 +66,11 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	for _, r := range selectedRegions {
 		found = found || r == region
 	}
-	log.Printf("found: %v", found)
+	//log.Printf("found: %v", found)
 	if !found {
 		v := struct {
 			Error                           error
-			Instances                       []*ec2.Instance
+			Instances                       []awsec2.Instance
 			Launched, Terminate, Terminated string
 			Regions                         []string
 		}{
@@ -82,26 +83,20 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 			v.Error = fmt.Errorf("%s is either not a valid region or is not in use in your organization", region)
 		}
 		for _, region := range selectedRegions {
-
-			sess, err := awssessions.NewSession(awssessions.Config{Region: region})
-			if err != nil {
-				return nil, err
-			}
-			svc := ec2.New(sess)
-
 			instances, err := awsec2.DescribeInstances(
-				svc,
-				[]*ec2.Filter{
-					&ec2.Filter{
+				ctx,
+				cfg.Regional(region),
+				[]awsec2.Filter{
+					{
 						Name: aws.String(fmt.Sprintf("tag:%s", tags.Manager)),
-						Values: []*string{
-							aws.String(tags.Substrate),
-							aws.String(tags.SubstrateInstanceFactory), // remove in 2022.10
+						Values: []string{
+							tags.Substrate,
+							tags.SubstrateInstanceFactory, // remove in 2022.10
 						},
 					},
-					&ec2.Filter{
+					{
 						Name:   aws.String("key-name"),
-						Values: []*string{aws.String(fmt.Sprint(event.RequestContext.Authorizer["principalId"]))},
+						Values: []string{fmt.Sprint(event.RequestContext.Authorizer["principalId"])},
 					},
 				},
 			)
@@ -110,7 +105,6 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 				break
 			}
 			v.Instances = append(v.Instances, instances...)
-
 		}
 		body, err := lambdautil.RenderHTML(instanceFactoryTemplate(), v)
 		if err != nil {
@@ -123,16 +117,12 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 		}, nil
 	}
 
-	sess, err := awssessions.NewSession(awssessions.Config{Region: region})
-	if err != nil {
-		return nil, err
-	}
-	svc := ec2.New(sess)
+	cfg = cfg.Regional(region)
 
 	// We've got a region. If we're to terminate an instance, we've got enough
 	// information to do so already.
 	if terminateConfirmed != "" {
-		if err := awsec2.TerminateInstance(svc, terminateConfirmed); err != nil {
+		if err := awsec2.TerminateInstance(ctx, cfg, terminateConfirmed); err != nil {
 			return lambdautil.ErrorResponse(err)
 		}
 		return &events.APIGatewayProxyResponse{
@@ -151,11 +141,11 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	// We've got a region. Ensure we've got a key pair in this region, too, or
 	// render the public key input page.
 	if publicKeyMaterial != "" {
-		if _, err := awsec2.ImportKeyPair(svc, principalId, publicKeyMaterial); err != nil {
+		if _, err := awsec2.ImportKeyPair(ctx, cfg, principalId, publicKeyMaterial); err != nil {
 			return lambdautil.ErrorResponse(err)
 		}
 	}
-	keyPairs, err := awsec2.DescribeKeyPairs(svc, principalId)
+	keyPairs, err := awsec2.DescribeKeyPairs(ctx, cfg, principalId)
 	if err != nil || len(keyPairs) != 1 {
 		v := struct {
 			Error       error
@@ -178,14 +168,13 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 
 	// We've got a region and a key pair. Use the region to enumerate all valid
 	// instance types.
-	offerings, err := awsec2.DescribeInstanceTypeOfferings(svc)
+	offerings, err := awsec2.DescribeInstanceTypeOfferings(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
-	instanceFamilies := make(map[string][]string)
+	instanceFamilies := make(map[string][]awsec2.InstanceType)
 	for _, offering := range offerings {
-		instanceType := aws.StringValue(offering.InstanceType)
-		ss := strings.SplitN(instanceType, ".", 2)
+		ss := strings.SplitN(string(offering.InstanceType), ".", 2)
 
 		// Don't bother offering some really old instance families just to save screen real estate.
 		if ss[0] == "c1" || ss[0] == "cc2" || ss[0] == "c3" || ss[0] == "m1" || ss[0] == "m2" || ss[0] == "m3" || ss[0] == "r3" || ss[0] == "t1" {
@@ -194,14 +183,14 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 
 		instanceTypes, ok := instanceFamilies[ss[0]]
 		if ok {
-			instanceFamilies[ss[0]] = append(instanceTypes, instanceType)
+			instanceFamilies[ss[0]] = append(instanceTypes, offering.InstanceType)
 		} else {
-			instanceFamilies[ss[0]] = []string{instanceType}
+			instanceFamilies[ss[0]] = []awsec2.InstanceType{offering.InstanceType}
 		}
 	}
 	for _, instanceTypes := range instanceFamilies {
 		sort.Slice(instanceTypes, func(i, j int) bool {
-			ssI, ssJ := strings.SplitN(instanceTypes[i], ".", 2), strings.SplitN(instanceTypes[j], ".", 2)
+			ssI, ssJ := strings.SplitN(string(instanceTypes[i]), ".", 2), strings.SplitN(string(instanceTypes[j]), ".", 2)
 			if ssI[0] < ssJ[0] {
 				return true
 			}
@@ -241,11 +230,11 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 			found = found || i == instanceType
 		}
 	}
-	log.Printf("found: %v", found)
+	//log.Printf("found: %v", found)
 	if !found {
 		v := struct {
 			Error            error
-			InstanceFamilies map[string][]string
+			InstanceFamilies map[string][]awsec2.InstanceType
 			Region           string
 		}{
 			InstanceFamilies: instanceFamilies,
@@ -266,52 +255,53 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	}
 
 	// Let's do this!
-	types, err := awsec2.DescribeInstanceTypes(svc, []string{instanceType})
+	instanceTypes, err := awsec2.DescribeInstanceTypes(ctx, cfg, []awsec2.InstanceType{instanceType})
 	if err != nil {
 		return nil, err
 	}
-	if len(types) == 0 {
+	if len(instanceTypes) == 0 {
 		return nil, fmt.Errorf("instance type %s not found", instanceType)
 	}
-	if len(types) > 1 {
-		return nil, fmt.Errorf("%d instance types %s found", len(types), instanceType)
+	if len(instanceTypes) > 1 {
+		return nil, fmt.Errorf("%d instance types %s found", len(instanceTypes), instanceType)
 	}
-	archs := types[0].ProcessorInfo.SupportedArchitectures
+	archs := instanceTypes[0].ProcessorInfo.SupportedArchitectures
 	if len(archs) == 0 {
 		return nil, fmt.Errorf("instance type %s supports zero CPU architectures", instanceType)
 	}
 	if len(archs) > 2 {
 		return nil, fmt.Errorf("instance type %s supports more than two CPU architectures", instanceType)
 	}
-	arch := aws.StringValue(archs[0])
+	arch := archs[0]
 	if arch == "i386" && len(archs) == 2 {
-		arch = aws.StringValue(archs[1])
+		arch = archs[1]
 	}
-	image, err := awsec2.LatestAmazonLinux2AMI(svc, arch)
+	image, err := awsec2.LatestAmazonLinux2AMI(ctx, cfg, arch)
 	if err != nil {
 		return nil, err
 	}
-	subnet, err := randomSubnet("admin", event.RequestContext.Stage, region)
+	subnet, err := randomSubnet(ctx, cfg, accounts.Admin, event.RequestContext.Stage, region)
 	if err != nil {
 		return nil, err
 	}
-	securityGroups, err := awsec2.DescribeSecurityGroups(svc, aws.StringValue(subnet.VpcId), "InstanceFactory")
+	securityGroups, err := awsec2.DescribeSecurityGroups(ctx, cfg, aws.ToString(subnet.VpcId), "InstanceFactory")
 	if err != nil {
 		return nil, err
 	}
 	if len(securityGroups) != 1 {
-		return nil, fmt.Errorf("security group not found in %s", aws.StringValue(subnet.VpcId))
+		return nil, fmt.Errorf("security group not found in %s", aws.ToString(subnet.VpcId))
 	}
 	reservation, err := awsec2.RunInstance( // TODO make this a lot simpler and let users customize the AMI, etc. by using a launch template
-		svc,
+		ctx,
+		cfg,
 		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
-		aws.StringValue(image.ImageId),
+		aws.ToString(image.ImageId),
 		instanceType,
-		aws.StringValue(keyPairs[0].KeyName),
+		aws.ToString(keyPairs[0].KeyName),
 		100, // gigabyte root volume
-		aws.StringValue(securityGroups[0].GroupId),
-		aws.StringValue(subnet.SubnetId),
-		[]*ec2.Tag{&ec2.Tag{
+		aws.ToString(securityGroups[0].GroupId),
+		aws.ToString(subnet.SubnetId),
+		[]awsec2.Tag{{
 			Key:   aws.String(tags.Manager),
 			Value: aws.String(tags.Substrate),
 		}},
@@ -320,12 +310,12 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 		return lambdautil.ErrorResponse(err)
 	}
 	return &events.APIGatewayProxyResponse{
-		Body: fmt.Sprintf("launching %s", aws.StringValue(reservation.Instances[0].InstanceId)),
+		Body: fmt.Sprintf("launching %s", aws.ToString(reservation.Instances[0].InstanceId)),
 		Headers: map[string]string{
 			"Content-Type": "text/plain",
 			"Location": location(
 				event,
-				url.Values{"launched": []string{aws.StringValue(reservation.Instances[0].InstanceId)}},
+				url.Values{"launched": []string{aws.ToString(reservation.Instances[0].InstanceId)}},
 			),
 		},
 		StatusCode: http.StatusFound,
@@ -343,25 +333,30 @@ func location(event *events.APIGatewayProxyRequest, query url.Values) string {
 	return u.String()
 }
 
-func randomSubnet(environment, quality, region string) (*ec2.Subnet, error) {
-	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.Auditor, awssessions.Config{Region: region})
+func randomSubnet(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	environment, quality, region string,
+) (*awsec2.Subnet, error) {
+	cfg, err := cfg.AssumeSpecialRole(ctx, accounts.Network, roles.Auditor, "", time.Hour)
 	if err != nil {
 		return nil, err
 	}
-	svc := ec2.New(sess)
-	vpcs, err := awsec2.DescribeVpcs(svc, environment, quality)
+	// TODO cfg region
+	vpcs, err := awsec2.DescribeVpcs(ctx, cfg, environment, quality)
 	if err != nil {
 		return nil, err
 	}
 	if len(vpcs) != 1 {
 		return nil, fmt.Errorf("%s %s VPC not found in %s", environment, quality, region)
 	}
-	subnets, err := awsec2.DescribeSubnets(svc, aws.StringValue(vpcs[0].VpcId))
+	subnets, err := awsec2.DescribeSubnets(ctx, cfg, aws.ToString(vpcs[0].VpcId))
 	if err != nil {
 		return nil, err
 	}
 	if len(subnets) == 0 {
-		return nil, fmt.Errorf("no subnets in %s", aws.StringValue(vpcs[0].VpcId))
+		return nil, fmt.Errorf("no subnets in %s", aws.ToString(vpcs[0].VpcId))
 	}
-	return subnets[rand.Intn(len(subnets))], nil
+	subnet := subnets[rand.Intn(len(subnets))] // don't leak the slice
+	return &subnet, nil
 }

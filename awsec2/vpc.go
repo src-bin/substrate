@@ -1,25 +1,37 @@
 package awsec2
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/src-bin/substrate/awscfg"
 )
 
-func DescribeSecurityGroups(svc *ec2.EC2, vpcId, name string) ([]*ec2.SecurityGroup, error) {
-	in := &ec2.DescribeSecurityGroupsInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{
+type (
+	SecurityGroup = types.SecurityGroup
+	Subnet        = types.Subnet
+	Vpc           = types.Vpc
+)
+
+func DescribeSecurityGroups(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	vpcId, name string,
+) ([]SecurityGroup, error) {
+	out, err := cfg.EC2().DescribeSecurityGroups(ctx, &ec2.DescribeSecurityGroupsInput{
+		Filters: []types.Filter{
+			{
 				Name:   aws.String("group-name"),
-				Values: []*string{aws.String(name)},
+				Values: []string{name},
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("vpc-id"),
-				Values: []*string{aws.String(vpcId)},
+				Values: []string{vpcId},
 			},
 		},
-	}
-	//log.Print(in)
-	out, err := svc.DescribeSecurityGroups(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -27,15 +39,17 @@ func DescribeSecurityGroups(svc *ec2.EC2, vpcId, name string) ([]*ec2.SecurityGr
 	return out.SecurityGroups, nil
 }
 
-func DescribeSubnets(svc *ec2.EC2, vpcId string) ([]*ec2.Subnet, error) {
-	in := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{&ec2.Filter{
+func DescribeSubnets(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	vpcId string,
+) ([]Subnet, error) {
+	out, err := cfg.EC2().DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
+		Filters: []types.Filter{{
 			Name:   aws.String("vpc-id"),
-			Values: []*string{aws.String(vpcId)},
+			Values: []string{vpcId},
 		}},
-	}
-	//log.Print(in)
-	out, err := svc.DescribeSubnets(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -43,21 +57,23 @@ func DescribeSubnets(svc *ec2.EC2, vpcId string) ([]*ec2.Subnet, error) {
 	return out.Subnets, nil
 }
 
-func DescribeVpcs(svc *ec2.EC2, environment, quality string) ([]*ec2.Vpc, error) {
-	in := &ec2.DescribeVpcsInput{
-		Filters: []*ec2.Filter{
-			&ec2.Filter{
+func DescribeVpcs(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	environment, quality string,
+) ([]Vpc, error) {
+	out, err := cfg.EC2().DescribeVpcs(ctx, &ec2.DescribeVpcsInput{
+		Filters: []types.Filter{
+			{
 				Name:   aws.String("tag:Environment"),
-				Values: []*string{aws.String(environment)},
+				Values: []string{environment},
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("tag:Quality"),
-				Values: []*string{aws.String(quality)},
+				Values: []string{quality},
 			},
 		},
-	}
-	//log.Print(in)
-	out, err := svc.DescribeVpcs(in)
+	})
 	if err != nil {
 		return nil, err
 	}
