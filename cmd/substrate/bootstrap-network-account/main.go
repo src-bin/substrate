@@ -210,7 +210,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			org := terraform.Organization{
 				Label: terraform.Q("current"),
 			}
-			file.Push(org)
+			file.Add(org)
 			tags := terraform.Tags{
 				Environment: eq.Environment,
 				Name:        fmt.Sprintf("%s-%s", eq.Environment, eq.Quality),
@@ -222,7 +222,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				Label:     terraform.Label(tags),
 				Tags:      tags,
 			}
-			file.Push(vpc)
+			file.Add(vpc)
 			vpcAccoutrements(ctx, cfg, sess, natGateways, region, org, vpc, file)
 			if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 				log.Fatal(err)
@@ -318,7 +318,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			providersFile := terraform.NewFile()
 
 			// The default provider for building out networks in this root module.
-			providersFile.Push(terraform.ProviderFor(
+			providersFile.Add(terraform.ProviderFor(
 				region,
 				roles.Arn(accountId, roles.NetworkAdministrator),
 			))
@@ -332,7 +332,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			providersFile.Push(terraform.NetworkProviderFor(
+			providersFile.Add(terraform.NetworkProviderFor(
 				region,
 				roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
 			))
@@ -404,7 +404,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		)
 
 		file := terraform.NewFile()
-		file.Push(terraform.Module{
+		file.Add(terraform.Module{
 			Arguments: map[string]terraform.Value{
 				"accepter_environment":  terraform.Q(eq0.Environment),
 				"accepter_quality":      terraform.Q(eq0.Quality),
@@ -428,13 +428,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			roles.Arn(accountId, roles.NetworkAdministrator),
 		)
 		accepterProvider.Alias = "accepter"
-		providersFile.Push(accepterProvider)
+		providersFile.Add(accepterProvider)
 		requesterProvider := terraform.ProviderFor(
 			region0,
 			roles.Arn(accountId, roles.NetworkAdministrator),
 		)
 		requesterProvider.Alias = "requester"
-		providersFile.Push(requesterProvider)
+		providersFile.Add(requesterProvider)
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			log.Fatal(err)
 		}

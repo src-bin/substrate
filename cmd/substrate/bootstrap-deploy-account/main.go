@@ -72,11 +72,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 
 		providersFile := terraform.NewFile()
-		providersFile.Push(terraform.ProviderFor(
+		providersFile.Add(terraform.ProviderFor(
 			region,
 			roles.Arn(accountId, roles.DeployAdministrator),
 		))
-		providersFile.Push(terraform.UsEast1Provider(
+		providersFile.Add(terraform.UsEast1Provider(
 			roles.Arn(accountId, roles.DeployAdministrator),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
@@ -149,8 +149,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Policy: terraform.Q(policy.MustMarshal()),
 			Tags:   tags,
 		}
-		file.Push(bucket)
-		file.Push(terraform.S3BucketOwnershipControls{
+		file.Add(bucket)
+		file.Add(terraform.S3BucketOwnershipControls{
 			Bucket:          terraform.U(bucket.Ref(), ".bucket"),
 			Label:           terraform.Label(tags),
 			ObjectOwnership: terraform.Q(terraform.BucketOwnerPreferred),
@@ -160,7 +160,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 
 		providersFile := terraform.NewFile()
-		providersFile.Push(terraform.ProviderFor(
+		providersFile.Add(terraform.ProviderFor(
 			region,
 			roles.Arn(accountId, roles.DeployAdministrator),
 		))
@@ -171,7 +171,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		providersFile.Push(terraform.NetworkProviderFor(
+		providersFile.Add(terraform.NetworkProviderFor(
 			region,
 			roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
 		))

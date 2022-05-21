@@ -380,17 +380,17 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			},
 			Source: terraform.Q("../../../../modules/intranet/global"),
 		}
-		file.Push(module)
+		file.Add(module)
 		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 			log.Fatal(err)
 		}
 
 		providersFile := terraform.NewFile()
-		providersFile.Push(terraform.ProviderFor(
+		providersFile.Add(terraform.ProviderFor(
 			region,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 		))
-		providersFile.Push(terraform.UsEast1Provider(
+		providersFile.Add(terraform.UsEast1Provider(
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
@@ -431,7 +431,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			arguments["okta_hostname"] = terraform.Q(oauthoidc.OktaHostnameValueForGoogleIdP)
 		}
 		tags.Region = region
-		file.Push(terraform.Module{
+		file.Add(terraform.Module{
 			Arguments: arguments,
 			Label:     terraform.Q("intranet"),
 			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
@@ -451,7 +451,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 
 		providersFile := terraform.NewFile()
-		providersFile.Push(terraform.ProviderFor(
+		providersFile.Add(terraform.ProviderFor(
 			region,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 		))
@@ -462,7 +462,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		providersFile.Push(terraform.NetworkProviderFor(
+		providersFile.Add(terraform.NetworkProviderFor(
 			region,
 			roles.Arn(aws.StringValue(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
 		))

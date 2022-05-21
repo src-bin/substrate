@@ -130,7 +130,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		region := regions.Default()
 
 		file := terraform.NewFile()
-		file.Push(terraform.Module{
+		file.Add(terraform.Module{
 			Label: terraform.Q(*domain),
 			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
 				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
@@ -143,11 +143,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 
 		providersFile := terraform.NewFile()
-		providersFile.Push(terraform.ProviderFor(
+		providersFile.Add(terraform.ProviderFor(
 			region,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 		))
-		providersFile.Push(terraform.UsEast1Provider(
+		providersFile.Add(terraform.UsEast1Provider(
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
@@ -175,7 +175,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, region)
 
 		file := terraform.NewFile()
-		file.Push(terraform.Module{
+		file.Add(terraform.Module{
 			Label: terraform.Q(*domain),
 			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
 				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
@@ -194,7 +194,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 
 		providersFile := terraform.NewFile()
-		providersFile.Push(terraform.ProviderFor(
+		providersFile.Add(terraform.ProviderFor(
 			region,
 			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
 		))
@@ -205,7 +205,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		providersFile.Push(terraform.NetworkProviderFor(
+		providersFile.Add(terraform.NetworkProviderFor(
 			region,
 			roles.Arn(aws.StringValue(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
 		))

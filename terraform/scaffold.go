@@ -19,7 +19,7 @@ func Scaffold(domain string) error {
 		}
 
 		substrateFile := NewFile()
-		substrateFile.Push(Module{
+		substrateFile.Add(Module{
 			Label:  Q("substrate"),
 			Source: Q("../../substrate/global"),
 		})
@@ -47,7 +47,7 @@ func Scaffold(domain string) error {
 		}
 
 		substrateFile := NewFile()
-		substrateFile.Push(Module{
+		substrateFile.Add(Module{
 			Label: Q("substrate"),
 			Providers: map[ProviderAlias]ProviderAlias{
 				DefaultProviderAlias: DefaultProviderAlias,

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"text/template"
 
 	"github.com/src-bin/substrate/fileutil"
@@ -26,20 +27,20 @@ func NewFile() *File {
 	return &File{make([]Block, 0)}
 }
 
-func (f *File) Len() int { return len(f.blocks) }
-
-func (f *File) Less(i, j int) bool {
-	return f.blocks[i].Ref().Raw() < f.blocks[j].Ref().Raw()
-}
-
-func (f *File) Push(b Block) {
+func (f *File) Add(b Block) {
 	f.blocks = append(f.blocks, b)
 }
 
-func (f *File) PushAll(otherFile *File) {
+func (f *File) AddAll(otherFile *File) {
 	for _, b := range otherFile.blocks {
-		f.Push(b)
+		f.Add(b)
 	}
+}
+
+func (f *File) Len() int { return len(f.blocks) }
+
+func (f *File) Less(i, j int) bool {
+	return qualifyForSort(f.blocks[i]) < qualifyForSort(f.blocks[j])
 }
 
 func (f *File) Swap(i, j int) {
@@ -113,4 +114,12 @@ Error:
 	ui.Printf("wrote %s", pathname)
 	err = Fmt(dirname)
 	return
+}
+
+func qualifyForSort(b Block) string {
+	s := b.Ref().Raw()
+	if !strings.HasPrefix(s, "data.") && !strings.HasPrefix(s, "module.") {
+		s = "resource." + s // a Terraform syntax error but sorts sensibly and that's all this is for
+	}
+	return s
 }

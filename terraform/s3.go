@@ -25,11 +25,13 @@ func (S3Bucket) Template() string {
 {{- end}}
   tags = {{.Tags.Value}}
 }
+
 {{- if .Policy}}
 resource "aws_s3_bucket_policy" {{.Label.Value}} {
   bucket = {{.Ref.Value}}.bucket
   policy = {{.Policy.Value}}
 }
+
 {{- end}}
 resource "aws_s3_bucket_public_access_block" {{.Label.Value}} {
   block_public_acls = true
@@ -41,6 +43,7 @@ resource "aws_s3_bucket_public_access_block" {{.Label.Value}} {
 {{- end}}
   restrict_public_buckets = true
 }
+
 resource "aws_s3_bucket_versioning" {{.Label.Value}} {
   bucket = {{.Ref.Value}}.bucket
   versioning_configuration {
