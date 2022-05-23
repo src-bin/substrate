@@ -21,6 +21,8 @@ import (
 	"github.com/src-bin/substrate/tags"
 )
 
+const InstanceFactory = "InstanceFactory"
+
 //go:generate go run ../../tools/template/main.go -name instanceFactoryTemplate -package main instance-factory.html
 //go:generate go run ../../tools/template/main.go -name instanceFactoryTypeTemplate -package main instance-factory-type.html
 //go:generate go run ../../tools/template/main.go -name instanceFactoryKeyPairTemplate -package main instance-factory-key-pair.html
@@ -285,7 +287,7 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	if err != nil {
 		return nil, err
 	}
-	securityGroups, err := awsec2.DescribeSecurityGroups(ctx, cfg, aws.ToString(subnet.VpcId), "InstanceFactory")
+	securityGroups, err := awsec2.DescribeSecurityGroups(ctx, cfg, aws.ToString(subnet.VpcId), InstanceFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +302,7 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 		aws.ToString(image.ImageId),
 		instanceType,
 		aws.ToString(keyPairs[0].KeyName),
-		"InstanceFactory",
+		InstanceFactory,
 		100, // gigabyte root volume
 		aws.ToString(securityGroups[0].GroupId),
 		aws.ToString(subnet.SubnetId),
