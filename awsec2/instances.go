@@ -153,9 +153,10 @@ func RunInstance(
 		KeyName:      aws.String(keyName),
 		MaxCount:     aws.Int32(1),
 		MetadataOptions: &types.InstanceMetadataOptionsRequest{
-			HttpEndpoint:     types.InstanceMetadataEndpointStateEnabled,
-			HttpProtocolIpv6: types.InstanceMetadataProtocolStateEnabled,
-			HttpTokens:       types.HttpTokensStateRequired,
+			HttpEndpoint:         types.InstanceMetadataEndpointStateEnabled,
+			HttpProtocolIpv6:     types.InstanceMetadataProtocolStateEnabled,
+			HttpTokens:           types.HttpTokensStateRequired,
+			InstanceMetadataTags: types.InstanceMetadataTagsStateEnabled,
 		},
 		MinCount:         aws.Int32(1),
 		SecurityGroupIds: []string{securityGroupId},
