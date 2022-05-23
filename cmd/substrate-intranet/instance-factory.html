@@ -33,7 +33,7 @@
 {{- $terminated := .Terminated}}
 {{- range .Instances}}
 <tr{{if eq (ToString .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (ToString .InstanceId) $terminate}} bgcolor="#ffeeee"{{else if eq (ToString .InstanceId) $terminated}} bgcolor="#ffeeee"{{end}}>
-    <td><kbd>ssh -A ec2-user@{{.PublicDnsName}}</kbd></td>
+    <td>{{if (ToString .PublicDnsName)}}<kbd>ssh -A ec2-user@{{.PublicDnsName}}</kbd>{{else}}&nbsp;{{end}}</td>
     <td>{{.Placement.AvailabilityZone}}</td>
     <td>{{.InstanceType}}</td>
     <td>{{.LaunchTime}}</td>
