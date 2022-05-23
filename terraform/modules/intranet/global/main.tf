@@ -65,6 +65,8 @@ data "aws_iam_policy_document" "intranet" {
       "ec2:DescribeImages",
       "ec2:DescribeInstances",
       "ec2:DescribeKeyPairs",
+      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeLaunchTemplateVersions",
       "ec2:DescribeSecurityGroups",
       "ec2:DescribeSubnets",
       "ec2:ImportKeyPair",

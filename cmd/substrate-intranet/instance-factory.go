@@ -16,6 +16,7 @@ import (
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsec2"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
@@ -256,7 +257,17 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 		}, nil
 	}
 
-	// Let's do this!
+	// Let's do this! Start by figuring out whether to provide an AMI and, if
+	// so, which one (the latest Amazon Linux 2 AMI, of course).
+	launchTemplateName := InstanceFactory
+	launchTemplate, err := awsec2.DescribeLaunchTemplateVersion(ctx, cfg, launchTemplateName)
+	if err != nil {
+		if awsutil.ErrorCodeIs(err, awsec2.InvalidLaunchTemplateName_NotFoundException) {
+			launchTemplateName = ""
+		} else {
+			return nil, err
+		}
+	}
 	instanceTypes, err := awsec2.DescribeInstanceTypes(ctx, cfg, []awsec2.InstanceType{instanceType})
 	if err != nil {
 		return nil, err
@@ -278,11 +289,18 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	if arch == "i386" && len(archs) == 2 {
 		arch = archs[1]
 	}
-	image, err := awsec2.LatestAmazonLinux2AMI(ctx, cfg, arch)
-	if err != nil {
-		return nil, err
+	var imageId string
+	if launchTemplate != nil && launchTemplate.LaunchTemplateData.ImageId != nil {
+		imageId = aws.ToString(launchTemplate.LaunchTemplateData.ImageId)
+	} else {
+		image, err := awsec2.LatestAmazonLinux2AMI(ctx, cfg, arch)
+		if err != nil {
+			return nil, err
+		}
+		imageId = aws.ToString(image.ImageId)
 	}
 
+	// Next decide where to situate the instance in the network.
 	subnet, err := randomSubnet(ctx, cfg, accounts.Admin, event.RequestContext.Stage, region)
 	if err != nil {
 		return nil, err
@@ -295,14 +313,15 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 		return nil, fmt.Errorf("security group not found in %s", aws.ToString(subnet.VpcId))
 	}
 
+	// Provision the instance! Tell the caller all about it.
 	reservation, err := awsec2.RunInstance(
 		ctx,
 		cfg,
 		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
-		aws.ToString(image.ImageId),
+		imageId,
 		instanceType,
 		aws.ToString(keyPairs[0].KeyName),
-		InstanceFactory,
+		launchTemplateName,
 		100, // gigabyte root volume
 		aws.ToString(securityGroups[0].GroupId),
 		aws.ToString(subnet.SubnetId),
@@ -314,7 +333,6 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
 	}
-
 	return &events.APIGatewayProxyResponse{
 		Body: fmt.Sprintf("launching %s", aws.ToString(reservation.Instances[0].InstanceId)),
 		Headers: map[string]string{
