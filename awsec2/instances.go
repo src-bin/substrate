@@ -130,9 +130,9 @@ func LatestAmazonLinux2AMI(
 func RunInstance(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	iamInstanceProfile, imageId string,
+	iamInstanceProfile, imageId string, // optional, "" to omit
 	instanceType InstanceType,
-	keyName, launchTemplateName string,
+	keyName, launchTemplateName string, // optional, "" to omit
 	rootVolumeSize int32,
 	securityGroupId, subnetId string,
 	tags []Tag,
@@ -147,16 +147,8 @@ func RunInstance(
 			},
 		}},
 		EbsOptimized: aws.Bool(true),
-		IamInstanceProfile: &types.IamInstanceProfileSpecification{
-			Name: aws.String(iamInstanceProfile),
-		},
-		ImageId:      aws.String(imageId),
 		InstanceType: instanceType,
-		KeyName:      aws.String(keyName),
-		LaunchTemplate: &types.LaunchTemplateSpecification{
-			LaunchTemplateName: aws.String(launchTemplateName),
-		},
-		MaxCount: aws.Int32(1),
+		MaxCount:     aws.Int32(1),
 		MetadataOptions: &types.InstanceMetadataOptionsRequest{
 			HttpEndpoint:         types.InstanceMetadataEndpointStateEnabled,
 			HttpProtocolIpv6:     types.InstanceMetadataProtocolStateEnabled,
@@ -171,6 +163,23 @@ func RunInstance(
 			Tags:         tags,
 		}},
 	}
+	if imageId != "" {
+		in.ImageId = aws.String(imageId)
+	}
+	if iamInstanceProfile != "" {
+		in.IamInstanceProfile = &types.IamInstanceProfileSpecification{
+			Name: aws.String(iamInstanceProfile),
+		}
+	}
+	if keyName != "" {
+		in.KeyName = aws.String(keyName)
+	}
+	if launchTemplateName != "" {
+		in.LaunchTemplate = &types.LaunchTemplateSpecification{
+			LaunchTemplateName: aws.String(launchTemplateName),
+		}
+	}
+
 	client := cfg.EC2()
 	for {
 		reservation, err = client.RunInstances(ctx, in)
