@@ -144,7 +144,7 @@ func RunInstance(
 				VolumeType:          types.VolumeTypeGp3,
 			},
 		}},
-		//DryRun: aws.Bool(true),
+		EbsOptimized: aws.Bool(true),
 		IamInstanceProfile: &types.IamInstanceProfileSpecification{
 			Name: aws.String(iamInstanceProfile),
 		},
