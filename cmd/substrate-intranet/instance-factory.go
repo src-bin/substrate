@@ -280,6 +280,7 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	if err != nil {
 		return nil, err
 	}
+
 	subnet, err := randomSubnet(ctx, cfg, accounts.Admin, event.RequestContext.Stage, region)
 	if err != nil {
 		return nil, err
@@ -291,13 +292,15 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	if len(securityGroups) != 1 {
 		return nil, fmt.Errorf("security group not found in %s", aws.ToString(subnet.VpcId))
 	}
-	reservation, err := awsec2.RunInstance( // TODO make this a lot simpler and let users customize the AMI, etc. by using a launch template
+
+	reservation, err := awsec2.RunInstance(
 		ctx,
 		cfg,
 		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 		aws.ToString(image.ImageId),
 		instanceType,
 		aws.ToString(keyPairs[0].KeyName),
+		"InstanceFactory",
 		100, // gigabyte root volume
 		aws.ToString(securityGroups[0].GroupId),
 		aws.ToString(subnet.SubnetId),
@@ -309,6 +312,7 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
 	}
+
 	return &events.APIGatewayProxyResponse{
 		Body: fmt.Sprintf("launching %s", aws.ToString(reservation.Instances[0].InstanceId)),
 		Headers: map[string]string{

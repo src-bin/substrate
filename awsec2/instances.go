@@ -19,7 +19,9 @@ const (
 	ARM    = types.ArchitectureTypeArm64
 	X86_64 = types.ArchitectureTypeX8664
 
-	UnsupportedOperation = "UnsupportedOperation"
+	InvalidLaunchTemplateName_NotFound = "InvalidLaunchTemplateName.NotFound"
+	Unsupported                        = "Unsupported"
+	UnsupportedOperation               = "UnsupportedOperation"
 )
 
 type (
@@ -130,11 +132,11 @@ func RunInstance(
 	cfg *awscfg.Config,
 	iamInstanceProfile, imageId string,
 	instanceType InstanceType,
-	keyName string,
+	keyName, launchTemplateName string,
 	rootVolumeSize int32,
 	securityGroupId, subnetId string,
 	tags []Tag,
-) (*RunInstancesOutput, error) {
+) (reservation *RunInstancesOutput, err error) {
 	in := &ec2.RunInstancesInput{
 		BlockDeviceMappings: []types.BlockDeviceMapping{{
 			DeviceName: aws.String("/dev/xvda"),
@@ -151,7 +153,10 @@ func RunInstance(
 		ImageId:      aws.String(imageId),
 		InstanceType: instanceType,
 		KeyName:      aws.String(keyName),
-		MaxCount:     aws.Int32(1),
+		LaunchTemplate: &types.LaunchTemplateSpecification{
+			LaunchTemplateName: aws.String(launchTemplateName),
+		},
+		MaxCount: aws.Int32(1),
 		MetadataOptions: &types.InstanceMetadataOptionsRequest{
 			HttpEndpoint:         types.InstanceMetadataEndpointStateEnabled,
 			HttpProtocolIpv6:     types.InstanceMetadataProtocolStateEnabled,
@@ -166,17 +171,23 @@ func RunInstance(
 			Tags:         tags,
 		}},
 	}
-	//log.Print(in)
-	reservation, err := cfg.EC2().RunInstances(ctx, in)
-	if awsutil.ErrorCodeIs(err, UnsupportedOperation) {
-		in.MetadataOptions.HttpProtocolIpv6 = types.InstanceMetadataProtocolStateDisabled
-		reservation, err = cfg.EC2().RunInstances(ctx, in)
+	client := cfg.EC2()
+	for {
+		reservation, err = client.RunInstances(ctx, in)
+		if awsutil.ErrorCodeIs(err, InvalidLaunchTemplateName_NotFound) {
+			in.LaunchTemplate = nil
+		} else if awsutil.ErrorCodeIs(err, Unsupported) {
+			if in.EbsOptimized == nil {
+				break // we've already tried unsetting this and it's still failing, so fail
+			}
+			in.EbsOptimized = nil
+		} else if awsutil.ErrorCodeIs(err, UnsupportedOperation) {
+			in.MetadataOptions.HttpProtocolIpv6 = types.InstanceMetadataProtocolStateDisabled
+		} else {
+			break
+		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	//log.Print(reservation)
-	return reservation, nil
+	return
 }
 
 func TerminateInstance(
