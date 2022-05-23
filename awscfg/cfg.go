@@ -251,6 +251,7 @@ func (c *Config) organizationReader(ctx context.Context) (*Config, error) {
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
 	options := []func(*config.LoadOptions) error{
+		config.WithRetryMaxAttempts(10),
 		config.WithSharedConfigFiles(nil),
 		config.WithSharedConfigProfile(""),
 		config.WithSharedCredentialsFiles(nil),
