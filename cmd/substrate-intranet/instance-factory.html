@@ -8,7 +8,7 @@
 <body>
 {{template "nav"}}
 <h1>Instance Factory</h1>
-<p class="context">This tool provisions EC2 instances that administrators can use to work in the cloud. Alternatively, the <a href="credential-factory">Credential Factory</a> mints short-lived credentials with the same privileges as these EC2 instances that administrators can use (more) safely on their laptops.</p>
+<p class="context">This tool launches EC2 instances that administrators can use to work in the cloud. Alternatively, the <a href="credential-factory">Credential Factory</a> mints short-lived credentials with the same privileges as these EC2 instances that administrators can use (more) safely on their laptops.</p>
 {{- if .Error}}
 <p class="error">{{.Error}}</p>
 {{- end}}
@@ -33,7 +33,7 @@
 {{- $terminated := .Terminated}}
 {{- range .Instances}}
 <tr{{if eq (ToString .InstanceId) $launched}} bgcolor="#eeffee"{{else if eq (ToString .InstanceId) $terminate}} bgcolor="#ffeeee"{{else if eq (ToString .InstanceId) $terminated}} bgcolor="#ffeeee"{{end}}>
-    <td>{{if (ToString .PublicDnsName)}}<kbd>ssh -A ec2-user@{{.PublicDnsName}}</kbd>{{else}}&nbsp;{{end}}</td>
+    <td>{{if (ToString .PublicDnsName)}}<kbd>ssh -A {{.PublicDnsName}}</kbd>{{else}}&nbsp;{{end}}</td>
     <td>{{.Placement.AvailabilityZone}}</td>
     <td>{{.InstanceType}}</td>
     <td>{{.LaunchTime}}</td>
@@ -48,5 +48,9 @@
 </tr>
 {{- end}}
 </table>
+<p>By default, Instance Factory uses the Amazon Linux 2 AMI and so the SSH user is <code>ec2-user</code>. Configure <code>ssh</code>(1) to use it by pasting the following into <code>~/.ssh/config</code>:
+<pre>Host ec2-*.amazonaws.com
+    User ec2-user</pre>
+<p>If your organization has customized the Instance Factory using a launch template, you may need to adjust this SSH configuration to your organization&rsquo;s standards by e.g. changing the username.</p>
 </body>
 </html>
