@@ -259,15 +259,6 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 
 	// Let's do this! Start by figuring out whether to provide an AMI and, if
 	// so, which one (the latest Amazon Linux 2 AMI, of course).
-	launchTemplateName := InstanceFactory
-	launchTemplate, err := awsec2.DescribeLaunchTemplateVersion(ctx, cfg, launchTemplateName)
-	if err != nil {
-		if awsutil.ErrorCodeIs(err, awsec2.InvalidLaunchTemplateName_NotFoundException) {
-			launchTemplateName = ""
-		} else {
-			return nil, err
-		}
-	}
 	instanceTypes, err := awsec2.DescribeInstanceTypes(ctx, cfg, []awsec2.InstanceType{instanceType})
 	if err != nil {
 		return nil, err
@@ -288,6 +279,15 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	arch := archs[0]
 	if arch == "i386" && len(archs) == 2 {
 		arch = archs[1]
+	}
+	launchTemplateName := fmt.Sprintf("%s-%s", InstanceFactory, arch)
+	launchTemplate, err := awsec2.DescribeLaunchTemplateVersion(ctx, cfg, launchTemplateName)
+	if err != nil {
+		if awsutil.ErrorCodeIs(err, awsec2.InvalidLaunchTemplateName_NotFoundException) {
+			launchTemplateName = ""
+		} else {
+			return nil, err
+		}
 	}
 	var imageId string
 	if launchTemplate != nil && launchTemplate.LaunchTemplateData.ImageId != nil {
