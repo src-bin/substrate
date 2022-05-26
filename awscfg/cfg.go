@@ -46,7 +46,6 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 	}
 
 	f := func(ctx context.Context) error {
-		ctx, _ = context.WithTimeout(ctx, time.Minute)
 		describeOrganization, err := organizations.NewFromConfig(c.cfg).DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
 		if err != nil {
 			return err
@@ -63,7 +62,8 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 		//log.Printf("%+v", c.event)
 		return nil
 	}
-	if err := f(ctx); err != nil {
+	ctx1s, _ := context.WithTimeout(ctx, time.Second)
+	if err := f(ctx1s); err != nil {
 		//log.Print(err)
 		c.deferredTelemetry = f
 	}
@@ -134,7 +134,8 @@ func (c *Config) SetCredentials(
 	callerIdentity, err = c.WaitUntilCredentialsWork(ctx)
 
 	if c.deferredTelemetry != nil {
-		if err := c.deferredTelemetry(ctx); err == nil {
+		ctx10s, _ := context.WithTimeout(ctx, 10*time.Second)
+		if err := c.deferredTelemetry(ctx10s); err == nil {
 			c.deferredTelemetry = nil
 		} else {
 			//log.Print(err)
