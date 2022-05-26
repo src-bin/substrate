@@ -46,15 +46,29 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	flag.Parse()
 	version.Flag()
 
-	cfg, err := cfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, "", time.Hour)
-	if err != nil {
-		ui.Fatal(err)
-	}
 	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{
 		FallbackToRootCredentials: true,
 	})
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
+	}
+
+	// Bridge from awssessions doing the hard work of getting credentials no
+	// matter what to awscfg which isn't yet capable of pulling root or user
+	// credentials from a TTY.
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		ui.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	if cfg, err = cfg.AssumeSpecialRole(
+		ctx,
+		accounts.Network,
+		roles.NetworkAdministrator,
+		"", // let it choose roleSessionName
+		time.Hour,
+	); err != nil {
+		ui.Fatal(err)
 	}
 
 	// Gather the definitive list of environments and qualities first.
@@ -231,11 +245,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 	}
 
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	cfg.Telemetry().FinalAccountId = accountId
 	cfg.Telemetry().FinalRoleName = roles.NetworkAdministrator
 
