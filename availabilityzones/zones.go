@@ -2,13 +2,11 @@ package availabilityzones
 
 import (
 	"context"
-	"log"
 	"sort"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsec2"
-	"github.com/src-bin/substrate/jsonutil"
 )
 
 const NumberPerNetwork = 3
@@ -27,20 +25,17 @@ func Select(
 	if err != nil {
 		return nil, err
 	}
-	log.Print(jsonutil.MustString(zones))
 
 	s := make(zoneIdNameSlice, len(zones))
 	for i, az := range zones {
 		s[i] = zoneIdName{aws.ToString(az.ZoneId), aws.ToString(az.ZoneName)}
 	}
 	sort.Sort(s)
-	log.Print(jsonutil.MustString(s))
 	names := make([]string, 0, n)
 	for i := len(s) - 1; i >= 0 && len(s)-i <= n; i-- {
 		names = append(names, s[i].Name)
 	}
 	sort.Strings(names)
-	log.Print(jsonutil.MustString(names))
 
 	return names, nil
 }

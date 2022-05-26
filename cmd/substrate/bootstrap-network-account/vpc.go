@@ -2,12 +2,12 @@ package bootstrapnetworkaccount
 
 import (
 	"context"
-	"log"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/src-bin/substrate/availabilityzones"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/terraform"
+	"github.com/src-bin/substrate/ui"
 )
 
 func vpcAccoutrements(
@@ -76,7 +76,7 @@ func vpcAccoutrements(
 	// three availability zones in the region.
 	azs, err := availabilityzones.Select(ctx, cfg, region, availabilityzones.NumberPerNetwork)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	for i, az := range azs {
 		tags := terraform.Tags{
