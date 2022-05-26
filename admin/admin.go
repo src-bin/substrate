@@ -32,14 +32,18 @@ func CannedAssumeRolePolicyDocuments(sess *session.Session, bootstrapping bool) 
 	cp, err := cannedPrincipals(organizations.New(sess), bootstrapping)
 
 	var extraAdmin, extraAuditor policies.Document
-	if err := jsonutil.Read("substrate.Administrator.assume-role-policy.json", &extraAdmin); err != nil {
+	if err := jsonutil.Read("substrate.Administrator.assume-role-policy.json", &extraAdmin); err == nil {
+		ui.Printf("merging substrate.Administrator.assume-role-policy.json into Administrator's assume role policy")
+	} else {
 		if errors.Is(err, fs.ErrNotExist) {
 			ui.Printf("substrate.Administrator.assume-role-policy.json not found; create it if you wish to customize who can assume Administrator roles")
 		} else {
 			ui.Printf("error processing substrate.Administrator.assume-role-policy.json: %v", err)
 		}
 	}
-	if err := jsonutil.Read("substrate.Auditor.assume-role-policy.json", &extraAuditor); err != nil {
+	if err := jsonutil.Read("substrate.Auditor.assume-role-policy.json", &extraAuditor); err == nil {
+		ui.Printf("merging substrate.Auditor.assume-role-policy.json into Auditor's assume role policy")
+	} else {
 		if errors.Is(err, fs.ErrNotExist) {
 			ui.Printf("substrate.Auditor.assume-role-policy.json not found; create it if you wish to customize who can assume Auditor roles")
 		} else {
