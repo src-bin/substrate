@@ -21,7 +21,7 @@ func Select(
 	n int,
 ) ([]string, error) {
 
-	zones, err := awsec2.DescribeAvailabilityZones(ctx, cfg, region)
+	zones, err := awsec2.DescribeAvailabilityZones(ctx, cfg.Regional(region), region)
 	if err != nil {
 		return nil, err
 	}
