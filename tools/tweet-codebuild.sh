@@ -1,7 +1,7 @@
 set -e
 
 # Only tweet if we're succeeding and have made it all the way to the end.
-if [ "$CODEBUILD_BUILD_SUCCEEDING" != "1" -o "$1" != "build" ]
+if [ "$CODEBUILD_BUILD_SUCCEEDING" != "1" ]
 then exit 0
 fi
 
