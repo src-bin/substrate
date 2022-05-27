@@ -52,7 +52,7 @@ func Prompt(args ...interface{}) (string, error) {
 	op(opBlock, "")
 	defer op(opUnblock, "")
 	args = dereference(args)
-	fmt.Print(append(args, " ")...)
+	fmt.Fprint(os.Stderr, append(args, " ")...)
 	if Interactivity() == NonInteractive {
 		Fatal("(cannot accept input in non-interactive mode)")
 	}
@@ -62,7 +62,7 @@ func Prompt(args ...interface{}) (string, error) {
 	}
 	s = strings.Trim(s, "\r\n")
 	if !terminal.IsTerminal(0) {
-		fmt.Printf("%s (read from non-TTY)\n", s)
+		fmt.Fprintf(os.Stderr, "%s (read from non-TTY)\n", s)
 	}
 	return s, nil
 }
