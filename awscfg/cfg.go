@@ -26,12 +26,17 @@ const (
 	WaitUntilCredentialsWorkTries = 10
 )
 
-type Account = types.Account
+type (
+	Account      = types.Account
+	Organization = types.Organization
+)
 
 type Config struct {
-	cfg               aws.Config
-	deferredTelemetry func(context.Context) error
-	event             *telemetry.Event
+	cfg                     aws.Config
+	deferredTelemetry       func(context.Context) error
+	event                   *telemetry.Event
+	getCallerIdentityOutput *sts.GetCallerIdentityOutput // cache
+	organization            *Organization                // cache
 }
 
 func NewConfig(ctx context.Context) (c *Config, err error) {
@@ -76,15 +81,13 @@ func (c *Config) Copy() *Config {
 	return &c2
 }
 
-func (c *Config) DescribeOrganization(ctx context.Context) (*types.Organization, error) {
+func (c *Config) DescribeOrganization(ctx context.Context) (*Organization, error) {
+	if c.organization != nil {
+		return c.organization, nil
+	}
 	client := organizations.NewFromConfig(c.cfg)
 	for {
 		out, err := client.DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
-		/*
-			if awsutil.ErrorCodeIs(err, awsorgs.AWSOrganizationsNotInUseException) {
-				return c.cfg, nil
-			}
-		*/
 		if awsutil.ErrorCodeIs(err, TooManyRequestsException) {
 			time.Sleep(time.Second) // TODO exponential backoff
 			continue
@@ -92,12 +95,21 @@ func (c *Config) DescribeOrganization(ctx context.Context) (*types.Organization,
 		if err != nil {
 			return nil, err
 		}
+		c.organization = out.Organization
 		return out.Organization, nil
 	}
 }
 
 func (c *Config) GetCallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {
-	return sts.NewFromConfig(c.cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if c.getCallerIdentityOutput != nil {
+		return c.getCallerIdentityOutput, nil
+	}
+	out, err := sts.NewFromConfig(c.cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return nil, err
+	}
+	c.getCallerIdentityOutput = out
+	return out, nil
 }
 
 func (c *Config) Regional(region string) *Config {
