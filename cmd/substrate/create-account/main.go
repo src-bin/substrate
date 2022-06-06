@@ -24,6 +24,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -58,6 +59,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	versionutil.PreventDowngrade(ctx, cfg)
 
 	ui.Spin("finding the account")
 	var account *awsorgs.Account
@@ -105,11 +112,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	cfg.Telemetry().FinalAccountId = aws.StringValue(account.Id)
 	cfg.Telemetry().FinalRoleName = roles.Administrator
 

@@ -32,6 +32,7 @@ import (
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 const (
@@ -61,6 +62,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	versionutil.PreventDowngrade(ctx, cfg)
 
 	svc := organizations.New(sess)
 
@@ -112,11 +119,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	//log.Printf("%+v", callerIdentity)
 	//log.Printf("%+v", org)
 
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	cfg.Telemetry().FinalAccountId = aws.StringValue(callerIdentity.Account)
 	cfg.Telemetry().FinalRoleName = roles.OrganizationAdministrator
 

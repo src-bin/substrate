@@ -23,6 +23,7 @@ import (
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -42,6 +43,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	creds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	versionutil.PreventDowngrade(ctx, cfg)
 
 	accountId := aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
 	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
@@ -50,11 +57,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	prefix := naming.Prefix()
 
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	cfg.Telemetry().FinalAccountId = accountId
 	cfg.Telemetry().FinalRoleName = roles.DeployAdministrator
 

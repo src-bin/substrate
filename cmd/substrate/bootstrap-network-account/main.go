@@ -28,6 +28,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 const (
@@ -61,6 +62,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Fatal(err)
 	}
 	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	versionutil.PreventDowngrade(ctx, cfg)
 	if cfg, err = cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Network,
