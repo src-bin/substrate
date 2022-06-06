@@ -167,6 +167,18 @@ func (c *Config) SetCredentialsV1(
 	})
 }
 
+func (c *Config) Tags(ctx context.Context) (map[string]string, error) {
+	callerIdentity, err := c.GetCallerIdentity(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := c.organizationReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return cfg.listTagsForResource(ctx, aws.ToString(callerIdentity.Account))
+}
+
 func (c *Config) Telemetry() *telemetry.Event {
 	return c.event
 }
