@@ -2,15 +2,18 @@ package awscfg
 
 import (
 	"context"
-	"os/user"
+	"fmt"
+	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/telemetry"
 )
 
 func (c *Config) AssumeAdminRole(
@@ -19,7 +22,7 @@ func (c *Config) AssumeAdminRole(
 	roleName, roleSessionName string,
 	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
-	return c.AssumeServiceRole(ctx, accounts.Admin, accounts.Admin, quality, roleName, roleSessionName, duration)
+	return c.AssumeServiceRole(ctx, naming.Admin, naming.Admin, quality, roleName, roleSessionName, duration)
 }
 
 func (c *Config) AssumeManagementRole(
@@ -41,7 +44,7 @@ func (c *Config) AssumeManagementRole(
 	}
 	mgmtAccountId := aws.ToString(org.MasterAccountId)
 	//log.Print(jsonutil.MustString(org))
-	if err := accounts.EnsureManagementAccountIdMatchesDisk(mgmtAccountId); err != nil {
+	if err := EnsureManagementAccountIdMatchesDisk(mgmtAccountId); err != nil {
 		return nil, err
 	}
 
@@ -65,18 +68,28 @@ func (c *Config) AssumeRole(
 	ctx context.Context,
 	accountId string,
 	roleName, roleSessionName string,
-	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
+	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> is 1 hour
 ) (*Config, error) {
 	if roleName != roles.OrganizationReader {
 		c.event.FinalAccountId = accountId
 		c.event.FinalRoleName = roleName
 	}
+
 	if roleSessionName == "" {
-		u, err := user.Current()
-		if err != nil {
-			return nil, err
-		}
-		roleSessionName = u.Username
+		safeSubcommand, _, _ := strings.Cut(
+			strings.TrimPrefix(
+				contextutil.ValueString(ctx, telemetry.Subcommand),
+				"/",
+			),
+			"/",
+		)
+		roleSessionName = fmt.Sprintf(
+			"%s-%s,%s",
+			contextutil.ValueString(ctx, telemetry.Command),
+			safeSubcommand,
+			contextutil.ValueString(ctx, telemetry.Username),
+		)
+		log.Print("roleSessionName:", roleSessionName)
 	}
 
 	cfg := &Config{
@@ -107,10 +120,7 @@ func (c *Config) AssumeServiceRole(
 	roleName, roleSessionName string,
 	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
-	account, _, err := c.findAccount(ctx, func(_ Account, t tags.Tags) bool {
-		//log.Print(jsonutil.MustString(t))
-		return t[tags.Domain] == domain && t[tags.Environment] == environment && t[tags.Quality] == quality
-	})
+	account, err := c.FindServiceAccount(ctx, domain, environment, quality)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +137,7 @@ func (c *Config) AssumeSpecialRole(
 	roleName, roleSessionName string,
 	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
 ) (*Config, error) {
-	account, _, err := c.findAccount(ctx, func(a Account, _ tags.Tags) bool {
+	account, err := c.FindAccount(ctx, func(a *Account) bool {
 		//log.Print(jsonutil.MustString(a))
 		return aws.ToString(a.Name) == name
 	})

@@ -3,7 +3,6 @@ package awscfg
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,6 +17,7 @@ import (
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/telemetry"
+	"github.com/src-bin/substrate/ui"
 )
 
 const (
@@ -27,7 +27,10 @@ const (
 )
 
 type (
-	Account      = types.Account
+	Account struct {
+		types.Account
+		Tags tags.Tags
+	}
 	Organization = types.Organization
 )
 
@@ -37,6 +40,13 @@ type Config struct {
 	event                   *telemetry.Event
 	getCallerIdentityOutput *sts.GetCallerIdentityOutput // cache
 	organization            *Organization                // cache
+}
+
+func Must(cfg *Config, err error) *Config {
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return cfg
 }
 
 func NewConfig(ctx context.Context) (c *Config, err error) {
@@ -112,6 +122,35 @@ func (c *Config) GetCallerIdentity(ctx context.Context) (*sts.GetCallerIdentityO
 	return out, nil
 }
 
+func (c *Config) MustDescribeOrganization(ctx context.Context) *Organization {
+	org, err := c.DescribeOrganization(ctx)
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return org
+}
+
+func (c *Config) MustGetCallerIdentity(ctx context.Context) *sts.GetCallerIdentityOutput {
+	callerIdentity, err := c.GetCallerIdentity(ctx)
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return callerIdentity
+}
+
+func (c *Config) OrganizationReader(ctx context.Context) (*Config, error) {
+	// TODO return early if we're already OrganizationReader
+	return c.AssumeManagementRole(ctx, roles.OrganizationReader, fmt.Sprintf(
+		"%s-%s",
+		contextutil.ValueString(ctx, telemetry.Command),
+		"", // safeSubcommand,
+	), time.Hour)
+}
+
+func (c *Config) Region() string {
+	return c.cfg.Region
+}
+
 func (c *Config) Regional(region string) *Config {
 	c2 := c.Copy()
 	c2.cfg.Region = region
@@ -172,7 +211,7 @@ func (c *Config) Tags(ctx context.Context) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := c.organizationReader(ctx)
+	cfg, err := c.OrganizationReader(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -203,40 +242,6 @@ func (c *Config) WaitUntilCredentialsWork(ctx context.Context) (
 	return
 }
 
-func (c *Config) findAccount(
-	ctx context.Context,
-	f func(Account, tags.Tags) bool,
-) (*Account, tags.Tags, error) {
-	cfg, err := c.organizationReader(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	client := organizations.NewFromConfig(cfg.cfg)
-	var nextToken *string
-	for {
-		out, err := client.ListAccounts(ctx, &organizations.ListAccountsInput{
-			NextToken: nextToken,
-		})
-		if err != nil {
-			return nil, nil, err
-		}
-		for _, account := range out.Accounts {
-			tags, err := cfg.listTagsForResource(ctx, aws.ToString(account.Id))
-			if err != nil {
-				return nil, nil, err
-			}
-			if f(account, tags) {
-				return &account, tags, nil
-			}
-		}
-		if nextToken = out.NextToken; nextToken == nil {
-			break
-		}
-	}
-	return nil, nil, nil
-}
-
 func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tags.Tags, error) {
 	client := organizations.NewFromConfig(c.cfg)
 	var nextToken *string
@@ -257,21 +262,6 @@ func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tag
 		}
 	}
 	return tags, nil
-}
-
-func (c *Config) organizationReader(ctx context.Context) (*Config, error) {
-	safeSubcommand, _, _ := strings.Cut(
-		strings.TrimPrefix(
-			contextutil.ValueString(ctx, telemetry.Subcommand),
-			"/",
-		),
-		"/",
-	)
-	return c.AssumeManagementRole(ctx, roles.OrganizationReader, fmt.Sprintf(
-		"%s-%s",
-		contextutil.ValueString(ctx, telemetry.Command),
-		safeSubcommand,
-	), time.Hour)
 }
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {

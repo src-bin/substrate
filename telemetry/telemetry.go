@@ -26,6 +26,7 @@ const (
 
 	Command    = "Command"
 	Subcommand = "Subcommand"
+	Username   = "Username"
 )
 
 // Endpoint is an HTTP(S) URL where telemetry is sent, if it's not an empty

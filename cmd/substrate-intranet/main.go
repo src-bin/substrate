@@ -34,13 +34,18 @@ func main() {
 		lambda.Start(func(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 			ctx = context.WithValue(
 				context.WithValue(
-					ctx,
-					"Command",
-					"substrate-intranet",
+					context.WithValue(
+						ctx,
+						"Command",
+						"substrate-intranet",
+					),
+					"Subcommand",
+					event.Path,
 				),
-				"Subcommand",
-				event.Path,
+				"Username",
+				fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
 			)
+
 			cfg, err := awscfg.NewConfig(ctx)
 			if err != nil {
 				return nil, err

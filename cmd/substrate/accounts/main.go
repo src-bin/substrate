@@ -5,17 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -35,15 +31,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
-	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	svc := organizations.New(sess)
+	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
 
-	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(svc)
+	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	switch format.String() {
 
@@ -116,7 +108,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	case cmdutil.SerializationFormatText:
 		f, err := os.Open(accounts.CheatSheetFilename)
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 		defer f.Close()
 		io.Copy(os.Stdout, f)
@@ -127,8 +119,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Update substrate.accounts.txt unconditionally as this is the expected
 	// side-effect of running this program.
-	if err := accounts.CheatSheet(svc); err != nil {
-		log.Fatal(err)
+	if err := accounts.CheatSheet(ctx, cfg); err != nil {
+		ui.Fatal(err)
 	}
 
 }

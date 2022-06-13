@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -8,10 +9,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsservicequotas"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -50,14 +49,18 @@ func main() {
 		regionSlice = []string{*region}
 	}
 
-	sess := awssessions.Must(awssessions.NewSession(awssessions.Config{}))
+	ctx := context.Background()
+	cfg, err := awscfg.NewConfig(ctx)
+	if err != nil {
+		ui.Fatal(err)
+	}
 
 	if *listServices {
 		var lines []string
 		for _, region := range regionSlice {
-			services, err := awsservicequotas.ListServices(servicequotasNew(sess, region))
+			services, err := awsservicequotas.ListServices(ctx, cfg.Regional(region))
 			if err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 			for _, service := range services {
 				lines = append(lines, fmt.Sprintf(
@@ -84,7 +87,8 @@ func main() {
 		}
 		for _, region := range regionSlice {
 			quotas, err := awsservicequotas.ListServiceQuotas(
-				servicequotasNew(sess, region),
+				ctx,
+				cfg.Regional(region),
 				*serviceCode,
 			)
 			if err != nil {
@@ -104,7 +108,8 @@ func main() {
 		if *allRegions {
 
 			if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
-				sess,
+				ctx,
+				cfg,
 				*quotaCode,
 				*serviceCode,
 				*requiredValue,
@@ -117,7 +122,8 @@ func main() {
 		} else {
 
 			if err := awsservicequotas.EnsureServiceQuota(
-				servicequotasNew(sess, *region),
+				ctx,
+				cfg.Regional(*region),
 				*quotaCode,
 				*serviceCode,
 				*requiredValue,
@@ -132,7 +138,8 @@ func main() {
 
 		for _, region := range regionSlice {
 			quota, err := awsservicequotas.GetServiceQuota(
-				servicequotasNew(sess, region),
+				ctx,
+				cfg.Regional(region),
 				*quotaCode,
 				*serviceCode,
 			)
@@ -144,10 +151,4 @@ func main() {
 
 	}
 
-}
-
-func servicequotasNew(sess *session.Session, region string) *servicequotas.ServiceQuotas {
-	return servicequotas.New(sess, &aws.Config{
-		Region: aws.String(region),
-	})
 }

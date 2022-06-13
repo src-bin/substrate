@@ -13,7 +13,6 @@ import (
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/networks"
@@ -70,8 +69,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	var account *awsorgs.Account
 	createdAccount := false
 	{
-		svc := organizations.New(sess)
-		account, err = awsorgs.FindAccount(svc, *domain, *environment, *quality)
+		account, err = cfg.FindServiceAccount(ctx, *domain, *environment, *quality)
 		if _, ok := err.(awsorgs.AccountNotFound); ok {
 			ui.Stop("not found")
 			if !*create {
@@ -87,8 +85,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				deadline = time.Now()
 			}
 			account, err = awsorgs.EnsureAccount(
-				svc,
-				awsservicequotas.NewGlobal(sess),
+				ctx,
+				cfg,
 				*domain,
 				*environment,
 				*quality,
@@ -97,15 +95,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			createdAccount = true
 		} else {
 			err = awsorgs.Tag(
-				svc,
+				ctx,
+				cfg,
 				aws.StringValue(account.Id),
-				map[string]string{tags.SubstrateVersion: version.Version},
+				tags.Tags{tags.SubstrateVersion: version.Version},
 			)
 		}
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := accounts.CheatSheet(svc); err != nil {
+		if err := accounts.CheatSheet(ctx, awscfg.Must(cfg.OrganizationReader(ctx))); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -115,7 +114,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	cfg.Telemetry().FinalAccountId = aws.StringValue(account.Id)
 	cfg.Telemetry().FinalRoleName = roles.Administrator
 
-	admin.EnsureAdminRolesAndPolicies(sess, createdAccount)
+	admin.EnsureAdminRolesAndPolicies(ctx, cfg, createdAccount)
 
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between all of a domain's accounts.
@@ -156,7 +155,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			log.Fatal(err)
 		}
 
-		if err := terraform.Root(dirname, region); err != nil {
+		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
 			log.Fatal(err)
 		}
 
@@ -215,7 +214,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			log.Fatal(err)
 		}
 
-		if err := terraform.Root(dirname, region); err != nil {
+		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
 			log.Fatal(err)
 		}
 

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
@@ -86,13 +85,15 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 		}, nil
 	}
 
-	sess, err = awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
-	if err != nil {
-		return nil, err
+	if cfg, err = cfg.AssumeManagementRole(
+		ctx,
+		roles.OrganizationReader,
+		fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
+		time.Hour,
+	); err != nil {
+		return lambdautil.ErrorResponse(err)
 	}
-	svc := organizations.New(sess)
-
-	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(svc)
+	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
 	}

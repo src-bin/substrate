@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/src-bin/substrate/accounts"
+	"github.com/src-bin/substrate/naming"
 )
 
 type AccountNotFound string
 
 func NewAccountNotFound(tags ...string) error {
-	if len(tags) == 3 && tags[0] == accounts.Admin && tags[1] == accounts.Admin {
-		return AccountNotFound(fmt.Sprintf("%s/%s", accounts.Admin, tags[2]))
+	if len(tags) == 3 && tags[0] == naming.Admin && tags[1] == naming.Admin {
+		return AccountNotFound(fmt.Sprintf("%s/%s", naming.Admin, tags[2]))
 	}
 	return AccountNotFound(strings.Join(tags, "/"))
 }

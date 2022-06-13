@@ -5,14 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/service/cloudtrail"
-	"github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/aws/aws-sdk-go/service/ram"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscfg"
@@ -20,9 +15,6 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awss3"
-	"github.com/src-bin/substrate/awsservicequotas"
-	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
@@ -51,46 +43,45 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	version.Flag()
 
 	prefix := naming.Prefix()
-
 	region := regions.Default()
 
-	sess, err := awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{
-		BootstrappingManagementAccount: true,
-		FallbackToRootCredentials:      true,
-		Region:                         region,
-	})
+	var err error
+	cfg, err = cfg.AssumeManagementRole(
+		ctx,
+		roles.OrganizationAdministrator,
+		"", // let it choose roleSessionName
+		time.Hour,
+	)
+	// TODO BootstrappingManagementAccount: true,
+	// TODO FallbackToRootCredentials:      true,
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg = cfg.Regional(region)
+	// TODO gotta bring this back or it won't work for new folks! cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	versionutil.PreventDowngrade(ctx, cfg)
-
-	svc := organizations.New(sess)
 
 	// Ensure this account is (in) an organization.
 	ui.Spin("finding or creating your organization")
-	org, err := awsorgs.DescribeOrganization(svc)
+	org, err := cfg.DescribeOrganization(ctx)
 	if awsutil.ErrorCodeIs(err, awsorgs.AlreadyInOrganizationException) {
 		err = nil // we presume this is the management account, to be proven later
 	}
 	if awsutil.ErrorCodeIs(err, awsorgs.AWSOrganizationsNotInUseException) {
 
 		// Create the organization since it doesn't yet exist.
-		org, err = awsorgs.CreateOrganization(svc)
+		org, err = awsorgs.CreateOrganization(ctx, cfg)
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 	}
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
-	if err := accounts.WriteManagementAccountIdToDisk(aws.StringValue(org.MasterAccountId)); err != nil {
-		log.Fatal(err)
+	return
+	if err := accounts.WriteManagementAccountIdToDisk(aws.ToString(org.MasterAccountId)); err != nil {
+		ui.Fatal(err)
 	}
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
@@ -103,23 +94,20 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// of documentation that it would take to prove this beyond a shadow of a
 	// doubt so here we are wearing a belt and suspenders.
 	ui.Spin("confirming the access key is from the organization's management account")
-	callerIdentity := awssts.MustGetCallerIdentity(sts.New(sess))
-	org, err = awsorgs.DescribeOrganization(svc)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if aws.StringValue(callerIdentity.Account) != aws.StringValue(org.MasterAccountId) {
+	callerIdentity := cfg.MustGetCallerIdentity(ctx)
+	org = cfg.MustDescribeOrganization(ctx)
+	if aws.ToString(callerIdentity.Account) != aws.ToString(org.MasterAccountId) {
 		log.Fatalf(
 			"access key is from account %v instead of your organization's management account, %v",
-			aws.StringValue(callerIdentity.Account),
-			aws.StringValue(org.MasterAccountId),
+			aws.ToString(callerIdentity.Account),
+			aws.ToString(org.MasterAccountId),
 		)
 	}
 	ui.Stop("ok")
 	//log.Printf("%+v", callerIdentity)
 	//log.Printf("%+v", org)
 
-	cfg.Telemetry().FinalAccountId = aws.StringValue(callerIdentity.Account)
+	cfg.Telemetry().FinalAccountId = aws.ToString(callerIdentity.Account)
 	cfg.Telemetry().FinalRoleName = roles.OrganizationAdministrator
 
 	// Ensure the audit account exists.  This one comes first so we can enable
@@ -127,34 +115,32 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// being a little slow in bootstrapping the organization for this the first
 	// of several account creations.
 	ui.Spin("finding or creating the audit account")
-	auditAccount, err := awsorgs.EnsureSpecialAccount(
-		svc,
-		awsservicequotas.NewGlobal(sess),
-		accounts.Audit,
-	)
+	auditAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Audit)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
 	// Ensure CloudTrail is permanently enabled organization-wide.
 	ui.Spin("configuring CloudTrail for your organization (every account, every region)")
+	auditCfg := awscfg.Must(cfg.AssumeRole(
+		ctx,
+		aws.ToString(auditAccount.Id),
+		roles.OrganizationAccountAccessRole,
+		"", // let it choose roleSessionName
+		time.Hour,
+	))
 	bucketName := fmt.Sprintf("%s-cloudtrail", prefix)
 	if err := awss3.EnsureBucket(
-		s3.New(sess, &aws.Config{
-			Credentials: stscreds.NewCredentials(sess, roles.Arn(
-				aws.StringValue(auditAccount.Id),
-				roles.OrganizationAccountAccessRole,
-			)),
-			Region: aws.String(region),
-		}),
+		ctx,
+		auditCfg,
 		bucketName,
 		region,
 		&policies.Document{
 			Statement: []policies.Statement{
 				{
-					Principal: &policies.Principal{AWS: []string{aws.StringValue(auditAccount.Id)}},
+					Principal: &policies.Principal{AWS: []string{aws.ToString(auditAccount.Id)}},
 					Action:    []string{"s3:*"},
 					Resource: []string{
 						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
@@ -172,44 +158,36 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			},
 		},
 	); err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
-	if err := awsorgs.EnableAWSServiceAccess(svc, "cloudtrail.amazonaws.com"); err != nil {
-		log.Fatal(err)
+	if err := awsorgs.EnableAWSServiceAccess(ctx, cfg, "cloudtrail.amazonaws.com"); err != nil {
+		ui.Fatal(err)
 	}
-	trail, err := awscloudtrail.EnsureTrail(cloudtrail.New(sess), TrailName, bucketName)
+	trail, err := awscloudtrail.EnsureTrail(ctx, cfg, TrailName, bucketName)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 
 	// Ensure the deploy and network accounts exist.
 	ui.Spinf("finding or creating the deploy account")
-	deployAccount, err := awsorgs.EnsureSpecialAccount(
-		svc,
-		awsservicequotas.NewGlobal(sess),
-		accounts.Deploy,
-	)
+	deployAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Deploy)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	ui.Stopf("account %s", deployAccount.Id)
-	//log.Printf("%+v", account)
+	//log.Printf("%+v", deployAccount)
 	ui.Spinf("finding or creating the network account")
-	networkAccount, err := awsorgs.EnsureSpecialAccount(
-		svc,
-		awsservicequotas.NewGlobal(sess),
-		accounts.Network,
-	)
+	networkAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Network)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	ui.Stopf("account %s", networkAccount.Id)
 	//log.Printf("%+v", networkAccount)
 
 	// Tag the management account.
 	ui.Spin("tagging the management account")
-	if err := awsorgs.Tag(svc, aws.StringValue(org.MasterAccountId), map[string]string{
+	if err := awsorgs.Tag(ctx, cfg, aws.ToString(org.MasterAccountId), map[string]string{
 		tags.Manager:                 tags.Substrate,
 		tags.SubstrateSpecialAccount: accounts.Management,
 		tags.SubstrateVersion:        version.Version,
@@ -220,7 +198,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
-	if err := accounts.CheatSheet(svc); err != nil {
+	if err := accounts.CheatSheet(ctx, cfg); err != nil {
 		log.Fatal(err)
 	}
 
@@ -228,20 +206,21 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// The management account isn't the organization, though.  It's just an account.
 	// To affect the entire organization, we need its root.
-	root, err := awsorgs.Root(svc)
+	root, err := awsorgs.DescribeRoot(ctx, cfg)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 
 	// Ensure service control policies are enabled and that Substrate's is
 	// attached and up-to-date.
 	//
 	// This MUST happen AFTER configuring CloudTrail.
-	if err := awsorgs.EnablePolicyType(svc, awsorgs.SERVICE_CONTROL_POLICY); err != nil {
-		log.Fatal(err)
+	if err := awsorgs.EnablePolicyType(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY); err != nil {
+		ui.Fatal(err)
 	}
 	if err := awsorgs.EnsurePolicy(
-		svc,
+		ctx,
+		cfg,
 		root,
 		ServiceControlPolicyName,
 		awsorgs.SERVICE_CONTROL_POLICY,
@@ -291,10 +270,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			},
 		},
 	); err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	/*
-		for policySummary := range awsorgs.ListPolicies(svc, awsorgs.SERVICE_CONTROL_POLICY) {
+		for policySummary := range awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY) {
 			log.Printf("%+v", policySummary)
 		}
 		//*/
@@ -303,7 +282,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// and up-to-date.
 	/*
 		if err := awsorgs.EnsurePolicy(
-			svc,
+			ctx,
+			cfg,
 			root,
 			TagPolicyName,
 			awsorgs.TAG_POLICY,
@@ -313,7 +293,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 	*/
 	/*
-		for policySummary := range awsorgs.ListPolicies(svc, awsorgs.TAG_POLICY) {
+		for policySummary := range awsorgs.ListPolicies(ctx, cfg, awsorgs.TAG_POLICY) {
 			log.Printf("%+v", policySummary)
 		}
 		//*/
@@ -322,12 +302,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Enable resource sharing throughout the organization.
 	ui.Spin("enabling resource sharing throughout your organization")
-	if err := awsram.EnableSharingWithAwsOrganization(ram.New(sess)); err != nil {
-		log.Fatal(err)
+	if err := awsram.EnableSharingWithAwsOrganization(ctx, cfg); err != nil {
+		ui.Fatal(err)
 	}
 	ui.Stop("ok")
 
-	admin.EnsureAdminRolesAndPolicies(sess, true) // could detect if we created any special accounts but this way there's a simple do-it-anyway option if things get out of sync
+	admin.EnsureAdminRolesAndPolicies(ctx, cfg, true) // could detect if we created any special accounts but this way there's a simple do-it-anyway option if things get out of sync
 
 	ui.Print("next, commit substrate.* to version control, then run `substrate bootstrap-network-account`")
 

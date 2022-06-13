@@ -69,7 +69,7 @@ func AssumeRole(sess *session.Session, accountId, roleName string) *session.Sess
 }
 
 func AssumeRoleManagement(sess *session.Session, roleName string) (*session.Session, error) {
-	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
+	org, err := awsorgs.DescribeOrganizationV1(organizations.New(sess))
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func InManagementAccount(roleName string, config Config) (*session.Session, erro
 
 	// Figure out the management account ID.  If there isn't even an organization
 	// yet, it's this account's ID.
-	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
+	org, err := awsorgs.DescribeOrganizationV1(organizations.New(sess))
 	if awsutil.ErrorCodeIs(err, awsorgs.AWSOrganizationsNotInUseException) {
 		err = nil
 	}

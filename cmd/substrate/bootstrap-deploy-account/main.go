@@ -51,7 +51,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	versionutil.PreventDowngrade(ctx, cfg)
 
 	accountId := aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
-	org, err := awsorgs.DescribeOrganization(organizations.New(sess))
+	org, err := awsorgs.DescribeOrganizationV1(organizations.New(sess))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			log.Fatal(err)
 		}
 
-		if err := terraform.Root(dirname, region); err != nil {
+		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
 			log.Fatal(err)
 		}
 
@@ -181,7 +181,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			log.Fatal(err)
 		}
 
-		if err := terraform.Root(dirname, region); err != nil {
+		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
 			log.Fatal(err)
 		}
 

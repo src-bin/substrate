@@ -1,13 +1,16 @@
 package awsorgs
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/organizations"
+	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	organizationsv1 "github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/jsonutil"
@@ -17,20 +20,18 @@ import (
 )
 
 const (
-	ACCOUNT_NUMBER_LIMIT_EXCEEDED   = "ACCOUNT_NUMBER_LIMIT_EXCEEDED"
 	ConstraintViolationException    = "ConstraintViolationException"
-	EMAIL_ALREADY_EXISTS            = "EMAIL_ALREADY_EXISTS"
-	FAILED                          = "FAILED"
 	FinalizingOrganizationException = "FinalizingOrganizationException"
-	SUCCEEDED                       = "SUCCEEDED"
 )
 
-type Account struct {
+type Account = awscfg.Account
+
+type AccountV1 struct {
 	organizationsv1.Account
-	Tags map[string]string
+	Tags tags.Tags
 }
 
-func (a *Account) String() string {
+func (a *AccountV1) String() string {
 	return jsonutil.MustString(a)
 }
 
@@ -40,7 +41,24 @@ func (err AccountNotFound) Error() string {
 	return fmt.Sprintf("account not found: %s", string(err))
 }
 
-func DescribeAccountV1(svc *organizationsv1.Organizations, accountId string) (*Account, error) {
+type CreateAccountStatus = types.CreateAccountStatus
+
+func DescribeAccount(ctx context.Context, cfg *awscfg.Config, accountId string) (*Account, error) {
+	out, err := cfg.Organizations().DescribeAccount(ctx, &organizations.DescribeAccountInput{
+		AccountId: aws.String(accountId),
+	})
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", out)
+	tags, err := listTagsForResource(ctx, cfg, accountId)
+	if err != nil {
+		return nil, err
+	}
+	return &Account{Account: *out.Account, Tags: tags}, nil
+}
+
+func DescribeAccountV1(svc *organizationsv1.Organizations, accountId string) (*AccountV1, error) {
 	in := &organizationsv1.DescribeAccountInput{
 		AccountId: aws.String(accountId),
 	}
@@ -49,24 +67,24 @@ func DescribeAccountV1(svc *organizationsv1.Organizations, accountId string) (*A
 		return nil, err
 	}
 	//log.Printf("%+v", out)
-	tags, err := listTagsForResource(svc, accountId)
+	tags, err := listTagsForResourceV1(svc, accountId)
 	if err != nil {
 		return nil, err
 	}
-	return &Account{Account: *out.Account, Tags: tags}, nil
+	return &AccountV1{Account: *out.Account, Tags: tags}, nil
 }
 
 func EnsureAccount(
-	svc *organizationsv1.Organizations,
-	qsvc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	domain, environment, quality string,
 	deadline time.Time,
 ) (*Account, error) {
 	return ensureAccount(
-		svc,
-		qsvc,
+		ctx,
+		cfg,
 		NameFor(domain, environment, quality),
-		map[string]string{
+		tags.Tags{
 			tags.Domain:           domain,
 			tags.Environment:      environment,
 			tags.Manager:          tags.Substrate,
@@ -79,11 +97,11 @@ func EnsureAccount(
 }
 
 func EnsureSpecialAccount(
-	svc *organizationsv1.Organizations,
-	qsvc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	name string,
 ) (*Account, error) {
-	return ensureAccount(svc, qsvc, name, map[string]string{
+	return ensureAccount(ctx, cfg, name, tags.Tags{
 		tags.Manager:                 tags.Substrate,
 		tags.Name:                    name,
 		tags.SubstrateSpecialAccount: name, // TODO get rid of this
@@ -94,15 +112,15 @@ func EnsureSpecialAccount(
 func FindAccount(
 	svc *organizationsv1.Organizations,
 	domain, environment, quality string,
-) (*Account, error) {
+) (*AccountV1, error) {
 	return FindAccountByName(svc, NameFor(domain, environment, quality))
 }
 
 func FindAccountsByDomain(
 	svc *organizationsv1.Organizations,
 	domain string,
-) (accounts []*Account, err error) {
-	allAccounts, err := ListAccounts(svc)
+) (accounts []*AccountV1, err error) {
+	allAccounts, err := ListAccountsV1(svc)
 	if err != nil {
 		return nil, err
 	}
@@ -114,24 +132,48 @@ func FindAccountsByDomain(
 	return accounts, nil
 }
 
-func FindAccountByName(svc *organizationsv1.Organizations, name string) (*Account, error) {
-	accounts, err := ListAccounts(svc)
+func FindAccountByName(svc *organizationsv1.Organizations, name string) (*AccountV1, error) {
+	accounts, err := ListAccountsV1(svc)
 	if err != nil {
 		return nil, err
 	}
 	for _, account := range accounts {
-		if aws.StringValue(account.Name) == name {
+		if aws.ToString(account.Name) == name {
 			return account, nil
 		}
 	}
 	return nil, AccountNotFound(name)
 }
 
-func FindSpecialAccount(svc *organizationsv1.Organizations, name string) (*Account, error) {
+func FindSpecialAccount(svc *organizationsv1.Organizations, name string) (*AccountV1, error) {
 	return FindAccountByName(svc, name)
 }
 
-func ListAccounts(svc *organizationsv1.Organizations) ([]*Account, error) {
+func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account, err error) {
+	client := cfg.Organizations()
+	var nextToken *string
+	for {
+		out, err := client.ListAccounts(ctx, &organizations.ListAccountsInput{
+			NextToken: nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, account := range out.Accounts {
+			tags, err := listTagsForResource(ctx, cfg, aws.ToString(account.Id))
+			if err != nil {
+				return nil, err
+			}
+			accounts = append(accounts, &Account{Account: account, Tags: tags})
+		}
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
+}
+
+func ListAccountsV1(svc *organizationsv1.Organizations) ([]*AccountV1, error) {
 
 	// TODO manage a cache here to buy back some performance if we need it.
 	// Might see benefits by caching for even one minute. Invalidation rules
@@ -140,10 +182,10 @@ func ListAccounts(svc *organizationsv1.Organizations) ([]*Account, error) {
 	// an account that's been closed and anyway we'll figure it out pretty
 	// quickly if we try to access it.
 
-	return ListAccountsFresh(svc)
+	return ListAccountsV1Fresh(svc)
 }
 
-func ListAccountsFresh(svc *organizationsv1.Organizations) (accounts []*Account, err error) {
+func ListAccountsV1Fresh(svc *organizationsv1.Organizations) (accounts []*AccountV1, err error) {
 	var nextToken *string
 	for {
 		in := &organizationsv1.ListAccountsInput{NextToken: nextToken}
@@ -152,11 +194,11 @@ func ListAccountsFresh(svc *organizationsv1.Organizations) (accounts []*Account,
 			return nil, err
 		}
 		for _, rawAccount := range out.Accounts {
-			tags, err := listTagsForResource(svc, aws.StringValue(rawAccount.Id))
+			tags, err := listTagsForResourceV1(svc, aws.ToString(rawAccount.Id))
 			if err != nil {
 				return nil, err
 			}
-			accounts = append(accounts, &Account{Account: *rawAccount, Tags: tags})
+			accounts = append(accounts, &AccountV1{Account: *rawAccount, Tags: tags})
 		}
 		if nextToken = out.NextToken; nextToken == nil {
 			break
@@ -180,53 +222,52 @@ func NameFor(domain, environment, quality string) string {
 }
 
 func Tag(
-	svc *organizationsv1.Organizations,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	accountId string,
-	tags map[string]string,
+	tags tags.Tags,
 ) error {
-	tagStructs := make([]*organizationsv1.Tag, 0, len(tags))
+	tagStructs := make([]types.Tag, 0, len(tags))
 	for key, value := range tags {
-		tagStructs = append(tagStructs, &organizationsv1.Tag{
+		tagStructs = append(tagStructs, types.Tag{
 			Key:   aws.String(key),
 			Value: aws.String(value),
 		})
 	}
-	in := &organizationsv1.TagResourceInput{
+	_, err := cfg.Organizations().TagResource(ctx, &organizations.TagResourceInput{
 		ResourceId: aws.String(accountId),
 		Tags:       tagStructs,
-	}
-	_, err := svc.TagResource(in)
-	//log.Printf("awsorgs.Tag accountId: %v, in: %+v, out: %+v, err: %v", accountId, in, out, err)
+	})
 	return err
 }
 
 func createAccount(
-	svc *organizationsv1.Organizations,
-	qsvc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	name, email string,
 	deadline time.Time,
-) (*organizationsv1.CreateAccountStatus, error) {
-
-	in := &organizationsv1.CreateAccountInput{
-		AccountName: aws.String(name),
-		Email:       aws.String(email),
-	}
+) (*CreateAccountStatus, error) {
+	client := cfg.Organizations()
 	var (
-		out *organizationsv1.CreateAccountOutput
+		out *organizations.CreateAccountOutput
 		err error
 	)
 	for {
-		out, err = svc.CreateAccount(in)
+		out, err = client.CreateAccount(ctx, &organizations.CreateAccountInput{
+			AccountName: aws.String(name),
+			Email:       aws.String(email),
+		})
 
 		// If we're at the organization's limit on the number of AWS accounts
 		// it can contain, raise the limit and retry.
-		if cveErr, ok := err.(*organizationsv1.ConstraintViolationException); ok && aws.StringValue(cveErr.Reason) == ACCOUNT_NUMBER_LIMIT_EXCEEDED {
-			accounts, err := ListAccounts(svc)
+		if cveErr, ok := err.(*types.ConstraintViolationException); ok && cveErr.Reason == types.ConstraintViolationExceptionReasonAccountNumberLimitExceeded {
+			accounts, err := ListAccounts(ctx, cfg)
 			if err != nil {
 				return nil, err
 			}
 			if err := awsservicequotas.EnsureServiceQuota(
-				qsvc,
+				ctx,
+				cfg.Regional("us-east-1"),     // quotas for global services must be managed in us-east-1
 				"L-29A0C5DF", "organizations", // AWS accounts in an organization
 				float64(len(accounts)+1),
 				float64(len(accounts)*2), // avoid dealing with service limits very often
@@ -253,18 +294,17 @@ func createAccount(
 
 	status := out.CreateAccountStatus
 	for {
-		in := &organizationsv1.DescribeCreateAccountStatusInput{
+		out, err := client.DescribeCreateAccountStatus(ctx, &organizations.DescribeCreateAccountStatusInput{
 			CreateAccountRequestId: status.Id,
-		}
-		out, err := svc.DescribeCreateAccountStatus(in)
+		})
 		if err != nil {
 			return nil, err
 		}
 		//log.Printf("%+v", out)
 		status = out.CreateAccountStatus
-		if state := aws.StringValue(out.CreateAccountStatus.State); state == FAILED {
+		if status.State == types.CreateAccountStateFailed {
 			break // return nil, fmt.Errorf("account creation failed for the %s account with reason %s", name, reason)
-		} else if state == SUCCEEDED {
+		} else if status.State == types.CreateAccountStateSucceeded {
 			break
 		}
 		time.Sleep(1e9) // TODO exponential backoff
@@ -273,13 +313,13 @@ func createAccount(
 	return status, nil
 }
 
-func emailFor(svc *organizationsv1.Organizations, name string) (string, error) {
-	org, err := DescribeOrganization(svc)
+func emailFor(ctx context.Context, cfg *awscfg.Config, name string) (string, error) {
+	org, err := cfg.DescribeOrganization(ctx)
 	if err != nil {
 		return "", err
 	}
 	return strings.Replace(
-		aws.StringValue(org.MasterAccountEmail),
+		aws.ToString(org.MasterAccountEmail),
 		"@",
 		fmt.Sprintf("+%s@", name),
 		1,
@@ -287,41 +327,66 @@ func emailFor(svc *organizationsv1.Organizations, name string) (string, error) {
 }
 
 func ensureAccount(
-	svc *organizationsv1.Organizations,
-	qsvc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	name string,
-	tags map[string]string,
+	tagMap tags.Tags, // TODO rename back to tags once the tags package is renamed to tagging
 	deadline time.Time,
 ) (*Account, error) {
 
-	email, err := emailFor(svc, name)
+	email, err := emailFor(ctx, cfg, name)
 	if err != nil {
 		return nil, err
 	}
 
-	status, err := createAccount(svc, qsvc, name, email, deadline)
+	status, err := createAccount(ctx, cfg, name, email, deadline)
 	if err != nil {
 		return nil, err
 	}
 	var accountId string
-	if reason := aws.StringValue(status.FailureReason); reason == EMAIL_ALREADY_EXISTS {
-		account, err := FindAccountByName(svc, name) // confirms name matches in addition to email
+	if status.FailureReason == types.CreateAccountFailureReasonEmailAlreadyExists {
+		account, err := cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
+			return aws.ToString(a.Name) == name // confirms name matches in addition to email
+			// TODO confirm tags match also/instead
+		})
 		if err != nil {
 			return nil, err
 		}
-		accountId = aws.StringValue(account.Id)
+		accountId = aws.ToString(account.Id)
 	} else {
-		accountId = aws.StringValue(status.AccountId)
+		accountId = aws.ToString(status.AccountId)
 	}
 
-	if err := Tag(svc, accountId, tags); err != nil {
+	if err := Tag(ctx, cfg, accountId, tagMap); err != nil {
 		return nil, err
 	}
 
-	return DescribeAccountV1(svc, accountId)
+	return DescribeAccount(ctx, cfg, accountId)
 }
 
-func listTagsForResource(
+func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId string) (tags.Tags, error) {
+	client := cfg.Organizations()
+	var nextToken *string
+	tags := make(tags.Tags)
+	for {
+		out, err := client.ListTagsForResource(ctx, &organizations.ListTagsForResourceInput{
+			NextToken:  nextToken,
+			ResourceId: aws.String(accountId),
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, tag := range out.Tags {
+			tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+		}
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return tags, nil
+}
+
+func listTagsForResourceV1(
 	svc *organizationsv1.Organizations,
 	accountId string,
 ) (map[string]string, error) {
@@ -337,7 +402,7 @@ func listTagsForResource(
 			return nil, err
 		}
 		for _, tag := range out.Tags {
-			tags[aws.StringValue(tag.Key)] = aws.StringValue(tag.Value)
+			tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
 		}
 		if nextToken = out.NextToken; nextToken == nil {
 			break

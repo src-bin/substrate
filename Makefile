@@ -17,6 +17,8 @@ all:
 	go generate ./lambdautil # dependency of several packages with go:generate directives
 	go generate ./cmd/substrate-intranet # dependency of cmd/substrate/create-admin-account's go:generate directives
 	go generate ./... # the rest of the go:generate directives
+	# TODO go vet ...
+	# TODO go build packages to try to make builds faster
 
 clean:
 	find -name dispatch-map.go -delete

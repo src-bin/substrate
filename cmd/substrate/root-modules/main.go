@@ -4,17 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
-	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
@@ -35,14 +31,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
-	sess, err := awssessions.InManagementAccount(roles.OrganizationReader, awssessions.Config{})
+	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
+	adminAccounts, serviceAccounts, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
-		log.Fatal(err)
-	}
-	svc := organizations.New(sess)
-	adminAccounts, serviceAccounts, _, _, _, _, err := accounts.Grouped(svc)
-	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 
 	var rootModules []string
@@ -67,7 +59,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Network account.
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region := range regions.Selected() {
@@ -82,7 +74,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	peeringConnections, err := networks.EnumeratePeeringConnections()
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	for _, pc := range peeringConnections.Slice() {
 		eq0, eq1, region0, region1 := pc.Ends()

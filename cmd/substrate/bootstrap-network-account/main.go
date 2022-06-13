@@ -274,7 +274,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		{"L-A4707A72", "vpc"}, // Internet Gateways per region
 	} {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
-			sess,
+			ctx,
+			cfg,
 			quota[0], quota[1],
 			float64(adminNets+nets), // admin and non-admin VPCs per region, each with one of each type of Internet Gateway
 			float64(adminNets+nets), // same value because they hassle us so much about raising the limit at all
@@ -289,7 +290,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	if natGateways {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
-			sess,
+			ctx,
+			cfg,
 			"L-FE5A380F", "vpc", // NAT Gateways per availability zone
 			float64(nets), // only non-admin networks get private subnets and thus NAT Gateways
 			float64(nets), // same value because they hassle us so much about raising the limit at all
@@ -302,7 +304,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			}
 		}
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
-			sess,
+			ctx,
+			cfg,
 			"L-0263D0A3", "ec2", // EIPs per region
 			float64(nets*availabilityzones.NumberPerNetwork), // NAT Gateways per AZ times the number of AZs per network
 			float64(nets*availabilityzones.NumberPerNetwork), // same value because they hassle us so much about raising the limit at all
@@ -351,7 +354,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				log.Fatal(err)
 			}
 
-			if err := terraform.Root(dirname, region); err != nil {
+			if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
 				log.Fatal(err)
 			}
 
@@ -452,7 +455,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		// The choice of region0 here is arbitrary.  Only one side
 		// can store the Terraform state and region0 wins.
-		if err := terraform.Root(dirname, region0); err != nil {
+		if err := terraform.Root(ctx, cfg, dirname, region0); err != nil {
 			log.Fatal(err)
 		}
 

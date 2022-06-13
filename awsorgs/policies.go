@@ -1,16 +1,23 @@
 package awsorgs
 
 import (
+	"context"
 	"log"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/organizations"
+	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
 )
 
-type PolicyType string
+type (
+	Policy        = types.Policy
+	PolicySummary = types.PolicySummary
+	PolicyType    = types.PolicyType
+)
 
 const (
 	ConcurrentModificationException               = "ConcurrentModificationException"
@@ -21,21 +28,25 @@ const (
 	TAG_POLICY                         PolicyType = "TAG_POLICY"
 )
 
-func EnablePolicyType(svc *organizations.Organizations, policyType PolicyType) error {
+func EnablePolicyType(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	policyType PolicyType,
+) error {
 	time.Sleep(5e9)       // halfhearted attempt to avoid "ConcurrentModificationException: AWS Organizations can't complete your request because it conflicts with another attempt to modify the same entity. Try again later."
 	defer time.Sleep(5e9) // should be more graceful but one last sleep should prevent ConcurrentModificationException
 	for {
-		root, err := Root(svc)
+		root, err := DescribeRoot(ctx, cfg)
 		if err != nil {
 			log.Fatal(err)
 		}
 		for _, pt := range root.PolicyTypes {
-			if aws.StringValue(pt.Status) == "ENABLED" && aws.StringValue(pt.Type) == string(policyType) {
+			if pt.Status == types.PolicyTypeStatusEnabled && pt.Type == policyType {
 				return nil
 			}
 		}
-		if _, err := svc.EnablePolicyType(&organizations.EnablePolicyTypeInput{
-			PolicyType: aws.String(string(policyType)),
+		if _, err := cfg.Organizations().EnablePolicyType(ctx, &organizations.EnablePolicyTypeInput{
+			PolicyType: policyType,
 			RootId:     root.Id,
 		}); err != nil && !awsutil.ErrorCodeIs(err, ConcurrentModificationException) {
 			return err
@@ -55,14 +66,15 @@ func EnablePolicyType(svc *organizations.Organizations, policyType PolicyType) e
 // of the root.  In other words, the distinction between a management account and
 // the root is murkier than I thought yesterday.
 func EnsurePolicy(
-	svc *organizations.Organizations,
-	root *organizations.Root,
+	ctx context.Context,
+	cfg *awscfg.Config,
+	root *Root,
 	name string,
 	policyType PolicyType,
 	doc *policies.Document,
 ) error {
 
-	err := enablePolicyType(svc, aws.StringValue(root.Id), policyType)
+	err := enablePolicyType(ctx, cfg, aws.ToString(root.Id), policyType)
 	if awsutil.ErrorCodeIs(err, PolicyTypeAlreadyEnabledException) {
 		err = nil
 	}
@@ -70,20 +82,20 @@ func EnsurePolicy(
 		return err
 	}
 
-	policy, err := createPolicy(svc, name, policyType, doc)
+	policy, err := createPolicy(ctx, cfg, name, policyType, doc)
 	if awsutil.ErrorCodeIs(err, DuplicatePolicyException) {
 		err = nil
 
-		summaries, err := ListPolicies(svc, policyType)
+		summaries, err := ListPolicies(ctx, cfg, policyType)
 		if err != nil {
 			return err
 		}
 		for _, summary := range summaries {
-			if aws.StringValue(summary.Name) != name {
+			if aws.ToString(summary.Name) != name {
 				continue
 			}
 
-			policy, err = updatePolicy(svc, aws.StringValue(summary.Id), name, doc)
+			policy, err = updatePolicy(ctx, cfg, aws.ToString(summary.Id), name, doc)
 			if err != nil {
 				return err
 			}
@@ -97,7 +109,7 @@ func EnsurePolicy(
 
 	// TODO tag the policy, which isn't a supported operation; get clever
 
-	err = attachPolicy(svc, aws.StringValue(policy.PolicySummary.Id), aws.StringValue(root.Id))
+	err = attachPolicy(ctx, cfg, aws.ToString(policy.PolicySummary.Id), aws.ToString(root.Id))
 	if awsutil.ErrorCodeIs(err, DuplicatePolicyAttachmentException) {
 		err = nil
 	}
@@ -106,16 +118,16 @@ func EnsurePolicy(
 }
 
 func ListPolicies(
-	svc *organizations.Organizations,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	policyType PolicyType,
-) (summaries []*organizations.PolicySummary, err error) {
+) (summaries []PolicySummary, err error) {
 	var nextToken *string
 	for {
-		in := &organizations.ListPoliciesInput{
-			Filter:    aws.String(string(policyType)),
+		out, err := cfg.Organizations().ListPolicies(ctx, &organizations.ListPoliciesInput{
+			Filter:    policyType,
 			NextToken: nextToken,
-		}
-		out, err := svc.ListPolicies(in)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -127,63 +139,70 @@ func ListPolicies(
 	return
 }
 
-func attachPolicy(svc *organizations.Organizations, policyId, rootId string) error {
-	in := &organizations.AttachPolicyInput{
+func attachPolicy(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	policyId, rootId string,
+) error {
+	_, err := cfg.Organizations().AttachPolicy(ctx, &organizations.AttachPolicyInput{
 		PolicyId: aws.String(policyId),
 		TargetId: aws.String(rootId),
-	}
-	_, err := svc.AttachPolicy(in)
+	})
 	return err
 }
 
 func createPolicy(
-	svc *organizations.Organizations,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	name string,
 	policyType PolicyType,
 	doc *policies.Document,
-) (*organizations.Policy, error) {
+) (*Policy, error) {
 	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
 	}
-	in := &organizations.CreatePolicyInput{
+	out, err := cfg.Organizations().CreatePolicy(ctx, &organizations.CreatePolicyInput{
 		Content:     aws.String(docJSON),
 		Description: aws.String(""),
 		Name:        aws.String(name),
-		Type:        aws.String(string(policyType)),
-	}
-	out, err := svc.CreatePolicy(in)
+		Type:        policyType,
+	})
 	if err != nil {
 		return nil, err
 	}
 	return out.Policy, nil
 }
 
-func enablePolicyType(svc *organizations.Organizations, rootId string, policyType PolicyType) error {
-	in := &organizations.EnablePolicyTypeInput{
-		PolicyType: aws.String(string(policyType)),
+func enablePolicyType(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	rootId string,
+	policyType PolicyType,
+) error {
+	_, err := cfg.Organizations().EnablePolicyType(ctx, &organizations.EnablePolicyTypeInput{
+		PolicyType: policyType,
 		RootId:     aws.String(rootId),
-	}
-	_, err := svc.EnablePolicyType(in)
+	})
 	return err
 }
 
 func updatePolicy(
-	svc *organizations.Organizations,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	policyId, name string,
 	doc *policies.Document,
-) (*organizations.Policy, error) {
+) (*Policy, error) {
 	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
 	}
-	in := &organizations.UpdatePolicyInput{
+	out, err := cfg.Organizations().UpdatePolicy(ctx, &organizations.UpdatePolicyInput{
 		Content:     aws.String(docJSON),
 		Description: aws.String(""),
 		Name:        aws.String(name),
 		PolicyId:    aws.String(policyId),
-	}
-	out, err := svc.UpdatePolicy(in)
+	})
 	if err != nil {
 		return nil, err
 	}

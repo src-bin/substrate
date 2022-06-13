@@ -1,24 +1,25 @@
 package awsservicequotas
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
+	"github.com/aws/aws-sdk-go-v2/service/servicequotas/types"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
 )
 
-const (
-	APPROVED    = "APPROVED"
-	CASE_CLOSED = "CASE_CLOSED"
-	CASE_OPENED = "CASE_OPENED"
-	PENDING     = "PENDING"
+const NoSuchResourceException = "NoSuchResourceException"
 
-	NoSuchResourceException = "NoSuchResourceException"
+type (
+	RequestedServiceQuotaChange = types.RequestedServiceQuotaChange
+	ServiceInfo                 = types.ServiceInfo
+	ServiceQuota                = types.ServiceQuota
 )
 
 type DeadlinePassed struct{ QuotaCode, ServiceCode string }
@@ -39,20 +40,23 @@ func (err DeadlinePassed) Error() string {
 // best to attempt to create the resource, receive a LimitExceeded (or similar)
 // exception, and then call EnsureServiceQuota.
 func EnsureServiceQuota(
-	svc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	quotaCode, serviceCode string,
 	requiredValue, desiredValue float64,
 	deadline time.Time,
 ) error {
 
 	quota, err := GetServiceQuota(
-		svc,
+		ctx,
+		cfg,
 		quotaCode,
 		serviceCode,
 	)
 	if awsutil.ErrorCodeIs(err, NoSuchResourceException) {
 		quota, err = GetAWSDefaultServiceQuota(
-			svc,
+			ctx,
+			cfg,
 			quotaCode,
 			serviceCode,
 		)
@@ -61,17 +65,17 @@ func EnsureServiceQuota(
 		return nil // the presumption being we don't need to raise limits we can't see
 	}
 	if err != nil {
-		ui.Print(aws.StringValue(svc.Client.Config.Region), quotaCode, serviceCode)
+		ui.Print(cfg.Region(), quotaCode, serviceCode)
 		return err
 	}
 	//log.Printf("%+v", quota)
 
-	if aws.Float64Value(quota.Value) >= requiredValue {
+	if aws.ToFloat64(quota.Value) >= requiredValue {
 		ui.Printf(
 			"service quota %s in %s is already %.0f >= %.0f",
 			quotaCode,
-			aws.StringValue(svc.Client.Config.Region),
-			aws.Float64Value(quota.Value),
+			cfg.Region(),
+			aws.ToFloat64(quota.Value),
 			requiredValue,
 		)
 		return nil
@@ -88,7 +92,8 @@ func EnsureServiceQuota(
 	}
 	requested := false
 	changes, err := ListRequestedServiceQuotaChangeHistoryByQuota(
-		svc,
+		ctx,
+		cfg,
 		quotaCode,
 		serviceCode,
 	)
@@ -96,15 +101,15 @@ func EnsureServiceQuota(
 		return err
 	}
 	for _, change := range changes {
-		if aws.Float64Value(change.DesiredValue) < desiredValue {
+		if aws.ToFloat64(change.DesiredValue) < desiredValue {
 			continue
 		}
-		if status := aws.StringValue(change.Status); status == PENDING || status == CASE_OPENED {
+		if status := change.Status; status == types.RequestStatusPending || status == types.RequestStatusCaseOpened {
 			ui.Printf(
 				"found a previous request to increase service quota %s in %s to %.0f; waiting for it to be resolved",
 				quotaCode,
-				aws.StringValue(svc.Client.Config.Region),
-				aws.Float64Value(change.DesiredValue),
+				cfg.Region(),
+				aws.ToFloat64(change.DesiredValue),
 			)
 			requested = true
 		}
@@ -112,7 +117,8 @@ func EnsureServiceQuota(
 
 	if !requested {
 		req, err := RequestServiceQuotaIncrease(
-			svc,
+			ctx,
+			cfg,
 			quotaCode,
 			serviceCode,
 			desiredValue,
@@ -123,8 +129,8 @@ func EnsureServiceQuota(
 		ui.Printf(
 			"requested an increase to service quota %s in %s to %.0f; waiting for it to be resolved",
 			req.QuotaCode,
-			svc.Client.Config.Region,
-			aws.Float64Value(req.DesiredValue),
+			cfg.Region(),
+			aws.ToFloat64(req.DesiredValue),
 		)
 		//log.Printf("%+v", req)
 	}
@@ -145,7 +151,8 @@ func EnsureServiceQuota(
 		// First try to directly query the limit, which may not work because
 		// some limits aren't visible to Service Quotas.
 		quota, err := GetServiceQuota(
-			svc,
+			ctx,
+			cfg,
 			quotaCode,
 			serviceCode,
 		)
@@ -158,7 +165,7 @@ func EnsureServiceQuota(
 			continue
 		} else if err != nil {
 			return err
-		} else if value := aws.Float64Value(quota.Value); value >= desiredValue {
+		} else if value := aws.ToFloat64(quota.Value); value >= desiredValue {
 			break
 		}
 
@@ -166,7 +173,8 @@ func EnsureServiceQuota(
 		// which would be a good sign but doesn't definitely mean the
 		// operation's going to work immediately.
 		changes, err := ListRequestedServiceQuotaChangeHistoryByQuota(
-			svc,
+			ctx,
+			cfg,
 			quotaCode,
 			serviceCode,
 		)
@@ -178,10 +186,10 @@ func EnsureServiceQuota(
 			return err
 		}
 		for _, change := range changes {
-			if aws.Float64Value(change.DesiredValue) < desiredValue {
+			if aws.ToFloat64(change.DesiredValue) < desiredValue {
 				continue
 			}
-			if status := aws.StringValue(change.Status); status == APPROVED || status == CASE_CLOSED {
+			if status := change.Status; status == types.RequestStatusApproved || status == types.RequestStatusCaseClosed {
 				break
 			}
 		}
@@ -191,14 +199,15 @@ func EnsureServiceQuota(
 	ui.Printf(
 		"service quota %s in %s increased to %.0f",
 		quotaCode,
-		aws.StringValue(svc.Client.Config.Region),
+		cfg.Region(),
 		desiredValue,
 	)
 	return nil
 }
 
 func EnsureServiceQuotaInAllRegions(
-	sess *session.Session,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	quotaCode, serviceCode string,
 	requiredValue, desiredValue float64,
 	deadline time.Time,
@@ -207,18 +216,17 @@ func EnsureServiceQuotaInAllRegions(
 
 	for _, region := range regions.Selected() {
 		go func(
-			svc *servicequotas.ServiceQuotas,
+			ctx context.Context,
+			cfg *awscfg.Config,
 			quotaCode, serviceCode string,
 			desiredValue float64,
 			deadline time.Time,
 			ch chan<- error,
 		) {
-			ch <- EnsureServiceQuota(svc, quotaCode, serviceCode, requiredValue, desiredValue, deadline)
+			ch <- EnsureServiceQuota(ctx, cfg, quotaCode, serviceCode, requiredValue, desiredValue, deadline)
 		}(
-			servicequotas.New(
-				sess,
-				&aws.Config{Region: aws.String(region)},
-			),
+			ctx,
+			cfg.Regional(region),
 			quotaCode,
 			serviceCode,
 			desiredValue,
@@ -242,14 +250,14 @@ func EnsureServiceQuotaInAllRegions(
 }
 
 func GetAWSDefaultServiceQuota(
-	svc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	quotaCode, serviceCode string,
-) (*servicequotas.ServiceQuota, error) {
-	in := &servicequotas.GetAWSDefaultServiceQuotaInput{
+) (*ServiceQuota, error) {
+	out, err := cfg.ServiceQuotas().GetAWSDefaultServiceQuota(ctx, &servicequotas.GetAWSDefaultServiceQuotaInput{
 		QuotaCode:   aws.String(quotaCode),
 		ServiceCode: aws.String(serviceCode),
-	}
-	out, err := svc.GetAWSDefaultServiceQuota(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -258,14 +266,14 @@ func GetAWSDefaultServiceQuota(
 }
 
 func GetServiceQuota(
-	svc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	quotaCode, serviceCode string,
-) (*servicequotas.ServiceQuota, error) {
-	in := &servicequotas.GetServiceQuotaInput{
+) (*ServiceQuota, error) {
+	out, err := cfg.ServiceQuotas().GetServiceQuota(ctx, &servicequotas.GetServiceQuotaInput{
 		QuotaCode:   aws.String(quotaCode),
 		ServiceCode: aws.String(serviceCode),
-	}
-	out, err := svc.GetServiceQuota(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -274,17 +282,20 @@ func GetServiceQuota(
 }
 
 func ListRequestedServiceQuotaChangeHistoryByQuota(
-	svc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	quotaCode, serviceCode string,
-) (changes []*servicequotas.RequestedServiceQuotaChange, err error) {
+) (changes []RequestedServiceQuotaChange, err error) {
 	var nextToken *string
 	for {
-		in := &servicequotas.ListRequestedServiceQuotaChangeHistoryByQuotaInput{
-			NextToken:   nextToken,
-			QuotaCode:   aws.String(quotaCode),
-			ServiceCode: aws.String(serviceCode),
-		}
-		out, err := svc.ListRequestedServiceQuotaChangeHistoryByQuota(in)
+		out, err := cfg.ServiceQuotas().ListRequestedServiceQuotaChangeHistoryByQuota(
+			ctx,
+			&servicequotas.ListRequestedServiceQuotaChangeHistoryByQuotaInput{
+				NextToken:   nextToken,
+				QuotaCode:   aws.String(quotaCode),
+				ServiceCode: aws.String(serviceCode),
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -298,16 +309,16 @@ func ListRequestedServiceQuotaChangeHistoryByQuota(
 }
 
 func ListServiceQuotas(
-	svc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	serviceCode string,
-) (quotas []*servicequotas.ServiceQuota, err error) {
+) (quotas []ServiceQuota, err error) {
 	var nextToken *string
 	for {
-		in := &servicequotas.ListServiceQuotasInput{
+		out, err := cfg.ServiceQuotas().ListServiceQuotas(ctx, &servicequotas.ListServiceQuotasInput{
 			NextToken:   nextToken,
 			ServiceCode: aws.String(serviceCode),
-		}
-		out, err := svc.ListServiceQuotas(in)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -321,14 +332,14 @@ func ListServiceQuotas(
 }
 
 func ListServices(
-	svc *servicequotas.ServiceQuotas,
-) (services []*servicequotas.ServiceInfo, err error) {
+	ctx context.Context,
+	cfg *awscfg.Config,
+) (services []ServiceInfo, err error) {
 	var nextToken *string
 	for {
-		in := &servicequotas.ListServicesInput{
+		out, err := cfg.ServiceQuotas().ListServices(ctx, &servicequotas.ListServicesInput{
 			NextToken: nextToken,
-		}
-		out, err := svc.ListServices(in)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -341,24 +352,17 @@ func ListServices(
 	return
 }
 
-// NewGlobal creates a client from a session, unconditionally in us-east-1
-// because Service Quota appears to just require quotas for global services
-// to be inspected and manipulated from us-east-1. Hateful.
-func NewGlobal(sess *session.Session) *servicequotas.ServiceQuotas {
-	return servicequotas.New(sess, &aws.Config{Region: aws.String("us-east-1")})
-}
-
 func RequestServiceQuotaIncrease(
-	svc *servicequotas.ServiceQuotas,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	quotaCode, serviceCode string,
 	desiredValue float64,
-) (*servicequotas.RequestedServiceQuotaChange, error) {
-	in := &servicequotas.RequestServiceQuotaIncreaseInput{
+) (*RequestedServiceQuotaChange, error) {
+	out, err := cfg.ServiceQuotas().RequestServiceQuotaIncrease(ctx, &servicequotas.RequestServiceQuotaIncreaseInput{
 		DesiredValue: aws.Float64(desiredValue),
 		QuotaCode:    aws.String(quotaCode),
 		ServiceCode:  aws.String(serviceCode),
-	}
-	out, err := svc.RequestServiceQuotaIncrease(in)
+	})
 	if err != nil {
 		return nil, err
 	}

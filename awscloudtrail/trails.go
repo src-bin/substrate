@@ -1,8 +1,12 @@
 package awscloudtrail
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudtrail"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
+	"github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/version"
@@ -14,24 +18,26 @@ type Trail struct {
 	Arn, Name *string
 }
 
-func EnsureTrail(svc *cloudtrail.CloudTrail, name, bucketName string) (*Trail, error) {
+func EnsureTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*Trail, error) {
 
-	trail, err := createTrail(svc, name, bucketName)
+	trail, err := createTrail(ctx, cfg, name, bucketName)
 	if awsutil.ErrorCodeIs(err, TrailAlreadyExistsException) {
-		trail, err = updateTrail(svc, name, bucketName)
+		trail, err = updateTrail(ctx, cfg, name, bucketName)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := svc.AddTags(&cloudtrail.AddTagsInput{
+	client := cfg.CloudTrail()
+
+	if _, err := client.AddTags(ctx, &cloudtrail.AddTagsInput{
 		ResourceId: trail.Arn,
 		TagsList:   tagList(),
 	}); err != nil {
 		return nil, err
 	}
 
-	if _, err := svc.StartLogging(&cloudtrail.StartLoggingInput{
+	if _, err := client.StartLogging(ctx, &cloudtrail.StartLoggingInput{
 		Name: trail.Name,
 	}); err != nil {
 		return nil, err
@@ -40,8 +46,8 @@ func EnsureTrail(svc *cloudtrail.CloudTrail, name, bucketName string) (*Trail, e
 	return trail, nil
 }
 
-func createTrail(svc *cloudtrail.CloudTrail, name, bucketName string) (*Trail, error) {
-	in := &cloudtrail.CreateTrailInput{
+func createTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*Trail, error) {
+	out, err := cfg.CloudTrail().CreateTrail(ctx, &cloudtrail.CreateTrailInput{
 		EnableLogFileValidation:    aws.Bool(true),
 		IncludeGlobalServiceEvents: aws.Bool(true),
 		IsMultiRegionTrail:         aws.Bool(true),
@@ -49,8 +55,7 @@ func createTrail(svc *cloudtrail.CloudTrail, name, bucketName string) (*Trail, e
 		Name:                       aws.String(name),
 		S3BucketName:               aws.String(bucketName),
 		TagsList:                   tagList(),
-	}
-	out, err := svc.CreateTrail(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -58,16 +63,15 @@ func createTrail(svc *cloudtrail.CloudTrail, name, bucketName string) (*Trail, e
 	return &Trail{Arn: out.TrailARN, Name: out.Name}, nil
 }
 
-func updateTrail(svc *cloudtrail.CloudTrail, name, bucketName string) (*Trail, error) {
-	in := &cloudtrail.UpdateTrailInput{
+func updateTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*Trail, error) {
+	out, err := cfg.CloudTrail().UpdateTrail(ctx, &cloudtrail.UpdateTrailInput{
 		EnableLogFileValidation:    aws.Bool(true),
 		IncludeGlobalServiceEvents: aws.Bool(true),
 		IsMultiRegionTrail:         aws.Bool(true),
 		IsOrganizationTrail:        aws.Bool(true),
 		Name:                       aws.String(name),
 		S3BucketName:               aws.String(bucketName),
-	}
-	out, err := svc.UpdateTrail(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +79,9 @@ func updateTrail(svc *cloudtrail.CloudTrail, name, bucketName string) (*Trail, e
 	return &Trail{Arn: out.TrailARN, Name: out.Name}, nil
 }
 
-func tagList() []*cloudtrail.Tag {
-	return []*cloudtrail.Tag{
-		&cloudtrail.Tag{Key: aws.String(tags.Manager), Value: aws.String(tags.Substrate)},
-		&cloudtrail.Tag{Key: aws.String(tags.SubstrateVersion), Value: aws.String(version.Version)},
+func tagList() []types.Tag {
+	return []types.Tag{
+		{Key: aws.String(tags.Manager), Value: aws.String(tags.Substrate)},
+		{Key: aws.String(tags.SubstrateVersion), Value: aws.String(version.Version)},
 	}
 }

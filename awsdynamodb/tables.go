@@ -1,23 +1,31 @@
 package awsdynamodb
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/version"
 )
 
-const (
-	PAY_PER_REQUEST        = "PAY_PER_REQUEST"
-	ResourceInUseException = "ResourceInUseException"
+const ResourceInUseException = "ResourceInUseException"
+
+type (
+	AttributeDefinition = types.AttributeDefinition
+	KeySchemaElement    = types.KeySchemaElement
+	TableDescription    = types.TableDescription
 )
 
 func DescribeTable(
-	svc *dynamodb.DynamoDB,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	name string,
-) (*dynamodb.TableDescription, error) {
-	out, err := svc.DescribeTable(&dynamodb.DescribeTableInput{
+) (*TableDescription, error) {
+	out, err := cfg.DynamoDB().DescribeTable(ctx, &dynamodb.DescribeTableInput{
 		TableName: aws.String(name),
 	})
 	if err != nil {
@@ -27,39 +35,41 @@ func DescribeTable(
 }
 
 func EnsureTable(
-	svc *dynamodb.DynamoDB,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	name string,
-	attrDefs []*dynamodb.AttributeDefinition,
-	keySchema []*dynamodb.KeySchemaElement,
-) (*dynamodb.TableDescription, error) {
-	tags := []*dynamodb.Tag{
-		&dynamodb.Tag{
+	attrDefs []AttributeDefinition,
+	keySchema []KeySchemaElement,
+) (*TableDescription, error) {
+	client := cfg.DynamoDB()
+	tags := []types.Tag{
+		{
 			Key:   aws.String(tags.Manager),
 			Value: aws.String(tags.Substrate),
 		},
-		&dynamodb.Tag{
+		{
 			Key:   aws.String(tags.SubstrateVersion),
 			Value: aws.String(version.Version),
 		},
 	}
-	out, err := svc.CreateTable(&dynamodb.CreateTableInput{
+	out, err := client.CreateTable(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: attrDefs,
-		BillingMode:          aws.String(PAY_PER_REQUEST),
+		BillingMode:          types.BillingModePayPerRequest,
 		KeySchema:            keySchema,
 		TableName:            aws.String(name),
 		Tags:                 tags,
 	})
 	if awsutil.ErrorCodeIs(err, ResourceInUseException) {
-		out, err := svc.UpdateTable(&dynamodb.UpdateTableInput{
+		out, err := client.UpdateTable(ctx, &dynamodb.UpdateTableInput{
 			AttributeDefinitions: attrDefs,
-			BillingMode:          aws.String(PAY_PER_REQUEST),
+			BillingMode:          types.BillingModePayPerRequest,
 			TableName:            aws.String(name),
 		})
 		if err != nil {
 			return nil, err
 		}
 		//log.Printf("%+v", out)
-		if _, err := svc.TagResource(&dynamodb.TagResourceInput{
+		if _, err := client.TagResource(ctx, &dynamodb.TagResourceInput{
 			ResourceArn: out.TableDescription.TableArn,
 			Tags:        tags,
 		}); err != nil {

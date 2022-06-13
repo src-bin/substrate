@@ -1,15 +1,14 @@
 package accounts
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
@@ -17,18 +16,16 @@ import (
 )
 
 const (
-	Admin      = "admin"
-	Audit      = "audit"
-	Deploy     = "deploy"
-	Management = "management"
-	Network    = "network"
+	Admin      = naming.Admin
+	Audit      = naming.Audit
+	Deploy     = naming.Deploy
+	Management = naming.Management
+	Network    = naming.Network
 
-	CheatSheetFilename             = "substrate.accounts.txt"
-	ManagementAccountIdFilename    = "substrate.management-account-id"
-	OldManagementAccountIdFilename = "substrate.master-account-id"
+	CheatSheetFilename = "substrate.accounts.txt"
 )
 
-func CheatSheet(svc *organizations.Organizations) error {
+func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	f, err := os.Create(CheatSheetFilename)
 	if err != nil {
 		return err
@@ -56,7 +53,7 @@ func CheatSheet(svc *organizations.Organizations) error {
 	specialAccountsCells[0][3] = "Role ARN"
 	specialAccountsCells[0][4] = "E-mail"
 
-	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(svc)
+	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -130,31 +127,13 @@ func CheatSheet(svc *organizations.Organizations) error {
 	return nil
 }
 
-func EnsureManagementAccountIdMatchesDisk(managementAccountId string) error {
-
-	// We'll never have this file when we're e.g. in Lambda.
-	pathname, err := fileutil.PathnameInParents(ManagementAccountIdFilename)
-	if err != nil {
-		return nil
-	}
-
-	b, err := fileutil.ReadFile(pathname)
-	if err != nil {
-		return err
-	}
-	if diskManagementAccountId := fileutil.Tidy(b); managementAccountId != diskManagementAccountId {
-		return ManagementAccountMismatchError(fmt.Sprintf(
-			"the calling account's management account is %s but this directory's management account is %s",
-			managementAccountId,
-			diskManagementAccountId,
-		))
-	}
-	return nil
-}
-
-func Grouped(svc *organizations.Organizations) (adminAccounts, serviceAccounts []*awsorgs.Account, auditAccount, deployAccount, managementAccount, networkAccount *awsorgs.Account, err error) {
+func Grouped(ctx context.Context, cfg *awscfg.Config) (
+	adminAccounts, serviceAccounts []*awsorgs.Account,
+	auditAccount, deployAccount, managementAccount, networkAccount *awsorgs.Account,
+	err error,
+) {
 	var allAccounts []*awsorgs.Account
-	allAccounts, err = awsorgs.ListAccounts(svc)
+	allAccounts, err = awsorgs.ListAccounts(ctx, cfg)
 	if err != nil {
 		return
 	}
@@ -220,21 +199,6 @@ func Grouped(svc *organizations.Organizations) (adminAccounts, serviceAccounts [
 	})
 
 	return
-}
-
-type ManagementAccountMismatchError string
-
-func (err ManagementAccountMismatchError) Error() string {
-	return string(err)
-}
-
-func WriteManagementAccountIdToDisk(managementAccountId string) error {
-	if !fileutil.Exists(ManagementAccountIdFilename) {
-		if err := ioutil.WriteFile(ManagementAccountIdFilename, []byte(fmt.Sprintln(managementAccountId)), 0666); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // searchUnsorted is like sort.SearchStrings but it allows for the search

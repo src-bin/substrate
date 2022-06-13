@@ -14,7 +14,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -26,7 +25,6 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
-	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
@@ -103,8 +101,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	var account *awsorgs.Account
 	createdAccount := false
 	{
-		svc := organizations.New(sess)
-		account, err = awsorgs.FindAccount(svc, accounts.Admin, accounts.Admin, *quality)
+		account, err = cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
+			return a.Tags[tags.Domain] == accounts.Admin && a.Tags[tags.Environment] == accounts.Admin && a.Tags[tags.Quality] == *quality
+		})
 		if _, ok := err.(awsorgs.AccountNotFound); ok {
 			ui.Stop("not found")
 			if !*create {
@@ -120,8 +119,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				deadline = time.Now()
 			}
 			account, err = awsorgs.EnsureAccount(
-				svc,
-				awsservicequotas.NewGlobal(sess),
+				ctx,
+				cfg,
 				accounts.Admin,
 				accounts.Admin,
 				*quality,
@@ -130,15 +129,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			createdAccount = true
 		} else {
 			err = awsorgs.Tag(
-				svc,
+				ctx,
+				cfg,
 				aws.StringValue(account.Id),
-				map[string]string{tags.SubstrateVersion: version.Version},
+				tags.Tags{tags.SubstrateVersion: version.Version},
 			)
 		}
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := accounts.CheatSheet(svc); err != nil {
+		if err := accounts.CheatSheet(ctx, awscfg.Must(cfg.OrganizationReader(ctx))); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -202,7 +202,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// the Administrator role. Yes, this is a bit of a Catch-22 but it ends up
 	// in a really ergonomic steady state, so we deal with the first run
 	// complexity.
-	if err := ensureAdministrator(sess, svc, account, createdAccount, saml); err != nil {
+	if err := ensureAdministrator(ctx, cfg, account, createdAccount, saml); err != nil {
 		log.Fatal(err)
 	}
 
@@ -399,7 +399,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			log.Fatal(err)
 		}
 
-		if err := terraform.Root(dirname, region); err != nil {
+		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
 			log.Fatal(err)
 		}
 
@@ -472,7 +472,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			log.Fatal(err)
 		}
 
-		if err := terraform.Root(dirname, region); err != nil {
+		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
 			log.Fatal(err)
 		}
 
@@ -545,7 +545,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Recreate the Administrator and Auditor roles. This is a no-op in steady
 	// state but on the first run its assume role policy is missing some
 	// principals that were just created in the initial Terraform run.
-	if err := ensureAdministrator(sess, svc, account, createdAccount, saml); err != nil {
+	if err := ensureAdministrator(ctx, cfg, account, createdAccount, saml); err != nil {
 		log.Fatal(err)
 	}
 
@@ -564,18 +564,18 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 }
 
-func ensureAdministrator(sess *session.Session, svc *iam.IAM, account *awsorgs.Account, createdAccount bool, saml *awsiam.SAMLProvider) error {
+func ensureAdministrator(ctx context.Context, cfg *awscfg.Config, account *awsorgs.Account, createdAccount bool, saml *awsiam.SAMLProvider) error {
 
 	// Decide whether we're going to include principals created during the
 	// Terraform run in the assume role policy.
 	var bootstrapping bool
-	if _, err := awsiam.GetRoleV1(svc, roles.Intranet); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+	if _, err := awsiam.GetRole(ctx, cfg, roles.Intranet); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 		bootstrapping = true
 	}
 
 	// Give the IdP and EC2 some entrypoints in the account.
 	ui.Spin("finding or creating roles for your IdP and EC2 to assume in this admin account")
-	canned, err := admin.CannedAssumeRolePolicyDocuments(sess, bootstrapping)
+	canned, err := admin.CannedAssumeRolePolicyDocuments(ctx, cfg, bootstrapping)
 	if err != nil {
 		return err
 	}
@@ -598,19 +598,19 @@ func ensureAdministrator(sess *session.Session, svc *iam.IAM, account *awsorgs.A
 		)
 	}
 	//log.Printf("%+v", assumeRolePolicyDocument)
-	if _, err := admin.EnsureAdministratorRole(svc, assumeRolePolicyDocument); err != nil {
+	if _, err := admin.EnsureAdministratorRole(ctx, cfg, assumeRolePolicyDocument); err != nil {
 		return err
 	}
 	assumeRolePolicyDocument.Statement[0] = canned.AuditorRolePrincipals.Statement[0] // this is why it must be at index 0
 	//log.Printf("%+v", assumeRolePolicyDocument)
-	if _, err := admin.EnsureAuditorRole(svc, assumeRolePolicyDocument); err != nil {
+	if _, err := admin.EnsureAuditorRole(ctx, cfg, assumeRolePolicyDocument); err != nil {
 		return err
 	}
 	ui.Stop("ok")
 
 	// This must come before the Terraform run because it references the IAM
 	// roles created here.
-	admin.EnsureAdminRolesAndPolicies(sess, createdAccount)
+	admin.EnsureAdminRolesAndPolicies(ctx, cfg, createdAccount)
 
 	return nil
 }

@@ -1,4 +1,4 @@
-package tags
+package tags // TODO rename to tagging
 
 // Keys.
 const (
@@ -21,4 +21,4 @@ const (
 	SubstrateInstanceFactory = "substrate-instance-factory" // remove in 2022.10
 )
 
-type Tags map[string]string
+type Tags map[string]string // TODO rename to Map

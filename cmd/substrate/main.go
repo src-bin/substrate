@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -82,14 +83,22 @@ func main() {
 		os.Exit(0)
 	}
 
+	u, err := user.Current()
+	if err != nil {
+		ui.Fatal(err)
+	}
 	ctx := context.WithValue(
 		context.WithValue(
-			context.Background(),
-			"Command",
-			"substrate",
+			context.WithValue(
+				context.Background(),
+				"Command",
+				"substrate",
+			),
+			"Subcommand",
+			subcommand,
 		),
-		"Subcommand",
-		subcommand,
+		"Username",
+		u.Username,
 	)
 	cfg, err := awscfg.NewConfig(ctx)
 	if err != nil {

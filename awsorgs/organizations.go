@@ -1,26 +1,33 @@
 package awsorgs
 
 import (
+	"context"
 	"errors"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/organizations"
+	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
+	organizationsv1 "github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 )
 
 const (
-	ALL                               = "ALL"
 	AlreadyInOrganizationException    = "AlreadyInOrganizationException"
 	AWSOrganizationsNotInUseException = "AWSOrganizationsNotInUseException"
 	TooManyRequestsException          = "TooManyRequestsException"
 )
 
-func CreateOrganization(svc *organizations.Organizations) (*organizations.Organization, error) {
-	in := &organizations.CreateOrganizationInput{
-		FeatureSet: aws.String(ALL), // we want service control policies
-	}
-	out, err := svc.CreateOrganization(in)
+type (
+	Organization = types.Organization
+	Root         = types.Root
+)
+
+func CreateOrganization(ctx context.Context, cfg *awscfg.Config) (*Organization, error) {
+	out, err := cfg.Organizations().CreateOrganization(ctx, &organizations.CreateOrganizationInput{
+		FeatureSet: types.OrganizationFeatureSetAll, // we want service control policies
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -28,9 +35,13 @@ func CreateOrganization(svc *organizations.Organizations) (*organizations.Organi
 	return out.Organization, nil
 }
 
-func DescribeOrganization(svc *organizations.Organizations) (*organizations.Organization, error) {
+func DescribeOrganization(ctx context.Context, cfg *awscfg.Config) (*Organization, error) {
+	return cfg.DescribeOrganization(ctx)
+}
+
+func DescribeOrganizationV1(svc *organizationsv1.Organizations) (*organizationsv1.Organization, error) {
 	for {
-		in := &organizations.DescribeOrganizationInput{}
+		in := &organizationsv1.DescribeOrganizationInput{}
 		out, err := svc.DescribeOrganization(in)
 		if err != nil {
 			if awsutil.ErrorCodeIs(err, TooManyRequestsException) {
@@ -43,30 +54,29 @@ func DescribeOrganization(svc *organizations.Organizations) (*organizations.Orga
 	}
 }
 
-func EnableAWSServiceAccess(svc *organizations.Organizations, principal string) error {
-	in := &organizations.EnableAWSServiceAccessInput{
-		ServicePrincipal: aws.String(principal),
-	}
-	_, err := svc.EnableAWSServiceAccess(in)
-	return err
-}
-
-func Root(svc *organizations.Organizations) (*organizations.Root, error) {
-	roots, err := listRoots(svc)
+func DescribeRoot(ctx context.Context, cfg *awscfg.Config) (*Root, error) { // DescribeRoot is a made-up name
+	roots, err := listRoots(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 	if len(roots) != 1 {
 		return nil, errors.New("ListRoots responded with more than one Root which AWS says is impossible")
 	}
-	return roots[0], nil
+	root := roots[0] // don't leak the slice
+	return &root, nil
 }
 
-func listRoots(svc *organizations.Organizations) (roots []*organizations.Root, err error) {
+func EnableAWSServiceAccess(ctx context.Context, cfg *awscfg.Config, principal string) error {
+	_, err := cfg.Organizations().EnableAWSServiceAccess(ctx, &organizations.EnableAWSServiceAccessInput{
+		ServicePrincipal: aws.String(principal),
+	})
+	return err
+}
+
+func listRoots(ctx context.Context, cfg *awscfg.Config) (roots []Root, err error) {
 	var nextToken *string
 	for {
-		in := &organizations.ListRootsInput{NextToken: nextToken}
-		out, err := svc.ListRoots(in)
+		out, err := cfg.Organizations().ListRoots(ctx, &organizations.ListRootsInput{NextToken: nextToken})
 		if err != nil {
 			return nil, err
 		}
