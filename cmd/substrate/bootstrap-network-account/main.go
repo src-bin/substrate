@@ -62,13 +62,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	versionutil.PreventDowngrade(ctx, cfg)
-	if cfg, err = cfg.AssumeSpecialRole(
+	networkCfg, err := cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Network,
 		roles.NetworkAdministrator,
 		"", // let it choose roleSessionName
 		time.Hour,
-	); err != nil {
+	)
+	if err != nil {
 		ui.Fatal(err)
 	}
 
@@ -238,7 +239,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				Tags:      tags,
 			}
 			file.Add(vpc)
-			vpcAccoutrements(ctx, cfg, sess, natGateways, region, org, vpc, file)
+			vpcAccoutrements(ctx, networkCfg, sess, natGateways, region, org, vpc, file)
 			if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 				ui.Fatal(err)
 			}
@@ -274,7 +275,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	} {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 			ctx,
-			cfg,
+			networkCfg,
 			quota[0], quota[1],
 			float64(adminNets+nets), // admin and non-admin VPCs per region, each with one of each type of Internet Gateway
 			float64(adminNets+nets), // same value because they hassle us so much about raising the limit at all
@@ -290,7 +291,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if natGateways {
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 			ctx,
-			cfg,
+			networkCfg,
 			"L-FE5A380F", "vpc", // NAT Gateways per availability zone
 			float64(nets), // only non-admin networks get private subnets and thus NAT Gateways
 			float64(nets), // same value because they hassle us so much about raising the limit at all
@@ -304,7 +305,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		if err := awsservicequotas.EnsureServiceQuotaInAllRegions(
 			ctx,
-			cfg,
+			networkCfg,
 			"L-0263D0A3", "ec2", // EIPs per region
 			float64(nets*availabilityzones.NumberPerNetwork), // NAT Gateways per AZ times the number of AZs per network
 			float64(nets*availabilityzones.NumberPerNetwork), // same value because they hassle us so much about raising the limit at all
