@@ -101,9 +101,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	var account *awsorgs.Account
 	createdAccount := false
 	{
-		account, err = cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
-			return a.Tags[tags.Domain] == accounts.Admin && a.Tags[tags.Environment] == accounts.Admin && a.Tags[tags.Quality] == *quality
-		})
+		account, err = cfg.FindAdminAccount(ctx, *quality)
 		if _, ok := err.(awsorgs.AccountNotFound); ok {
 			ui.Stop("not found")
 			if !*create {
