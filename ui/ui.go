@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -37,10 +38,10 @@ func Fatal(args ...interface{}) {
 	// <https://cs.opensource.google/go/go/+/refs/tags/go1.18.3:src/log/log.go;l=172>
 	_, file, line, ok := runtime.Caller(2)
 	if ok {
-		fatal := fmt.Sprintf("%s:%d", file, line)
+		fatal := fmt.Sprintf("%s:%d", shorten(file), line)
 		_, file, line, ok = runtime.Caller(3)
 		if ok {
-			args = append(args, fmt.Sprintf(" (%s via %s:%d)", fatal, file, line))
+			args = append(args, fmt.Sprintf(" (%s via %s:%d)", fatal, shorten(file), line))
 		} else {
 			args = append(args, fmt.Sprintf(" (%s)", fatal))
 		}
@@ -122,4 +123,11 @@ func dereference(args []interface{}) []interface{} {
 		}
 	}
 	return returns
+}
+
+func shorten(pathname string) string {
+	return filepath.Join(
+		filepath.Base(filepath.Dir(pathname)),
+		filepath.Base(pathname),
+	)
 }
