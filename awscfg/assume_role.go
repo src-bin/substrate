@@ -3,7 +3,6 @@ package awscfg
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -89,7 +88,6 @@ func (c *Config) AssumeRole(
 			safeSubcommand,
 			contextutil.ValueString(ctx, telemetry.Username),
 		)
-		log.Print("roleSessionName:", roleSessionName)
 	}
 
 	cfg := &Config{

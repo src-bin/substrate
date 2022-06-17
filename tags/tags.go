@@ -1,4 +1,4 @@
-package tags // TODO rename to tagging
+package tags // TODO rename to tagging or move to awsutil
 
 // Keys.
 const (

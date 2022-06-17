@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -80,7 +79,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		`list all your environments, one per line, in order of progression from e.g. development through e.g. production; your list MUST include "admin"`,
 	)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	found := false
 	for _, environment := range environments {
@@ -102,7 +101,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		`list all your qualities, one per line, in order from least to greatest quality (Substrate recommends starting out with just "default")`,
 	)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	if len(qualities) == 0 {
 		ui.Fatal("you must name at least one quality")
@@ -119,7 +118,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// inclusion before validating the final document.
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
 		ui.Print("you currently allow the following combinations of environment and quality in your Substrate-managed infrastructure:")
@@ -131,7 +130,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		var ok bool
 		if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
 			if ok, err = ui.Confirm("is this correct? (yes/no)"); err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 		}
 		if !ok {
@@ -140,7 +139,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 					if !veqpDoc.Valid(environment, quality) {
 						ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
 						if err != nil {
-							log.Fatal(err)
+							ui.Fatal(err)
 						}
 						if ok {
 							veqpDoc.Ensure(environment, quality)
@@ -154,12 +153,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		time.Sleep(5e9) // give them a chance to ^C
 	}
 	if err := veqpDoc.Validate(environments, qualities); err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	//log.Printf("%+v", veqpDoc)
 
 	if _, err := regions.Select(); err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 
 	natGateways, err := ui.ConfirmFile(
@@ -167,7 +166,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		"do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; costs about $100 per month per region per environment/quality pair)",
 	)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	//log.Printf("%v", natGateways)
 
@@ -177,7 +176,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// SSH and other administrative access safely and easily.
 	adminNetDoc, err := networks.ReadDocument(networks.AdminFilename, networks.RFC1918_192_168_0_0_16, 21)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	//log.Printf("%+v", adminNetDoc)
 
@@ -186,7 +185,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// VPC and 1,024 possible VPCs.
 	netDoc, err := networks.ReadDocument(networks.Filename, networks.RFC1918_10_0_0_0_8, 18)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	//log.Printf("%+v", netDoc)
 
@@ -215,7 +214,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				Region:      region,
 			})
 			if err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 			//log.Printf("%+v", net)
 			ui.Stop(n.IPv4)
@@ -241,7 +240,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			file.Add(vpc)
 			vpcAccoutrements(ctx, cfg, sess, natGateways, region, org, vpc, file)
 			if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 
 		}
@@ -254,10 +253,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// more so that, even if no changes were made, formatting changes and
 	// SubstrateVersion are changed.
 	if err := adminNetDoc.Write(); err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	if err := netDoc.Write(); err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 
 	// Ensure the VPCs-per-region service quota and a few others aren't going to get in the way.
@@ -344,22 +343,22 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				awssessions.Config{},
 			))), accounts.Network)
 			if err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 			providersFile.Add(terraform.NetworkProviderFor(
 				region,
 				roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
 			))
 			if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 
 			if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 
 			if err := terraform.Init(dirname); err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 
 			if *noApply {
@@ -368,7 +367,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				err = terraform.Apply(dirname, *autoApprove)
 			}
 			if err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 		}
 	}
@@ -377,11 +376,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// peering connections within each environment's qualities and regions.
 	peeringConnectionModule := terraform.PeeringConnectionModule()
 	if err := peeringConnectionModule.Write(filepath.Join(terraform.ModulesDirname, "peering-connection")); err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	peeringConnections, err := networks.EnumeratePeeringConnections()
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	for _, pc := range peeringConnections.Slice() {
 		eq0, eq1, region0, region1 := pc.Ends()
@@ -401,7 +400,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				fmt.Sprintf("%s-%s-%s-%s", eq0.Quality, region0, eq1.Quality, region1),
 			)
 			if err := terraform.Destroy(oldDirname); err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 		*/
 
@@ -433,7 +432,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Source: terraform.Q("../../../../../../../../../modules/peering-connection"),
 		})
 		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		providersFile := terraform.NewFile()
@@ -450,17 +449,17 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		requesterProvider.Alias = "requester"
 		providersFile.Add(requesterProvider)
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		// The choice of region0 here is arbitrary.  Only one side
 		// can store the Terraform state and region0 wins.
 		if err := terraform.Root(ctx, cfg, dirname, region0); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Init(dirname); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if *noApply {
@@ -469,7 +468,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 	}
 
