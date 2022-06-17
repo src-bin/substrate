@@ -349,8 +349,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 	ui.Stop("ok")
 
 	if doCloudWatch {
-
-		ui.Spinf("finding or creating the CloudWatch-CrossAccountSharingRole role in all accounts")
+		ui.Spinf("finding or creating the CloudWatch-CrossAccountSharingRole role in all accounts and CloudWatch's service-linked role in admin accounts")
 		org, err := cfg.DescribeOrganization(ctx)
 		if err != nil {
 			ui.Fatal(err)
@@ -368,39 +367,27 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 					time.Hour,
 				))
 			}
+
 			if _, err := EnsureCloudWatchCrossAccountSharingRole(ctx, accountCfg, canned.OrgAccountPrincipals); err != nil {
 				ui.Printf(
 					"could not create the CloudWatch-CrossAccountSharingRole role in account %s; it might be because this account has only half-joined the organization",
 					account.Id,
 				)
 			}
-		}
-		ui.Stop("ok")
 
-		// Create the service-linked role CloudWatch will actually use to read logs
-		// and metrics from other accounts in your organization.
-		ui.Spin("finding or creating CloudWatch's service-linked role for cross-account log and metric access")
-		for _, account := range allAccounts {
-			if account.Tags[tags.Domain] != "admin" {
-				continue
-			}
-			if _, err := awsiam.EnsureServiceLinkedRole(
-				ctx,
-				awscfg.Must(cfg.AssumeRole(
+			if account.Tags[tags.Domain] == "admin" {
+				if _, err := awsiam.EnsureServiceLinkedRole(
 					ctx,
-					aws.ToString(account.Id),
-					roles.OrganizationAccountAccessRole,
-					"", // let it choose roleSessionName
-					time.Hour,
-				)),
-				"AWSServiceRoleForCloudWatchCrossAccount",
-				"cloudwatch-crossaccount.amazonaws.com",
-			); err != nil {
-				ui.Fatal(err)
+					accountCfg,
+					"AWSServiceRoleForCloudWatchCrossAccount",
+					"cloudwatch-crossaccount.amazonaws.com",
+				); err != nil {
+					ui.Fatal(err)
+				}
 			}
+
 		}
 		ui.Stopf("ok")
-
 	} else {
 		ui.Print("not managing CloudWatch cross-account sharing roles because no account was created")
 	}
