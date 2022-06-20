@@ -79,7 +79,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		ui.Fatal(err)
 	}
-	return
 	if err := accounts.WriteManagementAccountIdToDisk(aws.ToString(org.MasterAccountId)); err != nil {
 		ui.Fatal(err)
 	}
