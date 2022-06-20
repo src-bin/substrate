@@ -36,10 +36,10 @@ func Fatal(args ...interface{}) {
 	// feels less to customers like they did something horrible. This is
 	// cribbed from the standard library's log.Logger.Output.
 	// <https://cs.opensource.google/go/go/+/refs/tags/go1.18.3:src/log/log.go;l=172>
-	_, file, line, ok := runtime.Caller(2)
+	_, file, line, ok := runtime.Caller(1)
 	if ok {
 		fatal := fmt.Sprintf("%s:%d", shorten(file), line)
-		_, file, line, ok = runtime.Caller(3)
+		_, file, line, ok = runtime.Caller(2)
 		if ok {
 			args = append(args, fmt.Sprintf(" (%s via %s:%d)", fatal, shorten(file), line))
 		} else {
