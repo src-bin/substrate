@@ -17,7 +17,7 @@ import (
 //go:generate go run ../../tools/template/main.go -name loginTemplate -package main login.html
 //go:generate go run ../../tools/template/main.go -name redirectTemplate -package main redirect.html
 
-const maxAge = 43200
+const maxAge = 43200 // 12 hours, in seconds for the Max-Age modifier in the Set-Cookie header
 
 func errorResponse(err error, s string) *events.APIGatewayProxyResponse {
 	log.Printf("%+v", err)
