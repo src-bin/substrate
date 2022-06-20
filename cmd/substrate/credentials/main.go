@@ -101,6 +101,5 @@ func fetch(u *url.URL) (*aws.Credentials, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&credentials); err != nil {
 		return nil, err
 	}
-	// FIXME something's fishy with Okta in 2022.05
 	return &credentials, nil
 }

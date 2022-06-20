@@ -23,7 +23,7 @@ import (
 const (
 	TooManyRequestsException = "TooManyRequestsException"
 
-	WaitUntilCredentialsWorkTries = 10
+	WaitUntilCredentialsWorkTries = 60 // try for one minute (plus request latency)
 )
 
 type (
@@ -233,6 +233,7 @@ func (c *Config) WaitUntilCredentialsWork(ctx context.Context) (
 	callerIdentity *sts.GetCallerIdentityOutput,
 	err error,
 ) {
+	c.getCallerIdentityOutput = nil // be double sure not to use cached results
 	for i := 0; i < WaitUntilCredentialsWorkTries; i++ {
 		if callerIdentity, err = c.GetCallerIdentity(ctx); err == nil {
 			break
