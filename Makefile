@@ -1,5 +1,8 @@
-# Normal releases are monthly.
-VERSION := $(shell date +%Y.%m)
+# Normal releases are monthly and built during that month. However, if I need
+# to demo or support a customer before a month's release is ready, I often
+# checkout the tagged release and rebuild in a detached-head tree; even these
+# builds should respond appropriately to --version.
+VERSION := $(shell git symbolic-ref -q HEAD >/dev/null && date +%Y.%m || git describe --tags HEAD)
 
 # Emergency releases are daily.
 #VERSION := $(shell date +%Y.%m.%d)
