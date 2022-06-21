@@ -2,11 +2,8 @@ package credentials
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"flag"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -17,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
+	"github.com/src-bin/substrate/randutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -41,11 +39,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	*/
 
 	// Generate the token we'll exchange for AWS credentials.
-	b := make([]byte, 48) // 48 binary bytes makes 64 base64-encoded bytes
-	if _, err := io.ReadFull(rand.Reader, b); err != nil {
-		ui.Fatal(err)
-	}
-	token := base64.RawURLEncoding.EncodeToString(b)
+	token := randutil.String()
 
 	pathname, err := fileutil.PathnameInParents(naming.IntranetDNSDomainNameFilename)
 	if err != nil {
