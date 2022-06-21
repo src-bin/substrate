@@ -101,7 +101,7 @@ func (e *Event) Post(ctx context.Context) error {
 	}
 	ok, err := ui.ConfirmFile(
 		pathname,
-		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://src.bin.com/substrate/manual/telemetry/>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
+		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://src-bin.com/substrate/manual/telemetry/>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
 	)
 	if err != nil {
 		return err
