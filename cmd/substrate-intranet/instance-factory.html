@@ -28,6 +28,7 @@
     <th>State</th>
     <th>&nbsp;</th>
 </tr>
+{{- $csrf := .CSRF}}
 {{- $launched := .Launched}}
 {{- $terminate := .Terminate}}
 {{- $terminated := .Terminated}}
@@ -41,6 +42,7 @@
     <td>{{if eq .State.Name "running"}}{{if eq (ToString .InstanceId) $terminate}}
         <form method="POST">
             <input type="submit" value="Yes, Terminate">
+            <input name="csrf" type="hidden" value="{{$csrf}}">
             <input name="region" type="hidden" value="{{.Placement.AvailabilityZone | RegionFromAZ}}">
             <input name="terminate" type="hidden" value="{{.InstanceId}}">
         </form>

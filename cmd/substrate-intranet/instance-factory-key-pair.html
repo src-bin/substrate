@@ -12,6 +12,7 @@
 <p>SSH public key for <strong>{{.PrincipalId}}</strong>:</p>
 <textarea cols="80" name="public_key_material" rows="3"></textarea>
 <p><input type="submit" value="Import public key"></p>
+<input name="csrf" type="hidden" value="{{.CSRF}}">
 <input name="region" type="hidden" value="{{.Region}}">
 </form>
 <p>Or <a href="instance-factory">cancel</a></p>

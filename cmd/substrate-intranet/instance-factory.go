@@ -53,7 +53,10 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 		}
 		values, err := url.ParseQuery(body)
 		if err != nil {
-			return nil, err
+			return lambdautil.ErrorResponse(err)
+		}
+		if err := lambdautil.PreventCSRF(values, event); err != nil {
+			return lambdautil.ErrorResponse(err)
 		}
 		//log.Printf("POST values: %+v", values)
 		instanceType = awsec2.InstanceType(values.Get("instance_type"))
@@ -72,11 +75,13 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	//log.Printf("found: %v", found)
 	if !found {
 		v := struct {
+			CSRF                            string
 			Error                           error
 			Instances                       []awsec2.Instance
 			Launched, Terminate, Terminated string
 			Regions                         []string
 		}{
+			CSRF:       lambdautil.CSRFCookie(event),
 			Launched:   launched,
 			Regions:    selectedRegions,
 			Terminate:  terminate,
@@ -151,10 +156,12 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	keyPairs, err := awsec2.DescribeKeyPairs(ctx, cfg, principalId)
 	if err != nil || len(keyPairs) != 1 {
 		v := struct {
+			CSRF        string
 			Error       error
 			PrincipalId string
 			Region      string
 		}{
+			CSRF:        lambdautil.CSRFCookie(event),
 			PrincipalId: principalId,
 			Region:      region,
 		}
@@ -236,10 +243,12 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	//log.Printf("found: %v", found)
 	if !found {
 		v := struct {
+			CSRF             string
 			Error            error
 			InstanceFamilies map[string][]awsec2.InstanceType
 			Region           string
 		}{
+			CSRF:             lambdautil.CSRFCookie(event),
 			InstanceFamilies: instanceFamilies,
 			Region:           region,
 		}

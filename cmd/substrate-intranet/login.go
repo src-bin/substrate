@@ -12,6 +12,7 @@ import (
 	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
+	"github.com/src-bin/substrate/randutil"
 )
 
 //go:generate go run ../../tools/template/main.go -name loginTemplate -package main login.html
@@ -89,6 +90,7 @@ func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 			"Set-Cookie": []string{
 				fmt.Sprintf("a=%s; HttpOnly; Max-Age=%d; Secure", doc.AccessToken, maxAge),
 				fmt.Sprintf("id=%s; HttpOnly; Max-Age=%d; Secure", doc.IDToken, maxAge),
+				fmt.Sprintf("csrf=%s; HttpOnly; Max-Age=%d; Secure", randutil.String(), maxAge),
 			},
 		}
 		bodyV.Location = state.Next
