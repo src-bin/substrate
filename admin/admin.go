@@ -184,7 +184,6 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		ctx,
 		accounts.Audit,
 		roles.OrganizationAccountAccessRole,
-		"", // let it choose roleSessionName
 		time.Hour,
 	))
 	role, err = awsiam.EnsureRole(ctx, auditCfg, roles.Auditor, canned.AuditorRolePrincipals)
@@ -212,7 +211,6 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		ctx,
 		accounts.Deploy,
 		roles.OrganizationAccountAccessRole,
-		"", // let it choose roleSessionName
 		time.Hour,
 	))
 	role, err = awsiam.EnsureRoleWithPolicy(
@@ -248,7 +246,6 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		ctx,
 		accounts.Network,
 		roles.OrganizationAccountAccessRole,
-		"", // let it choose roleSessionName
 		time.Hour,
 	))
 	role, err = awsiam.EnsureRoleWithPolicy(
@@ -330,7 +327,6 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 			ctx,
 			aws.ToString(account.Id),
 			roles.OrganizationAccountAccessRole,
-			"",
 			time.Hour,
 		))
 		if _, err := EnsureAdministratorRole(ctx, serviceCfg, canned.AdminRolePrincipals); err != nil {
@@ -363,7 +359,6 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 					ctx,
 					aws.ToString(account.Id),
 					roles.OrganizationAccountAccessRole,
-					"", // let it choose roleSessionName
 					time.Hour,
 				))
 			}

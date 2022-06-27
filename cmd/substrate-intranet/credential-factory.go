@@ -78,7 +78,6 @@ func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *ev
 	credentials, err := getCredentials(
 		ctx,
 		cfg,
-		event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string),
 		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 	)
 	if err != nil {
@@ -182,7 +181,16 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 		return nil, err
 	}
 
-	credentials, err := getCredentials(ctx, cfg, tagValue.PrincipalId, tagValue.RoleName)
+	credentials, err := getCredentials(
+
+		// Since this API is unauthenticated, at least in the typical way, we
+		// don't have the Username context set in the typical way, either. Fix
+		// that up here so everything makes sense.
+		context.WithValue(ctx, "Username", tagValue.PrincipalId),
+
+		cfg,
+		tagValue.RoleName,
+	)
 	if err != nil {
 		return lambdautil.ErrorResponseJSON(http.StatusInternalServerError, err)
 	}
@@ -201,7 +209,7 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 func getCredentials(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	principalId, roleName string,
+	roleName string,
 ) (credentials aws.Credentials, err error) {
 	var accessKey *types.AccessKey
 	for i := 0; i < CreateAccessKeyTriesTotal; i++ {
@@ -241,7 +249,6 @@ func getCredentials(
 		ctx,
 		aws.ToString(callerIdentity.Account),
 		roleName,
-		principalId,
 		12*time.Hour,
 	)
 	if err != nil {

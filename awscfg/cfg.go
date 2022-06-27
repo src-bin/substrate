@@ -2,7 +2,6 @@ package awscfg
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tags"
@@ -140,11 +138,7 @@ func (c *Config) MustGetCallerIdentity(ctx context.Context) *sts.GetCallerIdenti
 
 func (c *Config) OrganizationReader(ctx context.Context) (*Config, error) {
 	// TODO return early if we're already OrganizationReader
-	return c.AssumeManagementRole(ctx, roles.OrganizationReader, fmt.Sprintf(
-		"%s-%s",
-		contextutil.ValueString(ctx, telemetry.Command),
-		"", // safeSubcommand,
-	), time.Hour)
+	return c.AssumeManagementRole(ctx, roles.OrganizationReader, time.Hour)
 }
 
 func (c *Config) Region() string {

@@ -371,7 +371,7 @@ func randomSubnet(
 	cfg *awscfg.Config,
 	environment, quality, region string,
 ) (*awsec2.Subnet, error) {
-	cfg, err := cfg.AssumeSpecialRole(ctx, accounts.Network, roles.Auditor, "", time.Hour)
+	cfg, err := cfg.AssumeSpecialRole(ctx, accounts.Network, roles.Auditor, time.Hour)
 	if err != nil {
 		return nil, err
 	}

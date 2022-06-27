@@ -213,7 +213,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			ctx,
 			aws.StringValue(account.Id),
 			roles.Administrator,
-			"",
 			time.Hour,
 		)
 		if err != nil {

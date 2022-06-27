@@ -87,7 +87,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if *roleName == "" {
 			ui.Fatal(`-role "..." is required with -number "..."`)
 		}
-		cfg, err = cfg.AssumeRole(ctx, *number, *roleName, "", time.Hour)
+		cfg, err = cfg.AssumeRole(ctx, *number, *roleName, time.Hour)
 	} else if *management {
 		if *roleName == "" {
 			if currentRoleName == roles.Auditor {
@@ -96,7 +96,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(roles.OrganizationAdministrator)
 			}
 		}
-		cfg, err = cfg.AssumeManagementRole(ctx, *roleName, "", time.Hour)
+		cfg, err = cfg.AssumeManagementRole(ctx, *roleName, time.Hour)
 	} else if *special != "" {
 		if *roleName == "" {
 			if *special == "audit" || currentRoleName == roles.Auditor {
@@ -105,7 +105,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(fmt.Sprintf("%s%s", strings.Title(*special), roles.Administrator))
 			}
 		}
-		cfg, err = cfg.AssumeSpecialRole(ctx, *special, *roleName, "", time.Hour)
+		cfg, err = cfg.AssumeSpecialRole(ctx, *special, *roleName, time.Hour)
 	} else {
 		if *roleName == "" {
 			if currentRoleName == roles.OrganizationAdministrator {
@@ -114,7 +114,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(currentRoleName)
 			}
 		}
-		cfg, err = cfg.AssumeServiceRole(ctx, *domain, *environment, *quality, *roleName, "", time.Hour)
+		cfg, err = cfg.AssumeServiceRole(ctx, *domain, *environment, *quality, *roleName, time.Hour)
 	}
 	if err != nil {
 		ui.Fatal(err)

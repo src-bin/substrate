@@ -49,7 +49,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	cfg, err = cfg.AssumeManagementRole(
 		ctx,
 		roles.OrganizationAdministrator,
-		"", // let it choose roleSessionName
 		time.Hour,
 	)
 	// TODO BootstrappingManagementAccount: true,
@@ -127,7 +126,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ctx,
 		aws.ToString(auditAccount.Id),
 		roles.OrganizationAccountAccessRole,
-		"", // let it choose roleSessionName
 		time.Hour,
 	))
 	bucketName := fmt.Sprintf("%s-cloudtrail", prefix)

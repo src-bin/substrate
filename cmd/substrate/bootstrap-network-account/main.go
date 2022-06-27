@@ -66,7 +66,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ctx,
 		accounts.Network,
 		roles.NetworkAdministrator,
-		"", // let it choose roleSessionName
 		time.Hour,
 	)
 	if err != nil {

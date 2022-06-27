@@ -44,7 +44,6 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 			ctx,
 			event.RequestContext.AccountID,
 			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
-			fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
 			time.Hour,
 		)
 
@@ -55,7 +54,6 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 			ctx,
 			accountId,
 			roleName,
-			fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
 			time.Hour,
 		)
 		if err != nil {
@@ -88,7 +86,6 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 	if cfg, err = cfg.AssumeManagementRole(
 		ctx,
 		roles.OrganizationReader,
-		fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
 		time.Hour,
 	); err != nil {
 		return lambdautil.ErrorResponse(err)

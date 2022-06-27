@@ -38,7 +38,6 @@ func Root(ctx context.Context, cfg *awscfg.Config, dirname, region string) (err 
 		ctx,
 		accounts.Deploy,
 		roles.DeployAdministrator,
-		"", // let it choose roleSessionName
 		time.Hour,
 	)
 	if err != nil {
