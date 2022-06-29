@@ -8,6 +8,7 @@ substrate-[0-9]*-*-*.tar.gz
 *.template.go
 terraform/*-global-*.go
 terraform/*-global.go
+terraform/peering-connection.go
 terraform/*-regional-*.go
 terraform/*-regional.go
 *.zip

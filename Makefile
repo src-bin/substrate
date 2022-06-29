@@ -31,6 +31,7 @@ clean:
 	rm -f cmd/substrate-create-admin-account/substrate-intranet*
 	rm -f -r substrate-*-*-*
 	rm -f substrate-*-*-*.tar.gz
+	rm -f terraform/peering-connection.go
 
 install:
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
