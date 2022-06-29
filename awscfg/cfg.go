@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -18,11 +17,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-const (
-	TooManyRequestsException = "TooManyRequestsException"
-
-	WaitUntilCredentialsWorkTries = 60 // try for one minute (plus request latency)
-)
+const TooManyRequestsException = "TooManyRequestsException"
 
 type (
 	Account struct {
@@ -151,55 +146,6 @@ func (c *Config) Regional(region string) *Config {
 	return c2
 }
 
-func (c *Config) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	return c.cfg.Credentials.Retrieve(ctx)
-}
-
-// SetCredentials reconfigures the receiver to use the given credentials
-// (whether root, user, or session credentials) and waits until they begin
-// working (which concerns mostly user credentials). It returns the caller
-// identity because it's already gone to the trouble of getting it and
-// callers often need it right afterward, anyway.
-func (c *Config) SetCredentials(
-	ctx context.Context,
-	creds aws.Credentials,
-) (
-	callerIdentity *sts.GetCallerIdentityOutput,
-	err error,
-) {
-	if c.cfg, err = config.LoadDefaultConfig(
-		ctx,
-		loadOptions(config.WithCredentialsProvider(
-			credentials.StaticCredentialsProvider{creds},
-		))...,
-	); err != nil {
-		return
-	}
-
-	callerIdentity, err = c.WaitUntilCredentialsWork(ctx)
-
-	if c.deferredTelemetry != nil {
-		ctx10s, _ := context.WithTimeout(ctx, 10*time.Second)
-		if err := c.deferredTelemetry(ctx10s); err == nil {
-			c.deferredTelemetry = nil
-		} else {
-			//log.Print(err)
-		}
-	}
-	return
-}
-
-func (c *Config) SetCredentialsV1(
-	ctx context.Context,
-	accessKeyId, secretAccessKey, sessionToken string,
-) (*sts.GetCallerIdentityOutput, error) {
-	return c.SetCredentials(ctx, aws.Credentials{
-		AccessKeyID:     accessKeyId,
-		SecretAccessKey: secretAccessKey,
-		SessionToken:    sessionToken,
-	})
-}
-
 func (c *Config) Tags(ctx context.Context) (map[string]string, error) {
 	callerIdentity, err := c.GetCallerIdentity(ctx)
 	if err != nil {
@@ -214,27 +160,6 @@ func (c *Config) Tags(ctx context.Context) (map[string]string, error) {
 
 func (c *Config) Telemetry() *telemetry.Event {
 	return c.event
-}
-
-// WaitUntilCredentialsWork waits in a sleeping loop until the configured
-// credentials (whether provided via SetCredentials or discovered in
-// environment variables or an IAM instance profile) work, which it tests
-// using sts:GetCallerIdentity. This seems silly but IAM is an eventually
-// consistent global service so it's not guaranteed that newly created
-// credentials will work immediately. Typically when this has to wait it
-// waits about five seconds.
-func (c *Config) WaitUntilCredentialsWork(ctx context.Context) (
-	callerIdentity *sts.GetCallerIdentityOutput,
-	err error,
-) {
-	c.getCallerIdentityOutput = nil // be double sure not to use cached results
-	for i := 0; i < WaitUntilCredentialsWorkTries; i++ {
-		if callerIdentity, err = c.GetCallerIdentity(ctx); err == nil {
-			break
-		}
-		time.Sleep(1e9) // TODO exponential backoff
-	}
-	return
 }
 
 func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tags.Tags, error) {

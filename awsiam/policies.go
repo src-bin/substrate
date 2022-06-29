@@ -8,9 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsiam/awsiamusers"
 )
 
-const SubstrateManaged = "SubstrateManaged"
+const SubstrateManaged = awsiamusers.SubstrateManaged
 
 // NOT DONE!
 func EnsurePolicy(ctx context.Context, cfg *awscfg.Config, name, content string) error {

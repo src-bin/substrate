@@ -47,19 +47,6 @@ func (c *Config) AssumeManagementRole(
 		return nil, err
 	}
 
-	// TODO don't port the root user dance here, instead make that a different method
-
-	// TODO port in the already-role/OrganizationAdministrator-or-user/OrganizationAdministrator bits
-
-	// TODO this might not be relevant anymore but I haven't totally removed it, just in case
-	/*
-		// Mask the AWS-native error because we're 99% sure OrganizationReaderError
-		// is a better explanation of what went wrong.
-		if _, ok := err.(awserr.Error); ok { // FIXME
-			ui.Fatal(awssessions.NewOrganizationReaderError(err, *roleName))
-		}
-	*/
-
 	return c.AssumeRole(ctx, mgmtAccountId, roleName, duration)
 }
 

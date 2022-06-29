@@ -46,18 +46,19 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	region := regions.Default()
 
 	var err error
-	cfg, err = cfg.AssumeManagementRole(
+	if _, err = cfg.GetCallerIdentity(ctx); err != nil {
+		if _, err = cfg.SetRootCredentials(ctx); err != nil {
+			ui.Fatal(err)
+		}
+	}
+	if cfg, err = cfg.AssumeManagementRole(
 		ctx,
 		roles.OrganizationAdministrator,
 		time.Hour,
-	)
-	// TODO BootstrappingManagementAccount: true,
-	// TODO FallbackToRootCredentials:      true,
-	if err != nil {
+	); err != nil {
 		ui.Fatal(err)
 	}
 	cfg = cfg.Regional(region)
-	// TODO gotta bring this back or it won't work for new folks! cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	versionutil.PreventDowngrade(ctx, cfg)
 
 	// Ensure this account is (in) an organization.
