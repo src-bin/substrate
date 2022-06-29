@@ -61,6 +61,8 @@ func (c *Config) AssumeRole(
 		c.event.FinalRoleName = roleName
 	}
 
+	// TODO return early if we're already roleName in accountId
+
 	safeSubcommand, _, _ := strings.Cut(
 		strings.TrimPrefix(
 			contextutil.ValueString(ctx, telemetry.Subcommand),
