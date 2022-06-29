@@ -27,26 +27,29 @@ func (DataSubnet) Template() string {
 }`
 }
 
-type DataSubnetIds struct {
+type DataSubnets struct {
 	Label    Value
 	Provider ProviderAlias
 	Tags     Tags
 	VpcId    Value
 }
 
-func (d DataSubnetIds) Ref() Value {
-	return Uf("data.aws_subnet_ids.%s", d.Label)
+func (d DataSubnets) Ref() Value {
+	return Uf("data.aws_subnets.%s", d.Label)
 }
 
-func (DataSubnetIds) Template() string {
-	return `data "aws_subnet_ids" {{.Label.Value}} {
+func (DataSubnets) Template() string {
+	return `data "aws_subnets" {{.Label.Value}} {
+  filter {
+    name   = "vpc-id"
+    values = [{{.VpcId.Value}}]
+  }
 {{- if .Provider}}
   provider = {{.Provider}}
 {{- end}}
 {{- if .Tags}}
   tags = {{.Tags.Value}}
 {{- end}}
-  vpc_id = {{.VpcId.Value}}
 }`
 }
 
