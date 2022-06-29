@@ -31,6 +31,21 @@ func Confirmf(format string, args ...interface{}) (bool, error) {
 }
 
 func Fatal(args ...interface{}) {
+	PrintWithCaller(args...)
+	os.Exit(1)
+}
+
+func Fatalf(format string, args ...interface{}) {
+	Printf(format, args...)
+	os.Exit(1)
+}
+
+func Print(args ...interface{}) {
+	args = dereference(args)
+	op(opPrint, fmt.Sprint(args...))
+}
+
+func PrintWithCaller(args ...interface{}) {
 
 	// Decorate fatal log lines with caller information, though in a way that
 	// feels less to customers like they did something horrible. This is
@@ -48,17 +63,6 @@ func Fatal(args ...interface{}) {
 	}
 
 	Print(args...)
-	os.Exit(1)
-}
-
-func Fatalf(format string, args ...interface{}) {
-	Printf(format, args...)
-	os.Exit(1)
-}
-
-func Print(args ...interface{}) {
-	args = dereference(args)
-	op(opPrint, fmt.Sprint(args...))
 }
 
 func Printf(format string, args ...interface{}) {

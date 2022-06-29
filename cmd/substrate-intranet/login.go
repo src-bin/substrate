@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/randutil"
+	"github.com/src-bin/substrate/ui"
 )
 
 //go:generate go run ../../tools/template/main.go -name loginTemplate -package main login.html
@@ -22,7 +22,7 @@ import (
 const maxAge = 43200 // 12 hours, in seconds for the Max-Age modifier in the Set-Cookie header
 
 func errorResponse(err error, extras ...interface{}) *events.APIGatewayProxyResponse {
-	log.Printf("%+v", err) // log the error to CloudWatch but not the extras, which may be sensitive
+	ui.PrintWithCaller(err) // log the error to CloudWatch but not the extras, which may be sensitive
 	ss := make([]string, len(extras)+1)
 	ss[0] = fmt.Sprintf("%v\n", err)
 	for i, extra := range extras {
