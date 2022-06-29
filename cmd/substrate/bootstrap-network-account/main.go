@@ -46,22 +46,26 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	flag.Parse()
 	version.Flag()
 
-	sess, err := awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{
+	// Start with a v1 session in the admin or management account. Boost
+	// credentials from it into a v2 config so that both can assume roles.
+	sess, err := awssessions.NewSession(awssessions.Config{
 		FallbackToRootCredentials: true,
 	})
-	if err != nil {
-		ui.Fatal(err)
-	}
-
-	// Bridge from awssessions doing the hard work of getting credentials no
-	// matter what to awscfg which isn't yet capable of pulling root or user
-	// credentials from a TTY.
 	creds, err := sess.Config.Credentials.Get()
 	if err != nil {
 		ui.Fatal(err)
 	}
 	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	versionutil.PreventDowngrade(ctx, cfg)
+
+	// Now resume v1's original path, assuming the NetworkAdministrator role.
+	sess, err = awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{})
+	if err != nil {
+		ui.Fatal(err)
+	}
+
+	// And follow along with v2, too, but keep the orginal config around so it
+	// can get to the deploy account later.
 	networkCfg, err := cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Network,
