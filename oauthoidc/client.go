@@ -63,19 +63,19 @@ func NewClient(
 // host and unmarshals the JSON response body into the given interface{}.  It
 // returns the *http.Response, though its Body field is not usable, and an
 // error, if any.
-func (c *Client) Get(path UnqualifiedPath, query url.Values, i interface{}) (*http.Response, error) {
+func (c *Client) Get(path UnqualifiedPath, query url.Values, i interface{}) (*http.Response, []byte, error) {
 	return c.GetURL(c.URL(path, query), nil, i)
 }
 
-func (c *Client) GetURL(u *url.URL, query url.Values, i interface{}) (*http.Response, error) {
+func (c *Client) GetURL(u *url.URL, query url.Values, i interface{}) (*http.Response, []byte, error) {
 	if query != nil {
 		u.RawQuery = query.Encode()
 	}
 	resp, err := http.DefaultClient.Do(c.request("GET", u))
 	if err != nil {
-		return resp, err
+		return resp, nil, err
 	}
-	return resp, unmarshalJSON(resp, i)
+	return unmarshalJSON(resp, i)
 }
 
 func (c *Client) IsGoogle() bool { return c.provider == Google }
@@ -86,19 +86,19 @@ func (c *Client) IsOkta() bool { return c.provider == Okta }
 // client's host and unmarshals the JSON response body into the given
 // interface{}.  It returns the *http.Response, though its Body field is not
 // usable, and an error, if any.
-func (c *Client) Post(path UnqualifiedPath, body url.Values, i interface{}) (*http.Response, error) {
+func (c *Client) Post(path UnqualifiedPath, body url.Values, i interface{}) (*http.Response, []byte, error) {
 	return c.PostURL(c.URL(path, nil), body, i)
 }
 
-func (c *Client) PostURL(u *url.URL, body url.Values, i interface{}) (*http.Response, error) {
+func (c *Client) PostURL(u *url.URL, body url.Values, i interface{}) (*http.Response, []byte, error) {
 	req := c.request("POST", u)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Body = ioutil.NopCloser(strings.NewReader(body.Encode()))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return resp, err
+		return resp, nil, err
 	}
-	return resp, unmarshalJSON(resp, i)
+	return unmarshalJSON(resp, i)
 }
 
 func (c *Client) Provider() Provider { return c.provider }
@@ -167,22 +167,21 @@ const (
 	Token     UnqualifiedPath = "token"
 )
 
-func unmarshalJSON(resp *http.Response, i interface{}) error {
-	if i == nil {
-		return nil
-	}
+func unmarshalJSON(
+	resp *http.Response,
+	i interface{},
+) (
+	*http.Response, // pass-through
+	[]byte, // unparsed body
+	error, // I/O or JSON error
+) {
 	defer resp.Body.Close()
-	/*
-		if err := json.NewDecoder(resp.Body).Decode(doc); err != nil {
-			return err
-		}
-	*/
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return resp, body, err
 	}
-	if err := json.Unmarshal(body, i); err != nil {
-		return err
+	if i != nil {
+		err = json.Unmarshal(body, i)
 	}
-	return nil
+	return resp, body, err
 }

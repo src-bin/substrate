@@ -51,7 +51,7 @@ func roleNameFromGoogleIdP(c *Client, user string) (string, error) {
 		PrimaryEmail string `json:"primaryEmail"`
 		// lots of other fields that aren't relevant
 	}
-	_, err := c.GetURL(&url.URL{
+	_, _, err := c.GetURL(&url.URL{
 		Scheme: "https",
 		Host:   "admin.googleapis.com",
 		Path:   path.Join("/admin/directory/v1/users", user),

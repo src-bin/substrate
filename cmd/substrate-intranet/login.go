@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/src-bin/substrate/awscfg"
@@ -20,10 +21,21 @@ import (
 
 const maxAge = 43200 // 12 hours, in seconds for the Max-Age modifier in the Set-Cookie header
 
-func errorResponse(err error, s string) *events.APIGatewayProxyResponse {
-	log.Printf("%+v", err)
+func errorResponse(err error, extras ...interface{}) *events.APIGatewayProxyResponse {
+	log.Printf("%+v", err) // log the error to CloudWatch but not the extras, which may be sensitive
+	ss := make([]string, len(extras)+1)
+	ss[0] = fmt.Sprintf("%v\n", err)
+	for i, extra := range extras {
+		var format string
+		if _, ok := extra.([]byte); ok {
+			format = "\n%s\n"
+		} else {
+			format = "\n%+v\n"
+		}
+		ss[i+1] = fmt.Sprintf(format, extra)
+	}
 	return &events.APIGatewayProxyResponse{
-		Body:       err.Error() + "\n\n" + s + "\n",
+		Body:       strings.Join(ss, ""),
 		Headers:    map[string]string{"Content-Type": "text/plain"},
 		StatusCode: http.StatusOK,
 	}
@@ -64,20 +76,20 @@ func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 		v.Add("grant_type", "authorization_code")
 		v.Add("redirect_uri", redirectURI.String())
 		doc := &oauthoidc.TokenResponse{}
-		if _, err := c.Post(oauthoidc.Token, v, doc); err != nil {
-			return nil, err
+		resp, tokenBody, err := c.Post(oauthoidc.Token, v, doc)
+		if err != nil {
+			return errorResponse(err, resp, tokenBody, doc), nil
 		}
-
 		idToken := &oauthoidc.IDToken{}
 		if _, err := oauthoidc.ParseAndVerifyJWT(doc.IDToken, c, idToken); err != nil {
-			return errorResponse(err, "IDToken: "+doc.IDToken), nil
+			return errorResponse(err, resp, tokenBody, doc), nil
 		}
 		if idToken.Nonce != state.Nonce {
 			return errorResponse(oauthoidc.VerificationError{
 				Field:    "nonce",
 				Actual:   idToken.Nonce,
 				Expected: state.Nonce,
-			}, doc.IDToken), nil
+			}, resp, tokenBody, doc), nil
 		}
 
 		var bodyV struct {
