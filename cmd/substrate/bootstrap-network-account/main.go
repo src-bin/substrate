@@ -51,6 +51,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	sess, err := awssessions.NewSession(awssessions.Config{
 		FallbackToRootCredentials: true,
 	})
+	if err != nil {
+		ui.Fatal(err)
+	}
 	creds, err := sess.Config.Credentials.Get()
 	if err != nil {
 		ui.Fatal(err)
