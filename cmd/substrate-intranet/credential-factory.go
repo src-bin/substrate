@@ -238,24 +238,31 @@ func getCredentials(
 		}
 	}()
 
-	callerIdentity, err := cfg.SetCredentials(ctx, aws.Credentials{
+	// Make a copy of the AWS SDK config that we're going to use to bounce
+	// through user/CredentialFactory in order to get 12-hour credentials so
+	// that we don't ruin cfg for whatever else we might want to do with it.
+	cfg12h := cfg.Copy()
+
+	callerIdentity, err := cfg12h.SetCredentials(ctx, aws.Credentials{
 		AccessKeyID:     aws.ToString(accessKey.AccessKeyId),
 		SecretAccessKey: aws.ToString(accessKey.SecretAccessKey),
 	})
 	if err != nil {
+		ui.PrintWithCaller(err)
 		return
 	}
-	cfg, err = cfg.AssumeRole(
+	cfg12h, err = cfg12h.AssumeRole(
 		ctx,
 		aws.ToString(callerIdentity.Account),
 		roleName,
 		12*time.Hour,
 	)
 	if err != nil {
+		ui.PrintWithCaller(err)
 		return
 	}
 
-	return cfg.Retrieve(ctx)
+	return cfg12h.Retrieve(ctx)
 }
 
 func init() {
