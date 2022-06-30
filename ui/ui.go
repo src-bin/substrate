@@ -31,7 +31,7 @@ func Confirmf(format string, args ...interface{}) (bool, error) {
 }
 
 func Fatal(args ...interface{}) {
-	PrintWithCaller(args...)
+	Print(withCaller(args...)...)
 	os.Exit(1)
 }
 
@@ -46,23 +46,7 @@ func Print(args ...interface{}) {
 }
 
 func PrintWithCaller(args ...interface{}) {
-
-	// Decorate fatal log lines with caller information, though in a way that
-	// feels less to customers like they did something horrible. This is
-	// cribbed from the standard library's log.Logger.Output.
-	// <https://cs.opensource.google/go/go/+/refs/tags/go1.18.3:src/log/log.go;l=172>
-	_, file, line, ok := runtime.Caller(1)
-	if ok {
-		fatal := fmt.Sprintf("%s:%d", shorten(file), line)
-		_, file, line, ok = runtime.Caller(2)
-		if ok {
-			args = append(args, fmt.Sprintf(" (%s via %s:%d)", fatal, shorten(file), line))
-		} else {
-			args = append(args, fmt.Sprintf(" (%s)", fatal))
-		}
-	}
-
-	Print(args...)
+	Print(withCaller(args...)...)
 }
 
 func Printf(format string, args ...interface{}) {
@@ -134,4 +118,22 @@ func shorten(pathname string) string {
 		filepath.Base(filepath.Dir(pathname)),
 		filepath.Base(pathname),
 	)
+}
+
+// withCaller decorates log lines with caller information, though in a way that
+// feels less to customers like they did something horrible. This is cribbed
+// from the standard library's log.Logger.Output.
+// <https://cs.opensource.google/go/go/+/refs/tags/go1.18.3:src/log/log.go;l=172>
+func withCaller(args ...interface{}) []interface{} {
+	_, file, line, ok := runtime.Caller(2)
+	if ok {
+		fatal := fmt.Sprintf("%s:%d", shorten(file), line)
+		_, file, line, ok = runtime.Caller(3)
+		if ok {
+			args = append(args, fmt.Sprintf(" (%s via %s:%d)", fatal, shorten(file), line))
+		} else {
+			args = append(args, fmt.Sprintf(" (%s)", fatal))
+		}
+	}
+	return args
 }
