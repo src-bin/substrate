@@ -39,16 +39,13 @@ phases:
       - go run "tools/slack-codebuild/main.go" "pre_build"
   build:
     commands:
-      - ls -a -l || true
-      - ls -a -l .git || true
-      - ls -a -l .git/refs || true
-      - ls -a -l .git/refs/heads || true
+      - cat .git/HEAD || true
       - cat .git/refs/heads/main || true
       - git status || true
-      - git symbolic-ref -q HEAD || true
-      - date +%Y.%m || true
+      - git symbolic-ref -q HEAD || echo git symbolic-ref exited non-zero
       - git describe --tags HEAD || true
       - git symbolic-ref -q HEAD >/dev/null && date +%Y.%m || git describe --tags HEAD || true
+      - false
       - make release
     finally:
       - go run "tools/slack-codebuild/main.go" "build"
