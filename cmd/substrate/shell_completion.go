@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/src-bin/substrate/naming"
@@ -18,10 +19,27 @@ func shellCompletion() {
 	// recently typed argument, and then the previously typed argument as
 	// some kind of confusing convenience. If the command needs the entire
 	// typed command, it's available in the COMP_LINE environment variable.
-	word := os.Args[3]
-	previousWord := os.Args[4]
+	var word, previousWord string
+	if len(os.Args) > 3 {
+		word = os.Args[3]
+	}
+	if len(os.Args) > 4 {
+		previousWord = os.Args[4]
+	}
+	compCWord, _ := strconv.Atoi(os.Getenv("COMP_CWORD"))
 	compLine := strings.Split(os.Getenv("COMP_LINE"), " ") // not strictly correct but good enough to get non-space-containing subcommands
-	//fmt.Fprintf(os.Stderr, "\nword: %q, previousWord: %q, compLine: %#v\n\n", word, previousWord, compLine)
+	//fmt.Fprintf(os.Stderr, "\nword: %q, previousWord: %q, compLine: %#v, compCWord: %#v\n\n", word, previousWord, compLine, compCWord)
+
+	// zsh(1), however, doesn't do things quite like bash(1). So, if we find
+	// ourselves with an empty word and a non-zero COMP_CWORD, try to use
+	// that instead.
+	if word == "" && compCWord != 0 && len(compLine) > compCWord {
+		word = compLine[compCWord]
+	}
+	if previousWord == "" && compCWord != 0 && len(compLine) > compCWord {
+		previousWord = compLine[compCWord-1]
+	}
+	//fmt.Fprintf(os.Stderr, "\nword: %q, previousWord: %q, compLine: %#v, compCWord: %#v\n\n", word, previousWord, compLine, compCWord)
 
 	// This should never happen since `complete -C "substrate
 	// --shell-completion" "substrate"` would never even invoke this program
