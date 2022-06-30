@@ -20,7 +20,7 @@ func PrintCredentials(format *cmdutil.SerializationFormat, credentials aws.Crede
 	case cmdutil.SerializationFormatJSON:
 		PrintCredentialsJSON(credentials)
 	default:
-		ui.Fatalf("-format=%q not supported", format)
+		ui.Fatalf("-format %q not supported", format)
 	}
 }
 

@@ -89,7 +89,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		fmt.Println("substrate bootstrap-deploy-account")
 		for _, account := range adminAccounts {
 			fmt.Printf(
-				"substrate create-admin-account -quality=%q\n",
+				"substrate create-admin-account -quality %q\n",
 				account.Tags[tags.Quality],
 			)
 		}
@@ -98,7 +98,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				continue
 			}
 			fmt.Printf(
-				"substrate create-account -domain=%q -environment=%q -quality=%q\n",
+				"substrate create-account -domain %q -environment %q -quality %q\n",
 				account.Tags[tags.Domain],
 				account.Tags[tags.Environment],
 				account.Tags[tags.Quality],
@@ -114,7 +114,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		io.Copy(os.Stdout, f)
 
 	default:
-		ui.Fatalf("-format=%q not supported", format)
+		ui.Fatalf("-format %q not supported", format)
 	}
 
 	// Update substrate.accounts.txt unconditionally as this is the expected

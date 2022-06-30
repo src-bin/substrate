@@ -48,5 +48,5 @@ func (f *SerializationFormat) String() string {
 type SerializationFormatError string
 
 func (err SerializationFormatError) Error() string {
-	return fmt.Sprintf(`-format=%q not supported`, string(err))
+	return fmt.Sprintf(`-format %q not supported`, string(err))
 }

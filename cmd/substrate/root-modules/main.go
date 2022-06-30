@@ -139,7 +139,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			fmt.Println(rootModule)
 		}
 	default:
-		ui.Fatalf("-format=%q not supported", format)
+		ui.Fatalf("-format %q not supported", format)
 	}
 
 }

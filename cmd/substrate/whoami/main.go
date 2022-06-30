@@ -63,7 +63,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			identity.Tags.Quality,
 		)
 	default:
-		ui.Fatalf("-format=%q not supported", format)
+		ui.Fatalf("-format %q not supported", format)
 	}
 
 }
