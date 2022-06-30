@@ -39,10 +39,10 @@ phases:
       - go run "tools/slack-codebuild/main.go" "pre_build"
   build:
     commands:
-      - git symbolic-ref -q HEAD || :
-      - date +%Y.%m || :
-      - git describe --tags HEAD || :
-      - git symbolic-ref -q HEAD >/dev/null && date +%Y.%m || git describe --tags HEAD || :
+      - git symbolic-ref -q HEAD || true
+      - date +%Y.%m || true
+      - git describe --tags HEAD || true
+      - git symbolic-ref -q HEAD >/dev/null && date +%Y.%m || git describe --tags HEAD || true
       - make release
     finally:
       - go run "tools/slack-codebuild/main.go" "build"
