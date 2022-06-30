@@ -15,7 +15,7 @@ phases:
     commands:
       - mkdir -p "$HOME/bin"
       - curl -o"$HOME/awscli.zip" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
-      - unzip "$HOME/awscli.zip" -d "$HOME/aws"
+      - unzip -q "$HOME/awscli.zip" -d "$HOME"
       - $HOME/aws/install -b "$HOME/bin" -i "$HOME/aws" --update
       - rm -f "$HOME/awscli.zip"
       - curl -L -o"golang.tar.gz" -s "https://redirector.gvt1.com/edgedl/go/go$GO_VERSION.linux-amd64.tar.gz"
