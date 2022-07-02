@@ -318,29 +318,37 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 			continue
 		}
 
-		// TODO if we try this block with Administrator as well as
-		// OrganizationAccountAccessRole before giving up we can end up with
-		// folks' original accounts in a much more managed (though still
-		// untagged) state.
-		// TODO really do this post-refactor, pre-2022.06 :crossed_fingers:
-		serviceCfg := awscfg.Must(cfg.AssumeRole(
-			ctx,
-			aws.ToString(account.Id),
-			roles.OrganizationAccountAccessRole,
-			time.Hour,
-		))
-		if _, err := EnsureAdministratorRole(ctx, serviceCfg, canned.AdminRolePrincipals); err != nil {
+		// In service accounts, though, manage the Administrator and Auditor
+		// roles. Try to get in as OrganizationAccountAccessRole, which will
+		// exist for accounts created in the organization, but also try to get
+		// in as Administrator, to cover accounts invited into the organization
+		// that follow the Substrate manual.
+		var serviceCfg *awscfg.Config
+		for _, roleName := range []string{roles.OrganizationAccountAccessRole} {
+			serviceCfg, err = cfg.AssumeRole(
+				ctx,
+				aws.ToString(account.Id),
+				roleName,
+				time.Hour,
+			)
+			if err == nil {
+				break
+			}
+		}
+		if err == nil {
+			if _, err := EnsureAdministratorRole(ctx, serviceCfg, canned.AdminRolePrincipals); err != nil {
+				ui.Fatal(err)
+			}
+			if _, err := EnsureAuditorRole(ctx, serviceCfg, canned.AuditorRolePrincipals); err != nil {
+				ui.Fatal(err)
+			}
+		} else {
 			ui.Printf(
-				"could not create the Administrator role in account %s; it might be because this account has only half-joined the organization",
+				"could not assume OrganizationAccountAccessRole or Administrator in account %s; not able to manage the Administrator or Auditor roles there; create Administrator per <https://src-bin.com/substrate/manual/getting-started/integrating-your-original-aws-account/> to resolve this warning",
 				account.Id,
 			)
 		}
-		if _, err := EnsureAuditorRole(ctx, serviceCfg, canned.AuditorRolePrincipals); err != nil {
-			ui.Printf(
-				"could not create the Auditor role in account %s; it might be because this account has only half-joined the organization",
-				account.Id,
-			)
-		}
+
 	}
 	ui.Stop("ok")
 
