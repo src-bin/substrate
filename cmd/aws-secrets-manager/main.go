@@ -1,14 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssecretsmanager"
-	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
@@ -50,19 +50,22 @@ func main() {
 		AWS: []string(*principals),
 	}
 
-	sess := awssessions.Must(awssessions.NewSession(awssessions.Config{}))
+	ctx := contextutil.WithValues(context.Background(), "aws-secrets-manager", "", "")
+
+	cfg, err := awscfg.NewConfig(ctx)
+	if err != nil {
+		ui.Fatal(err)
+	}
 
 	badRegions, goodRegions := []string{}, []string{}
 	for _, region := range regions.Selected() {
-
-		svc := secretsmanager.New(sess, &aws.Config{
-			Region: aws.String(region),
-		})
+		cfg = cfg.Regional(region)
 
 		if *value != "" {
 
 			out, err := awssecretsmanager.EnsureSecret(
-				svc,
+				ctx,
+				cfg,
 				*name,
 				awssecretsmanager.Policy(principal),
 				*stage,
@@ -77,7 +80,12 @@ func main() {
 
 		} else if len(*principals) > 0 {
 
-			out, err := awssecretsmanager.PutResourcePolicy(svc, *name, awssecretsmanager.Policy(principal))
+			out, err := awssecretsmanager.PutResourcePolicy(
+				ctx,
+				cfg,
+				*name,
+				awssecretsmanager.Policy(principal),
+			)
 			if err != nil {
 				badRegions = append(badRegions, region)
 				ui.Printf("%s in %s: %s", *name, region, err)
@@ -87,7 +95,7 @@ func main() {
 
 		} else {
 
-			out, err := awssecretsmanager.DescribeSecret(svc, *name)
+			out, err := awssecretsmanager.DescribeSecret(ctx, cfg, *name)
 			if err != nil {
 				badRegions = append(badRegions, region)
 				ui.Printf("%s in %s: %s", *name, region, err)

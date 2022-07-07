@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/randutil"
@@ -49,12 +48,7 @@ func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 
 	// TODO logout per <https://developer.okta.com/docs/reference/api/oidc/#logout>
 
-	sess, err := awssessions.NewSession(awssessions.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := oauthoidc.NewClient(sess, event.StageVariables)
+	c, err := oauthoidc.NewClient(ctx, cfg, event.StageVariables)
 	if err != nil {
 		return nil, err
 	}

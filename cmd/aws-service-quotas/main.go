@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/regions"
@@ -34,7 +34,7 @@ func main() {
 	}
 	flag.Parse()
 	version.Flag()
-	if !*global && !*allRegions && !regions.IsRegion(*region) || *global && *allRegions || *global && regions.IsRegion(*region) || *allRegions && regions.IsRegion(*region) {
+	if !*global && !*allRegions && *region == "" || *global && *allRegions || *global && *region != "" || *allRegions && *region != "" {
 		log.Fatal("exactly one of -global, -all-regions, or a valid -region is required")
 	}
 	var regionSlice []string
@@ -65,8 +65,8 @@ func main() {
 			for _, service := range services {
 				lines = append(lines, fmt.Sprintf(
 					"%-23s %s\n",
-					aws.StringValue(service.ServiceCode),
-					aws.StringValue(service.ServiceName),
+					aws.ToString(service.ServiceCode),
+					aws.ToString(service.ServiceName),
 				))
 			}
 		}

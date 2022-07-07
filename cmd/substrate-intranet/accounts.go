@@ -11,7 +11,6 @@ import (
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
@@ -23,12 +22,7 @@ import (
 
 func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
-	sess, err := awssessions.NewSession(awssessions.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := oauthoidc.NewClient(sess, event.StageVariables)
+	c, err := oauthoidc.NewClient(ctx, cfg, event.StageVariables)
 	if err != nil {
 		return nil, err
 	}

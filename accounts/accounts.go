@@ -6,7 +6,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/naming"
@@ -59,36 +59,36 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	}
 
 	specialAccountsCells[3][0] = Audit
-	specialAccountsCells[3][1] = aws.StringValue(auditAccount.Id)
+	specialAccountsCells[3][1] = aws.ToString(auditAccount.Id)
 	specialAccountsCells[3][2] = roles.Auditor
-	specialAccountsCells[3][3] = roles.Arn(aws.StringValue(auditAccount.Id), roles.Auditor)
-	specialAccountsCells[3][4] = aws.StringValue(auditAccount.Email)
+	specialAccountsCells[3][3] = roles.Arn(aws.ToString(auditAccount.Id), roles.Auditor)
+	specialAccountsCells[3][4] = aws.ToString(auditAccount.Email)
 
 	specialAccountsCells[4][0] = Deploy
-	specialAccountsCells[4][1] = aws.StringValue(deployAccount.Id)
+	specialAccountsCells[4][1] = aws.ToString(deployAccount.Id)
 	specialAccountsCells[4][2] = roles.DeployAdministrator
-	specialAccountsCells[4][3] = roles.Arn(aws.StringValue(deployAccount.Id), roles.DeployAdministrator)
-	specialAccountsCells[4][4] = aws.StringValue(deployAccount.Email)
+	specialAccountsCells[4][3] = roles.Arn(aws.ToString(deployAccount.Id), roles.DeployAdministrator)
+	specialAccountsCells[4][4] = aws.ToString(deployAccount.Email)
 
 	specialAccountsCells[1][0] = Management
-	specialAccountsCells[1][1] = aws.StringValue(managementAccount.Id)
+	specialAccountsCells[1][1] = aws.ToString(managementAccount.Id)
 	specialAccountsCells[1][2] = roles.OrganizationAdministrator
-	specialAccountsCells[1][3] = roles.Arn(aws.StringValue(managementAccount.Id), roles.OrganizationAdministrator)
-	specialAccountsCells[1][4] = aws.StringValue(managementAccount.Email)
+	specialAccountsCells[1][3] = roles.Arn(aws.ToString(managementAccount.Id), roles.OrganizationAdministrator)
+	specialAccountsCells[1][4] = aws.ToString(managementAccount.Email)
 
 	specialAccountsCells[5][0] = Network
-	specialAccountsCells[5][1] = aws.StringValue(networkAccount.Id)
+	specialAccountsCells[5][1] = aws.ToString(networkAccount.Id)
 	specialAccountsCells[5][2] = roles.NetworkAdministrator
-	specialAccountsCells[5][3] = roles.Arn(aws.StringValue(networkAccount.Id), roles.NetworkAdministrator)
-	specialAccountsCells[5][4] = aws.StringValue(networkAccount.Email)
+	specialAccountsCells[5][3] = roles.Arn(aws.ToString(networkAccount.Id), roles.NetworkAdministrator)
+	specialAccountsCells[5][4] = aws.ToString(networkAccount.Email)
 
 	for _, account := range adminAccounts {
 		adminAccountsCells = append(adminAccountsCells, []string{
 			account.Tags[tags.Quality],
-			aws.StringValue(account.Id),
+			aws.ToString(account.Id),
 			roles.Administrator,
-			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
-			aws.StringValue(account.Email),
+			roles.Arn(aws.ToString(account.Id), roles.Administrator),
+			aws.ToString(account.Email),
 		})
 	}
 
@@ -97,10 +97,10 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			account.Tags[tags.Domain],
 			account.Tags[tags.Environment],
 			account.Tags[tags.Quality],
-			aws.StringValue(account.Id),
+			aws.ToString(account.Id),
 			roles.Administrator,
-			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
-			aws.StringValue(account.Email),
+			roles.Arn(aws.ToString(account.Id), roles.Administrator),
+			aws.ToString(account.Email),
 		})
 	}
 

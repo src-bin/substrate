@@ -1,20 +1,26 @@
 package awsroute53
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
+	"github.com/aws/aws-sdk-go-v2/service/route53/types"
+	"github.com/src-bin/substrate/awscfg"
 )
 
-func FindHostedZone(svc *route53.Route53, name string) (*route53.HostedZone, error) {
-	zones, err := ListHostedZones(svc)
+type HostedZone = types.HostedZone
+
+func FindHostedZone(ctx context.Context, cfg *awscfg.Config, name string) (*HostedZone, error) {
+	zones, err := ListHostedZones(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
-	for _, zone := range zones {
-		if aws.StringValue(zone.Name) == name {
-			return zone, nil
+	for _, z := range zones {
+		if aws.ToString(z.Name) == name {
+			zone := z // don't leak the slice
+			return &zone, nil
 		}
 	}
 	return nil, HostedZoneNotFoundError(name)
@@ -26,11 +32,10 @@ func (err HostedZoneNotFoundError) Error() string {
 	return fmt.Sprintf("HostedZoneNotFoundError: %s not found", string(err))
 }
 
-func ListHostedZones(svc *route53.Route53) (zones []*route53.HostedZone, err error) {
+func ListHostedZones(ctx context.Context, cfg *awscfg.Config) (zones []HostedZone, err error) {
 	var marker *string
 	for {
-		in := &route53.ListHostedZonesInput{Marker: marker}
-		out, err := svc.ListHostedZones(in)
+		out, err := cfg.Route53().ListHostedZones(ctx, &route53.ListHostedZonesInput{Marker: marker})
 		if err != nil {
 			return nil, err
 		}

@@ -7,7 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/ram"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
 )
 
@@ -32,11 +34,19 @@ func (c *Config) Organizations() *organizations.Client {
 }
 
 func (c *Config) RAM() *ram.Client {
-	return ram.NewFromConfig(c.cfg) // TODO memoize
+	return ram.NewFromConfig(c.cfg) // TODO memoize (regionally?)
+}
+
+func (c *Config) Route53() *route53.Client {
+	return route53.NewFromConfig(c.cfg) // TODO memoize
 }
 
 func (c *Config) S3() *s3.Client {
 	return s3.NewFromConfig(c.cfg) // TODO memoize regionally
+}
+
+func (c *Config) SecretsManager() *secretsmanager.Client {
+	return secretsmanager.NewFromConfig(c.cfg) // TODO memoize regionally
 }
 
 func (c *Config) ServiceQuotas() *servicequotas.Client {

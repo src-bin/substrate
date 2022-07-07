@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/contextutil"
 )
 
 // TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
@@ -32,17 +33,10 @@ func main() {
 
 	} else if functionName == IntranetFunctionName {
 		lambda.Start(func(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-			ctx = context.WithValue(
-				context.WithValue(
-					context.WithValue(
-						ctx,
-						"Command",
-						"substrate-intranet",
-					),
-					"Subcommand",
-					event.Path,
-				),
-				"Username",
+			ctx = contextutil.WithValues(
+				ctx,
+				"substrate-intranet",
+				event.Path,
 				fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
 			)
 

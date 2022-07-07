@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
@@ -167,11 +167,11 @@ func (e *Event) Wait(ctx context.Context) error {
 }
 
 func roleNameFromArn(roleArn string) (string, error) {
-	a, err := arn.Parse(roleArn)
+	parsed, err := arn.Parse(roleArn)
 	if err != nil {
 		return "", err
 	}
-	ss := strings.Split(a.Resource, "/")
+	ss := strings.Split(parsed.Resource, "/")
 	if len(ss) < 2 {
 		return "", errors.New("arn: not enough sections") // <https://github.com/aws/aws-sdk-go-v2/blob/v1.15.0/aws/arn/arn.go#L23>
 	}

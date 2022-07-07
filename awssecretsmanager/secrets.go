@@ -1,8 +1,12 @@
 package awssecretsmanager
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/tags"
@@ -11,32 +15,30 @@ import (
 
 const ResourceExistsException = "ResourceExistsException"
 
-func CreateSecret(svc *secretsmanager.SecretsManager, name string) (*secretsmanager.CreateSecretOutput, error) {
-	in := &secretsmanager.CreateSecretInput{
+func CreateSecret(ctx context.Context, cfg *awscfg.Config, name string) (*secretsmanager.CreateSecretOutput, error) {
+	out, err := cfg.SecretsManager().CreateSecret(ctx, &secretsmanager.CreateSecretInput{
 		Name: aws.String(name),
-		Tags: []*secretsmanager.Tag{
-			&secretsmanager.Tag{
+		Tags: []types.Tag{
+			{
 				Key:   aws.String(tags.Manager),
 				Value: aws.String(tags.Substrate),
 			},
-			&secretsmanager.Tag{
+			{
 				Key:   aws.String(tags.SubstrateVersion),
 				Value: aws.String(version.Version),
 			},
 		},
-	}
-	out, err := svc.CreateSecret(in)
+	})
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func DescribeSecret(svc *secretsmanager.SecretsManager, name string) (*secretsmanager.DescribeSecretOutput, error) {
-	in := &secretsmanager.DescribeSecretInput{
+func DescribeSecret(ctx context.Context, cfg *awscfg.Config, name string) (*secretsmanager.DescribeSecretOutput, error) {
+	out, err := cfg.SecretsManager().DescribeSecret(ctx, &secretsmanager.DescribeSecretInput{
 		SecretId: aws.String(name),
-	}
-	out, err := svc.DescribeSecret(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -44,13 +46,14 @@ func DescribeSecret(svc *secretsmanager.SecretsManager, name string) (*secretsma
 }
 
 func EnsureSecret(
-	svc *secretsmanager.SecretsManager,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	name string,
 	doc *policies.Document,
 	stage, value string,
 ) (*secretsmanager.PutSecretValueOutput, error) {
 
-	_, err := CreateSecret(svc, name)
+	_, err := CreateSecret(ctx, cfg, name)
 	if awsutil.ErrorCodeIs(err, ResourceExistsException) {
 		err = nil
 	}
@@ -58,19 +61,18 @@ func EnsureSecret(
 		return nil, err
 	}
 
-	if _, err := PutResourcePolicy(svc, name, doc); err != nil {
+	if _, err := PutResourcePolicy(ctx, cfg, name, doc); err != nil {
 		return nil, err
 	}
 
-	return PutSecretValue(svc, name, stage, value)
+	return PutSecretValue(ctx, cfg, name, stage, value)
 }
 
-func GetSecretValue(svc *secretsmanager.SecretsManager, name, stage string) (*secretsmanager.GetSecretValueOutput, error) {
-	in := &secretsmanager.GetSecretValueInput{
+func GetSecretValue(ctx context.Context, cfg *awscfg.Config, name, stage string) (*secretsmanager.GetSecretValueOutput, error) {
+	out, err := cfg.SecretsManager().GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(name),
 		VersionStage: aws.String(stage),
-	}
-	out, err := svc.GetSecretValue(in)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -89,29 +91,27 @@ func Policy(principal *policies.Principal) *policies.Document {
 	}
 }
 
-func PutResourcePolicy(svc *secretsmanager.SecretsManager, name string, doc *policies.Document) (*secretsmanager.PutResourcePolicyOutput, error) {
+func PutResourcePolicy(ctx context.Context, cfg *awscfg.Config, name string, doc *policies.Document) (*secretsmanager.PutResourcePolicyOutput, error) {
 	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
 	}
-	in := &secretsmanager.PutResourcePolicyInput{
+	out, err := cfg.SecretsManager().PutResourcePolicy(ctx, &secretsmanager.PutResourcePolicyInput{
 		ResourcePolicy: aws.String(docJSON),
 		SecretId:       aws.String(name),
-	}
-	out, err := svc.PutResourcePolicy(in)
+	})
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func PutSecretValue(svc *secretsmanager.SecretsManager, name, stage, value string) (*secretsmanager.PutSecretValueOutput, error) {
-	in := &secretsmanager.PutSecretValueInput{
+func PutSecretValue(ctx context.Context, cfg *awscfg.Config, name, stage, value string) (*secretsmanager.PutSecretValueOutput, error) {
+	out, err := cfg.SecretsManager().PutSecretValue(ctx, &secretsmanager.PutSecretValueInput{
 		SecretId:      aws.String(name),
 		SecretString:  aws.String(value),
-		VersionStages: []*string{aws.String(stage)},
-	}
-	out, err := svc.PutSecretValue(in)
+		VersionStages: []string{stage},
+	})
 	if err != nil {
 		return nil, err
 	}

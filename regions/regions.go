@@ -46,10 +46,7 @@ func Default() string {
 		"what region is your default for hosting shared resources e.g. the S3 bucket that stores your CloudTrail logs?",
 	)
 	if err != nil {
-		log.Fatal(err)
-	}
-	if !IsRegion(region) {
-		log.Fatalf("%s is not an AWS region", region)
+		ui.Fatal(err)
 	}
 	if !printedDefaultRegion {
 		ui.Printf("using region %s as your default", region)
@@ -74,11 +71,6 @@ func IsBeingAvoided(region string) bool {
 	avoiding := Avoiding()
 	i := sort.SearchStrings(avoiding, region)
 	return i < len(avoiding) && avoiding[i] == region
-}
-
-func IsRegion(region string) bool {
-	_, ok := all()[region]
-	return ok
 }
 
 func Select() ([]string, error) {

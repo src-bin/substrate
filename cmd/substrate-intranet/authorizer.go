@@ -8,19 +8,21 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/src-bin/substrate/authorizerutil"
-	"github.com/src-bin/substrate/awssessions"
+	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
 )
 
 func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequestTypeRequest) (*events.APIGatewayCustomAuthorizerResponse, error) {
+	ctx = contextutil.WithValues(ctx, "substrate-intranet", "authorizer", "")
 
-	sess, err := awssessions.NewSession(awssessions.Config{})
+	cfg, err := awscfg.NewConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := oauthoidc.NewClient(sess, event.StageVariables)
+	c, err := oauthoidc.NewClient(ctx, cfg, event.StageVariables)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +34,7 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 	next := u.String()
 	u.Path = "/login"
 	u.RawQuery = url.Values{"next": []string{next}}.Encode()
-	context := map[string]interface{}{
+	authContext := map[string]interface{}{
 		"Location": u.String(), // where API Gateway will send the browser when unauthorized
 	}
 
@@ -43,15 +45,16 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 	for _, cookie := range req.Cookies() {
 		switch cookie.Name {
 		case "a":
-			context[authorizerutil.AccessToken] = cookie.Value
+			authContext[authorizerutil.AccessToken] = cookie.Value
 		case "id":
 			if _, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, c, idToken); err != nil {
-				context[authorizerutil.Error] = err
+				authContext[authorizerutil.Error] = err
 				log.Print(err)
 				idToken = &oauthoidc.IDToken{} // revert to zero-value and thus to denying access
 				continue
 			}
-			if context[authorizerutil.IDToken], err = idToken.JSONString(); err != nil {
+			ctx = context.WithValue(ctx, contextutil.Username, idToken.Email) // not that we need this (yet)
+			if authContext[authorizerutil.IDToken], err = idToken.JSONString(); err != nil {
 				return nil, err
 			}
 		}
@@ -59,19 +62,19 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 
 	effect := policies.Deny
 	if idToken.Email != "" {
-		c.AccessToken = context[authorizerutil.AccessToken].(string)
+		c.AccessToken = authContext[authorizerutil.AccessToken].(string)
 		roleName, err := c.RoleNameFromIdP(idToken.Email)
 		if err == nil {
-			context[authorizerutil.RoleName] = roleName
+			authContext[authorizerutil.RoleName] = roleName
 			effect = policies.Allow
 		} else {
-			context[authorizerutil.Error] = err
+			authContext[authorizerutil.Error] = err
 			log.Print(err)
 		}
 	}
 
 	return &events.APIGatewayCustomAuthorizerResponse{
-		Context: context,
+		Context: authContext,
 		PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
 			Statement: []events.IAMPolicyStatement{{
 				Action:   []string{"execute-api:Invoke"},

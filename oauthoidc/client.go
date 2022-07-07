@@ -1,6 +1,7 @@
 package oauthoidc
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -9,8 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssecretsmanager"
 )
 
@@ -29,11 +29,13 @@ type Client struct {
 }
 
 func NewClient(
-	sess *session.Session,
+	ctx context.Context,
+	cfg *awscfg.Config,
 	stageVariables map[string]string,
 ) (*Client, error) {
 	clientSecret, err := awssecretsmanager.CachedSecret( // TODO memoize
-		secretsmanager.New(sess),
+		ctx,
+		cfg,
 		fmt.Sprintf(
 			"%s-%s",
 			OAuthOIDCClientSecret,
