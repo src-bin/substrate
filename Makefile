@@ -38,7 +38,6 @@ clean:
 
 install:
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
-	find ./cmd/substrate -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/substrate-%P\\n | xargs -n1 ln -f -s substrate
 
 release:
 ifndef CODEBUILD_BUILD_ID
@@ -62,7 +61,12 @@ release-version: # for src-bin.com to grab on
 tarball:
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH) # makes debugging easier
 	mkdir substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
-	GOBIN=$(PWD)/substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH) make install
+	mkdir substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/bin
+	mkdir substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/opt substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/opt/bin
+	mkdir substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/src
+	GOBIN=$(PWD)/substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/opt/bin make install
+	mv substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/opt/bin/substrate substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/bin
+	# TODO src (via `git checkout` perhaps)
 	tar czf substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH).tar.gz substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 
