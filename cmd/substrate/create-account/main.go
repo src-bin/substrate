@@ -70,7 +70,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	createdAccount := false
 	{
 		account, err = cfg.FindServiceAccount(ctx, *domain, *environment, *quality)
-		if _, ok := err.(awsorgs.AccountNotFound); ok {
+		if err != nil {
+			ui.Fatal(err)
+		}
+		if account == nil {
 			ui.Stop("not found")
 			if !*create {
 				if ok, err := ui.Confirm("create a new AWS account? (yes/no)"); err != nil {
@@ -102,10 +105,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			)
 		}
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 		if err := accounts.CheatSheet(ctx, awscfg.Must(cfg.OrganizationReader(ctx))); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 	}
 	ui.Stopf("account %s", account.Id)
