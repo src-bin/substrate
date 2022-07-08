@@ -307,7 +307,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	admin.EnsureAdminRolesAndPolicies(ctx, cfg, true) // could detect if we created any special accounts but this way there's a simple do-it-anyway option if things get out of sync
 
-	ui.Print("next, commit substrate.* to version control, then run `substrate bootstrap-network-account`")
+	ui.Print("next, commit the following files to version control:")
+	ui.Print("")
+	ui.Print("substrate.*")
+	ui.Print("")
+	ui.Print("then, run `substrate bootstrap-network-account`")
 
 	// At the very, very end, when we're exceedingly confident in the
 	// capabilities of the other accounts, detach the FullAWSAccess policy

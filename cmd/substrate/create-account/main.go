@@ -236,12 +236,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
 	}
 
+	ui.Print("next, commit the following files to version control:")
+	ui.Print("")
+	ui.Print("substrate.*")
+	ui.Printf("modules/%s/", *domain)
+	ui.Print("modules/substrate/")
+	ui.Printf("root-modules/%s/%s/%s/", *domain, *environment, *quality)
+	ui.Print("")
 	ui.Printf(
-		"next, commit substrate.*, modules/%s/, modules/substrate/ and root-modules/%s/%s/%s/ to version control, then write Terraform code there to define the rest of your infrastructure or run `substrate create-account` again for other domains, environments, and/or qualities",
+		"then, write Terraform code in modules/%s/ to define the rest of your infrastructure or run `substrate create-account` again for other domains, environments, and/or qualities",
 		*domain,
-		*domain,
-		*environment,
-		*quality,
 	)
 
 }

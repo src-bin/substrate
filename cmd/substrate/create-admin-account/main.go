@@ -541,11 +541,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Printf("set the custom AWS.RoleName attribute in Google for every user to the name of the IAM role they're authorized to assume")
 	}
 
-	ui.Printf(
-		"next, commit substrate.*, modules/intranet/, modules/lambda-function/, modules/substrate/, and root-modules/%s/%s/ to version control, then run `substrate create-account` as many times as you need",
-		Domain,
-		*quality,
-	)
+	ui.Print("next, commit the following files to version control:")
+	ui.Print("")
+	ui.Print("substrate.*")
+	//ui.Printf(OAuthOIDCClientSecretTimestampFilename) // covered by substrate.*
+	ui.Print("modules/intranet/")
+	ui.Print("modules/lambda-function/")
+	ui.Print("modules/substrate/")
+	ui.Printf("root-modules/%s/%s/", Domain, *quality)
+	ui.Print("")
+	ui.Print("then, run `substrate create-account` to create the service accounts you need")
 	ui.Printf("you should also start using `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
 
 }
