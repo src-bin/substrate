@@ -5,14 +5,11 @@ import (
 	"flag"
 	"log"
 	"strings"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
-	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
@@ -20,6 +17,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -31,16 +29,18 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	flag.Parse()
 	version.Flag()
 
-	sess := awssessions.Must(awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{}))
+	cfg = awscfg.Must(cfg.AssumeManagementRole(
+		ctx,
+		roles.OrganizationAdministrator,
+		time.Hour,
+	))
+	versionutil.PreventDowngrade(ctx, cfg)
 
-	cfg.Telemetry().FinalAccountId = aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
+	cfg.Telemetry().FinalAccountId = aws.ToString(cfg.MustGetCallerIdentity(ctx).Account)
 	cfg.Telemetry().FinalRoleName = roles.OrganizationAdministrator
 
 	ui.Spin("deleting all access keys for the OrganizationAdministrator user")
-	if err := awsiam.DeleteAllAccessKeysV1(
-		iam.New(sess),
-		users.OrganizationAdministrator,
-	); err != nil {
+	if err := awsiam.DeleteAllAccessKeys(ctx, cfg, users.OrganizationAdministrator); err != nil {
 		log.Fatal(err)
 	}
 	ui.Stop("done")
