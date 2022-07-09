@@ -4,7 +4,6 @@ import (
 	"log"
 	"sort"
 
-	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
 )
@@ -16,13 +15,22 @@ const (
 	Global = "global" // special value used in the same place as region sometimes
 )
 
+var printedDefaultRegion bool
+
+// All returns a list of every AWS region. Since the AWS SDK for Go v2 took
+// away the exported list of endpoints, from which we used to derive a list
+// of regions, we now compute this periodically out of band and package it
+// ourselves. Regenerate the list by running this command someplace with
+// AWS credentials in the environment:
+//
+//     { printf "package regions\n\nvar allRegions = []string{\n"; aws ec2 describe-regions --region "us-west-2" | jq -e ".Regions[].RegionName" | sort | sed 's/^.*$/\t&,/'; printf "}\n"; } >"../substrate/regions/all.go"
+//
+// I wish there was a good way to regenerate this on every build but, since
+// it requires AWS credentials and nothing else about building Substrate does,
+// that seems a bit invasive.
 func All() []string {
-	m := all()
-	ss := make([]string, 0, len(m))
-	for region, _ := range m {
-		ss = append(ss, region)
-	}
-	sort.Strings(ss)
+	ss := make([]string, len(allRegions))
+	copy(ss, allRegions)
 	return ss
 }
 
@@ -120,9 +128,3 @@ func Selected() []string {
 	sort.Strings(ss)
 	return ss
 }
-
-func all() map[string]endpoints.Region {
-	return endpoints.AwsPartition().Regions()
-}
-
-var printedDefaultRegion bool
