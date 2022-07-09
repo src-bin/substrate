@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
@@ -49,27 +49,27 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				ui.PrettyPrintJSON(account)
 			}
 		}
-		if *number == aws.StringValue(managementAccount.Id) {
+		if *number == aws.ToString(managementAccount.Id) {
 			prettyPrintJSON(managementAccount)
 			return
-		} else if *number == aws.StringValue(auditAccount.Id) {
+		} else if *number == aws.ToString(auditAccount.Id) {
 			prettyPrintJSON(auditAccount)
 			return
-		} else if *number == aws.StringValue(networkAccount.Id) {
+		} else if *number == aws.ToString(networkAccount.Id) {
 			prettyPrintJSON(networkAccount)
 			return
-		} else if *number == aws.StringValue(deployAccount.Id) {
+		} else if *number == aws.ToString(deployAccount.Id) {
 			prettyPrintJSON(deployAccount)
 			return
 		}
 		for _, account := range adminAccounts {
-			if *number == aws.StringValue(account.Id) {
+			if *number == aws.ToString(account.Id) {
 				prettyPrintJSON(account)
 				return
 			}
 		}
 		for _, account := range serviceAccounts {
-			if *number == aws.StringValue(account.Id) {
+			if *number == aws.ToString(account.Id) {
 				prettyPrintJSON(account)
 				return
 			}
