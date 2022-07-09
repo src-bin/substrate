@@ -3,7 +3,7 @@ package networks
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/terraform"
@@ -33,7 +33,7 @@ func ShareVPC(
 
 	f.Add(terraform.PrincipalAssociation{
 		Label:            terraform.Label(rs.Tags),
-		Principal:        terraform.Q(aws.StringValue(account.Id)),
+		Principal:        terraform.Q(aws.ToString(account.Id)),
 		Provider:         terraform.NetworkProviderAlias,
 		ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
 	})
