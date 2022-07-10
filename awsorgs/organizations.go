@@ -8,9 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
-	organizationsv1 "github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awsutil"
 )
 
 const (
@@ -37,21 +35,6 @@ func CreateOrganization(ctx context.Context, cfg *awscfg.Config) (*Organization,
 
 func DescribeOrganization(ctx context.Context, cfg *awscfg.Config) (*Organization, error) {
 	return cfg.DescribeOrganization(ctx)
-}
-
-func DescribeOrganizationV1(svc *organizationsv1.Organizations) (*organizationsv1.Organization, error) {
-	for {
-		in := &organizationsv1.DescribeOrganizationInput{}
-		out, err := svc.DescribeOrganization(in)
-		if err != nil {
-			if awsutil.ErrorCodeIs(err, TooManyRequestsException) {
-				time.Sleep(time.Second) // TODO exponential backoff
-				continue
-			}
-			return nil, err
-		}
-		return out.Organization, nil
-	}
 }
 
 func DescribeRoot(ctx context.Context, cfg *awscfg.Config) (*Root, error) { // DescribeRoot is a made-up name

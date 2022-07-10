@@ -3,7 +3,6 @@ package awscfg
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -49,23 +48,25 @@ func (c *Config) SetCredentials(
 		return
 	}
 
-	// Definitely don't set environment variables when we're in Lambda or
-	// we'll ruin the entire future of this process. And, since the purpose
-	// of setting these in the first place is to facilitate subprocesses
-	// like Terraform, it's blessedly unnecessary in Lambda, anyway.
-	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") == "" {
-		if err = os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID); err != nil {
-			return
+	/*
+		// Definitely don't set environment variables when we're in Lambda or
+		// we'll ruin the entire future of this process. And, since the purpose
+		// of setting these in the first place is to facilitate subprocesses
+		// like Terraform, it's blessedly unnecessary in Lambda, anyway.
+		if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") == "" {
+			if err = os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID); err != nil {
+				return
+			}
+			if err = os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey); err != nil {
+				return
+			}
+			if creds.SessionToken == "" {
+				err = os.Unsetenv("AWS_SESSION_TOKEN")
+			} else {
+				err = os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken)
+			}
 		}
-		if err = os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey); err != nil {
-			return
-		}
-		if creds.SessionToken == "" {
-			err = os.Unsetenv("AWS_SESSION_TOKEN")
-		} else {
-			err = os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken)
-		}
-	}
+	*/
 
 	callerIdentity, err = c.WaitUntilCredentialsWork(ctx)
 
@@ -79,17 +80,6 @@ func (c *Config) SetCredentials(
 	}
 
 	return
-}
-
-func (c *Config) SetCredentialsV1(
-	ctx context.Context,
-	accessKeyId, secretAccessKey, sessionToken string,
-) (*sts.GetCallerIdentityOutput, error) {
-	return c.SetCredentials(ctx, aws.Credentials{
-		AccessKeyID:     accessKeyId,
-		SecretAccessKey: secretAccessKey,
-		SessionToken:    sessionToken,
-	})
 }
 
 func (c *Config) SetRootCredentials(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {

@@ -9,11 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
-	organizationsv1 "github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -25,15 +23,6 @@ const (
 )
 
 type Account = awscfg.Account
-
-type AccountV1 struct {
-	organizationsv1.Account
-	Tags tags.Tags
-}
-
-func (a *AccountV1) String() string {
-	return jsonutil.MustString(a)
-}
 
 type AccountNotFound string
 
@@ -93,23 +82,6 @@ func EnsureSpecialAccount(
 	}, time.Time{})
 }
 
-func FindAccountByName(svc *organizationsv1.Organizations, name string) (*AccountV1, error) {
-	accounts, err := ListAccountsV1(svc)
-	if err != nil {
-		return nil, err
-	}
-	for _, account := range accounts {
-		if aws.ToString(account.Name) == name {
-			return account, nil
-		}
-	}
-	return nil, AccountNotFound(name)
-}
-
-func FindSpecialAccount(svc *organizationsv1.Organizations, name string) (*AccountV1, error) {
-	return FindAccountByName(svc, name)
-}
-
 func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account, err error) {
 	client := cfg.Organizations()
 	var nextToken *string
@@ -126,40 +98,6 @@ func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account,
 				return nil, err
 			}
 			accounts = append(accounts, &Account{Account: account, Tags: tags})
-		}
-		if nextToken = out.NextToken; nextToken == nil {
-			break
-		}
-	}
-	return
-}
-
-func ListAccountsV1(svc *organizationsv1.Organizations) ([]*AccountV1, error) {
-
-	// TODO manage a cache here to buy back some performance if we need it.
-	// Might see benefits by caching for even one minute. Invalidation rules
-	// are simple: Proactively clear it on account creation. Refresh it on
-	// cache miss. Don't worry about staleness since we won't be looking for
-	// an account that's been closed and anyway we'll figure it out pretty
-	// quickly if we try to access it.
-
-	return ListAccountsV1Fresh(svc)
-}
-
-func ListAccountsV1Fresh(svc *organizationsv1.Organizations) (accounts []*AccountV1, err error) {
-	var nextToken *string
-	for {
-		in := &organizationsv1.ListAccountsInput{NextToken: nextToken}
-		out, err := svc.ListAccounts(in)
-		if err != nil {
-			return nil, err
-		}
-		for _, rawAccount := range out.Accounts {
-			tags, err := listTagsForResourceV1(svc, aws.ToString(rawAccount.Id))
-			if err != nil {
-				return nil, err
-			}
-			accounts = append(accounts, &AccountV1{Account: *rawAccount, Tags: tags})
 		}
 		if nextToken = out.NextToken; nextToken == nil {
 			break
@@ -334,31 +272,6 @@ func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId stri
 			NextToken:  nextToken,
 			ResourceId: aws.String(accountId),
 		})
-		if err != nil {
-			return nil, err
-		}
-		for _, tag := range out.Tags {
-			tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
-		}
-		if nextToken = out.NextToken; nextToken == nil {
-			break
-		}
-	}
-	return tags, nil
-}
-
-func listTagsForResourceV1(
-	svc *organizationsv1.Organizations,
-	accountId string,
-) (map[string]string, error) {
-	var nextToken *string
-	tags := make(map[string]string)
-	for {
-		in := &organizationsv1.ListTagsForResourceInput{
-			NextToken:  nextToken,
-			ResourceId: aws.String(accountId),
-		}
-		out, err := svc.ListTagsForResource(in)
 		if err != nil {
 			return nil, err
 		}
