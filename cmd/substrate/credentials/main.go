@@ -32,11 +32,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if *quiet {
 		ui.Quiet()
 	}
-	/*
-		if awssts.CredentialFormatValid(*format) {
-			ui.Fatalf(`-format %q not supported`, *format)
-		}
-	*/
 
 	// Generate the token we'll exchange for AWS credentials.
 	token := randutil.String()

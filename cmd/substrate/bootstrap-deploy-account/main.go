@@ -4,17 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"path/filepath"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
@@ -37,23 +32,24 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	flag.Parse()
 	version.Flag()
 
-	sess, err := awssessions.InSpecialAccount(accounts.Deploy, roles.DeployAdministrator, awssessions.Config{
-		FallbackToRootCredentials: true,
-	})
-	if err != nil {
-		log.Fatal(err)
+	var err error
+	if _, err = cfg.GetCallerIdentity(ctx); err != nil {
+		if _, err = cfg.SetRootCredentials(ctx); err != nil {
+			ui.Fatal(err)
+		}
 	}
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg = awscfg.Must(cfg.AssumeSpecialRole(
+		ctx,
+		accounts.Deploy,
+		roles.DeployAdministrator,
+		time.Hour,
+	))
 	versionutil.PreventDowngrade(ctx, cfg)
 
-	accountId := aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
-	org, err := awsorgs.DescribeOrganizationV1(organizations.New(sess))
+	accountId := aws.ToString(cfg.MustGetCallerIdentity(ctx).Account)
+	org, err := cfg.DescribeOrganization(ctx)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	prefix := naming.Prefix()
 
@@ -70,7 +66,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		file := terraform.NewFile()
 		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		providersFile := terraform.NewFile()
@@ -82,15 +78,15 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			roles.Arn(accountId, roles.DeployAdministrator),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Init(dirname); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if *noApply {
@@ -99,7 +95,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 	}
 	for _, region := range regions.Selected() {
@@ -125,7 +121,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
 					Condition: policies.Condition{"StringEquals": {
-						"aws:PrincipalOrgID": aws.StringValue(org.Id),
+						"aws:PrincipalOrgID": aws.ToString(org.Id),
 					}},
 				},
 				policies.Statement{
@@ -135,7 +131,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
 					Condition: policies.Condition{"StringEquals": {
-						"aws:PrincipalOrgID": aws.StringValue(org.Id),
+						"aws:PrincipalOrgID": aws.ToString(org.Id),
 						"s3:x-amz-acl":       "bucket-owner-full-control",
 					}},
 				},
@@ -158,7 +154,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			ObjectOwnership: terraform.Q(terraform.BucketOwnerPreferred),
 		})
 		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		providersFile := terraform.NewFile()
@@ -166,27 +162,24 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			region,
 			roles.Arn(accountId, roles.DeployAdministrator),
 		))
-		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InManagementAccount(
-			roles.OrganizationReader,
-			awssessions.Config{},
-		))), accounts.Network)
+		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
-			roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
+			roles.Arn(aws.ToString(networkAccount.Id), roles.Auditor),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Init(dirname); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if *noApply {
@@ -195,7 +188,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 	}
 	if *noApply {

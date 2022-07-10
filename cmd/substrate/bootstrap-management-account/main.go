@@ -51,14 +51,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			ui.Fatal(err)
 		}
 	}
-	if cfg, err = cfg.AssumeManagementRole(
+	cfg = awscfg.Must(cfg.AssumeManagementRole(
 		ctx,
 		roles.OrganizationAdministrator,
 		time.Hour,
-	); err != nil {
-		ui.Fatal(err)
-	}
-	cfg = cfg.Regional(region)
+	)).Regional(region)
 	versionutil.PreventDowngrade(ctx, cfg)
 
 	// Ensure this account is (in) an organization.

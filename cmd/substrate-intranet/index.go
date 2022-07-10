@@ -9,10 +9,9 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/lambdautil"
 )
 
@@ -29,12 +28,6 @@ var unlistedPaths = []string{
 
 func indexHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
-	sess, err := awssessions.NewSession(awssessions.Config{})
-	if err != nil {
-		return nil, err
-	}
-	svc := apigateway.New(sess)
-
 	var debug string
 	if _, ok := event.QueryStringParameters["debug"]; ok {
 		b, err := json.MarshalIndent(event, "", "\t")
@@ -44,8 +37,8 @@ func indexHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 		debug += string(b) + "\n" + strings.Join(os.Environ(), "\n") + "\n"
 	}
 
-	out, err := svc.GetResources(&apigateway.GetResourcesInput{
-		Limit:     aws.Int64(500),
+	out, err := cfg.APIGateway().GetResources(ctx, &apigateway.GetResourcesInput{
+		Limit:     aws.Int32(500),
 		RestApiId: aws.String(event.RequestContext.APIID),
 	})
 	if err != nil {
@@ -53,7 +46,7 @@ func indexHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 	}
 	paths := make([]string, 0)
 	for _, item := range out.Items {
-		path := aws.StringValue(item.Path)
+		path := aws.ToString(item.Path)
 		if strings.Contains(path, "{") {
 			continue
 		}

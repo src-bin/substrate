@@ -3,17 +3,14 @@ package createaccount
 import (
 	"context"
 	"flag"
-	"log"
 	"path/filepath"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
@@ -46,23 +43,17 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	if !veqpDoc.Valid(*environment, *quality) {
 		ui.Fatalf(`-environment %q -quality %q is not a valid environment and quality pair in your organization`, *environment, *quality)
 	}
 
-	sess, err := awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{
-		FallbackToRootCredentials: true,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg = awscfg.Must(cfg.AssumeManagementRole(
+		ctx,
+		roles.OrganizationAdministrator,
+		time.Hour,
+	))
 	versionutil.PreventDowngrade(ctx, cfg)
 
 	ui.Spin("finding the account")
@@ -77,7 +68,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			ui.Stop("not found")
 			if !*create {
 				if ok, err := ui.Confirm("create a new AWS account? (yes/no)"); err != nil {
-					log.Fatal(err)
+					ui.Fatal(err)
 				} else if !ok {
 					ui.Fatal("not creating a new AWS account")
 				}
@@ -100,7 +91,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			err = awsorgs.Tag(
 				ctx,
 				cfg,
-				aws.StringValue(account.Id),
+				aws.ToString(account.Id),
 				tags.Tags{tags.SubstrateVersion: version.Version},
 			)
 		}
@@ -114,7 +105,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
-	cfg.Telemetry().FinalAccountId = aws.StringValue(account.Id)
+	cfg.Telemetry().FinalAccountId = aws.ToString(account.Id)
 	cfg.Telemetry().FinalRoleName = roles.Administrator
 
 	admin.EnsureAdminRolesAndPolicies(ctx, cfg, createdAccount)
@@ -122,7 +113,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between all of a domain's accounts.
 	if err := terraform.Scaffold(*domain); err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 
 	if !*autoApprove && !*noApply {
@@ -143,27 +134,27 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Source: terraform.Q("../../../../../modules/", *domain, "/global"),
 		})
 		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
 			region,
-			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+			roles.Arn(aws.ToString(account.Id), roles.Administrator),
 		))
 		providersFile.Add(terraform.UsEast1Provider(
-			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+			roles.Arn(aws.ToString(account.Id), roles.Administrator),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Init(dirname); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if *noApply {
@@ -172,7 +163,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 	}
 	for _, region := range regions.Selected() {
@@ -188,41 +179,38 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Source: terraform.Q("../../../../../modules/", *domain, "/regional"),
 		})
 		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		networkFile := terraform.NewFile()
 		networks.ShareVPC(networkFile, account, *domain, *environment, *quality, region)
 		if err := networkFile.Write(filepath.Join(dirname, "network.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
 			region,
-			roles.Arn(aws.StringValue(account.Id), roles.Administrator),
+			roles.Arn(aws.ToString(account.Id), roles.Administrator),
 		))
-		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InManagementAccount(
-			roles.OrganizationReader,
-			awssessions.Config{},
-		))), accounts.Network)
+		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
-			roles.Arn(aws.StringValue(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
+			roles.Arn(aws.ToString(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if err := terraform.Init(dirname); err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 
 		if *noApply {
@@ -231,7 +219,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			}
 		} else {
 			if err := terraform.Apply(dirname, *autoApprove); err != nil {
-				log.Fatal(err)
+				ui.Fatal(err)
 			}
 		}
 	}

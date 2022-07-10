@@ -58,22 +58,6 @@ func DescribeAccount(ctx context.Context, cfg *awscfg.Config, accountId string) 
 	return &Account{Account: *out.Account, Tags: tags}, nil
 }
 
-func DescribeAccountV1(svc *organizationsv1.Organizations, accountId string) (*AccountV1, error) {
-	in := &organizationsv1.DescribeAccountInput{
-		AccountId: aws.String(accountId),
-	}
-	out, err := svc.DescribeAccount(in)
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", out)
-	tags, err := listTagsForResourceV1(svc, accountId)
-	if err != nil {
-		return nil, err
-	}
-	return &AccountV1{Account: *out.Account, Tags: tags}, nil
-}
-
 func EnsureAccount(
 	ctx context.Context,
 	cfg *awscfg.Config,
@@ -107,29 +91,6 @@ func EnsureSpecialAccount(
 		tags.SubstrateSpecialAccount: name, // TODO get rid of this
 		tags.SubstrateVersion:        version.Version,
 	}, time.Time{})
-}
-
-func FindAccount(
-	svc *organizationsv1.Organizations,
-	domain, environment, quality string,
-) (*AccountV1, error) {
-	return FindAccountByName(svc, NameFor(domain, environment, quality))
-}
-
-func FindAccountsByDomain(
-	svc *organizationsv1.Organizations,
-	domain string,
-) (accounts []*AccountV1, err error) {
-	allAccounts, err := ListAccountsV1(svc)
-	if err != nil {
-		return nil, err
-	}
-	for _, account := range allAccounts {
-		if account.Tags[tags.Domain] == domain {
-			accounts = append(accounts, account)
-		}
-	}
-	return accounts, nil
 }
 
 func FindAccountByName(svc *organizationsv1.Organizations, name string) (*AccountV1, error) {

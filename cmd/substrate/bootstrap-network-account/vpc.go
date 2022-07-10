@@ -3,7 +3,6 @@ package bootstrapnetworkaccount
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/src-bin/substrate/availabilityzones"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/terraform"
@@ -13,7 +12,6 @@ import (
 func vpcAccoutrements(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	sess *session.Session,
 	natGateways bool,
 	region string,
 	org terraform.Organization,

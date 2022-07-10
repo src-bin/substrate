@@ -1,6 +1,7 @@
 package awscfg
 
 import (
+	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -12,6 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
 )
+
+func (c *Config) APIGateway() *apigateway.Client {
+	return apigateway.NewFromConfig(c.cfg) // TODO memoize regionally
+}
 
 func (c *Config) CloudTrail() *cloudtrail.Client {
 	return cloudtrail.NewFromConfig(c.cfg) // TODO memoize regionally

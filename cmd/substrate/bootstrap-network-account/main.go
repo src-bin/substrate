@@ -8,16 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/availabilityzones"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsservicequotas"
-	"github.com/src-bin/substrate/awssessions"
-	"github.com/src-bin/substrate/awssts"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/networks"
@@ -46,29 +41,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	flag.Parse()
 	version.Flag()
 
-	// Start with a v1 session in the admin or management account. Boost
-	// credentials from it into a v2 config so that both can assume roles.
-	sess, err := awssessions.NewSession(awssessions.Config{
-		FallbackToRootCredentials: true,
-	})
-	if err != nil {
-		ui.Fatal(err)
+	var err error
+	if _, err = cfg.GetCallerIdentity(ctx); err != nil {
+		if _, err = cfg.SetRootCredentials(ctx); err != nil {
+			ui.Fatal(err)
+		}
 	}
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		ui.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 	versionutil.PreventDowngrade(ctx, cfg)
 
-	// Now resume v1's original path, assuming the NetworkAdministrator role.
-	sess, err = awssessions.InSpecialAccount(accounts.Network, roles.NetworkAdministrator, awssessions.Config{})
-	if err != nil {
-		ui.Fatal(err)
-	}
-
-	// And follow along with v2, too, but keep the orginal config around so it
-	// can get to the deploy account later.
+	// Assume a role in the network account but keep the orginal config around
+	// so we can get into the deploy account later.
 	networkCfg, err := cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Network,
@@ -200,7 +182,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// (environment, quality) networks.  Networks in the admin environment will
 	// be created in the 192.168.0.0/16 CIDR block managed by adminNetDoc.
 	ui.Printf("configuring networks for every environment and quality in %d regions", len(regions.Selected()))
-	accountId := aws.StringValue(awssts.MustGetCallerIdentity(sts.New(sess)).Account)
+	accountId := aws.ToString(cfg.MustGetCallerIdentity(ctx).Account)
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region := range regions.Selected() {
 			ui.Spinf(
@@ -245,7 +227,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				Tags:      tags,
 			}
 			file.Add(vpc)
-			vpcAccoutrements(ctx, networkCfg, sess, natGateways, region, org, vpc, file)
+			vpcAccoutrements(ctx, networkCfg, natGateways, region, org, vpc, file)
 			if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
 				ui.Fatal(err)
 			}
@@ -345,16 +327,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 			// A provider for the substrate module to use, if for some reason it's
 			// desired in this context.
-			networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InManagementAccount(
-				roles.OrganizationReader,
-				awssessions.Config{},
-			))), accounts.Network)
+			networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
 			if err != nil {
 				ui.Fatal(err)
 			}
 			providersFile.Add(terraform.NetworkProviderFor(
 				region,
-				roles.Arn(aws.StringValue(networkAccount.Id), roles.Auditor),
+				roles.Arn(aws.ToString(networkAccount.Id), roles.Auditor),
 			))
 			if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 				ui.Fatal(err)

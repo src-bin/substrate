@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go/service/organizations"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscfg"
@@ -21,7 +20,6 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
-	"github.com/src-bin/substrate/awssessions"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/federation"
@@ -79,17 +77,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Fatalf(`-quality %q is not a valid quality for an admin account in your organization`, *quality)
 	}
 
-	sess, err := awssessions.InManagementAccount(roles.OrganizationAdministrator, awssessions.Config{
-		FallbackToRootCredentials: true,
-	})
-	if err != nil {
-		ui.Fatal(err)
+	if _, err = cfg.GetCallerIdentity(ctx); err != nil {
+		if _, err = cfg.SetRootCredentials(ctx); err != nil {
+			ui.Fatal(err)
+		}
 	}
-	creds, err := sess.Config.Credentials.Get()
-	if err != nil {
-		ui.Fatal(err)
-	}
-	cfg.SetCredentialsV1(ctx, creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+	cfg = awscfg.Must(cfg.AssumeManagementRole(
+		ctx,
+		roles.OrganizationAdministrator,
+		time.Hour,
+	))
 	versionutil.PreventDowngrade(ctx, cfg)
 
 	// Ensure the account exists.
@@ -440,10 +437,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			region,
 			roles.Arn(aws.ToString(account.Id), roles.Administrator),
 		))
-		networkAccount, err := awsorgs.FindSpecialAccount(organizations.New(awssessions.Must(awssessions.InManagementAccount(
-			roles.OrganizationReader,
-			awssessions.Config{},
-		))), accounts.Network)
+		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
 		if err != nil {
 			ui.Fatal(err)
 		}
