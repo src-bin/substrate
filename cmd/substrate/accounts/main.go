@@ -18,6 +18,7 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
+	autoApprove := flag.Bool("auto-approve", false, `with -format "shell", add the -auto-approve flag to all the generated commands that accept it`)
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
 	number := flag.String("number", "", `with -format "json", account number of the single AWS account to output`)
 	onlyTags := flag.Bool("only-tags", false, `with -format "json" and -number "...", output only the tags on the account`)
@@ -84,12 +85,18 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}, adminAccounts...), serviceAccounts...))
 
 	case cmdutil.SerializationFormatShell:
+		var autoApproveFlag string
+		if *autoApprove {
+			autoApproveFlag = " -auto-approve" // leading space to format pleasingly both ways
+		}
+		fmt.Println("set -e -x")
 		fmt.Println("substrate bootstrap-management-account")
-		fmt.Println("substrate bootstrap-network-account")
-		fmt.Println("substrate bootstrap-deploy-account")
+		fmt.Printf("substrate bootstrap-network-account%s\n", autoApproveFlag)
+		fmt.Printf("substrate bootstrap-deploy-account%s\n", autoApproveFlag)
 		for _, account := range adminAccounts {
 			fmt.Printf(
-				"substrate create-admin-account -quality %q\n",
+				"substrate create-admin-account%s -quality %q\n",
+				autoApproveFlag,
 				account.Tags[tags.Quality],
 			)
 		}
@@ -98,7 +105,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				continue
 			}
 			fmt.Printf(
-				"substrate create-account -domain %q -environment %q -quality %q\n",
+				"substrate create-account%s -domain %q -environment %q -quality %q\n",
+				autoApproveFlag,
 				account.Tags[tags.Domain],
 				account.Tags[tags.Environment],
 				account.Tags[tags.Quality],
