@@ -66,8 +66,8 @@ tarball:
 	mkdir substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/src
 	GOBIN=$(PWD)/substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/opt/bin make install
 	mv substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/opt/bin/substrate substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/bin
-	# TODO src (via `git checkout` perhaps)
-	tar czf substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH).tar.gz substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
+	git archive HEAD | tar -C substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)/src -x
+	tar -c -f substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH).tar.gz -z substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 
 test:
