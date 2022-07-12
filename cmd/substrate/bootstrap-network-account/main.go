@@ -324,13 +324,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 			// A provider for the substrate module to use, if for some reason it's
 			// desired in this context.
-			networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
-			if err != nil {
-				ui.Fatal(err)
-			}
 			providersFile.Add(terraform.NetworkProviderFor(
 				region,
-				roles.Arn(aws.ToString(networkAccount.Id), roles.Auditor),
+				roles.Arn(accountId, roles.Auditor),
 			))
 			if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 				ui.Fatal(err)
