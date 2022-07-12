@@ -3,32 +3,17 @@ data "aws_region" "accepter" {
 }
 
 data "aws_route_table" "accepter-private" {
-  #count     = var.accepter_environment == "admin" ? 0 : length(data.aws_subnets.accepter-private[0].ids)
-  count    = var.accepter_environment == "admin" ? 0 : length(data.aws_subnet_ids.accepter-private[0].ids)
-  provider = aws.accepter
-  #subnet_id = tolist(data.aws_subnets.accepter-private[0].ids)[count.index]
+  count     = var.accepter_environment == "admin" ? 0 : length(data.aws_subnet_ids.accepter-private[0].ids)
+  provider  = aws.accepter
   subnet_id = tolist(data.aws_subnet_ids.accepter-private[0].ids)[count.index]
 }
 
 data "aws_route_table" "requester-private" {
-  #count     = var.requester_environment == "admin" ? 0 : length(data.aws_subnets.requester-private[0].ids)
-  count    = var.requester_environment == "admin" ? 0 : length(data.aws_subnet_ids.requester-private[0].ids)
-  provider = aws.requester
-  #subnet_id = tolist(data.aws_subnets.requester-private[0].ids)[count.index]
+  count     = var.requester_environment == "admin" ? 0 : length(data.aws_subnet_ids.requester-private[0].ids)
+  provider  = aws.requester
   subnet_id = tolist(data.aws_subnet_ids.requester-private[0].ids)[count.index]
 }
 
-# TODO transition from count to for_each and hand-construct a moved block for each resource that shows its routing table change
-# TODO <https://www.terraform.io/language/modules/develop/refactoring>
-# TODO or just apply the changes since no one's using peering for anything production-critical, anyway
-
-/*
-data "aws_subnets" "accepter-private" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.accepter.id]
-  }
-*/
 data "aws_subnet_ids" "accepter-private" {
   count    = var.accepter_environment == "admin" ? 0 : 1
   provider = aws.accepter
@@ -38,13 +23,6 @@ data "aws_subnet_ids" "accepter-private" {
   vpc_id = data.aws_vpc.accepter.id
 }
 
-/*
-data "aws_subnets" "requester-private" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.requester.id]
-  }
-*/
 data "aws_subnet_ids" "requester-private" {
   count    = var.requester_environment == "admin" ? 0 : 1
   provider = aws.requester
@@ -72,7 +50,6 @@ data "aws_vpc" "requester" {
 
 resource "aws_route" "accepter-private" {
   #count                     = length(data.aws_route_table.accepter-private) # better but "Invalid count argument"
-  #count                     = var.accepter_environment == "admin" ? 0 : length(data.aws_subnets.accepter-private[0].ids) # avoids "Invalid count argument"
   count                     = var.accepter_environment == "admin" ? 0 : length(data.aws_subnet_ids.accepter-private[0].ids) # avoids "Invalid count argument"
   destination_cidr_block    = data.aws_vpc.requester.cidr_block
   provider                  = aws.accepter
@@ -89,7 +66,6 @@ resource "aws_route" "accepter-public" {
 
 resource "aws_route" "requester-private" {
   #count                     = length(data.aws_route_table.requester-private) # better but "Invalid count argument"
-  #count                     = var.requester_environment == "admin" ? 0 : length(data.aws_subnets.requester-private[0].ids) # avoids "Invalid count argument"
   count                     = var.requester_environment == "admin" ? 0 : length(data.aws_subnet_ids.requester-private[0].ids) # avoids "Invalid count argument"
   destination_cidr_block    = data.aws_vpc.accepter.cidr_block
   provider                  = aws.requester

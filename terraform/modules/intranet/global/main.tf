@@ -22,7 +22,7 @@ data "aws_iam_policy_document" "credential-factory" {
   }
   statement {
     actions   = ["sts:AssumeRole"]
-    resources = [data.aws_iam_role.admin.arn] # is this too restrictive for custom roles?
+    resources = [data.aws_iam_role.admin.arn]
   }
 }
 
