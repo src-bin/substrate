@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/src-bin/substrate/version"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -130,9 +131,19 @@ func withCaller(args ...interface{}) []interface{} {
 		fatal := fmt.Sprintf("%s:%d", shorten(file), line)
 		_, file, line, ok = runtime.Caller(3)
 		if ok {
-			args = append(args, fmt.Sprintf(" (%s via %s:%d)", fatal, shorten(file), line))
+			args = append(args, fmt.Sprintf(
+				" (%s via %s:%d; Substrate version %s)",
+				fatal,
+				shorten(file),
+				line,
+				version.Version,
+			))
 		} else {
-			args = append(args, fmt.Sprintf(" (%s)", fatal))
+			args = append(args, fmt.Sprintf(
+				" (%s; Substrate version %s)",
+				fatal,
+				version.Version,
+			))
 		}
 	}
 	return args

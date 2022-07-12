@@ -2,9 +2,8 @@ package version
 
 import (
 	"flag"
+	"fmt"
 	"os"
-
-	"github.com/src-bin/substrate/ui"
 )
 
 func Flag() {
@@ -18,7 +17,7 @@ func Flag() {
 }
 
 func Print() {
-	ui.Printf("Substrate version %s", Version)
+	fmt.Fprintf(os.Stderr, "Substrate version %s\n", Version) // ui.Printf would be a dependency cycle
 }
 
 var Version = "1970.01" // replaced at build time with current computed version; see Makefile
