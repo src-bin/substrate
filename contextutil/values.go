@@ -3,7 +3,7 @@ package contextutil
 import "context"
 
 const (
-	Command    = "Comand"
+	Command    = "Command"
 	Subcommand = "Subcommand"
 	Username   = "Username"
 )
