@@ -258,6 +258,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 					Resource: []string{"*"},
 				},
 
+				// Allow everything else, bring it on.
 				policies.Statement{
 					Action:   []string{"*"},
 					Resource: []string{"*"},

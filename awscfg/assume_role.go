@@ -15,6 +15,9 @@ import (
 	"github.com/src-bin/substrate/telemetry"
 )
 
+// AssumeAdminRole assumes the given role in the admin account with the given
+// quality. It should only be called on a *Config with the
+// OrganizationAdministrator role or user in the management account.
 func (c *Config) AssumeAdminRole(
 	ctx context.Context,
 	quality string,
@@ -24,6 +27,10 @@ func (c *Config) AssumeAdminRole(
 	return c.AssumeServiceRole(ctx, naming.Admin, naming.Admin, quality, roleName, duration)
 }
 
+// AssumeManagementRole assumes the given role in the organization's
+// management account. It can only be called on a *Config with the
+// Administrator role in an admin account or one already in the
+// management account.
 func (c *Config) AssumeManagementRole(
 	ctx context.Context,
 	roleName string,
@@ -50,6 +57,10 @@ func (c *Config) AssumeManagementRole(
 	return c.AssumeRole(ctx, mgmtAccountId, roleName, duration)
 }
 
+// AssumeRole assumes the given role in the given account and returns a new
+// *Config there. It can be called on any *Config but is most often (and most
+// effectively) called on one with the Administrator role in an admin account
+// or the OrganizationAdministrator role or user in the management account.
 func (c *Config) AssumeRole(
 	ctx context.Context,
 	accountId string,
@@ -99,6 +110,11 @@ func (c *Config) AssumeRole(
 	return cfg, err
 }
 
+// AssumeServiceRole assumes the given role in the service account identified
+// by the given domain, environment, and quality. It can be called on any
+// *Config but is most often (and most effectively) called on one with the
+// Administrator role in an admin account or the OrganizationAdministrator
+// role or user in the management account.
 func (c *Config) AssumeServiceRole(
 	ctx context.Context,
 	domain, environment, quality string,
@@ -116,6 +132,10 @@ func (c *Config) AssumeServiceRole(
 	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName, duration)
 }
 
+// AssumeSpecialRole assumes the given role in the named special account. It
+// can be called on any *Config but is most often (and most effectively)
+// called on one with the Administrator role in an admin account or the
+// OrganizationAdministrator role or user in the management account.
 func (c *Config) AssumeSpecialRole(
 	ctx context.Context,
 	name string,

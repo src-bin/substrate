@@ -47,6 +47,8 @@ func DescribeAccount(ctx context.Context, cfg *awscfg.Config, accountId string) 
 	return &Account{Account: *out.Account, Tags: tags}, nil
 }
 
+// EnsureAccount creates an AWS account tagged with a domain, environment, and
+// quality. The *Config must be in the management account.
 func EnsureAccount(
 	ctx context.Context,
 	cfg *awscfg.Config,
@@ -69,6 +71,8 @@ func EnsureAccount(
 	)
 }
 
+// EnsureSpecialAccount creates a named AWS account. The *Config must be in the
+// management account.
 func EnsureSpecialAccount(
 	ctx context.Context,
 	cfg *awscfg.Config,
@@ -120,6 +124,7 @@ func NameFor(domain, environment, quality string) string {
 	return fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 }
 
+// Tag tags an AWS account. The *Config must be in the management account.
 func Tag(
 	ctx context.Context,
 	cfg *awscfg.Config,
