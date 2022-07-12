@@ -51,15 +51,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Assume a role in the network account but keep the orginal config around
 	// so we can get into the deploy account later.
-	networkCfg, err := cfg.AssumeSpecialRole(
+	networkCfg := awscfg.Must(cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Network,
 		roles.NetworkAdministrator,
 		time.Hour,
-	)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	))
+	accountId := aws.ToString(networkCfg.MustGetCallerIdentity(ctx).Account)
 
 	// Gather the definitive list of environments and qualities first.
 	environments, err := ui.EditFile(
@@ -182,7 +180,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// (environment, quality) networks.  Networks in the admin environment will
 	// be created in the 192.168.0.0/16 CIDR block managed by adminNetDoc.
 	ui.Printf("configuring networks for every environment and quality in %d regions", len(regions.Selected()))
-	accountId := aws.ToString(cfg.MustGetCallerIdentity(ctx).Account)
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region := range regions.Selected() {
 			ui.Spinf(

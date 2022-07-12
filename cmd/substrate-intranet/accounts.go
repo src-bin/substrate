@@ -77,11 +77,7 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 		}, nil
 	}
 
-	if cfg, err = cfg.AssumeManagementRole(
-		ctx,
-		roles.OrganizationReader,
-		time.Hour,
-	); err != nil {
+	if cfg, err = cfg.OrganizationReader(ctx); err != nil {
 		return lambdautil.ErrorResponse(err)
 	}
 	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
