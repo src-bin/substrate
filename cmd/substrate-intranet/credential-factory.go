@@ -75,7 +75,7 @@ func (v *TagValue) String() string {
 
 func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
-	credentials, err := getCredentials(
+	creds, err := getCredentials(
 		ctx,
 		cfg,
 		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
@@ -84,7 +84,7 @@ func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *ev
 		return lambdautil.ErrorResponse(err)
 	}
 
-	body, err := lambdautil.RenderHTML(credentialFactoryTemplate(), credentials)
+	body, err := lambdautil.RenderHTML(credentialFactoryTemplate(), creds)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 		return nil, err
 	}
 
-	credentials, err := getCredentials(
+	creds, err := getCredentials(
 
 		// Since this API is unauthenticated, at least in the typical way, we
 		// don't have the Username context set in the typical way, either. Fix
@@ -195,7 +195,7 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 		return lambdautil.ErrorResponseJSON(http.StatusInternalServerError, err)
 	}
 
-	body, err := json.MarshalIndent(credentials, "", "\t")
+	body, err := json.MarshalIndent(creds, "", "\t")
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func getCredentials(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	roleName string,
-) (credentials aws.Credentials, err error) {
+) (creds aws.Credentials, err error) {
 	var accessKey *types.AccessKey
 	for i := 0; i < CreateAccessKeyTriesTotal; i++ {
 		accessKey, err = awsiam.CreateAccessKey(ctx, cfg, users.CredentialFactory)
