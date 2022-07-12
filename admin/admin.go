@@ -25,6 +25,8 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
+var printedCustomizeAdministrator, printedCustomizeAuditor bool
+
 func CannedAssumeRolePolicyDocuments(ctx context.Context, cfg *awscfg.Config, bootstrapping bool) (
 	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
 	err error,
@@ -36,7 +38,10 @@ func CannedAssumeRolePolicyDocuments(ctx context.Context, cfg *awscfg.Config, bo
 		ui.Printf("merging substrate.Administrator.assume-role-policy.json into Administrator's assume role policy")
 	} else {
 		if errors.Is(err, fs.ErrNotExist) {
-			ui.Printf("substrate.Administrator.assume-role-policy.json not found; create it if you wish to customize who can assume Administrator roles")
+			if !printedCustomizeAdministrator {
+				ui.Printf("substrate.Administrator.assume-role-policy.json not found; create it if you wish to customize who can assume Administrator roles")
+				printedCustomizeAdministrator = true
+			}
 		} else {
 			ui.Printf("error processing substrate.Administrator.assume-role-policy.json: %v", err)
 		}
@@ -45,7 +50,10 @@ func CannedAssumeRolePolicyDocuments(ctx context.Context, cfg *awscfg.Config, bo
 		ui.Printf("merging substrate.Auditor.assume-role-policy.json into Auditor's assume role policy")
 	} else {
 		if errors.Is(err, fs.ErrNotExist) {
-			ui.Printf("substrate.Auditor.assume-role-policy.json not found; create it if you wish to customize who can assume Auditor roles")
+			if !printedCustomizeAuditor {
+				ui.Printf("substrate.Auditor.assume-role-policy.json not found; create it if you wish to customize who can assume Auditor roles")
+				printedCustomizeAuditor = true
+			}
 		} else {
 			ui.Printf("error processing substrate.Auditor.assume-role-policy.json: %v", err)
 		}
