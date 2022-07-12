@@ -27,6 +27,11 @@ import (
 
 var printedCustomizeAdministrator, printedCustomizeAuditor bool
 
+// CannedAssumeRolePolicyDocuments constructs assume role policies to allow
+// all the admin accounts, the management account, and additional principals
+// configured in substrate.{Administrator,Auditor}.assume-role-policy.json,
+// returning policies for Administrator, Auditor, and other uses. It must
+// be called from the management account.
 func CannedAssumeRolePolicyDocuments(ctx context.Context, cfg *awscfg.Config, bootstrapping bool) (
 	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
 	err error,
@@ -541,6 +546,8 @@ func EnsureCloudWatchCrossAccountSharingRole(
 	return role, nil
 }
 
+// cannedPrincipals constructs and groups all the ARNs necessary to construct
+// assume role policies. It must be called from the management account.
 func cannedPrincipals(ctx context.Context, cfg *awscfg.Config, bootstrapping bool) (
 	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
 	err error,

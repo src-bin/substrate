@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -193,7 +192,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// the Administrator role. Yes, this is a bit of a Catch-22 but it ends up
 	// in a really ergonomic steady state, so we deal with the first run
 	// complexity.
-	if err := ensureAdministrator(ctx, cfg, account, createdAccount, saml); err != nil {
+	if err := ensureAdministrator(ctx, cfg, adminCfg, account, createdAccount, saml); err != nil {
 		ui.Fatal(err)
 	}
 
@@ -205,7 +204,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		creds, err := awscfg.Must(cfg.AssumeRole(
 			ctx,
 			aws.ToString(account.Id),
-			roles.Administrator,
+			roles.Administrator, // this is why we can't reuse adminCfg
 			time.Hour,
 		)).Retrieve(ctx)
 		if err != nil {
@@ -525,7 +524,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Recreate the Administrator and Auditor roles. This is a no-op in steady
 	// state but on the first run its assume role policy is missing some
 	// principals that were just created in the initial Terraform run.
-	if err := ensureAdministrator(ctx, cfg, account, createdAccount, saml); err != nil {
+	if err := ensureAdministrator(ctx, cfg, adminCfg, account, createdAccount, saml); err != nil {
 		ui.Fatal(err)
 	}
 
@@ -549,15 +548,23 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 }
 
-func ensureAdministrator(ctx context.Context, cfg *awscfg.Config, account *awsorgs.Account, createdAccount bool, saml *awsiam.SAMLProvider) error {
+// ensureAdministrator configures the Administrator and Auditor roles in all
+// the AWS accounts. It must be called with a cfg in the management account and
+// an adminCfg in the admin account being managed by this command.
+func ensureAdministrator(
+	ctx context.Context,
+	cfg, adminCfg *awscfg.Config,
+	account *awsorgs.Account,
+	createdAccount bool,
+	saml *awsiam.SAMLProvider,
+) error {
 
 	// Decide whether we're going to include principals created during the
 	// Terraform run in the assume role policy.
 	var bootstrapping bool
-	if _, err := awsiam.GetRole(ctx, cfg, roles.Intranet); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) { // FIXME it's looking in the wrong account
+	if _, err := awsiam.GetRole(ctx, adminCfg, roles.Intranet); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 		bootstrapping = true
 	}
-	log.Printf("bootstrapping: %v", bootstrapping)
 
 	// Give the IdP and EC2 some entrypoints in the account.
 	ui.Spin("finding or creating roles for your IdP and EC2 to assume in this admin account")
@@ -584,12 +591,12 @@ func ensureAdministrator(ctx context.Context, cfg *awscfg.Config, account *awsor
 		)
 	}
 	//log.Printf("%+v", assumeRolePolicyDocument)
-	if _, err := admin.EnsureAdministratorRole(ctx, cfg, assumeRolePolicyDocument); err != nil {
+	if _, err := admin.EnsureAdministratorRole(ctx, adminCfg, assumeRolePolicyDocument); err != nil {
 		return err
 	}
 	assumeRolePolicyDocument.Statement[0] = canned.AuditorRolePrincipals.Statement[0] // this is why it must be at index 0
 	//log.Printf("%+v", assumeRolePolicyDocument)
-	if _, err := admin.EnsureAuditorRole(ctx, cfg, assumeRolePolicyDocument); err != nil {
+	if _, err := admin.EnsureAuditorRole(ctx, adminCfg, assumeRolePolicyDocument); err != nil {
 		return err
 	}
 	ui.Stop("ok")
