@@ -97,6 +97,14 @@ func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account,
 			return nil, err
 		}
 		for _, account := range out.Accounts {
+
+			// Don't return suspended (read: closed, deleted) accounts here as
+			// there's really nothing we can do with them except cause problems
+			// downstream.
+			if account.Status == types.AccountStatusSuspended {
+				continue
+			}
+
 			tags, err := listTagsForResource(ctx, cfg, aws.ToString(account.Id))
 			if err != nil {
 				return nil, err
