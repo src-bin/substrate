@@ -1,14 +1,6 @@
-# Normal releases are monthly and built during that month. However, if I need
-# to demo or support a customer before a month's release is ready, I often
-# checkout the tagged release and rebuild in a detached-head tree; even these
-# builds should respond appropriately to --version. Unfortunately, CodeBuild
-# works from a detached head, too, and I often build before tagging, so that
-# has to work, too, which makes this all look rather pointless even though
-# it's really not.
-VERSION := $(shell git symbolic-ref -q HEAD >/dev/null && date +%Y.%m || git describe --tags HEAD 2>/dev/null || date +%Y.%m)
-
-# Emergency releases are daily.
-#VERSION := $(shell date +%Y.%m.%d)
+# If the commit's tagged, that's the version. If it's not, use an amusing,
+# dotted, second-resolution timestamp as the version.
+VERSION := $(shell git describe --exact-match --tags HEAD 2>/dev/null || date +%Y.%m.%d.%H.%M.%S)
 
 # All release tarballs are annotated with a short commit SHA and a dirty bit for the work tree.
 COMMIT := $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
