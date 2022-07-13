@@ -17,9 +17,17 @@ func Flag() {
 }
 
 func Print() {
-	fmt.Fprintf(os.Stderr, "Substrate version %s\n", Version) // ui.Printf would be a dependency cycle
+	fmt.Fprintf( // ui.Printf would be a dependency cycle
+		os.Stderr,
+		"Substrate version %s-%s\n",
+		Version,
+		Commit,
+	)
 }
 
-var Version = "1970.01" // replaced at build time with current computed version; see Makefile
+var (
+	Commit  = "0000000" // replaced at build time with the short Git commit; see Makefile
+	Version = "1970.01" // replaced at build time with current computed version; see Makefile
+)
 
 var versionFlag = flag.Bool("version", false, "print Substrate version information and exit")
