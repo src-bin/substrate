@@ -40,4 +40,5 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
+	golang.org/x/tools v0.1.11 // indirect
 )
