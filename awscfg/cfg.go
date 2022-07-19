@@ -132,7 +132,6 @@ func (c *Config) MustGetCallerIdentity(ctx context.Context) *sts.GetCallerIdenti
 }
 
 func (c *Config) OrganizationReader(ctx context.Context) (*Config, error) {
-	// TODO return early if we're already OrganizationReader
 	return c.AssumeManagementRole(ctx, roles.OrganizationReader, time.Hour)
 }
 

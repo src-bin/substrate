@@ -3,15 +3,18 @@ package awscfg
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/telemetry"
+	"github.com/src-bin/substrate/users"
 )
 
 // AssumeAdminRole assumes the given role in the admin account with the given
@@ -40,8 +43,26 @@ func (c *Config) AssumeManagementRole(
 	if err != nil {
 		return nil, err
 	}
-	_ = callerIdentity
 	//log.Print(jsonutil.MustString(callerIdentity))
+	a, err := arn.Parse(aws.ToString(callerIdentity.Arn))
+	if err != nil {
+		return nil, err
+	}
+
+	// Return early if we're the OrganizationAdministrator user, which is
+	// equivalent to the OrganizationAdministrator role in every meaningful
+	// way and is guaranteed to exist early enough to be used even during the
+	// very first run of `substrate bootstrap-management-account`.
+	if roleName == roles.OrganizationAdministrator && a.Resource == path.Join("user", users.OrganizationAdministrator) {
+		return c.Copy(), nil
+	}
+
+	// Similarly return early if we're the OrganizationAdministrator user
+	// or role or indeed the OrganizationReader role and all we're trying
+	// to get to is the OrganzationReader role.
+	if roleName == roles.OrganizationReader && (a.Resource == path.Join("user", users.OrganizationAdministrator) || a.Resource == path.Join("role", users.OrganizationAdministrator)) {
+		return c.Copy(), nil
+	}
 
 	org, err := c.DescribeOrganization(ctx)
 	if err != nil {
