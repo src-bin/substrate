@@ -62,6 +62,15 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Spin("finding or creating your organization")
 	org, err := cfg.DescribeOrganization(ctx)
 	if awsutil.ErrorCodeIs(err, awsorgs.AlreadyInOrganizationException) {
+
+		// It seems impossible we'll hit this condition which has existed since
+		// the initial commit but covers an error that doesn't obviously make
+		// sense following DescribeOrganization and isn't documented as a
+		// possible error from DescribeOrganization. The most likely
+		// explanation is that lazy evaluation in the old awssessions package
+		// resulted in an error here.
+		ui.PrintWithCaller(err)
+
 		err = nil // we presume this is the management account, to be proven later
 	}
 	if awsutil.ErrorCodeIs(err, awscfg.AWSOrganizationsNotInUseException) {
