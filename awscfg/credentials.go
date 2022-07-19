@@ -18,11 +18,7 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-const (
-	AWSOrganizationsNotInUseException = "AWSOrganizationsNotInUseException"
-
-	WaitUntilCredentialsWorkTries = 60 // try for one minute (plus request latency)
-)
+const WaitUntilCredentialsWorkTries = 60 // try for one minute (plus request latency)
 
 func (c *Config) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return c.cfg.Credentials.Retrieve(ctx)

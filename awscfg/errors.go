@@ -7,6 +7,11 @@ import (
 	"github.com/src-bin/substrate/naming"
 )
 
+const (
+	AWSOrganizationsNotInUseException = "AWSOrganizationsNotInUseException"
+	AccessDenied                      = "AccessDenied"
+)
+
 type AccountNotFound string
 
 func NewAccountNotFound(tags ...string) error {

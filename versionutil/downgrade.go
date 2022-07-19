@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -53,6 +54,12 @@ func (cmp Comparison) String() string {
 
 func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 	t, err := cfg.Tags(ctx)
+	if awsutil.ErrorCodeIs(err, awscfg.AWSOrganizationsNotInUseException) {
+		return // if we can't even fetch tags, we can't very well claim this is a downgrade
+	}
+	if awsutil.ErrorCodeIs(err, awscfg.AccessDenied) {
+		return // likewise if we can't assume OrganizationReader, it's also too early to claim it's a downgrade
+	}
 	if err != nil {
 		ui.Fatal(err)
 	}
