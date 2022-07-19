@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	AlreadyInOrganizationException    = "AlreadyInOrganizationException"
-	AWSOrganizationsNotInUseException = "AWSOrganizationsNotInUseException"
-	TooManyRequestsException          = "TooManyRequestsException"
+	AlreadyInOrganizationException = "AlreadyInOrganizationException"
+	TooManyRequestsException       = "TooManyRequestsException"
 )
 
 type (

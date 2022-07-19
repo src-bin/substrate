@@ -64,7 +64,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if awsutil.ErrorCodeIs(err, awsorgs.AlreadyInOrganizationException) {
 		err = nil // we presume this is the management account, to be proven later
 	}
-	if awsutil.ErrorCodeIs(err, awsorgs.AWSOrganizationsNotInUseException) {
+	if awsutil.ErrorCodeIs(err, awscfg.AWSOrganizationsNotInUseException) {
 
 		// Create the organization since it doesn't yet exist.
 		org, err = awsorgs.CreateOrganization(ctx, cfg)
