@@ -54,12 +54,12 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 	}
 
 	f := func(ctx context.Context) error {
-		describeOrganization, err := organizations.NewFromConfig(c.cfg).DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
+		describeOrganization, err := c.Organizations().DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
 		if err != nil {
 			return err
 		}
 		c.event.SetEmailDomainName(aws.ToString(describeOrganization.Organization.MasterAccountEmail))
-		getCallerIdentity, err := sts.NewFromConfig(c.cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+		getCallerIdentity, err := c.STS().GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func (c *Config) DescribeOrganization(ctx context.Context) (*Organization, error
 	if c.organization != nil {
 		return c.organization, nil
 	}
-	client := organizations.NewFromConfig(c.cfg)
+	client := c.Organizations()
 	for {
 		out, err := client.DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
 		if awsutil.ErrorCodeIs(err, TooManyRequestsException) {
@@ -107,7 +107,7 @@ func (c *Config) GetCallerIdentity(ctx context.Context) (*sts.GetCallerIdentityO
 	if c.getCallerIdentityOutput != nil {
 		return c.getCallerIdentityOutput, nil
 	}
-	out, err := sts.NewFromConfig(c.cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	out, err := c.STS().GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (c *Config) Telemetry() *telemetry.Event {
 }
 
 func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tags.Tags, error) {
-	client := organizations.NewFromConfig(c.cfg)
+	client := c.Organizations()
 	var nextToken *string
 	tags := make(tags.Tags)
 	for {

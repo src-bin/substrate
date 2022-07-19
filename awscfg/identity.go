@@ -23,7 +23,7 @@ func (c *Config) Identity(ctx context.Context) (*Identity, error) {
 		return nil, err
 	}
 	/*
-		a, err := organizations.NewFromConfig(cfg.cfg).DescribeAccount(
+		a, err := cfg.Organizations().DescribeAccount(
 			ctx,
 			&organizations.DescribeAccountInput{
 				AccountId: callerIdentity.Account,

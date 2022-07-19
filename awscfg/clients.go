@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 func (c *Config) APIGateway() *apigateway.Client {
@@ -48,6 +49,10 @@ func (c *Config) Route53() *route53.Client {
 
 func (c *Config) S3() *s3.Client {
 	return s3.NewFromConfig(c.cfg) // TODO memoize regionally
+}
+
+func (c *Config) STS() *sts.Client {
+	return sts.NewFromConfig(c.cfg) // TODO memoize
 }
 
 func (c *Config) SecretsManager() *secretsmanager.Client {

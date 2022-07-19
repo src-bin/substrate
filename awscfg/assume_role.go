@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
@@ -95,7 +94,7 @@ func (c *Config) AssumeRole(
 	}
 
 	cfg.cfg.Credentials = aws.NewCredentialsCache(stscreds.NewAssumeRoleProvider(
-		sts.NewFromConfig(c.cfg),
+		c.STS(),
 		roles.Arn(accountId, roleName),
 		func(options *stscreds.AssumeRoleOptions) {
 			options.Duration = duration
