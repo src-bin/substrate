@@ -352,12 +352,14 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 			}
 		}
 		if err == nil {
+
 			if _, err := EnsureAdministratorRole(ctx, serviceCfg, canned.AdminRolePrincipals); err != nil {
 				ui.Fatal(err)
 			}
 			if _, err := EnsureAuditorRole(ctx, serviceCfg, canned.AuditorRolePrincipals); err != nil {
 				ui.Fatal(err)
 			}
+
 		} else {
 			ui.Printf(
 				"could not assume OrganizationAccountAccessRole or Administrator in account %s; not able to manage the Administrator or Auditor roles there; create Administrator per <https://src-bin.com/substrate/manual/getting-started/integrating-your-original-aws-account/> to resolve this warning",
@@ -379,19 +381,22 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 			if aws.ToString(account.Id) == aws.ToString(org.MasterAccountId) {
 				accountCfg = cfg
 			} else {
-				accountCfg = awscfg.Must(cfg.AssumeRole(
+				if accountCfg, err = cfg.AssumeRole(
 					ctx,
 					aws.ToString(account.Id),
 					roles.OrganizationAccountAccessRole,
 					time.Hour,
-				))
+				); err != nil {
+					ui.Printf(
+						"could not create the CloudWatch-CrossAccountSharingRole role in account %s; it might be because this account has only half-joined the organization",
+						account.Id,
+					)
+					// TODO need to try Administrator here, too, which either means factoring out the for-loop a bit above or factoring the bit below here into the big block above
+				}
 			}
 
 			if _, err := EnsureCloudWatchCrossAccountSharingRole(ctx, accountCfg, canned.OrgAccountPrincipals); err != nil {
-				ui.Printf(
-					"could not create the CloudWatch-CrossAccountSharingRole role in account %s; it might be because this account has only half-joined the organization",
-					account.Id,
-				)
+				ui.Fatal(err)
 			}
 
 			if account.Tags[tags.Domain] == "admin" {
