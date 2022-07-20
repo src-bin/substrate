@@ -337,7 +337,10 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		// in as Administrator, to cover accounts invited into the organization
 		// that follow the Substrate manual.
 		var serviceCfg *awscfg.Config
-		for _, roleName := range []string{roles.OrganizationAccountAccessRole} {
+		for _, roleName := range []string{
+			roles.OrganizationAccountAccessRole,
+			roles.Administrator,
+		} {
 			serviceCfg, err = cfg.AssumeRole(
 				ctx,
 				aws.ToString(account.Id),
