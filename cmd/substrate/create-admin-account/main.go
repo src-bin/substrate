@@ -94,7 +94,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	createdAccount := false
 	{
 		account, err = cfg.FindAdminAccount(ctx, *quality)
-		if _, ok := err.(awsorgs.AccountNotFound); ok {
+		if err != nil {
+			ui.Fatal(err)
+		}
+		if account == nil {
 			ui.Stop("not found")
 			if !*create {
 				if ok, err := ui.Confirmf("create a new %s-quality admin account? (yes/no)", *quality); err != nil {
