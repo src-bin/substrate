@@ -38,7 +38,7 @@ phases:
       - make release
       - git describe --exact-match --tags "HEAD"
     finally:
-      - go run "tools/slack-codebuild/main.go"
+      - go run "tools/slack-codebuild/main.go" "pre_build"
       - sh "tools/tweet-codebuild.sh"
 artifacts:
   files:

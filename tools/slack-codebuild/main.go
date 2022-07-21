@@ -26,6 +26,16 @@ func main() {
 		return
 	}
 
+	// If it's succeeding but it's still early, sit tight. Yes, "pre_build" is
+	// our last build step, because it's simplest to keep things linear and the
+	// "pre_build" phase will skip uploading assets when it fails, which is how
+	// we get our only-actually-release-tagged-builds behavior.
+	if os.Args[1] != "pre_build" {
+		return
+	}
+
+	// But if the build's succeeding and this is the end, announce it.
+
 	// Send the release announcement to be shared with customers.
 	out, err := exec.Command("make", "release-filenames").Output()
 	if err != nil {
