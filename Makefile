@@ -37,10 +37,10 @@ ifndef CODEBUILD_BUILD_ID
 	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
 	@false
 endif
-	GOARCH=amd64 GOOS=linux make tarball
-	GOARCH=arm64 GOOS=linux make tarball
-	GOARCH=amd64 GOOS=darwin make tarball
-	GOARCH=arm64 GOOS=darwin make tarball
+	make tarball GOARCH=amd64 GOOS=linux
+	make tarball GOARCH=arm64 GOOS=linux
+	make tarball GOARCH=amd64 GOOS=darwin
+	make tarball GOARCH=arm64 GOOS=darwin
 
 release-filenames: # for src-bin.com to grab on
 	@echo substrate-$(VERSION)-$(COMMIT)-linux-amd64.tar.gz
