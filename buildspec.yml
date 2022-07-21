@@ -35,14 +35,10 @@ phases:
       - make
       - git diff --exit-code
       - make test
-    finally:
-      - go run "tools/slack-codebuild/main.go" "pre_build"
-  build:
-    commands:
       - make release
       - git describe --exact-match --tags "HEAD"
     finally:
-      - go run "tools/slack-codebuild/main.go" "build"
+      - go run "tools/slack-codebuild/main.go"
       - sh "tools/tweet-codebuild.sh"
 artifacts:
   files:

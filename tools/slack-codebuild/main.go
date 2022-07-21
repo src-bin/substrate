@@ -26,13 +26,6 @@ func main() {
 		return
 	}
 
-	// If it's succeeding but it's still early, sit tight.
-	if os.Args[1] != "build" {
-		return
-	}
-
-	// But if the build's succeeding and this is the end, announce it.
-
 	// Send the release announcement to be shared with customers.
 	out, err := exec.Command("make", "release-filenames").Output()
 	if err != nil {
