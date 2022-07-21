@@ -391,7 +391,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 						"could not create the CloudWatch-CrossAccountSharingRole role in account %s; it might be because this account has only half-joined the organization",
 						account.Id,
 					)
-					// TODO need to try Administrator here, too, which either means factoring out the for-loop a bit above or factoring the bit below here into the big block above
+					continue // TODO need to try Administrator here, too, which either means factoring out the for-loop a bit above or factoring the bit below here into the big block above
 				}
 			}
 
