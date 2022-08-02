@@ -80,7 +80,7 @@ func shellCompletion() {
 			shellCompletionMatches([]string{"json", "shell"}, word)
 			return
 		}
-		options = append(options, "-auto-approve", "-format", "-number", "-only-tags")
+		options = append(options, "-auto-approve", "-format", "-no-apply", "-number", "-only-tags")
 	case "assume-role":
 		// TODO autocomplete for domains
 		if previousWord == "-environment" {
