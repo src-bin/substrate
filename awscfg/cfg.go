@@ -185,7 +185,8 @@ func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tag
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
 	options := []func(*config.LoadOptions) error{
-		config.WithRetryMaxAttempts(10),
+		//config.WithClientLogMode(aws.LogRequestWithBody | aws.LogResponseWithBody | aws.LogRetries),
+		config.WithRetryMaxAttempts(10), // 0 to debug whether retries are causing timeouts
 		config.WithSharedConfigFiles(nil),
 		config.WithSharedConfigProfile(""),
 		config.WithSharedCredentialsFiles(nil),
