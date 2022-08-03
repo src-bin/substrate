@@ -94,19 +94,24 @@ func (c *Config) AssumeRole(
 
 	// TODO return early if we're already roleName in accountId
 
-	safeSubcommand, _, _ := strings.Cut(
-		strings.TrimPrefix(
-			contextutil.ValueString(ctx, telemetry.Subcommand),
+	roleSessionName := contextutil.ValueString(ctx, telemetry.Username)
+	if roleSessionName == "" {
+		safeSubcommand, _, _ := strings.Cut(
+			strings.TrimPrefix(
+				contextutil.ValueString(ctx, telemetry.Subcommand),
+				"/",
+			),
 			"/",
-		),
-		"/",
-	)
-	roleSessionName := fmt.Sprintf(
-		"%s-%s,%s",
-		contextutil.ValueString(ctx, telemetry.Command),
-		safeSubcommand,
-		contextutil.ValueString(ctx, telemetry.Username),
-	)
+		)
+		roleSessionName = fmt.Sprintf(
+			"%s-%s",
+			contextutil.ValueString(ctx, telemetry.Command),
+			safeSubcommand,
+		)
+	}
+	if len(roleSessionName) > 64 {
+		roleSessionName = roleSessionName[:64]
+	}
 
 	cfg := &Config{
 		cfg:               c.cfg.Copy(),
