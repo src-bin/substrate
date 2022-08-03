@@ -56,8 +56,15 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Spin requesting /credentials/fetch?token=... until it responds 200 OK.
 	ui.Spin("fetching credentials")
 	u.Path = "/credential-factory/fetch"
+	ch := time.After(time.Hour)
 	var credentials *aws.Credentials
 	for range time.Tick(time.Second) {
+		select {
+		case <-ch:
+			ui.Stop("timed out")
+			return
+		default:
+		}
 		var err error
 		credentials, err = fetch(u)
 		if err != nil {
