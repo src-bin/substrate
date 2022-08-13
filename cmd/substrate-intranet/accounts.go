@@ -32,6 +32,8 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 	roleName := event.QueryStringParameters["role"]
 	if accountId != "" && roleName != "" {
 
+		// TODO bounce through a URL like <https://signin.aws.amazon.com/oauth?Action=logout&redirect_uri=https://aws.amazon.com> to make it logout of any other session it's got first
+
 		// We have to start from the user's configured starting point so that
 		// all questions of authorization are deferred to AWS.
 		cfg, err = cfg.AssumeRole(
