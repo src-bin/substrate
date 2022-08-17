@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -46,8 +47,9 @@ type Event struct {
 	InitialRoleName, FinalRoleName   string // "Administrator", "Auditor", or "Other" (avoid disclosing custom role names)
 	IsEC2                            bool
 	Format                           string        `json:",omitempty"` // -format, if applicable
-	post                             int32         // `json:"-"` for compare-and-swap
-	wait                             chan struct{} // `json:"-"`
+	once                             sync.Once     `json:"-"`
+	post                             int32         `json:"-"` // for compare-and-swap
+	wait                             chan struct{} `json:"-"`
 }
 
 func NewEvent(ctx context.Context) (*Event, error) {
@@ -81,15 +83,22 @@ func (e *Event) Post(ctx context.Context) error {
 	if e == nil || Endpoint == "" {
 		return nil
 	}
+
+	// Return early if we've already started to Post elsewhere.
 	if !atomic.CompareAndSwapInt32(&e.post, 0, 1) {
 		return nil
 	}
+
+	// Return early if we've already Wait-ed elsewhere.
 	select {
 	case <-e.wait:
 		return nil
 	default:
 	}
-	defer close(e.wait)
+	defer func() {
+		//defer func() { recover() }() // allow closing e.wait multiple times
+		e.once.Do(func() { close(e.wait) })
+	}()
 
 	pathname, err := fileutil.PathnameInParents(Filename)
 	if err != nil {
