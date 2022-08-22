@@ -19,7 +19,6 @@ import (
 
 // TODO revamp accounts.html to bounce login requests through the logout page per <https://src-bin.slack.com/archives/C015H14T9UY/p1645052508548779>
 //go:generate go run ../../tools/template/main.go -name accountsTemplate -package main accounts.html
-//go:generate go run ../../tools/template/main.go -name consoleSigninTemplate -package main console-signin.html
 
 func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
@@ -32,6 +31,8 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 	accountId := event.QueryStringParameters["number"]
 	roleName := event.QueryStringParameters["role"]
 	if accountId != "" && roleName != "" {
+
+		// TODO bounce through a URL like <https://signin.aws.amazon.com/oauth?Action=logout&redirect_uri=https://aws.amazon.com> to make it logout of any other session it's got first
 
 		// We have to start from the user's configured starting point so that
 		// all questions of authorization are deferred to AWS.
@@ -68,21 +69,13 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 			return lambdautil.ErrorResponse(err)
 		}
 
-		body, err := lambdautil.RenderHTML(consoleSigninTemplate(), struct {
-			ConsoleSigninURL string
-		}{
-			consoleSigninURL,
-		})
-		if err != nil {
-			return nil, err
-		}
 		return &events.APIGatewayProxyResponse{
 			Body: fmt.Sprintf("redirecting to %s", consoleSigninURL),
 			Headers: map[string]string{
-				"Content-Type": "text/html",
-				// "Location":     consoleSigninURL, // handled in the HTML
+				"Content-Type": "text/plain",
+				"Location":     consoleSigninURL,
 			},
-			StatusCode: http.StatusOK,
+			StatusCode: http.StatusFound,
 		}, nil
 	}
 
