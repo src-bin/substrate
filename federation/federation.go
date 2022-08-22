@@ -16,6 +16,8 @@ import (
 // ConsoleSigninURL exchanges a set of STS credentials for a signin token that
 // grants the opener access to the AWS Console per the algorithm outlined in
 // <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-custom-url.html>.
+// The event parameter may be nil, in which case we attempt to learn the
+// issuing URL by reading substrate.intranet-dns-domain-name from disk.
 func ConsoleSigninURL(
 	credentials aws.Credentials,
 	destination string,
@@ -71,6 +73,18 @@ func ConsoleSigninURL(
 		"Issuer":      []string{issuer},
 		"SigninToken": []string{body.SigninToken},
 	}.Encode()
+
+	// Step 4: Bounce through a URL like <https://signin.aws.amazon.com/oauth?Action=logout&redirect_uri=https://aws.amazon.com>
+	// to logout of any existing session before logging in, which AWS won't do
+	// automatically and which is really annoying to make users do manually.
+	/*
+		redirectURI := u.String()
+		u.Path = "/oauth"
+		u.RawQuery = url.Values{
+			"Action":       []string{"logout"},
+			"redirect_uri": []string{redirectURI},
+		}.Encode()
+	*/
 
 	return u.String(), nil
 }
