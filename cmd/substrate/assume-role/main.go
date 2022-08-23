@@ -81,13 +81,32 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		ui.Fatal(err)
 	}
+	duration := time.Hour
+
+	// Do the dance to get 12-hour credentials in the current role so that we
+	// can get 12-hour credentials for the final role, too.
+	// TODO this might not actually be possible, depending on the current role
+	// TODO maybe make it optional or only with -console, SLOOOOW
+	// TODO THE REASON THIS DOESN'T WORK is that it bundles a janky same-account-only AssumeRole; we need to pass it accountId, too, and have it replace the call below
+	/*
+		ui.Spin("minting temporary credentials that last 12 hours")
+		creds, err := awsiam.AllDayCredentials(ctx, cfg, currentRoleName)
+		if err != nil {
+			ui.Fatal(err)
+		}
+		if _, err := cfg.SetCredentials(ctx, creds); err != nil {
+			ui.Fatal(err)
+		}
+		duration = 11 * time.Hour // XXX 12; 11 is a test
+		ui.Stop("ok")
+		ci, err := cfg.GetCallerIdentity(ctx)
+	*/
 
 	if *number != "" {
-		//accountId = *number // FIXME
 		if *roleName == "" {
 			ui.Fatal(`-role "..." is required with -number "..."`)
 		}
-		cfg, err = cfg.AssumeRole(ctx, *number, *roleName, time.Hour)
+		cfg, err = cfg.AssumeRole(ctx, *number, *roleName, duration)
 	} else if *management {
 		if *roleName == "" {
 			if currentRoleName == roles.Auditor {
@@ -96,7 +115,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(roles.OrganizationAdministrator)
 			}
 		}
-		cfg, err = cfg.AssumeManagementRole(ctx, *roleName, time.Hour)
+		cfg, err = cfg.AssumeManagementRole(ctx, *roleName, duration)
 	} else if *special != "" {
 		if *roleName == "" {
 			if *special == "audit" || currentRoleName == roles.Auditor {
@@ -105,7 +124,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(fmt.Sprintf("%s%s", strings.Title(*special), roles.Administrator))
 			}
 		}
-		cfg, err = cfg.AssumeSpecialRole(ctx, *special, *roleName, time.Hour)
+		cfg, err = cfg.AssumeSpecialRole(ctx, *special, *roleName, duration)
 	} else {
 		if *roleName == "" {
 			if currentRoleName == roles.OrganizationAdministrator {
@@ -114,7 +133,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				roleName = aws.String(currentRoleName)
 			}
 		}
-		cfg, err = cfg.AssumeServiceRole(ctx, *domain, *environment, *quality, *roleName, time.Hour)
+		cfg, err = cfg.AssumeServiceRole(ctx, *domain, *environment, *quality, *roleName, duration)
 	}
 	if err != nil {
 		ui.Fatal(err)
@@ -122,19 +141,19 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
-	credentials, err := cfg.Retrieve(ctx)
+	creds, err := cfg.Retrieve(ctx)
 	if err != nil {
 		ui.Fatal(err)
 	}
 
 	if *console {
 		consoleSigninURL, err := federation.ConsoleSigninURL(
-			credentials,
+			creds,
 			"", // destination (empty means the AWS Console homepage)
 			nil,
 		)
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 		ui.OpenURL(consoleSigninURL)
 		return
@@ -144,13 +163,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
 	// other environment variables in case they're relevant to the command.
 	if args := flag.Args(); len(args) > 0 {
-		if err := os.Setenv("AWS_ACCESS_KEY_ID", credentials.AccessKeyID); err != nil {
+		if err := os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID); err != nil {
 			log.Fatal(err)
 		}
-		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", credentials.SecretAccessKey); err != nil {
+		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey); err != nil {
 			log.Fatal(err)
 		}
-		if err := os.Setenv("AWS_SESSION_TOKEN", credentials.SessionToken); err != nil {
+		if err := os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken); err != nil {
 			log.Fatal(err)
 		}
 
@@ -182,6 +201,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 
 	// Print the credentials for the user to copy into their environment.
-	awsutil.PrintCredentials(format, credentials)
+	awsutil.PrintCredentials(format, creds)
 
 }
