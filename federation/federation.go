@@ -3,6 +3,7 @@ package federation
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -43,7 +44,7 @@ func ConsoleSigninURL(
 				credentials.SecretAccessKey,
 				credentials.SessionToken,
 			})},
-			// "SessionDuration": []string{"600"}, // it breaks if this is uncommented, with seemingly any value
+			// "SessionDuration": []string{"3599"}, // minimum 900, maximum is however long than you have left in the role you've assumed
 		}.Encode(),
 	}
 	resp, err := http.Get(u.String())
@@ -51,8 +52,10 @@ func ConsoleSigninURL(
 		return "", err
 	}
 	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
 	var body struct{ SigninToken string }
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+	if err := json.Unmarshal(b, &body); err != nil {
+		//log.Print(string(b)) // it'll be a bunch of HTML with a generic error
 		return "", err
 	}
 
