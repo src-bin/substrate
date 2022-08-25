@@ -19,6 +19,8 @@ import (
 //go:generate go run ../../tools/template/main.go -name credentialFactoryAuthorizeTemplate -package main credential-factory-authorize.html
 //go:generate go run ../../tools/template/main.go -name credentialFactoryTemplate -package main credential-factory.html
 
+// TODO use session policies <https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/credentials/stscreds#AssumeRoleOptions> to constrain where these credentials can go by e.g. lists of domains, environments, and/or qualities they're allowed to assume roles into (though we also need to account for Instance Factory instances)
+
 const (
 	MinTokenLength = 40
 

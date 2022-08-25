@@ -1,8 +1,6 @@
 package naming
 
 import (
-	"log"
-
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
 )
@@ -30,7 +28,7 @@ func Prefix() string {
 		"what prefix do you want to use for global names like S3 buckets? (Substrate recommends your company name, all lower case)",
 	)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	if !printedPrefix {
 		ui.Printf("using prefix %s", prefix)

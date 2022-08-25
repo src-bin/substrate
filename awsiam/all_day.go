@@ -64,7 +64,7 @@ func AllDayCredentials(
 	}
 	cfg12h, err = cfg12h.AssumeRole(
 		ctx,
-		aws.ToString(callerIdentity.Account),
+		aws.ToString(callerIdentity.Account), // TODO this AssumeRole and, in particular, this hardcoded accountId, make it hard to reuse AllDayCredentials in other contexts; consider removing this AssumeRole and having AllDayCredentials return cfg12h for callers to then use to call AssumeRole themselves; this will make it useful for `substrate assume-role -console`, /accounts, etc. just as much as /credential-factory
 		roleName,
 		12*time.Hour,
 	)

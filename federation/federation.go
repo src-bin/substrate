@@ -72,7 +72,7 @@ func ConsoleSigninURL(
 	}
 	u.RawQuery = url.Values{
 		"Action":      []string{"login"},
-		"Destination": []string{destination},
+		"Destination": []string{destination}, // must be on aws.amazon.com or console.aws.amazon.com (signin.aws.amazon.com, in particular, isn't acceptable so no logout via login)
 		"Issuer":      []string{issuer},
 		"SigninToken": []string{body.SigninToken},
 	}.Encode()
