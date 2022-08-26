@@ -463,28 +463,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			err = terraform.Plan(dirname)
 		} else {
 			err = terraform.Apply(dirname, *autoApprove)
-			/*
-			   TODO
-			   ╷
-			   │ Error: Error creating Security Group: InvalidVpcID.NotFound: The vpc ID 'vpc-07d00424f077dfefb' does not exist
-			   │ 	status code: 400, request id: 698779f3-d824-4fe9-bf92-8630201d8135
-			   │
-			   │   with module.intranet.aws_security_group.instance-factory,
-			   │   on ../../../../modules/intranet/regional/main.tf line 414, in resource "aws_security_group" "instance-factory":
-			   │  414: resource "aws_security_group" "instance-factory" {
-			   │
-			   ╵
-			   ╷
-			   │ Error: Error creating Security Group: InvalidVpcID.NotFound: The vpc ID 'vpc-07d00424f077dfefb' does not exist
-			   │ 	status code: 400, request id: 759bee77-0936-4fd4-be8e-9843632507e0
-			   │
-			   │   with module.intranet.aws_security_group.substrate-instance-factory,
-			   │   on ../../../../modules/intranet/regional/main.tf line 425, in resource "aws_security_group" "substrate-instance-factory":
-			   │  425: resource "aws_security_group" "substrate-instance-factory" { // remove in 2022.05 with release notes about failure if Instance Factory instances have existed for more than six months
-			   │
-			   ╵
-			   main.go:443: exit status 1
-			*/
 		}
 		if err != nil {
 			ui.Fatal(err)
