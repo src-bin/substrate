@@ -26,6 +26,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate accounts [-format <format>] [-number <number>] [-only-tags]")
+		ui.Print("Usage: substrate accounts -format shell [-auto-approve|-no-apply]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
