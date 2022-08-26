@@ -153,6 +153,8 @@ func shellCompletion() {
 			return
 		}
 		options = append(options, "-format", "-quiet")
+	case "upgrade":
+		options = append(options, "-no", "-yes")
 	case "whoami":
 		if previousWord == "-format" {
 			shellCompletionMatches([]string{"env", "export", "json"}, word)
