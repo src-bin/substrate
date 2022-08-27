@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"sort"
 	"time"
 
@@ -100,7 +99,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		true, // can always be true because we never jump from Intranet to Administrator in other accounts
 	)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 
 	// Admin accounts, once they exist, are going to need to be able to assume
@@ -121,7 +120,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		},
 	)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
@@ -173,7 +172,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 			},
 		)
 		if err != nil {
-			log.Fatal(err)
+			ui.Fatal(err)
 		}
 		ui.Stopf("role %s", role.Name)
 		//log.Printf("%+v", role)
