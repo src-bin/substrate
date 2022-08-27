@@ -18,29 +18,29 @@
 <tr>
     <td>management</td>
     <td>{{.ManagementAccount.Id}}</td>
-    <td>{{if eq $roleName "Administrator"}}<a href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationAdministrator" target="_blank">OrganizationAdministrator</a>{{else}}&nbsp;{{end}}</td>
-    <td><a href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationReader" target="_blank">OrganizationReader</a></td>
+    <td>{{if eq $roleName "Administrator"}}<a class="aws-console" href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationAdministrator" target="aws-console-{{.ManagementAccount.Id}}">OrganizationAdministrator</a>{{else}}&nbsp;{{end}}</td>
+    <td><a class="aws-console" href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationReader" target="aws-console-{{.ManagementAccount.Id}}">OrganizationReader</a></td>
     <td>{{.ManagementAccount.Email}}</td>
 </tr>
 <tr>
     <td>{{.AuditAccount.Name}}</td>
     <td>{{.AuditAccount.Id}}</td>
     <td>&nbsp;</td>
-    <td><a href="accounts?number={{.AuditAccount.Id}}&role=Auditor" target="_blank">Auditor</a></td>
+    <td><a class="aws-console" href="accounts?number={{.AuditAccount.Id}}&role=Auditor" target="aws-console-{{.AuditAccount.Id}}">Auditor</a></td>
     <td>{{.AuditAccount.Email}}</td>
 </tr>
 <tr>
     <td>{{.DeployAccount.Name}}</td>
     <td>{{.DeployAccount.Id}}</td>
-    <td>{{if eq $roleName "Administrator"}}<a href="accounts?number={{.DeployAccount.Id}}&role=DeployAdministrator" target="_blank">DeployAdministrator</a>{{else}}&nbsp;{{end}}</td>
-    <td><a href="accounts?number={{.DeployAccount.Id}}&role=Auditor" target="_blank">Auditor</a></td>
+    <td>{{if eq $roleName "Administrator"}}<a class="aws-console" href="accounts?number={{.DeployAccount.Id}}&role=DeployAdministrator" target="aws-console-{{.DeployAccount.Id}}">DeployAdministrator</a>{{else}}&nbsp;{{end}}</td>
+    <td><a class="aws-console" href="accounts?number={{.DeployAccount.Id}}&role=Auditor" target="aws-console-{{.DeployAccount.Id}}">Auditor</a></td>
     <td>{{.DeployAccount.Email}}</td>
 </tr>
 <tr>
     <td>{{.NetworkAccount.Name}}</td>
     <td>{{.NetworkAccount.Id}}</td>
-    <td>{{if eq $roleName "Administrator"}}<a href="accounts?number={{.NetworkAccount.Id}}&role=NetworkAdministrator" target="_blank">NetworkAdministrator</a>{{else}}&nbsp;{{end}}</td>
-    <td><a href="accounts?number={{.NetworkAccount.Id}}&role=Auditor" target="_blank">Auditor</a></td>
+    <td>{{if eq $roleName "Administrator"}}<a class="aws-console" href="accounts?number={{.NetworkAccount.Id}}&role=NetworkAdministrator" target="aws-console-{{.NetworkAccount.Id}}">NetworkAdministrator</a>{{else}}&nbsp;{{end}}</td>
+    <td><a class="aws-console" href="accounts?number={{.NetworkAccount.Id}}&role=Auditor" target="aws-console-{{.NetworkAccount.Id}}">Auditor</a></td>
     <td>{{.NetworkAccount.Email}}</td>
 </tr>
 </table>
@@ -60,8 +60,8 @@
     <td>{{.Tags.Environment}}</td>
     <td>{{.Tags.Quality}}</td>
     <td>{{.Id}}</td>
-    <td><a href="accounts?number={{.Id}}&role={{$roleName}}" target="_blank">{{$roleName}}</a></td>
-    <td><a href="accounts?number={{.Id}}&role=Auditor" target="_blank">Auditor</a></td>
+    <td><a class="aws-console" href="accounts?number={{.Id}}&role={{$roleName}}" target="aws-console-{{.Id}}">{{$roleName}}</a></td>
+    <td><a class="aws-console" href="accounts?number={{.Id}}&role=Auditor" target="aws-console-{{.Id}}">Auditor</a></td>
     <td>{{.Email}}</td>
 </tr>
 {{- end}}
@@ -78,11 +78,12 @@
 <tr>
     <td>{{.Tags.Quality}}</td>
     <td>{{.Id}}</td>
-    <td><a href="accounts?number={{.Id}}&role={{$roleName}}" target="_blank">{{$roleName}}</a></td>
-    <td><a href="accounts?number={{.Id}}&role=Auditor" target="_blank">Auditor</a></td>
+    <td><a class="aws-console" href="accounts?number={{.Id}}&role={{$roleName}}" target="aws-console-{{.Id}}">{{$roleName}}</a></td>
+    <td><a class="aws-console" href="accounts?number={{.Id}}&role=Auditor" target="aws-console-{{.Id}}">Auditor</a></td>
     <td>{{.Email}}</td>
 </tr>
 {{- end}}
 </table>
+<script src="/js/accounts.js"></script>
 </body>
 </html>

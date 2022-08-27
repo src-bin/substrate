@@ -203,6 +203,17 @@ resource "aws_api_gateway_integration" "GET-login" {
   uri                     = module.intranet.invoke_arn
 }
 
+resource "aws_api_gateway_integration" "GET-js-accounts" {
+  credentials             = data.aws_iam_role.apigateway.arn
+  http_method             = aws_api_gateway_method.GET-js-accounts.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.js-accounts.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.intranet.invoke_arn
+}
+
 resource "aws_api_gateway_integration" "POST-instance-factory" {
   credentials             = data.aws_iam_role.apigateway.arn
   http_method             = aws_api_gateway_method.POST-instance-factory.http_method
@@ -279,6 +290,14 @@ resource "aws_api_gateway_method" "GET-login" {
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
 }
 
+resource "aws_api_gateway_method" "GET-js-accounts" {
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
+  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.js-accounts.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
 resource "aws_api_gateway_method" "POST-instance-factory" {
   authorization = "CUSTOM"
   authorizer_id = aws_api_gateway_authorizer.substrate.id
@@ -332,6 +351,18 @@ resource "aws_api_gateway_resource" "credential-factory-fetch" {
 resource "aws_api_gateway_resource" "instance-factory" {
   parent_id   = aws_api_gateway_rest_api.intranet.root_resource_id
   path_part   = "instance-factory"
+  rest_api_id = aws_api_gateway_rest_api.intranet.id
+}
+
+resource "aws_api_gateway_resource" "js" {
+  parent_id   = aws_api_gateway_rest_api.intranet.root_resource_id
+  path_part   = "js"
+  rest_api_id = aws_api_gateway_rest_api.intranet.id
+}
+
+resource "aws_api_gateway_resource" "js-accounts" {
+  parent_id   = aws_api_gateway_resource.js.id
+  path_part   = "accounts.js"
   rest_api_id = aws_api_gateway_rest_api.intranet.id
 }
 

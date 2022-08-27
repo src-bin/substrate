@@ -18,6 +18,7 @@ import (
 )
 
 //go:generate go run ../../tools/template/main.go -name accountsTemplate -package main accounts.html
+//go:generate go run ../../tools/template/main.go -name accountsJavaScript -package main accounts.js
 
 func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
@@ -108,4 +109,5 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 
 func init() {
 	handlers["/accounts"] = accountsHandler
+	handlers["/js/accounts.js"] = lambdautil.StaticHandler("application/javascript", accountsJavaScript())
 }
