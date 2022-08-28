@@ -251,22 +251,42 @@ func ensureAccount(
 		return nil, err
 	}
 
-	status, err := createAccount(ctx, cfg, name, email, deadline)
+	// Try to find the account here, first, even though that looks like a
+	// TOCTTOU vulnerability. It isn't, really, since AWS is still enforcing
+	// its uniqueness constraint on email address and possibly other aspects
+	// of the account. Most importantly, checking this now allows us to return
+	// early, without attempting to create the account, which avoids an
+	// unnecessary failure when the account exists but we're precisely at
+	// the organization's limit on the number of accounts in it.
+	account, err := cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
+		return aws.ToString(a.Email) == email && aws.ToString(a.Name) == name
+		// TODO confirm tags match also/instead
+	})
 	if err != nil {
 		return nil, err
 	}
+
+	// If we can't find it, try to create it.
 	var accountId string
-	if status.FailureReason == types.CreateAccountFailureReasonEmailAlreadyExists {
-		account, err := cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
-			return aws.ToString(a.Name) == name // confirms name matches in addition to email
-			// TODO confirm tags match also/instead
-		})
+	if account == nil {
+		status, err := createAccount(ctx, cfg, name, email, deadline)
 		if err != nil {
 			return nil, err
 		}
-		accountId = aws.ToString(account.Id)
+		if status.FailureReason == types.CreateAccountFailureReasonEmailAlreadyExists {
+			account, err = cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
+				return aws.ToString(a.Name) == name // confirms name matches in addition to email
+				// TODO confirm tags match also/instead
+			})
+			if err != nil {
+				return nil, err
+			}
+			accountId = aws.ToString(account.Id) // found after createAccount failure
+		} else {
+			accountId = aws.ToString(status.AccountId) // newly-created
+		}
 	} else {
-		accountId = aws.ToString(status.AccountId)
+		accountId = aws.ToString(account.Id) // found right away (before even trying to create it)
 	}
 
 	if err := Tag(ctx, cfg, accountId, tagMap); err != nil {
