@@ -101,6 +101,10 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 	if err != nil {
 		ui.Fatal(err)
 	}
+	org, err := cfg.DescribeOrganization(ctx)
+	if err != nil {
+		ui.Fatal(err)
+	}
 
 	// Admin accounts, once they exist, are going to need to be able to assume
 	// a role in the management account.  Because no admin accounts exist yet, this
@@ -136,7 +140,15 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		ctx,
 		cfg,
 		roles.OrganizationReader,
-		canned.OrgAccountPrincipals,
+		&policies.Document{
+			Statement: []policies.Statement{{
+				Principal: &policies.Principal{AWS: []string{"*"}},
+				Action:    []string{"sts:AssumeRole"},
+				Condition: policies.Condition{"StringEquals": {
+					"aws:PrincipalOrgID": aws.ToString(org.Id),
+				}},
+			}},
+		},
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action: []string{
@@ -371,10 +383,6 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 
 	if doCloudWatch {
 		ui.Spinf("finding or creating the CloudWatch-CrossAccountSharingRole role in all accounts and CloudWatch's service-linked role in admin accounts")
-		org, err := cfg.DescribeOrganization(ctx)
-		if err != nil {
-			ui.Fatal(err)
-		}
 		for _, account := range allAccounts {
 			var accountCfg *awscfg.Config
 			if aws.ToString(account.Id) == aws.ToString(org.MasterAccountId) {
