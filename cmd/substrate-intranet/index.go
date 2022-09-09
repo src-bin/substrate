@@ -23,6 +23,8 @@ var unlistedPaths = []string{
 	"/",
 	"/credential-factory/authorize",
 	"/credential-factory/fetch",
+	"/js",
+	"/js/accounts.js",
 	"/login",
 }
 
