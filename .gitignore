@@ -13,4 +13,5 @@ terraform/peering-connection.go
 terraform/*-regional-*.go
 terraform/*-regional.go
 terraform/*.tf.go
+upgrade
 *.zip
