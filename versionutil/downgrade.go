@@ -2,6 +2,7 @@ package versionutil
 
 import (
 	"context"
+	"os"
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
@@ -71,10 +72,12 @@ func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 			version.Version,
 		)
 	case Greater:
-		ui.Fatalf(
+		ui.Printf(
 			"your organization requires at least Substrate %v; exiting because this is Substrate %v",
 			taggedVersion,
 			version.Version,
 		)
+		ui.Print("you should run `substrate upgrade`")
+		os.Exit(1)
 	}
 }
