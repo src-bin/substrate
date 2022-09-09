@@ -12,7 +12,7 @@ mkdir -p "upgrade/$FROM_VERSION"
 # Get this tagged version and commit, to which customers will be upgraded when
 # they invoke `substrate upgrade`.
 V="$(make release-version)"
-C="$(git show --format="%h" --no-patch "$V")"
+C="$(git show --format="%h" --no-patch)"
 TO_VERSION="$V-$C"
 
 # Write a breadcrumb for each paying customer, their unique prefixes being
@@ -22,6 +22,6 @@ do echo "$TO_VERSION" >"upgrade/$FROM_VERSION/$PREFIX"
 done
 
 # TODO remove this after confirming everything's in order.
-find "upgrade" | while read PATHNAME
+find "upgrade" -type f | while read PATHNAME
 do cat "$PATHNAME"
 done
