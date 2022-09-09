@@ -30,17 +30,33 @@ phases:
       - go run "tools/slack-codebuild/main.go" "install"
   pre_build:
     commands:
+
+      # Ensure build dependencies are in order.
       - go version
       - terraform version
+
+      # Execute go:generate directives and the like, then ensure they haven't
+      # introduced changes that should've been committed.
       - make
       - git diff --exit-code
+
+      # Run the tests. Wish there were more.
       - make test
+
+      # Build the binaries and tarballs.
       - make release
+
+      # Write a tree of upgrade breadcrumbs for paying customers.
+      - sh "tools/upgrades.sh"
+
+      # End here if everything's been successful but this isn't a tagged build.
       - git describe --exact-match --tags "HEAD"
+
     finally:
       - go run "tools/slack-codebuild/main.go" "pre_build"
       - sh "tools/tweet-codebuild.sh"
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
+    - upgrade
 ...
