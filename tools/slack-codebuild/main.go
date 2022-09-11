@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,17 +12,48 @@ import (
 	"os/exec"
 	"strings"
 	"text/template"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
 
 func main() {
+	ctx := context.Background()
 
 	// If the build's failing, report it to Slack.
 	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
+
+		cfg, err := config.LoadDefaultConfig(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		/*
+			out, err := codebuild.NewFromConfig(cfg).BatchGetBuilds(ctx, &codebuild.BatchGetBuildsInput{Ids: []string{os.Getenv("CODEBUILD_BUILD_ID")}})
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Printf("%+v", aws.ToString(out.Builds[0].Logs.GroupName))
+			log.Fatalf("%+v", aws.ToString(out.Builds[0].Logs.StreamName))
+		*/
+		out, err := cloudwatchlogs.NewFromConfig(cfg).GetLogEvents(ctx, &cloudwatchlogs.GetLogEventsInput{
+			LogGroupName:  aws.String("CodeBuild/substrate"), // to match src-bin/modules/build/regional
+			LogStreamName: aws.String(os.Getenv("CODEBUILD_LOG_PATH")),
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		var b strings.Builder
+		for _, e := range out.Events {
+			b.WriteString(aws.ToString(e.Message))
+		}
+
 		slack(fmt.Sprintf(
-			"Substrate build %s of https://github.com/src-bin/substrate/tree/%s failed!\n%s",
+			"Substrate build %s of https://github.com/src-bin/substrate/tree/%s failed!\n%s\n\n```\n%s```",
 			os.Getenv("CODEBUILD_BUILD_NUMBER"),
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
 			os.Getenv("CODEBUILD_BUILD_URL"),
+			b.String(),
 		))
 		return
 	}
