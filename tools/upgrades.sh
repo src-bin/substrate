@@ -22,6 +22,7 @@ do echo "$TO_VERSION" >"upgrade/$FROM_VERSION/$PREFIX"
 done
 
 # TODO remove this after confirming everything's in order.
+echo "DEBUG FROM HERE ON"
 find "upgrade" -type f | while read PATHNAME
 do cat "$PATHNAME"
 done
