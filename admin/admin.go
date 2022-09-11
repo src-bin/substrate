@@ -312,6 +312,8 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 	terraformPrincipals := make([]string, 0, len(allAccounts))
 	for _, account := range allAccounts {
 
+		// TODO Terraformer role
+
 		// Special accounts have special administrator role names but, still,
 		// some of them should be allowed to run Terraform.
 		if account.Tags[tags.SubstrateSpecialAccount] != "" {

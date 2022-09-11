@@ -199,6 +199,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Fatal(err)
 	}
 
+	// TODO create Terraformer here and probably don't have to create Administrator yet
+
 	// Make arrangements for a hosted zone to appear in this account so that
 	// the Intranet can configure itself.  It's possible to do this entirely
 	// programmatically but there's a lot of UI surface area involved in doing
