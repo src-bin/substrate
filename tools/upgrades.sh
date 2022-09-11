@@ -1,5 +1,13 @@
 set -e -x
 
+git show || :
+git show "HEAD" || :
+git show "HEAD^" || :
+git describe --tags "HEAD" || :
+git describe --tags "HEAD^" || :
+ls -l ".git" || :
+cat ".git/HEAD" || :
+
 # Get the previous tagged version and commit, from which customers will be
 # upgrading when they come looking for the release being built now.
 V="$(git describe --tags "HEAD^" | sed -E 's/-[0-9]+-g[0-9a-f]+$//')"
