@@ -50,11 +50,11 @@ phases:
       - sh "tools/upgrades.sh"
 
       # End here if everything's been successful but this isn't a tagged build.
-      - git describe --exact-match --tags "HEAD"
+      - : git describe --exact-match --tags "HEAD"
 
     finally:
-      - go run "tools/slack-codebuild/main.go" "pre_build"
-      - sh "tools/tweet-codebuild.sh"
+      - : go run "tools/slack-codebuild/main.go" "pre_build"
+      - : sh "tools/tweet-codebuild.sh"
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
