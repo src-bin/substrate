@@ -28,14 +28,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		/*
-			out, err := codebuild.NewFromConfig(cfg).BatchGetBuilds(ctx, &codebuild.BatchGetBuildsInput{Ids: []string{os.Getenv("CODEBUILD_BUILD_ID")}})
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Printf("%+v", aws.ToString(out.Builds[0].Logs.GroupName))
-			log.Fatalf("%+v", aws.ToString(out.Builds[0].Logs.StreamName))
-		*/
 		out, err := cloudwatchlogs.NewFromConfig(cfg).GetLogEvents(ctx, &cloudwatchlogs.GetLogEventsInput{
 			LogGroupName:  aws.String("CodeBuild/substrate"), // to match src-bin/modules/build/regional
 			LogStreamName: aws.String(os.Getenv("CODEBUILD_LOG_PATH")),
