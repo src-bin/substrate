@@ -1,4 +1,4 @@
-set -e -x
+set -e
 
 # Get the previous tagged version and commit, from which customers will be
 # upgrading when they come looking for the release being built now.
@@ -21,8 +21,7 @@ echo "$UPGRADES" | tr "," "\n" | while read PREFIX
 do echo "$TO_VERSION" >"upgrade/$FROM_VERSION/$PREFIX"
 done
 
-# TODO remove this after confirming everything's in order.
-echo "DEBUG FROM HERE ON"
-find "upgrade" -type f | while read PATHNAME
-do cat "$PATHNAME"
-done
+# Upload the whole tree we just wrote to S3 if we've been given a bucket name.
+if [ "$BUCKET" ]
+then aws s3 cp --recursive "upgrade" "s3://$BUCKET/substrate/"
+fi
