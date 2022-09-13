@@ -20,8 +20,3 @@ TO_VERSION="$V-$C"
 echo "$UPGRADES" | tr "," "\n" | while read PREFIX
 do echo "$TO_VERSION" >"upgrade/$FROM_VERSION/$PREFIX"
 done
-
-# Upload the whole tree we just wrote to S3 if we've been given a bucket name.
-if [ "$BUCKET" ]
-then aws s3 cp --recursive "upgrade" "s3://$BUCKET/substrate/"
-fi

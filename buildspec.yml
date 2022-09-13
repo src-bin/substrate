@@ -58,4 +58,5 @@ phases:
 artifacts:
   files:
     - substrate-*-*-*-*.tar.gz
+    - upgrade/*-*/*
 ...
