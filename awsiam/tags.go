@@ -15,9 +15,9 @@ func ListUserTags(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	userName string,
-) (map[string]string, error) {
+) (tags.Tags, error) {
 	var marker *string
-	tags := make(map[string]string)
+	userTags := make(tags.Tags)
 	for {
 		out, err := cfg.IAM().ListUserTags(ctx, &iam.ListUserTagsInput{
 			Marker:   marker,
@@ -27,14 +27,14 @@ func ListUserTags(
 			return nil, err
 		}
 		for _, tag := range out.Tags {
-			tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+			userTags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
 		}
 		if !out.IsTruncated {
 			break
 		}
 		marker = out.Marker
 	}
-	return tags, nil
+	return userTags, nil
 }
 
 func TagUser(

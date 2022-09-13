@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/tags"
 	"github.com/src-bin/substrate/users"
 )
 
@@ -22,10 +25,13 @@ import (
 // TODO use session policies <https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/credentials/stscreds#AssumeRoleOptions> to constrain where these credentials can go by e.g. lists of domains, environments, and/or qualities they're allowed to assume roles into (though we also need to account for Instance Factory instances)
 
 const (
+	GCExpiredTagsLimit         = 10
+	GCExpiredTagsSyncThreshold = 40 // the default limit is 50
+
 	MinTokenLength = 40
 
-	TagKeyPrefix   = "CredentialFactory:"
-	TagValueFormat = "%s %s expiry %s"
+	TagKeyPrefix   = "CredentialFactory:" // duplicated in tools/garbage-credential-factory-tags/main.go
+	TagValueFormat = "%s %s expiry %s"    // duplicated in tools/garbage-credential-factory-tags/main.go
 )
 
 type TagValue struct {
@@ -60,7 +66,7 @@ func (v *TagValue) Expired() bool {
 }
 
 func (v *TagValue) String() string {
-	return fmt.Sprintf(
+	return fmt.Sprintf( // imitated in tools/garbage-credential-factory-tags/main.go
 		TagValueFormat,
 		v.PrincipalId,
 		v.RoleName,
@@ -92,7 +98,15 @@ func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *ev
 
 func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 
-	// TODO arrange some kind of garbage collection of stale tags
+	// Garbage-collect expired tags synchronously, before we try to tag the
+	// user for this run, if we're close to the limit.
+	userTags, err := awsiam.ListUserTags(ctx, cfg, users.CredentialFactory)
+	if err != nil {
+		return nil, err
+	}
+	if len(userTags) > GCExpiredTagsSyncThreshold {
+		gcExpiredTags(ctx, cfg, userTags)
+	}
 
 	// Tag the CredentialFactory IAM user using the bearer token as the key and
 	// the session name as the value. We choose to use tags as our database here
@@ -117,6 +131,15 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, 
 		).String(),
 	); err != nil {
 		return nil, err
+	}
+
+	// Garbage collect expired tags asynchronously if we're not very close to
+	// the limit. Even though we're sending this into a goroutine, start it
+	// definitively after the much more important awsiam.TagUser call so as to
+	// avoid the ConcurrentModification error that can ruin things if we're
+	// tagging and untagging at the same time.
+	if len(userTags) <= GCExpiredTagsSyncThreshold {
+		go gcExpiredTags(context.Background(), cfg, userTags)
 	}
 
 	body, err := lambdautil.RenderHTML(credentialFactoryAuthorizeTemplate(), token)
@@ -199,6 +222,28 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 		Headers:    map[string]string{"Content-Type": "application/json"},
 		StatusCode: http.StatusOK,
 	}, nil
+}
+
+func gcExpiredTags(ctx context.Context, cfg *awscfg.Config, userTags tags.Tags) {
+	i := 0
+	for key, raw := range userTags {
+		value, err := ParseTagValue(raw)
+		if err != nil {
+			if err != io.EOF {
+				log.Print(err)
+			}
+			continue
+		}
+		if value.Expired() {
+			if err := awsiam.UntagUser(ctx, cfg, users.CredentialFactory, key); err != nil {
+				log.Print(err)
+			}
+			i++
+			if i >= GCExpiredTagsLimit {
+				return
+			}
+		}
+	}
 }
 
 func init() {
