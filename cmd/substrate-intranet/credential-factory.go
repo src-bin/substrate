@@ -55,7 +55,7 @@ func ParseTagValue(raw string) (*TagValue, error) {
 	v := &TagValue{}
 	_, err := fmt.Sscanf(raw, TagValueFormat, &v.PrincipalId, &v.RoleName, &s)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(`"%s" %w`, raw, err)
 	}
 	v.Expiry, err = time.Parse(time.RFC3339, s)
 	return v, err
@@ -232,7 +232,7 @@ func gcExpiredTags(ctx context.Context, cfg *awscfg.Config, userTags tags.Tags) 
 	for key, raw := range userTags {
 		value, err := ParseTagValue(raw)
 		if err != nil {
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				log.Print(err)
 			}
 			continue
