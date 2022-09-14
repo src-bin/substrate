@@ -155,6 +155,7 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, 
 }
 
 func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+	ctx, _ = context.WithDeadline(ctx, time.Now().Add(28*time.Second)) // API Gateway's maximum wait time is 29 seconds
 
 	// Requests to this endpoint are not authenticated or authorized by API
 	// Gateway. Instead, we authorize requests by their presentation of a
