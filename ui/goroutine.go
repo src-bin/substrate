@@ -13,6 +13,7 @@ import (
 
 const (
 	opPrint = iota
+	opFatal
 	opQuiet
 	opSpin
 	opStop
@@ -76,6 +77,13 @@ func init() {
 				}
 
 				switch inst.opcode {
+
+				case opFatal:
+					if spinner != "" && isTerminal {
+						fmt.Fprint(stderr, "\r", s, " ", dots, ".\n")
+					}
+					fmt.Fprintln(stderr, inst.s)
+					os.Exit(1)
 
 				case opPrint:
 

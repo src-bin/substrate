@@ -32,13 +32,13 @@ func Confirmf(format string, args ...interface{}) (bool, error) {
 }
 
 func Fatal(args ...interface{}) {
-	Print(withCaller(args...)...)
-	os.Exit(1)
+	args = dereference(args)
+	op(opFatal, fmt.Sprint(withCaller(args...)...))
 }
 
 func Fatalf(format string, args ...interface{}) {
-	Printf(format, args...)
-	os.Exit(1)
+	args = dereference(args)
+	op(opFatal, fmt.Sprintf(format, withCaller(args...)...))
 }
 
 func Print(args ...interface{}) {
