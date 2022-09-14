@@ -22,7 +22,7 @@ data "aws_iam_policy_document" "credential-factory" {
   }
   statement {
     actions   = ["sts:AssumeRole"]
-    resources = [data.aws_iam_role.admin.arn]
+    resources = ["*"]
   }
 }
 
@@ -49,7 +49,7 @@ data "aws_iam_policy_document" "intranet" {
   }
   statement {
     actions   = ["sts:AssumeRole"]
-    resources = [data.aws_iam_role.admin.arn]
+    resources = ["*"]
     sid       = "CredentialFactorySTS"
   }
   statement {
