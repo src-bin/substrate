@@ -132,6 +132,7 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, 
 	); err != nil {
 		return nil, err
 	}
+	log.Printf("authorized a token exchange for %s", event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string))
 
 	// Garbage collect expired tags asynchronously if we're not very close to
 	// the limit. Even though we're sending this into a goroutine, start it
@@ -215,6 +216,7 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 	if err != nil {
 		return lambdautil.ErrorResponseJSON(http.StatusInternalServerError, err)
 	}
+	log.Printf("exchanged token %s %s for access key ID %s", TagKeyPrefix+token, tagValue, creds.AccessKeyID)
 
 	body, err := json.MarshalIndent(creds, "", "\t")
 	if err != nil {
