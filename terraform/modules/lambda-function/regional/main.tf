@@ -21,7 +21,7 @@ resource "aws_lambda_function" "function" {
   tags = {
     Name = var.name
   }
-  timeout = 60
+  timeout = 29
   vpc_config {
     security_group_ids = var.security_group_ids
     subnet_ids         = var.subnet_ids
