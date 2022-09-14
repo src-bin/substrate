@@ -5,6 +5,9 @@ if [ "$CODEBUILD_BUILD_SUCCEEDING" != "1" ]
 then exit 0
 fi
 
+# Also only tweet if this is a tagged build.
+git describe --exact-match --tags "HEAD"
+
 TMP="$(mktemp)"
 trap "rm -f \"$TMP\"" EXIT INT QUIT TERM
 curl \
