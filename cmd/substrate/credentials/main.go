@@ -57,7 +57,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Spin("fetching credentials")
 	u.Path = "/credential-factory/fetch"
 	ch := time.After(time.Hour)
-	var credentials *aws.Credentials
+	var creds *aws.Credentials
 	for range time.Tick(time.Second) {
 		select {
 		case <-ch:
@@ -66,21 +66,21 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		default:
 		}
 		var err error
-		credentials, err = fetch(u)
+		creds, err = fetch(u)
 		if err != nil {
 			ui.Fatal(err)
 		}
-		if credentials != nil {
+		if creds != nil {
 			break
 		}
 	}
 	ui.Stop("ok")
 
-	cfg.SetCredentials(ctx, *credentials)
+	cfg.SetCredentials(ctx, *creds)
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	// Print credentials in whatever format was requested.
-	awsutil.PrintCredentials(format, *credentials)
+	awsutil.PrintCredentials(format, *creds)
 
 }
 
@@ -97,5 +97,5 @@ func fetch(u *url.URL) (*aws.Credentials, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&credentials); err != nil {
 		return nil, err
 	}
-	return &credentials, nil
+	return &creds, nil
 }
