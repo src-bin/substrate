@@ -162,14 +162,6 @@ resource "aws_iam_role_policy_attachment" "apigateway-cloudwatch" {
   role       = aws_iam_role.apigateway.name
 }
 
-# Hoisted out of ../../lambda-function/global to allow logging while still
-# running the Credential Factory directly as the Administrator role.
-# TODO we're not doing this anymore so I think this can be removed.
-resource "aws_iam_role_policy_attachment" "admin-cloudwatch" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
-  role       = data.aws_iam_role.admin.name
-}
-
 resource "aws_iam_user_policy_attachment" "credential-factory" {
   policy_arn = aws_iam_policy.credential-factory.arn
   user       = data.aws_iam_user.credential-factory.user_name
