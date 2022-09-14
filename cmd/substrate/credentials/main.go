@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -89,12 +90,18 @@ func fetch(u *url.URL) (*aws.Credentials, error) {
 	if err != nil {
 		return nil, err
 	}
+	//log.Printf("<%s> resp: %+v", u.String(), resp)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return nil, nil
 	}
-	var credentials aws.Credentials
-	if err := json.NewDecoder(resp.Body).Decode(&credentials); err != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	//log.Printf("<%s> body: %s", u.String(), string(body))
+	if err != nil {
+		return nil, err
+	}
+	var creds aws.Credentials
+	if err := json.Unmarshal(body, &creds); err != nil {
 		return nil, err
 	}
 	return &creds, nil
