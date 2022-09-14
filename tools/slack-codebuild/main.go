@@ -72,14 +72,14 @@ func main() {
 	}
 	version := strings.Trim(string(out), "\r\n")
 	tmpl, err := template.New("release").Parse(
-		`Substrate {{.Version}} is out!
-
-Full release notes: https://src-bin.com/substrate/manual/releases/#{{.Version}}
-
-Downloads:
-{{range .Filenames -}}
-https://src-bin.com/{{.}}
-{{end -}}`,
+		"Substrate {{.Version}} is out!\n" +
+			"\n" +
+			"Full release notes: https://src-bin.com/substrate/manual/releases/#{{.Version}}\n" +
+			"\n" +
+			"Get it by running `substrate upgrade` or downloading the appropriate release tarball:\n" +
+			"{{range .Filenames -}}\n" +
+			"https://src-bin.com/{{.}}\n" +
+			"{{end -}}", // no trailing newline in Slack messages
 	)
 	if err != nil {
 		log.Fatal(err)
