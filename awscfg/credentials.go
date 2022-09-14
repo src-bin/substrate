@@ -18,7 +18,7 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-const WaitUntilCredentialsWorkTries = 60 // try for one minute (plus request latency)
+const WaitUntilCredentialsWorkTries = 40 // 40 seconds to try to keep Lambda runs under one minute
 
 func (c *Config) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return c.cfg.Credentials.Retrieve(ctx)
