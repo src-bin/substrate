@@ -170,6 +170,7 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 	if err != nil {
 		return nil, err
 	}
+	//log.Print(jsonutil.MustOneLineString(tags))
 
 	// HERE BE DRAGONS!
 	//
@@ -182,6 +183,7 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 			errors.New("token not previously authorized"),
 		)
 	}
+	//log.Printf("found tag key %s with value %s", TagKeyPrefix+token, tagValue)
 	if tagValue.Expired() {
 		return lambdautil.ErrorResponseJSON(
 			http.StatusForbidden,
@@ -198,6 +200,7 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 	); err != nil {
 		return nil, err
 	}
+	//log.Printf("deleted tag key %s with value %s", TagKeyPrefix+token, tagValue)
 
 	creds, err := awsiam.AllDayCredentials(
 

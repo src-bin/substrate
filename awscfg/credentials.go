@@ -191,6 +191,7 @@ func (c *Config) WaitUntilCredentialsWork(ctx context.Context) (
 		if callerIdentity, err = c.GetCallerIdentity(ctx); err == nil {
 			break
 		}
+		//log.Print(err)
 		time.Sleep(1e9) // TODO exponential backoff
 	}
 	return
