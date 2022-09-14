@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -92,8 +93,10 @@ func fetch(u *url.URL) (*aws.Credentials, error) {
 	}
 	//log.Printf("<%s> resp: %+v", u.String(), resp)
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode == http.StatusForbidden {
 		return nil, nil
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s from <%s>", resp.Status, u)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	//log.Printf("<%s> body: %s", u.String(), string(body))
