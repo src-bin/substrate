@@ -14,18 +14,25 @@ phases:
   install:
     commands:
       - mkdir -p "$HOME/bin"
+
+      # Install the AWS CLI v2.
       - curl -o"$HOME/awscli.zip" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
       - unzip -q "$HOME/awscli.zip" -d "$HOME"
       - $HOME/aws/install -b "$HOME/bin" -i "$HOME/aws" --update
       - rm -f "$HOME/awscli.zip"
+
+      # Install Go and goimports.
       - curl -L -o"golang.tar.gz" -s "https://redirector.gvt1.com/edgedl/go/go$GO_VERSION.linux-amd64.tar.gz"
       - tar -C"$HOME" -f"golang.tar.gz" -x
       - rm -f "golang.tar.gz"
       - go get "golang.org/x/tools/cmd/goimports"
       - go install "golang.org/x/tools/cmd/goimports"
+
+      # Install our pinned version of Terraform.
       - cat "terraform.version" | xargs -I"VERSION" curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/VERSION/terraform_VERSION_linux_amd64.zip"
       - unzip "terraform.zip" -d "$HOME/bin"
       - rm -f "terraform.zip"
+
     finally:
       - go run "tools/slack-codebuild/main.go" "install"
   pre_build:
