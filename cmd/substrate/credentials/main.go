@@ -93,15 +93,15 @@ func fetch(u *url.URL) (*aws.Credentials, error) {
 	}
 	//log.Printf("<%s> resp: %+v", u.String(), resp)
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusForbidden {
-		return nil, nil
-	} else if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s from <%s>", resp.Status, u)
-	}
 	body, err := ioutil.ReadAll(resp.Body)
 	//log.Printf("<%s> body: %s", u.String(), string(body))
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return nil, nil
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s from <%s>: %s", resp.Status, u, string(body))
 	}
 	var creds aws.Credentials
 	if err := json.Unmarshal(body, &creds); err != nil {
