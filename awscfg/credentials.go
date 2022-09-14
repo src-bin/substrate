@@ -18,7 +18,7 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-const WaitUntilCredentialsWorkTries = 20 // approximately seconds; API Gateway won't wait longer than 29 seconds, anyway
+const WaitUntilCredentialsWorkTries = 18 // approximately seconds; API Gateway won't wait longer than 29 seconds, anyway
 
 func (c *Config) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return c.cfg.Credentials.Retrieve(ctx)
