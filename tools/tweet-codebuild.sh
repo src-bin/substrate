@@ -6,7 +6,9 @@ then exit 0
 fi
 
 # Also only tweet if this is a tagged build.
-git describe --exact-match --tags "HEAD"
+if ! git describe --exact-match --tags "HEAD"
+then exit 0
+fi
 
 TMP="$(mktemp)"
 trap "rm -f \"$TMP\"" EXIT INT QUIT TERM
