@@ -164,7 +164,6 @@ func slack(text string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(string(body))
 	if slackWebhookURL := os.Getenv("SLACK_WEBHOOK_URL"); slackWebhookURL != "" {
 		resp, err := http.Post(slackWebhookURL, "application/json", bytes.NewBuffer(body))
 		if err != nil {
