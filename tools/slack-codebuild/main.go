@@ -94,7 +94,19 @@ func main() {
 	}
 	text := b.String()
 	slack(text)
-	slack("Push release notes and documentation updates to https://src-bin.com/substrate/manual/.")
+
+	// If this is not a tagged release, call it a day. We don't need any
+	// reminders to share announcements or do any follow-up if this is a fake
+	// release just for Source & Binary use.
+	if err = exec.Command("git", "describe", "--exact-match", "--tags", "HEAD").Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() != 0 {
+			return
+		}
+		log.Fatal(err)
+	}
+
+	// Send a reminder to deploy the website.
+	slack("Deploy release notes and documentation updates to https://src-bin.com/substrate/manual/.")
 
 	// Send the checklist of customers who need the announcement.
 	for _, customer := range split(os.Getenv("CUSTOMERS_ANNOUNCE")) {

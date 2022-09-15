@@ -56,9 +56,6 @@ phases:
       # Write a tree of upgrade breadcrumbs for paying customers.
       - sh "tools/upgrades.sh"
 
-      # End here if everything's been successful but this isn't a tagged build.
-      - echo git describe --exact-match --tags "HEAD"
-
     finally:
       - go run "tools/slack-codebuild/main.go" "pre_build"
       - sh "tools/tweet-codebuild.sh"
