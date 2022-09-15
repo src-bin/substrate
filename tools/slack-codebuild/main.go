@@ -60,7 +60,20 @@ func main() {
 
 	// But if the build's succeeding and this is the end, announce it.
 
-	// Send the release announcement to be shared with customers.
+	// Figure out if this is a tagged release or not. We can skip a bunch of
+	// Slack messages for untagged releases to be generally less spammy.
+	var taggedRelease bool
+	if err := exec.Command("git", "describe", "--exact-match", "--tags", "HEAD").Run(); err == nil {
+		taggedRelease = true
+	} else {
+		if _, ok := err.(*exec.ExitError); !ok {
+			log.Fatal(err)
+		}
+		taggedRelease = false
+	}
+
+	// Send the release announcement to be shared with customers (for tagged
+	// releases) or just noted as a successful build (for untagged releases).
 	out, err := exec.Command("make", "release-filenames").Output()
 	if err != nil {
 		log.Fatal(err)
@@ -95,14 +108,10 @@ func main() {
 	text := b.String()
 	slack(text)
 
-	// If this is not a tagged release, call it a day. We don't need any
-	// reminders to share announcements or do any follow-up if this is a fake
-	// release just for Source & Binary use.
-	if err = exec.Command("git", "describe", "--exact-match", "--tags", "HEAD").Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() != 0 {
-			return
-		}
-		log.Fatal(err)
+	// Don't bother sending the release checklist as individual Slack
+	// messages for untagged releases.
+	if !taggedRelease {
+		return
 	}
 
 	// Send a reminder to deploy the website.
