@@ -19,7 +19,7 @@ import (
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 )
 
 const InstanceFactory = "InstanceFactory"
@@ -96,10 +96,10 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 				cfg.Regional(region),
 				[]awsec2.Filter{
 					{
-						Name: aws.String(fmt.Sprintf("tag:%s", tags.Manager)),
+						Name: aws.String(fmt.Sprintf("tag:%s", tagging.Manager)),
 						Values: []string{
-							tags.Substrate,
-							tags.SubstrateInstanceFactory, // remove in 2022.10
+							tagging.Substrate,
+							tagging.SubstrateInstanceFactory, // remove in 2022.10
 						},
 					},
 					{
@@ -335,8 +335,8 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 		aws.ToString(securityGroups[0].GroupId),
 		aws.ToString(subnet.SubnetId),
 		[]awsec2.Tag{{
-			Key:   aws.String(tags.Manager),
-			Value: aws.String(tags.Substrate),
+			Key:   aws.String(tagging.Manager),
+			Value: aws.String(tagging.Substrate),
 		}},
 	)
 	if err != nil {

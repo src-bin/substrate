@@ -15,7 +15,7 @@ import (
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
@@ -92,7 +92,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				ctx,
 				cfg,
 				aws.ToString(account.Id),
-				tags.Tags{tags.SubstrateVersion: version.Version},
+				tagging.Map{tagging.SubstrateVersion: version.Version},
 			)
 		}
 		if err != nil {

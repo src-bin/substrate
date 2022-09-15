@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -15,9 +15,9 @@ func ListUserTags(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	userName string,
-) (tags.Tags, error) {
+) (tagging.Map, error) {
 	var marker *string
-	userTags := make(tags.Tags)
+	tags := make(tagging.Map)
 	for {
 		out, err := cfg.IAM().ListUserTags(ctx, &iam.ListUserTagsInput{
 			Marker:   marker,
@@ -27,14 +27,14 @@ func ListUserTags(
 			return nil, err
 		}
 		for _, tag := range out.Tags {
-			userTags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+			tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
 		}
 		if !out.IsTruncated {
 			break
 		}
 		marker = out.Marker
 	}
-	return userTags, nil
+	return tags, nil
 }
 
 func TagUser(
@@ -65,7 +65,7 @@ func UntagUser(
 
 func tagsFor(name string) []types.Tag {
 	return []types.Tag{
-		{Key: aws.String(tags.Manager), Value: aws.String(tags.Substrate)},
-		{Key: aws.String(tags.SubstrateVersion), Value: aws.String(version.Version)},
+		{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
+		{Key: aws.String(tagging.SubstrateVersion), Value: aws.String(version.Version)},
 	}
 }

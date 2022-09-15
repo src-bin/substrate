@@ -11,7 +11,7 @@ import (
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
@@ -96,36 +96,36 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		rootModules = append(rootModules, filepath.Join(
 			terraform.RootModulesDirname,
 			accounts.Admin,
-			account.Tags[tags.Quality],
+			account.Tags[tagging.Quality],
 			regions.Global,
 		))
 		for _, region := range regions.Selected() {
 			rootModules = append(rootModules, filepath.Join(
 				terraform.RootModulesDirname,
 				accounts.Admin,
-				account.Tags[tags.Quality],
+				account.Tags[tagging.Quality],
 				region,
 			))
 		}
 	}
 
 	for _, account := range serviceAccounts {
-		if _, ok := account.Tags[tags.Domain]; !ok {
+		if _, ok := account.Tags[tagging.Domain]; !ok {
 			continue
 		}
 		rootModules = append(rootModules, filepath.Join(
 			terraform.RootModulesDirname,
-			account.Tags[tags.Domain],
-			account.Tags[tags.Environment],
-			account.Tags[tags.Quality],
+			account.Tags[tagging.Domain],
+			account.Tags[tagging.Environment],
+			account.Tags[tagging.Quality],
 			regions.Global,
 		))
 		for _, region := range regions.Selected() {
 			rootModules = append(rootModules, filepath.Join(
 				terraform.RootModulesDirname,
-				account.Tags[tags.Domain],
-				account.Tags[tags.Environment],
-				account.Tags[tags.Quality],
+				account.Tags[tagging.Domain],
+				account.Tags[tagging.Environment],
+				account.Tags[tagging.Quality],
 				region,
 			))
 		}

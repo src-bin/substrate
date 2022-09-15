@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -44,11 +44,11 @@ func EnsureTable(
 	client := cfg.DynamoDB()
 	tags := []types.Tag{
 		{
-			Key:   aws.String(tags.Manager),
-			Value: aws.String(tags.Substrate),
+			Key:   aws.String(tagging.Manager),
+			Value: aws.String(tagging.Substrate),
 		},
 		{
-			Key:   aws.String(tags.SubstrateVersion),
+			Key:   aws.String(tagging.SubstrateVersion),
 			Value: aws.String(version.Version),
 		},
 	}

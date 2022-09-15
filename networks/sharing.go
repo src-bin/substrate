@@ -5,7 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/terraform"
 )
 
@@ -72,15 +72,15 @@ func ShareVPC(
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		ForEach:    terraform.U(dataSubnet.Ref()),
-		Key:        terraform.Q(tags.Connectivity),
+		Key:        terraform.Q(tagging.Connectivity),
 		Label:      terraform.Label(rs.Tags, "subnet-connectivity"),
 		ResourceId: terraform.U("each.value.id"),
-		Value:      terraform.U(fmt.Sprintf("each.value.tags[\"%s\"]", tags.Connectivity)),
+		Value:      terraform.U(fmt.Sprintf("each.value.tags[\"%s\"]", tagging.Connectivity)),
 	})
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		ForEach:    terraform.U(dataSubnet.Ref()),
-		Key:        terraform.Q(tags.Environment),
+		Key:        terraform.Q(tagging.Environment),
 		Label:      terraform.Label(rs.Tags, "subnet-environment"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.Q(environment),
@@ -88,15 +88,15 @@ func ShareVPC(
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		ForEach:    terraform.U(dataSubnet.Ref()),
-		Key:        terraform.Q(tags.Name),
+		Key:        terraform.Q(tagging.Name),
 		Label:      terraform.Label(rs.Tags, "subnet-name"),
 		ResourceId: terraform.U("each.value.id"),
-		Value:      terraform.U(fmt.Sprintf("\"%s-%s-${each.value.tags[\"%s\"]}-${each.value.availability_zone}\"", environment, quality, tags.Connectivity)),
+		Value:      terraform.U(fmt.Sprintf("\"%s-%s-${each.value.tags[\"%s\"]}-${each.value.availability_zone}\"", environment, quality, tagging.Connectivity)),
 	})
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		ForEach:    terraform.U(dataSubnet.Ref()),
-		Key:        terraform.Q(tags.Quality),
+		Key:        terraform.Q(tagging.Quality),
 		Label:      terraform.Label(rs.Tags, "subnet-quality"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.Q(quality),
@@ -104,21 +104,21 @@ func ShareVPC(
 
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		Key:        terraform.Q(tags.Environment),
+		Key:        terraform.Q(tagging.Environment),
 		Label:      terraform.Label(rs.Tags, "vpc-environment"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(environment),
 	})
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		Key:        terraform.Q(tags.Name),
+		Key:        terraform.Q(tagging.Name),
 		Label:      terraform.Label(rs.Tags, "vpc-name"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(fmt.Sprintf("%s-%s", environment, quality)),
 	})
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		Key:        terraform.Q(tags.Quality),
+		Key:        terraform.Q(tagging.Quality),
 		Label:      terraform.Label(rs.Tags, "vpc-quality"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(quality),

@@ -15,7 +15,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/lambdautil"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/users"
 )
 
@@ -100,12 +100,12 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, 
 
 	// Garbage-collect expired tags synchronously, before we try to tag the
 	// user for this run, if we're close to the limit.
-	userTags, err := awsiam.ListUserTags(ctx, cfg, users.CredentialFactory)
+	tags, err := awsiam.ListUserTags(ctx, cfg, users.CredentialFactory)
 	if err != nil {
 		return nil, err
 	}
-	if len(userTags) > GCExpiredTagsSyncThreshold {
-		gcExpiredTags(ctx, cfg, userTags)
+	if len(tags) > GCExpiredTagsSyncThreshold {
+		gcExpiredTags(ctx, cfg, tags)
 	}
 
 	// Tag the CredentialFactory IAM user using the bearer token as the key and
@@ -139,8 +139,8 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, 
 	// definitively after the much more important awsiam.TagUser call so as to
 	// avoid the ConcurrentModification error that can ruin things if we're
 	// tagging and untagging at the same time.
-	if len(userTags) <= GCExpiredTagsSyncThreshold {
-		go gcExpiredTags(context.Background(), cfg, userTags)
+	if len(tags) <= GCExpiredTagsSyncThreshold {
+		go gcExpiredTags(context.Background(), cfg, tags)
 	}
 
 	body, err := lambdautil.RenderHTML(credentialFactoryAuthorizeTemplate(), token)
@@ -230,9 +230,9 @@ func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, even
 	}, nil
 }
 
-func gcExpiredTags(ctx context.Context, cfg *awscfg.Config, userTags tags.Tags) {
+func gcExpiredTags(ctx context.Context, cfg *awscfg.Config, tags tagging.Map) {
 	i := 0
-	for key, raw := range userTags {
+	for key, raw := range tags {
 		value, err := ParseTagValue(raw)
 		if err != nil {
 			if !errors.Is(err, io.EOF) {

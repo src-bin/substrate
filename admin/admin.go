@@ -18,7 +18,7 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
@@ -316,8 +316,8 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 
 		// Special accounts have special administrator role names but, still,
 		// some of them should be allowed to run Terraform.
-		if account.Tags[tags.SubstrateSpecialAccount] != "" {
-			switch account.Tags[tags.SubstrateSpecialAccount] {
+		if account.Tags[tagging.SubstrateSpecialAccount] != "" {
+			switch account.Tags[tagging.SubstrateSpecialAccount] {
 			case accounts.Deploy:
 				terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.ToString(account.Id), roles.DeployAdministrator))
 			case accounts.Management:
@@ -334,13 +334,13 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 
 		// Every other Substrate-managed account uses the role name
 		// "Administrator" and uses it to run Terraform.
-		if account.Tags[tags.Domain] != "" {
+		if account.Tags[tagging.Domain] != "" {
 			terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.ToString(account.Id), roles.Administrator))
 		}
 
 		// But the Administrator role in admin accounts is created during IdP
 		// configuration so there's nothing more for us to do here.
-		if account.Tags[tags.Domain] == "admin" {
+		if account.Tags[tagging.Domain] == "admin" {
 			continue
 		}
 
@@ -408,7 +408,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 				ui.Fatal(err)
 			}
 
-			if account.Tags[tags.Domain] == "admin" {
+			if account.Tags[tagging.Domain] == "admin" {
 				if _, err := awsiam.EnsureServiceLinkedRole(
 					ctx,
 					accountCfg,
@@ -571,7 +571,7 @@ func cannedPrincipals(ctx context.Context, cfg *awscfg.Config, bootstrapping boo
 ) {
 	var adminAccounts, allAccounts []*awsorgs.Account
 	if adminAccounts, err = cfg.FindAccounts(ctx, func(a *awscfg.Account) bool {
-		return a.Tags[tags.Domain] == naming.Admin
+		return a.Tags[tagging.Domain] == naming.Admin
 	}); err != nil {
 		return
 	}

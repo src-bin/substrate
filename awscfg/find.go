@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/src-bin/substrate/naming"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 )
 
 // FindAccount returns the first *Account for which the given acceptance test
@@ -82,7 +82,7 @@ func (c *Config) FindAdminAccount(ctx context.Context, quality string) (*Account
 // management account.
 func (c *Config) FindServiceAccount(ctx context.Context, domain, environment, quality string) (*Account, error) {
 	return c.FindAccount(ctx, func(a *Account) bool {
-		return a.Tags[tags.Domain] == domain && a.Tags[tags.Environment] == environment && a.Tags[tags.Quality] == quality
+		return a.Tags[tagging.Domain] == domain && a.Tags[tagging.Environment] == environment && a.Tags[tagging.Quality] == quality
 	})
 }
 
@@ -90,6 +90,6 @@ func (c *Config) FindServiceAccount(ctx context.Context, domain, environment, qu
 // name. It must be called in the management account.
 func (c *Config) FindSpecialAccount(ctx context.Context, name string) (*Account, error) {
 	return c.FindAccount(ctx, func(a *Account) bool {
-		return a.Tags[tags.Name] == name
+		return a.Tags[tagging.Name] == name
 	})
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 )
 
 type Identity struct {
@@ -33,7 +33,7 @@ func (c *Config) Identity(ctx context.Context) (*Identity, error) {
 			return nil, err
 		}
 	*/
-	t, err := cfg.listTagsForResource(ctx, aws.ToString(callerIdentity.Account))
+	tags, err := cfg.listTagsForResource(ctx, aws.ToString(callerIdentity.Account))
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +42,9 @@ func (c *Config) Identity(ctx context.Context) (*Identity, error) {
 		ARN:       aws.ToString(callerIdentity.Arn),
 		AccountID: aws.ToString(callerIdentity.Account),
 		Tags: struct{ Domain, Environment, Quality string }{
-			Domain:      t[tags.Domain],
-			Environment: t[tags.Environment],
-			Quality:     t[tags.Quality],
+			Domain:      tags[tagging.Domain],
+			Environment: tags[tagging.Environment],
+			Quality:     tags[tagging.Quality],
 		},
 	}, nil
 }

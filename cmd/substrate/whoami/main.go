@@ -7,7 +7,7 @@ import (
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 )
 
@@ -49,10 +49,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		)
 	case cmdutil.SerializationFormatJSON:
 		ui.PrettyPrintJSON(map[string]string{
-			tags.Domain:      identity.Tags.Domain,
-			tags.Environment: identity.Tags.Environment,
-			tags.Quality:     identity.Tags.Quality,
-			"Role":           identity.ARN,
+			tagging.Domain:      identity.Tags.Domain,
+			tagging.Environment: identity.Tags.Environment,
+			tagging.Quality:     identity.Tags.Quality,
+			"Role":              identity.ARN,
 		})
 	case cmdutil.SerializationFormatText:
 		ui.Printf(

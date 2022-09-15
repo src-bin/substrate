@@ -12,7 +12,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -103,20 +103,20 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				"substrate create-admin-account%s%s -quality %q\n",
 				autoApproveFlag,
 				noApplyFlag,
-				account.Tags[tags.Quality],
+				account.Tags[tagging.Quality],
 			)
 		}
 		for _, account := range serviceAccounts {
-			if _, ok := account.Tags[tags.Domain]; !ok {
+			if _, ok := account.Tags[tagging.Domain]; !ok {
 				continue
 			}
 			fmt.Printf(
 				"substrate create-account%s%s -domain %q -environment %q -quality %q\n",
 				autoApproveFlag,
 				noApplyFlag,
-				account.Tags[tags.Domain],
-				account.Tags[tags.Environment],
-				account.Tags[tags.Quality],
+				account.Tags[tagging.Domain],
+				account.Tags[tagging.Environment],
+				account.Tags[tagging.Quality],
 			)
 		}
 

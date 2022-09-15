@@ -11,7 +11,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 )
 
@@ -84,7 +84,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 
 	for _, account := range adminAccounts {
 		adminAccountsCells = append(adminAccountsCells, []string{
-			account.Tags[tags.Quality],
+			account.Tags[tagging.Quality],
 			aws.ToString(account.Id),
 			roles.Administrator,
 			roles.Arn(aws.ToString(account.Id), roles.Administrator),
@@ -94,9 +94,9 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 
 	for _, account := range serviceAccounts {
 		serviceAccountsCells = append(serviceAccountsCells, []string{
-			account.Tags[tags.Domain],
-			account.Tags[tags.Environment],
-			account.Tags[tags.Quality],
+			account.Tags[tagging.Domain],
+			account.Tags[tagging.Environment],
+			account.Tags[tagging.Quality],
 			aws.ToString(account.Id),
 			roles.Administrator,
 			roles.Arn(aws.ToString(account.Id), roles.Administrator),
@@ -139,8 +139,8 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 	}
 
 	for _, account := range allAccounts {
-		if account.Tags[tags.SubstrateSpecialAccount] != "" {
-			switch account.Tags[tags.SubstrateSpecialAccount] {
+		if account.Tags[tagging.SubstrateSpecialAccount] != "" {
+			switch account.Tags[tagging.SubstrateSpecialAccount] {
 			case Audit:
 				auditAccount = account
 			case Deploy:
@@ -150,7 +150,7 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 			case Network:
 				networkAccount = account
 			}
-		} else if account.Tags[tags.Domain] == Admin {
+		} else if account.Tags[tagging.Domain] == Admin {
 			adminAccounts = append(adminAccounts, account)
 		} else {
 			serviceAccounts = append(serviceAccounts, account)
@@ -183,17 +183,17 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 	err = nil
 
 	sort.Slice(adminAccounts, func(i, j int) bool {
-		return searchUnsorted(qualities, adminAccounts[i].Tags[tags.Quality]) < searchUnsorted(qualities, adminAccounts[j].Tags[tags.Quality])
+		return searchUnsorted(qualities, adminAccounts[i].Tags[tagging.Quality]) < searchUnsorted(qualities, adminAccounts[j].Tags[tagging.Quality])
 	})
 	sort.Slice(serviceAccounts, func(i, j int) bool {
-		if serviceAccounts[i].Tags[tags.Domain] != serviceAccounts[j].Tags[tags.Domain] {
-			return serviceAccounts[i].Tags[tags.Domain] < serviceAccounts[j].Tags[tags.Domain]
+		if serviceAccounts[i].Tags[tagging.Domain] != serviceAccounts[j].Tags[tagging.Domain] {
+			return serviceAccounts[i].Tags[tagging.Domain] < serviceAccounts[j].Tags[tagging.Domain]
 		}
-		if serviceAccounts[i].Tags[tags.Environment] != serviceAccounts[j].Tags[tags.Environment] {
-			return searchUnsorted(environments, serviceAccounts[i].Tags[tags.Environment]) < searchUnsorted(environments, serviceAccounts[j].Tags[tags.Environment])
+		if serviceAccounts[i].Tags[tagging.Environment] != serviceAccounts[j].Tags[tagging.Environment] {
+			return searchUnsorted(environments, serviceAccounts[i].Tags[tagging.Environment]) < searchUnsorted(environments, serviceAccounts[j].Tags[tagging.Environment])
 		}
-		if serviceAccounts[i].Tags[tags.Quality] != serviceAccounts[j].Tags[tags.Quality] {
-			return searchUnsorted(qualities, serviceAccounts[i].Tags[tags.Quality]) < searchUnsorted(qualities, serviceAccounts[j].Tags[tags.Quality])
+		if serviceAccounts[i].Tags[tagging.Quality] != serviceAccounts[j].Tags[tagging.Quality] {
+			return searchUnsorted(qualities, serviceAccounts[i].Tags[tagging.Quality]) < searchUnsorted(qualities, serviceAccounts[j].Tags[tagging.Quality])
 		}
 		return false
 	})

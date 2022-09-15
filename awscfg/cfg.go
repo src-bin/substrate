@@ -12,7 +12,7 @@ import (
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/telemetry"
 	"github.com/src-bin/substrate/ui"
 )
@@ -22,7 +22,7 @@ const TooManyRequestsException = "TooManyRequestsException"
 type (
 	Account struct {
 		types.Account
-		Tags tags.Tags
+		Tags tagging.Map
 	}
 	Organization = types.Organization
 )
@@ -161,10 +161,10 @@ func (c *Config) Telemetry() *telemetry.Event {
 	return c.event
 }
 
-func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tags.Tags, error) {
+func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tagging.Map, error) {
 	client := c.Organizations()
 	var nextToken *string
-	tags := make(tags.Tags)
+	tags := make(tagging.Map)
 	for {
 		out, err := client.ListTagsForResource(ctx, &organizations.ListTagsForResourceInput{
 			NextToken:  nextToken,

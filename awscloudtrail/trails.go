@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -81,7 +81,7 @@ func updateTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName strin
 
 func tagList() []types.Tag {
 	return []types.Tag{
-		{Key: aws.String(tags.Manager), Value: aws.String(tags.Substrate)},
-		{Key: aws.String(tags.SubstrateVersion), Value: aws.String(version.Version)},
+		{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
+		{Key: aws.String(tagging.SubstrateVersion), Value: aws.String(version.Version)},
 	}
 }

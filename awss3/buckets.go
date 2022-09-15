@@ -10,7 +10,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -66,8 +66,8 @@ func EnsureBucket(
 		Bucket: aws.String(name),
 		Tagging: &types.Tagging{
 			TagSet: []types.Tag{
-				{Key: aws.String(tags.Manager), Value: aws.String(tags.Substrate)},
-				{Key: aws.String(tags.SubstrateVersion), Value: aws.String(version.Version)},
+				{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
+				{Key: aws.String(tagging.SubstrateVersion), Value: aws.String(version.Version)},
 			},
 		},
 	}); err != nil {

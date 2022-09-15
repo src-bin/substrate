@@ -1,4 +1,4 @@
-package tags // TODO rename to tagging or move to awsutil
+package tagging
 
 // Keys.
 const (
@@ -21,4 +21,4 @@ const (
 	SubstrateInstanceFactory = "substrate-instance-factory" // remove in 2022.10
 )
 
-type Tags map[string]string // TODO rename to Map
+type Map map[string]string

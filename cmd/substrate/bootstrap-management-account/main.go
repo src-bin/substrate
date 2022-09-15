@@ -21,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
@@ -192,9 +192,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Tag the management account.
 	ui.Spin("tagging the management account")
 	if err := awsorgs.Tag(ctx, cfg, aws.ToString(org.MasterAccountId), map[string]string{
-		tags.Manager:                 tags.Substrate,
-		tags.SubstrateSpecialAccount: accounts.Management,
-		tags.SubstrateVersion:        version.Version,
+		tagging.Manager:                 tagging.Substrate,
+		tagging.SubstrateSpecialAccount: accounts.Management,
+		tagging.SubstrateVersion:        version.Version,
 	}); err != nil {
 		log.Fatal(err)
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -59,13 +59,13 @@ func EnsureAccount(
 		ctx,
 		cfg,
 		NameFor(domain, environment, quality),
-		tags.Tags{
-			tags.Domain:           domain,
-			tags.Environment:      environment,
-			tags.Manager:          tags.Substrate,
-			tags.Name:             NameFor(domain, environment, quality),
-			tags.Quality:          quality,
-			tags.SubstrateVersion: version.Version,
+		tagging.Map{
+			tagging.Domain:           domain,
+			tagging.Environment:      environment,
+			tagging.Manager:          tagging.Substrate,
+			tagging.Name:             NameFor(domain, environment, quality),
+			tagging.Quality:          quality,
+			tagging.SubstrateVersion: version.Version,
 		},
 		deadline,
 	)
@@ -78,11 +78,11 @@ func EnsureSpecialAccount(
 	cfg *awscfg.Config,
 	name string,
 ) (*Account, error) {
-	return ensureAccount(ctx, cfg, name, tags.Tags{
-		tags.Manager:                 tags.Substrate,
-		tags.Name:                    name,
-		tags.SubstrateSpecialAccount: name, // TODO get rid of this
-		tags.SubstrateVersion:        version.Version,
+	return ensureAccount(ctx, cfg, name, tagging.Map{
+		tagging.Manager:                 tagging.Substrate,
+		tagging.Name:                    name,
+		tagging.SubstrateSpecialAccount: name, // TODO get rid of this
+		tagging.SubstrateVersion:        version.Version,
 	}, time.Time{})
 }
 
@@ -137,7 +137,7 @@ func Tag(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	accountId string,
-	tags tags.Tags,
+	tags tagging.Map,
 ) error {
 	tagStructs := make([]types.Tag, 0, len(tags))
 	for key, value := range tags {
@@ -242,7 +242,7 @@ func ensureAccount(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	name string,
-	tagMap tags.Tags, // TODO rename back to tags once the tags package is renamed to tagging
+	tags tagging.Map,
 	deadline time.Time,
 ) (*Account, error) {
 
@@ -289,17 +289,17 @@ func ensureAccount(
 		accountId = aws.ToString(account.Id) // found right away (before even trying to create it)
 	}
 
-	if err := Tag(ctx, cfg, accountId, tagMap); err != nil {
+	if err := Tag(ctx, cfg, accountId, tags); err != nil {
 		return nil, err
 	}
 
 	return DescribeAccount(ctx, cfg, accountId)
 }
 
-func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId string) (tags.Tags, error) {
+func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId string) (tagging.Map, error) {
 	client := cfg.Organizations()
 	var nextToken *string
-	tags := make(tags.Tags)
+	tags := make(tagging.Map)
 	for {
 		out, err := client.ListTagsForResource(ctx, &organizations.ListTagsForResourceInput{
 			NextToken:  nextToken,

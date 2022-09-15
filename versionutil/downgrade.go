@@ -6,7 +6,7 @@ import (
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/tags"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -64,7 +64,7 @@ func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		ui.Fatal(err)
 	}
-	switch taggedVersion := t[tags.SubstrateVersion]; Compare(taggedVersion, version.Version) {
+	switch taggedVersion := t[tagging.SubstrateVersion]; Compare(taggedVersion, version.Version) {
 	case Less:
 		ui.Printf(
 			"upgrading the minimum required Substrate version for your organization from %v to %v",
