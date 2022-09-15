@@ -84,16 +84,30 @@ func main() {
 		log.Fatal(err)
 	}
 	version := strings.Trim(string(out), "\r\n")
-	tmpl, err := template.New("release").Parse(
-		"Substrate {{.Version}} is out!\n" +
-			"\n" +
-			"Full release notes: https://src-bin.com/substrate/manual/releases/#{{.Version}}\n" +
-			"\n" +
-			"Get it by running `substrate upgrade` or downloading the appropriate release tarball:\n" +
-			"{{range .Filenames -}}\n" +
-			"https://src-bin.com/{{.}}\n" +
-			"{{end -}}", // no trailing newline in Slack messages
-	)
+	var tmpl *template.Template
+	if taggedRelease {
+		tmpl, err = template.New("release").Parse(
+			"Substrate {{.Version}} is out!\n" +
+				"\n" +
+				"Full release notes: https://src-bin.com/substrate/manual/releases/#{{.Version}}\n" +
+				"\n" +
+				"Get it by running `substrate upgrade` or downloading the appropriate release tarball:\n" +
+				"{{range .Filenames -}}\n" +
+				"https://src-bin.com/{{.}}\n" +
+				"{{end -}}\n",
+		)
+	} else {
+		tmpl, err = template.New("release").Parse(
+			"Substrate {{.Version}} (an untagged release) built successfully\n" +
+				"\n" +
+				"Downloads:\n" +
+				"{{range .Filenames -}}\n" +
+				"https://src-bin.com/{{.}}\n" +
+				"{{end -}}\n" +
+				"\n" +
+				"These tarballs will be deleted on the next `make -C release clean`\n",
+		)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
