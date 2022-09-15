@@ -17,6 +17,12 @@ TO_VERSION="$V-$C"
 
 # Write a breadcrumb for each paying customer, their unique prefixes being
 # magically found in the UPGRADES environment variable.
-echo "$UPGRADES" | tr "," "\n" | while read PREFIX
+echo "$UPGRADES" |
+tr "," "\n" |
+if git describe --exact-match --tags "HEAD" >"/dev/null"
+then cat # leave an upgrade breadcrumb for everyone on tagged releases
+else grep "^src-bin-test" # only leave upgrade breadcrumbs for test orgs on untagged releases
+fi |
+while read PREFIX
 do echo "$TO_VERSION" >"upgrade/$FROM_VERSION/$PREFIX"
 done
