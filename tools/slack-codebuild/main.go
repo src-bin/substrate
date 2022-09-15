@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,6 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
+
+const codebuildLogMaxLen = 20000 // maximum Slack message length is 40,000 characters (but keep in mind we use some up with the rest of the message around the CodeBuild log)
 
 func codebuildLog(ctx context.Context) string {
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -34,19 +37,33 @@ func codebuildLog(ctx context.Context) string {
 	for _, e := range out.Events {
 		b.WriteString(aws.ToString(e.Message))
 	}
-	return b.String()
+	s := b.String()
+	if len(s) < codebuildLogMaxLen {
+		return s
+	}
+	return s[len(s)-codebuildLogMaxLen:]
 }
 
 func main() {
 	ctx := context.Background()
 
+	buildURL := (&url.URL{
+		Scheme: "https",
+		Host:   "src-bin.net",
+		Path:   "/accounts",
+		RawQuery: url.Values{
+			"next":   []string{os.Getenv("CODEBUILD_BUILD_URL")},
+			"number": []string{"412086678291"},
+			"role":   []string{"Auditor"},
+		}.Encode(),
+	}).String()
+
 	// If the build's failing, report it to Slack.
 	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
 		slack(fmt.Sprintf(
-			"Substrate build %s of https://github.com/src-bin/substrate/tree/%s failed!\n%s\n\n```\n%s```",
-			os.Getenv("CODEBUILD_BUILD_NUMBER"),
+			"Substrate build of https://github.com/src-bin/substrate/tree/%s failed!\n%s\n\n```\n%s```",
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
-			os.Getenv("CODEBUILD_BUILD_URL"),
+			buildURL,
 			codebuildLog(ctx),
 		))
 		return
@@ -124,10 +141,9 @@ func main() {
 	text := b.String()
 	if !taggedRelease {
 		text += fmt.Sprintf(
-			"Build %s\nhttps://github.com/src-bin/substrate/tree/%s\n%s\n\n```\n%s```",
-			os.Getenv("CODEBUILD_BUILD_NUMBER"),
+			"\nhttps://github.com/src-bin/substrate/tree/%s\n%s\n\n```\n%s```",
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
-			os.Getenv("CODEBUILD_BUILD_URL"),
+			buildURL,
 			codebuildLog(ctx),
 		)
 	}
