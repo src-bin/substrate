@@ -18,34 +18,36 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
 
+func codebuildLog(ctx context.Context) string {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	out, err := cloudwatchlogs.NewFromConfig(cfg).GetLogEvents(ctx, &cloudwatchlogs.GetLogEventsInput{
+		LogGroupName:  aws.String("CodeBuild/substrate"), // to match src-bin/modules/build/regional
+		LogStreamName: aws.String(os.Getenv("CODEBUILD_LOG_PATH")),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	var b strings.Builder
+	for _, e := range out.Events {
+		b.WriteString(aws.ToString(e.Message))
+	}
+	return b.String()
+}
+
 func main() {
 	ctx := context.Background()
 
 	// If the build's failing, report it to Slack.
 	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
-
-		cfg, err := config.LoadDefaultConfig(ctx)
-		if err != nil {
-			log.Fatal(err)
-		}
-		out, err := cloudwatchlogs.NewFromConfig(cfg).GetLogEvents(ctx, &cloudwatchlogs.GetLogEventsInput{
-			LogGroupName:  aws.String("CodeBuild/substrate"), // to match src-bin/modules/build/regional
-			LogStreamName: aws.String(os.Getenv("CODEBUILD_LOG_PATH")),
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-		var b strings.Builder
-		for _, e := range out.Events {
-			b.WriteString(aws.ToString(e.Message))
-		}
-
 		slack(fmt.Sprintf(
 			"Substrate build %s of https://github.com/src-bin/substrate/tree/%s failed!\n%s\n\n```\n%s```",
 			os.Getenv("CODEBUILD_BUILD_NUMBER"),
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
 			os.Getenv("CODEBUILD_BUILD_URL"),
-			b.String(),
+			codebuildLog(ctx),
 		))
 		return
 	}
@@ -120,6 +122,15 @@ func main() {
 		log.Fatal(err)
 	}
 	text := b.String()
+	if !taggedRelease {
+		text += fmt.Sprintf(
+			"Build %s\nhttps://github.com/src-bin/substrate/tree/%s\n%s\n\n```\n%s```",
+			os.Getenv("CODEBUILD_BUILD_NUMBER"),
+			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
+			os.Getenv("CODEBUILD_BUILD_URL"),
+			codebuildLog(ctx),
+		)
+	}
 	slack(text)
 
 	// Don't bother sending the release checklist as individual Slack
