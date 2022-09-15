@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -60,9 +62,18 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 			return lambdautil.ErrorResponse(err)
 		}
 
+		var destination string // empty will land on the AWS Console homepage
+		if next := event.QueryStringParameters["next"]; next != "" {
+			if u, err := url.Parse(next); err == nil {
+				if strings.HasSuffix(u.Host, "console.aws.amazon.com") { // don't be an open redirect
+					destination = next
+				}
+			}
+		}
+
 		consoleSigninURL, err := federation.ConsoleSigninURL(
 			creds,
-			"", // destination (empty means the AWS Console homepage)
+			destination,
 			event,
 		)
 		if err != nil {
