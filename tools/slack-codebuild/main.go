@@ -111,8 +111,8 @@ func main() {
 	}
 	commit := strings.Trim(string(out), "\r\n")
 	var filenames []string
-	for goOS := range []string{"darwin", "linux"} {
-		for goArch := range []string{"amd64", "arm64"} {
+	for _, goOS := range []string{"darwin", "linux"} {
+		for _, goArch := range []string{"amd64", "arm64"} {
 			filenames = append(filenames, fmt.Sprintf(
 				"substrate-%s-%s-%s-%s.tar.gz",
 				version, commit, goOS, goArch,
