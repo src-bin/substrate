@@ -105,7 +105,7 @@ func main() {
 		log.Fatal(err)
 	}
 	version := strings.Trim(string(content), "\r\n")
-	out, err = exec.Command("git", "show", "--format=%h", "--no-patch").Output()
+	out, err := exec.Command("git", "show", "--format=%h", "--no-patch").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
