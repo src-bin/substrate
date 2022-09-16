@@ -10,6 +10,8 @@ if ! git describe --exact-match --tags "HEAD"
 then exit 0
 fi
 
+VERSION="$(cat "substrate.version")"
+
 TMP="$(mktemp)"
 trap "rm -f \"$TMP\"" EXIT INT QUIT TERM
 curl \
@@ -31,7 +33,6 @@ aws secretsmanager put-secret-value --secret-id "TwitterRefreshToken" --secret-s
     jq -r ".refresh_token" <"$TMP"
 )"
 
-VERSION="$(make release-version)"
 curl \
     -H"Authorization: Bearer $(jq -r ".access_token" <"$TMP")" \
     -H"Content-Type: application/json" \

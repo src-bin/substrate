@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/src-bin/substrate/fileutil"
 )
 
 const codebuildLogMaxLen = 2048 // maximum Slack message length is theoretically 40,000 characters but this seems to be just about all I can get to fit in a single message
@@ -99,16 +100,25 @@ func main() {
 
 	// Send the release announcement to be shared with customers (for tagged
 	// releases) or just noted as a successful build (for untagged releases).
-	out, err := exec.Command("make", "release-filenames").Output()
+	content, err := fileutil.ReadFile("substrate.version")
 	if err != nil {
 		log.Fatal(err)
 	}
-	filenames := strings.Split(strings.Trim(string(out), "\r\n"), "\n")
-	out, err = exec.Command("make", "release-version").Output()
+	version := strings.Trim(string(content), "\r\n")
+	out, err = exec.Command("git", "show", "--format=%h", "--no-patch").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	version := strings.Trim(string(out), "\r\n")
+	commit := strings.Trim(string(out), "\r\n")
+	var filenames []string
+	for goOS := range []string{"darwin", "linux"} {
+		for goArch := range []string{"amd64", "arm64"} {
+			filenames = append(filenames, fmt.Sprintf(
+				"substrate-%s-%s-%s-%s.tar.gz",
+				version, commit, goOS, goArch,
+			))
+		}
+	}
 	var tmpl *template.Template
 	if taggedRelease {
 		tmpl, err = template.New("release").Parse(

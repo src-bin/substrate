@@ -5,6 +5,7 @@ dispatch-map.go
 *.stdin
 substrate-[0-9]*-*-*
 substrate-[0-9]*-*-*.tar.gz
+substrate.version
 *.sw[opx]
 *.template.go
 terraform/*-global-*.go

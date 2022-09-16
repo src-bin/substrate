@@ -41,15 +41,7 @@ endif
 	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
 	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
-
-release-filenames: # for src-bin.com to grab on
-	@echo substrate-$(VERSION)-$(COMMIT)-linux-amd64.tar.gz
-	@echo substrate-$(VERSION)-$(COMMIT)-linux-arm64.tar.gz
-	@echo substrate-$(VERSION)-$(COMMIT)-darwin-amd64.tar.gz
-	@echo substrate-$(VERSION)-$(COMMIT)-darwin-arm64.tar.gz
-
-release-version: # for src-bin.com to grab on
-	@echo $(VERSION)
+	echo $(VERSION) >substrate.version
 
 tarball:
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH) # makes debugging easier
@@ -70,4 +62,4 @@ uninstall:
 	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
 	find ./cmd/substrate -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/substrate-%P\\n | xargs rm -f
 
-.PHONY: all clean install release release-filenames tarball test uninstall
+.PHONY: all clean install release tarball test uninstall
