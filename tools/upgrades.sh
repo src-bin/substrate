@@ -11,7 +11,7 @@ mkdir -p "upgrade/$FROM_VERSION"
 
 # Get this tagged version and commit, to which customers will be upgraded when
 # they invoke `substrate upgrade`.
-V="$(make release-version)"
+V="$(make release-version)" # XXX inconsistent
 C="$(git show --format="%h" --no-patch)"
 TO_VERSION="$V-$C"
 
