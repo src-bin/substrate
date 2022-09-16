@@ -15,7 +15,6 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -143,7 +142,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Region: region,
 		}
 		bucket := terraform.S3Bucket{
-			Bucket: terraform.Q(tagging.Name),
+			Bucket: terraform.Q(tags.Name),
 			Label:  terraform.Label(tags),
 			Policy: terraform.Q(policy.MustMarshal()),
 			Tags:   tags,
