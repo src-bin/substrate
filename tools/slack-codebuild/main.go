@@ -61,7 +61,13 @@ func main() {
 	// If the build's failing, report it to Slack.
 	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
 		slack(fmt.Sprintf(
-			"Substrate build of https://github.com/src-bin/substrate/tree/%s failed!\n%s\n\n```\n%s```",
+			"Substrate build has failed!\n"+
+				"\n"+
+				"Source tree: https://github.com/src-bin/substrate/tree/%s\n"+
+				"\n"+
+				"Build log: %s\n"+
+				"\n"+
+				"```\n%s```\n",
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
 			buildURL,
 			codebuildLog(ctx),
@@ -141,7 +147,10 @@ func main() {
 	text := b.String()
 	if !taggedRelease {
 		text += fmt.Sprintf(
-			"\nSource tree: https://github.com/src-bin/substrate/tree/%s\n\nBuild log: %s\n",
+			"\n"+
+				"Source tree: https://github.com/src-bin/substrate/tree/%s\n"+
+				"\n"+
+				"Build log: %s\n",
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
 			buildURL,
 		)
