@@ -141,10 +141,9 @@ func main() {
 	text := b.String()
 	if !taggedRelease {
 		text += fmt.Sprintf(
-			"\nhttps://github.com/src-bin/substrate/tree/%s\n%s\n\n```\n%s```",
+			"\nSource tree: https://github.com/src-bin/substrate/tree/%s\n\nBuild log: %s\n",
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
 			buildURL,
-			codebuildLog(ctx),
 		)
 	}
 	slack(text)
