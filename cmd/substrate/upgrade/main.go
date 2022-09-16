@@ -135,7 +135,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		ui.Fatalf("<%s> responded %d %s", u.String(), resp.StatusCode, resp.Status)
+		ui.Fatalf("<%s> responded %s", u.String(), resp.Status)
 	}
 	if _, err = io.Copy(f, resp.Body); err != nil {
 		ui.Fatal(err)
