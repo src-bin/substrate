@@ -37,11 +37,17 @@ locals {
 
 module "intranet-apigateway-authorizer" {
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
-  filename                 = local.filename
-  name                     = "IntranetAPIGatewayAuthorizer"
-  progname                 = "substrate-intranet"
-  role_arn                 = data.aws_iam_role.intranet-apigateway-authorizer.arn
-  source                   = "../../lambda-function/regional"
+  environment_variables = {
+    "OAuthOIDCClientID"              = var.oauth_oidc_client_id
+    "OAuthOIDCClientSecretTimestamp" = var.oauth_oidc_client_secret_timestamp
+    "OktaHostname"                   = var.okta_hostname
+    "SelectedRegions"                = join(",", var.selected_regions)
+  }
+  filename = local.filename
+  name     = "IntranetAPIGatewayAuthorizer"
+  progname = "substrate-intranet"
+  role_arn = data.aws_iam_role.intranet-apigateway-authorizer.arn
+  source   = "../../lambda-function/regional"
 }
 
 module "intranet" {
