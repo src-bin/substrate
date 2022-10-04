@@ -23,6 +23,7 @@ import (
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
+	noOpen := flag.Bool("no-open", false, "do not try to open your web browser (so that you can copy the URL and open it yourself)")
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	cmdutil.MustChdir()
 	flag.Usage = func() {
@@ -52,8 +53,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		Path:     "/credential-factory/authorize",
 		RawQuery: url.Values{"token": []string{token}}.Encode(),
 	}
-	ui.OpenURL(u.String())
-	ui.Print("authenticate in your web browser, if prompted, then return here")
+	if *noOpen {
+		ui.Printf("open <%s> in your web browser; authenticate if prompted, then return here", u)
+	} else {
+		ui.OpenURL(u.String())
+		ui.Print("authenticate in your web browser, if prompted, then return here")
+	}
 
 	// Spin requesting /credentials/fetch?token=... until it responds 200 OK.
 	ui.Spin("fetching credentials")
