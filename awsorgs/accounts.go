@@ -166,8 +166,9 @@ func createAccount(
 	)
 	for {
 		out, err = client.CreateAccount(ctx, &organizations.CreateAccountInput{
-			AccountName: aws.String(name),
-			Email:       aws.String(email),
+			AccountName:            aws.String(name),
+			Email:                  aws.String(email),
+			IamUserAccessToBilling: types.IAMUserAccessToBillingAllow,
 		})
 
 		// If we're at the organization's limit on the number of AWS accounts
