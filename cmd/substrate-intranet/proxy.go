@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/lambdautil"
 )
@@ -53,7 +54,7 @@ func proxy(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProx
 	req.Header = event.MultiValueHeaders
 	req.Header.Add("X-Forwarded-Host", event.Headers["Host"])
 	req.Header.Del("X-Forwarded-Port") // we're on port 443
-	req.Header.Add("X-Substrate-Intranet-Proxy-Principal", event.RequestContext.Authorizer["principalId"].(string))
+	req.Header.Add("X-Substrate-Intranet-Proxy-Principal", event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string))
 	log.Printf("req: %+v", req)
 
 	resp, err := http.DefaultClient.Do(req)

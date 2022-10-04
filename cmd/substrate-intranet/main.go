@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/contextutil"
 )
@@ -37,7 +38,7 @@ func main() {
 				ctx,
 				"substrate-intranet",
 				event.Path,
-				fmt.Sprint(event.RequestContext.Authorizer["principalId"]),
+				fmt.Sprint(event.RequestContext.Authorizer[authorizerutil.PrincipalId]),
 			)
 
 			cfg, err := awscfg.NewConfig(ctx)
