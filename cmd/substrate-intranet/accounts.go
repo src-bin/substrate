@@ -15,7 +15,6 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/lambdautil"
-	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/roles"
 )
 
@@ -23,12 +22,7 @@ import (
 //go:generate go run ../../tools/template/main.go -name accountsJavaScript -package main accounts.js
 
 func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-
-	c, err := oauthoidc.NewClient(ctx, cfg, event.StageVariables)
-	if err != nil {
-		return nil, err
-	}
-	_ = c
+	var err error
 
 	accountId := event.QueryStringParameters["number"]
 	roleName := event.QueryStringParameters["role"]
@@ -38,23 +32,24 @@ func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIG
 
 		// We have to start from the user's configured starting point so that
 		// all questions of authorization are deferred to AWS.
-		cfg, err = cfg.AssumeRole(
+		if cfg, err = cfg.AssumeRole(
 			ctx,
 			event.RequestContext.AccountID,
 			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 			time.Hour,
-		)
+		); err != nil {
+			return lambdautil.ErrorResponse(err)
+		}
 
 		roleArn := roles.Arn(accountId, roleName)
 		cfg.Telemetry().SetFinalAccountId(accountId)
 		cfg.Telemetry().SetFinalRoleName(roleArn)
-		cfg, err = cfg.AssumeRole(
+		if cfg, err = cfg.AssumeRole(
 			ctx,
 			accountId,
 			roleName,
 			time.Hour,
-		)
-		if err != nil {
+		); err != nil {
 			return lambdautil.ErrorResponse(err)
 		}
 		creds, err := cfg.Retrieve(ctx)
