@@ -6,19 +6,40 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/oauthoidc"
+	"github.com/src-bin/substrate/ui"
 )
 
 // TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
 
 type Handler func(context.Context, *awscfg.Config, *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error)
 
-var handlers = map[string]Handler{}
+var (
+	handlers        = map[string]Handler{}
+	oauthoidcClient *oauthoidc.Client
+)
+
+func init() {
+	ctx := contextutil.WithValues(context.Background(), "substrate-intranet", "init", "")
+	var err error
+	oauthoidcClient, err = oauthoidc.NewClient(
+		ctx,
+		awscfg.Must(awscfg.NewConfig(ctx)),
+		os.Getenv(oauthoidc.OAuthOIDCClientID),
+		os.Getenv(oauthoidc.OAuthOIDCClientSecretTimestamp),
+		os.Getenv(oauthoidc.OktaHostname),
+	)
+	if err != nil {
+		ui.PrintWithCaller(err) // panic(err)
+	}
+}
 
 func main() {
 	const (

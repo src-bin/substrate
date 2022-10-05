@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	OktaHostname                  = "OktaHostname"
-	OktaHostnameValueForGoogleIdP = "unused-by-Google-IdP"
+	OktaHostname                  = "OKTA_HOSTNAME"        // Lambda environment variable name
+	OktaHostnameValueForGoogleIdP = "unused-by-Google-IdP" // sentinel value
 )
 
 type OktaAccessToken struct {

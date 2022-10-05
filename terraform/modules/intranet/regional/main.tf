@@ -38,10 +38,10 @@ locals {
 module "intranet-apigateway-authorizer" {
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
   environment_variables = {
-    "OAuthOIDCClientID"              = var.oauth_oidc_client_id
-    "OAuthOIDCClientSecretTimestamp" = var.oauth_oidc_client_secret_timestamp
-    "OktaHostname"                   = var.okta_hostname
-    "SelectedRegions"                = join(",", var.selected_regions)
+    "OAUTH_OIDC_CLIENT_ID"               = var.oauth_oidc_client_id
+    "OAUTH_OIDC_CLIENT_SECRET_TIMESTAMP" = var.oauth_oidc_client_secret_timestamp
+    "OKTA_HOSTNAME"                      = var.okta_hostname
+    "SELECTED_REGIONS"                   = join(",", var.selected_regions)
   }
   filename = local.filename
   name     = "IntranetAPIGatewayAuthorizer"
@@ -52,11 +52,17 @@ module "intranet-apigateway-authorizer" {
 
 module "intranet" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
-  filename                 = local.filename
-  name                     = "Intranet"
-  progname                 = "substrate-intranet"
-  role_arn                 = data.aws_iam_role.intranet.arn
-  source                   = "../../lambda-function/regional"
+  environment_variables = {
+    "OAUTH_OIDC_CLIENT_ID"               = var.oauth_oidc_client_id
+    "OAUTH_OIDC_CLIENT_SECRET_TIMESTAMP" = var.oauth_oidc_client_secret_timestamp
+    "OKTA_HOSTNAME"                      = var.okta_hostname
+    "SELECTED_REGIONS"                   = join(",", var.selected_regions)
+  }
+  filename = local.filename
+  name     = "Intranet"
+  progname = "substrate-intranet"
+  role_arn = data.aws_iam_role.intranet.arn
+  source   = "../../lambda-function/regional"
 }
 
 resource "aws_acm_certificate" "intranet" {
@@ -96,12 +102,6 @@ resource "aws_api_gateway_deployment" "intranet" {
   rest_api_id = aws_api_gateway_rest_api.intranet.id
   stage_name  = var.stage_name
   triggers    = { redeployment = timestamp() } # impossible to enumerate all the reasons to redeploy so just always deploy
-  variables = {
-    "OAuthOIDCClientID"              = var.oauth_oidc_client_id
-    "OAuthOIDCClientSecretTimestamp" = var.oauth_oidc_client_secret_timestamp
-    "OktaHostname"                   = var.okta_hostname
-    "SelectedRegions"                = join(",", var.selected_regions)
-  }
 }
 
 resource "aws_api_gateway_domain_name" "intranet" {

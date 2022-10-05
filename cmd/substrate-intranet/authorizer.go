@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/src-bin/substrate/authorizerutil"
-	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
@@ -16,16 +15,6 @@ import (
 
 func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerRequestTypeRequest) (*events.APIGatewayCustomAuthorizerResponse, error) {
 	ctx = contextutil.WithValues(ctx, "substrate-intranet", "authorizer", "")
-
-	cfg, err := awscfg.NewConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := oauthoidc.NewClient(ctx, cfg, event.StageVariables)
-	if err != nil {
-		return nil, err
-	}
 
 	u := &url.URL{
 		Path:     event.Path,
@@ -47,7 +36,8 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 		case "a":
 			authContext[authorizerutil.AccessToken] = cookie.Value
 		case "id":
-			if _, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, c, idToken); err != nil {
+			_, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, oauthoidcClient, idToken)
+			if err != nil {
 				authContext[authorizerutil.Error] = err
 				log.Print(err)
 				idToken = &oauthoidc.IDToken{} // revert to zero-value and thus to denying access
@@ -62,8 +52,8 @@ func authorizer(ctx context.Context, event *events.APIGatewayCustomAuthorizerReq
 
 	effect := policies.Deny
 	if idToken.Email != "" {
-		c.AccessToken = authContext[authorizerutil.AccessToken].(string)
-		roleName, err := c.RoleNameFromIdP(idToken.Email)
+		oauthoidcClient.AccessToken = authContext[authorizerutil.AccessToken].(string)
+		roleName, err := oauthoidcClient.RoleNameFromIdP(idToken.Email)
 		if err == nil {
 			authContext[authorizerutil.RoleName] = roleName
 			effect = policies.Allow

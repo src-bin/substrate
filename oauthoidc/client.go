@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	OAuthOIDCClientID              = "OAuthOIDCClientID"
-	OAuthOIDCClientSecret          = "OAuthOIDCClientSecret"
-	OAuthOIDCClientSecretTimestamp = "OAuthOIDCClientSecretTimestamp"
+	OAuthOIDCClientID              = "OAUTH_OIDC_CLIENT_ID"               // Lambda environment variable name
+	OAuthOIDCClientSecret          = "OAuthOIDCClientSecret"              // Secrets Manager secret name
+	OAuthOIDCClientSecretTimestamp = "OAUTH_OIDC_CLIENT_SECRET_TIMESTAMP" // Lambda environment variable name
 )
 
 type Client struct {
@@ -31,27 +31,29 @@ type Client struct {
 func NewClient(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	stageVariables map[string]string,
+	clientID string,
+	clientSecretTimestamp string, // for finding the real client secret in Secrets Manager
+	hostname string,
 ) (*Client, error) {
-	clientSecret, err := awssecretsmanager.CachedSecret( // TODO memoize
+	clientSecret, err := awssecretsmanager.CachedSecret(
 		ctx,
 		cfg,
 		fmt.Sprintf(
 			"%s-%s",
 			OAuthOIDCClientSecret,
-			stageVariables[OAuthOIDCClientID],
+			clientID,
 		),
-		stageVariables[OAuthOIDCClientSecretTimestamp],
+		clientSecretTimestamp,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	c := &Client{
-		ClientID:     stageVariables[OAuthOIDCClientID],
+		ClientID:     clientID,
 		clientSecret: clientSecret,
 	}
-	if hostname := stageVariables[OktaHostname]; hostname == OktaHostnameValueForGoogleIdP {
+	if hostname == OktaHostnameValueForGoogleIdP {
 		c.pathQualifier = GooglePathQualifier()
 		c.provider = Google
 	} else {

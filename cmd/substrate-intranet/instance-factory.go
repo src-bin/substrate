@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -42,7 +43,7 @@ func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *even
 	principalId := event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string)
 	region := event.QueryStringParameters["region"]
 	//log.Printf("GET region: %+v", region)
-	selectedRegions := strings.Split(event.StageVariables["SelectedRegions"], ",")
+	selectedRegions := strings.Split(os.Getenv("SELECTED_REGIONS"), ",")
 	//log.Printf("selectedRegions: %+v", selectedRegions)
 	terminate := event.QueryStringParameters["terminate"]
 	terminated := event.QueryStringParameters["terminated"]
