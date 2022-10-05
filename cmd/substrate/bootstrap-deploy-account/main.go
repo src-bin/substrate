@@ -56,6 +56,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	cfg.Telemetry().FinalAccountId = accountId
 	cfg.Telemetry().FinalRoleName = roles.DeployAdministrator
 
+	// Leave the user a place to put their own Terraform code for defining ECR
+	// resources or whatever else they want to do in the deploy account.
+	if err := terraform.Scaffold(accounts.Deploy, false); err != nil {
+		ui.Fatal(err)
+	}
+
 	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect every AWS region in rapid succession")
 		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each region")
@@ -65,6 +71,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		region := regions.Default()
 
 		file := terraform.NewFile()
+		file.Add(terraform.Module{
+			Label: terraform.Q(accounts.Deploy),
+			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
+				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
+				terraform.UsEast1ProviderAlias: terraform.UsEast1ProviderAlias,
+			},
+			Source: terraform.Q("../../../modules/", accounts.Deploy, "/global"),
+		})
 		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
 			ui.Fatal(err)
 		}
@@ -102,6 +116,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		dirname := filepath.Join(terraform.RootModulesDirname, accounts.Deploy, region)
 
 		file := terraform.NewFile()
+		file.Add(terraform.Module{
+			Label: terraform.Q(accounts.Deploy),
+			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
+				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
+				terraform.NetworkProviderAlias: terraform.NetworkProviderAlias,
+			},
+			Source: terraform.Q("../../../modules/", accounts.Deploy, "/regional"),
+		})
 		name := fmt.Sprintf("%s-deploy-artifacts-%s", prefix, region) // S3 bucket names are still global
 		policy := &policies.Document{
 			Statement: []policies.Statement{

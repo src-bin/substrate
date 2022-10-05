@@ -27,7 +27,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	for _, name := range flag.Args() {
-		if err := terraform.Scaffold(name); err != nil {
+		if err := terraform.Scaffold(name, true); err != nil {
 			log.Fatal(err)
 		}
 	}

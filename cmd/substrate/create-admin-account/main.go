@@ -336,7 +336,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between admin accounts of different qualities.
 	/*
-		if err := terraform.Scaffold(Domain, dirname); err != nil {
+		if err := terraform.Scaffold(Domain, true); err != nil {
 			ui.Fatal(err)
 		}
 	*/
