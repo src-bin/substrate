@@ -92,7 +92,20 @@ func (c *Config) AssumeRole(
 		c.event.FinalRoleName = roleName
 	}
 
-	// TODO return early if we're already roleName in accountId
+	// Return early if we're already roleName in accountId. This is critical
+	// in the new world (beginning in 2022.10) in which it's no longer implied
+	// that a role may assume itself.
+	callerIdentity, err := c.GetCallerIdentity(ctx)
+	if err != nil {
+		return nil, err
+	}
+	callerRoleName, err := roles.Name(aws.ToString(callerIdentity.Arn))
+	if err != nil {
+		return nil, err
+	}
+	if aws.ToString(callerIdentity.Account) == accountId && callerRoleName == roleName {
+		return c, nil
+	}
 
 	roleSessionName := contextutil.ValueString(ctx, telemetry.Username)
 	if roleSessionName == "" {
@@ -128,8 +141,7 @@ func (c *Config) AssumeRole(
 		},
 	))
 
-	callerIdentity, err := cfg.WaitUntilCredentialsWork(ctx)
-	_ = callerIdentity
+	callerIdentity, err = cfg.WaitUntilCredentialsWork(ctx)
 	//log.Print(jsonutil.MustString(callerIdentity))
 
 	return cfg, err
