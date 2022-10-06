@@ -38,29 +38,6 @@ func authorizer(
 			"Location": u.String(), // where API Gateway will send the browser when unauthorized
 		}
 
-		// For performance testing purposes, it was at one time desirable to
-		// short-circuit the rest of this function, which showed there was
-		// easily half a second of latency to be saved. This is being committed
-		// commented out and then promptly removed just so there's a record of
-		// the experiment and how to do it, should it ever need to be repeated.
-		/*
-			if event.Headers["X-Forwarded-For"] == "67.180.198.56" { // rcrowley at home on 2022-10-05
-				authContext[authorizerutil.RoleName] = roles.Administrator
-				return &events.APIGatewayCustomAuthorizerResponse{
-					Context: authContext,
-					PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
-						Statement: []events.IAMPolicyStatement{{
-							Action:   []string{"execute-api:Invoke"},
-							Effect:   string(policies.Allow),
-							Resource: []string{event.MethodArn},
-						}},
-						Version: "2012-10-17",
-					},
-					PrincipalID: "rcrowley@src-bin.com",
-				}, nil
-			}
-		*/
-
 		idToken := &oauthoidc.IDToken{}
 		req := &http.Request{Header: http.Header{
 			"Cookie": event.MultiValueHeaders["cookie"], // beware the case-sensitivity
