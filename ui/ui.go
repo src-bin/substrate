@@ -38,7 +38,7 @@ func Fatal(args ...interface{}) {
 
 func Fatalf(format string, args ...interface{}) {
 	args = dereference(args)
-	op(opFatal, fmt.Sprintf(format, withCaller(args...)...))
+	op(opFatal, fmt.Sprint(withCaller(fmt.Sprintf(format, args...))...))
 }
 
 func Print(args ...interface{}) {
