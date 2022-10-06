@@ -41,6 +41,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if *domain == "" || *environment == "" || *quality == "" {
 		ui.Fatal(`-domain "..." -environment "..." -quality"..." are required`)
 	}
+	if d := *domain; d == "admin" || d == "deploy" || d == "intranet" || d == "lambda-function" || d == "network" || d == "peering-connection" || d == "substrate" {
+		ui.Fatalf(`-domain %q is reserved; please choose a different name`, d)
+	}
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
 		ui.Fatal(err)
