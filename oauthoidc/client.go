@@ -110,7 +110,6 @@ func (c *Client) IsOkta() bool { return c.provider == Okta }
 // Okta's suggests they rotate keys about every two months. This client is
 // 's expected to run in Lambda so it seems safe to not invalidate.
 func (c *Client) Keys() ([]*Key, error) {
-	defer func(t0 time.Time) { ui.PrintWithCaller(time.Since(t0)) }(time.Now())
 	if c.memoizedKeys != nil {
 		return c.memoizedKeys, nil
 	}
