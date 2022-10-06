@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/oauthoidc"
 )
 
 //go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
@@ -28,7 +29,12 @@ var unlistedPaths = []string{
 	"/login",
 }
 
-func indexHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func indexHandler(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	oc *oauthoidc.Client,
+	event *events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error) {
 
 	var debug string
 	if _, ok := event.QueryStringParameters["debug"]; ok {

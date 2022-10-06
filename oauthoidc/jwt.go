@@ -85,12 +85,11 @@ func (jwt *JWT) Verify(c *Client) error {
 }
 
 func (jwt *JWT) findKey(c *Client) (*Key, error) {
-	// TODO memoize doc.Keys
-	doc := &KeysResponse{}
-	if _, _, err := c.Get(Keys, nil, doc); err != nil {
+	keys, err := c.Keys()
+	if err != nil {
 		return nil, err
 	}
-	for _, key := range doc.Keys {
+	for _, key := range keys {
 		if jwt.Header.KeyID == key.KeyID {
 			return key, nil
 		}

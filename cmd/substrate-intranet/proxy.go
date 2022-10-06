@@ -15,7 +15,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/src-bin/substrate/authorizerutil"
-	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/lambdautil"
 )
 
@@ -30,7 +29,10 @@ func init() {
 	http.DefaultClient.Timeout = 50 * time.Second // shorter than the Lambda function's so errors are visible
 }
 
-func proxy(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func proxy(
+	ctx context.Context,
+	event *events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error) {
 
 	u, err := url.Parse(os.Getenv("PROXY_DESTINATION_URL"))
 	if err != nil {

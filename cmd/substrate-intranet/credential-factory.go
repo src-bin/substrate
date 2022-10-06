@@ -15,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/users"
 )
@@ -74,7 +75,12 @@ func (v *TagValue) String() string {
 	)
 }
 
-func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryHandler(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	oc *oauthoidc.Client,
+	event *events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error) {
 
 	creds, err := awsiam.AllDayCredentials(
 		ctx,
@@ -96,7 +102,12 @@ func credentialFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *ev
 	}, nil
 }
 
-func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryAuthorizeHandler(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	oc *oauthoidc.Client,
+	event *events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error) {
 
 	// Garbage-collect expired tags synchronously, before we try to tag the
 	// user for this run, if we're close to the limit.
@@ -154,7 +165,12 @@ func credentialFactoryAuthorizeHandler(ctx context.Context, cfg *awscfg.Config, 
 	}, nil
 }
 
-func credentialFactoryFetchHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func credentialFactoryFetchHandler(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	oc *oauthoidc.Client,
+	event *events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error) {
 	ctx, _ = context.WithDeadline(ctx, time.Now().Add(28*time.Second)) // API Gateway's maximum wait time is 29 seconds
 
 	// Requests to this endpoint are not authenticated or authorized by API

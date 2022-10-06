@@ -15,13 +15,19 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/roles"
 )
 
 //go:generate go run ../../tools/template/main.go -name accountsTemplate -package main accounts.html
 //go:generate go run ../../tools/template/main.go -name accountsJavaScript -package main accounts.js
 
-func accountsHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func accountsHandler(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	oc *oauthoidc.Client,
+	event *events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error) {
 	var err error
 
 	accountId := event.QueryStringParameters["number"]

@@ -19,6 +19,7 @@ import (
 	"github.com/src-bin/substrate/awsec2"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/lambdautil"
+	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 )
@@ -33,7 +34,12 @@ func init() {
 	handlers["/instance-factory"] = instanceFactoryHandler
 }
 
-func instanceFactoryHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func instanceFactoryHandler(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	oc *oauthoidc.Client,
+	event *events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error) {
 
 	var (
 		instanceType                          awsec2.InstanceType

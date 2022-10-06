@@ -19,27 +19,14 @@ import (
 
 // TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
 
-type Handler func(context.Context, *awscfg.Config, *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error)
+type Handler func(
+	context.Context,
+	*awscfg.Config,
+	*oauthoidc.Client,
+	*events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error)
 
-var (
-	handlers        = map[string]Handler{}
-	oauthoidcClient *oauthoidc.Client
-)
-
-func init() {
-	ctx := contextutil.WithValues(context.Background(), "substrate-intranet", "init", "")
-	var err error
-	oauthoidcClient, err = oauthoidc.NewClient(
-		ctx,
-		awscfg.Must(awscfg.NewConfig(ctx)),
-		os.Getenv(oauthoidc.OAuthOIDCClientID),
-		os.Getenv(oauthoidc.OAuthOIDCClientSecretTimestamp),
-		os.Getenv(oauthoidc.OktaHostname),
-	)
-	if err != nil {
-		ui.PrintWithCaller(err) // panic(err)
-	}
-}
+var handlers = map[string]Handler{}
 
 func main() {
 	const (
@@ -50,8 +37,26 @@ func main() {
 	)
 	functionName := os.Getenv(varName)
 
+	ctx := contextutil.WithValues(context.Background(), "substrate-intranet", "init", "")
+
+	cfg, err := awscfg.NewConfig(ctx)
+	if err != nil {
+		ui.Fatal(err)
+	}
+
+	oc, err := oauthoidc.NewClient(
+		ctx,
+		cfg,
+		os.Getenv(oauthoidc.OAuthOIDCClientID),
+		os.Getenv(oauthoidc.OAuthOIDCClientSecretTimestamp),
+		os.Getenv(oauthoidc.OktaHostname),
+	)
+	if err != nil {
+		ui.Fatal(err)
+	}
+
 	if functionName == IntranetAPIGatewayAuthorizerFunctionName {
-		lambda.Start(authorizer)
+		lambda.Start(authorizer(cfg, oc))
 
 	} else if functionName == IntranetFunctionName {
 		lambda.Start(func(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
@@ -62,13 +67,8 @@ func main() {
 				fmt.Sprint(event.RequestContext.Authorizer[authorizerutil.PrincipalId]),
 			)
 
-			cfg, err := awscfg.NewConfig(ctx)
-			if err != nil {
-				return nil, err
-			}
-
 			if h, ok := handlers[event.Path]; ok {
-				return h(ctx, cfg, event)
+				return h(ctx, cfg, oc, event)
 			}
 
 			go cfg.Telemetry().Post(ctx)

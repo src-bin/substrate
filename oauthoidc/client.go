@@ -24,6 +24,7 @@ type Client struct {
 	AccessToken   string
 	ClientID      string
 	clientSecret  string
+	memoizedKeys  []*Key
 	pathQualifier PathQualifier
 	provider      Provider
 }
@@ -35,6 +36,16 @@ func NewClient(
 	clientSecretTimestamp string, // for finding the real client secret in Secrets Manager
 	hostname string,
 ) (*Client, error) {
+	c := &Client{ClientID: clientID}
+	if hostname == OktaHostnameValueForGoogleIdP {
+		c.pathQualifier = GooglePathQualifier()
+		c.provider = Google
+	} else {
+		c.pathQualifier = OktaPathQualifier(hostname, "default")
+		c.provider = Okta
+	}
+
+	// Getch the client secret from AWS Secrets Manager.
 	clientSecret, err := awssecretsmanager.CachedSecret(
 		ctx,
 		cfg,
@@ -48,18 +59,13 @@ func NewClient(
 	if err != nil {
 		return nil, err
 	}
+	c.clientSecret = clientSecret
 
-	c := &Client{
-		ClientID:     clientID,
-		clientSecret: clientSecret,
+	// Prefetch the public keys for verifying JWT signatures.
+	if _, err := c.Keys(); err != nil {
+		return nil, err
 	}
-	if hostname == OktaHostnameValueForGoogleIdP {
-		c.pathQualifier = GooglePathQualifier()
-		c.provider = Google
-	} else {
-		c.pathQualifier = OktaPathQualifier(hostname, "default")
-		c.provider = Okta
-	}
+
 	return c, nil
 }
 
@@ -85,6 +91,24 @@ func (c *Client) GetURL(u *url.URL, query url.Values, i interface{}) (*http.Resp
 func (c *Client) IsGoogle() bool { return c.provider == Google }
 
 func (c *Client) IsOkta() bool { return c.provider == Okta }
+
+// Keys returns the OAuth OIDC provider's current list of public keys,
+// memoizing the response for the rest of this process's lifetime.
+// Google's Cache-Control header suggests they rotate keys every few hours;
+// Okta's suggests they rotate keys about every two months. This client is
+// 's expected to run in Lambda so it seems safe to not invalidate.
+func (c *Client) Keys() ([]*Key, error) {
+	defer func(t0 time.Time) { ui.PrintWithCaller(time.Since(t0)) }(time.Now())
+	if c.memoizedKeys != nil {
+		return c.memoizedKeys, nil
+	}
+	doc := &KeysResponse{}
+	if _, _, err := c.Get(Keys, nil, doc); err != nil {
+		return nil, err
+	}
+	c.memoizedKeys = doc.Keys
+	return c.memoizedKeys, nil
+}
 
 // Post requests the given path with the given body (form-encoded) from the
 // client's host and unmarshals the JSON response body into the given

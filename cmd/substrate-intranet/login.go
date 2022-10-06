@@ -44,7 +44,12 @@ func init() {
 	handlers["/login"] = loginHandler
 }
 
-func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+func loginHandler(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	oc *oauthoidc.Client,
+	event *events.APIGatewayProxyRequest,
+) (*events.APIGatewayProxyResponse, error) {
 
 	// TODO logout per <https://developer.okta.com/docs/reference/api/oidc/#logout>
 
@@ -65,12 +70,12 @@ func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 		v.Add("grant_type", "authorization_code")
 		v.Add("redirect_uri", redirectURI.String())
 		doc := &oauthoidc.TokenResponse{}
-		resp, tokenBody, err := oauthoidcClient.Post(oauthoidc.Token, v, doc)
+		resp, tokenBody, err := oc.Post(oauthoidc.Token, v, doc)
 		if err != nil {
 			return errorResponse(err, resp, tokenBody, doc), nil
 		}
 		idToken := &oauthoidc.IDToken{}
-		if _, err := oauthoidc.ParseAndVerifyJWT(doc.IDToken, oauthoidcClient, idToken); err != nil {
+		if _, err := oauthoidc.ParseAndVerifyJWT(doc.IDToken, oc, idToken); err != nil {
 			return errorResponse(err, resp, tokenBody, doc), nil
 		}
 		if idToken.Nonce != state.Nonce {
@@ -112,7 +117,7 @@ func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 	}
 
 	q := url.Values{}
-	q.Add("client_id", oauthoidcClient.ClientID)
+	q.Add("client_id", oc.ClientID)
 	nonce, err := oauthoidc.Nonce()
 	if err != nil {
 		return nil, err
@@ -121,7 +126,7 @@ func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 	q.Add("redirect_uri", redirectURI.String())
 	q.Add("response_type", "code")
 	scope := "openid email profile"
-	if oauthoidcClient.IsGoogle() {
+	if oc.IsGoogle() {
 		scope += " https://www.googleapis.com/auth/admin.directory.user.readonly"
 	}
 	q.Add("scope", scope)
@@ -135,7 +140,7 @@ func loginHandler(ctx context.Context, cfg *awscfg.Config, event *events.APIGate
 	bodyV.ErrorDescription = event.QueryStringParameters["error_description"]
 	headers := map[string]string{"Content-Type": "text/html"}
 	statusCode := http.StatusOK
-	bodyV.Location = oauthoidcClient.URL(oauthoidc.Authorize, q).String()
+	bodyV.Location = oc.URL(oauthoidc.Authorize, q).String()
 	if bodyV.ErrorDescription == "" {
 		headers["Location"] = bodyV.Location
 		statusCode = http.StatusFound
