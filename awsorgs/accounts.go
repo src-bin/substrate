@@ -108,16 +108,20 @@ func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account,
 				continue
 			}
 
-			tags, err := listTagsForResource(ctx, cfg, aws.ToString(account.Id))
-			if err != nil {
-				return nil, err
-			}
-			accounts = append(accounts, &Account{Account: account, Tags: tags})
+			accounts = append(accounts, &Account{Account: account})
 		}
 		if nextToken = out.NextToken; nextToken == nil {
 			break
 		}
 	}
+
+	for i := 0; i < len(accounts); i++ {
+		accounts[i].Tags, err = listTagsForResource(ctx, cfg, aws.ToString(accounts[i].Id))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	memoizedAccounts = accounts
 	return
 }
