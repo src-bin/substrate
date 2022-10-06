@@ -115,9 +115,16 @@ func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account,
 		}
 	}
 
+	ch := make(chan error, len(accounts))
 	for i := 0; i < len(accounts); i++ {
-		accounts[i].Tags, err = listTagsForResource(ctx, cfg, aws.ToString(accounts[i].Id))
-		if err != nil {
+		go func(i int) {
+			var err error
+			accounts[i].Tags, err = listTagsForResource(ctx, cfg, aws.ToString(accounts[i].Id))
+			ch <- err
+		}(i) // pass i so goroutines don't all refer to the same address
+	}
+	for i := 0; i < len(accounts); i++ {
+		if err = <-ch; err != nil {
 			return nil, err
 		}
 	}
