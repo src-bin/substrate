@@ -45,26 +45,38 @@ func NewClient(
 		c.provider = Okta
 	}
 
+	chErr := make(chan error) // the first philosopher to dine
+	chClientSecret := make(chan string)
+
 	// Getch the client secret from AWS Secrets Manager.
-	clientSecret, err := awssecretsmanager.CachedSecret(
-		ctx,
-		cfg,
-		fmt.Sprintf(
-			"%s-%s",
-			OAuthOIDCClientSecret,
-			clientID,
-		),
-		clientSecretTimestamp,
-	)
-	if err != nil {
-		return nil, err
-	}
-	c.clientSecret = clientSecret
+	go func() {
+		clientSecret, err := awssecretsmanager.CachedSecret(
+			ctx,
+			cfg,
+			fmt.Sprintf(
+				"%s-%s",
+				OAuthOIDCClientSecret,
+				clientID,
+			),
+			clientSecretTimestamp,
+		)
+		chErr <- err // serve the first philosopher first
+		chClientSecret <- clientSecret
+	}()
 
 	// Prefetch the public keys for verifying JWT signatures.
-	if _, err := c.Keys(); err != nil {
+	go func() {
+		_, err := c.Keys()
+		chErr <- err
+	}()
+
+	if err := <-chErr; err != nil { // once for fetching clientSecret...
 		return nil, err
 	}
+	if err := <-chErr; err != nil { // ...and once for prefetching keys
+		return nil, err
+	}
+	c.clientSecret = <-chClientSecret // no error so guaranteed to receive
 
 	return c, nil
 }
