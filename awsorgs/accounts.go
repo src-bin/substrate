@@ -87,6 +87,9 @@ func EnsureSpecialAccount(
 }
 
 func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account, err error) {
+	if memoizedAccounts != nil {
+		return memoizedAccounts, nil
+	}
 	client := cfg.Organizations()
 	var nextToken *string
 	for {
@@ -115,6 +118,7 @@ func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account,
 			break
 		}
 	}
+	memoizedAccounts = accounts
 	return
 }
 
@@ -318,3 +322,5 @@ func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId stri
 	}
 	return tags, nil
 }
+
+var memoizedAccounts []*Account
