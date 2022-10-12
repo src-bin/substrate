@@ -20,6 +20,8 @@ import (
 const (
 	ConstraintViolationException    = "ConstraintViolationException"
 	FinalizingOrganizationException = "FinalizingOrganizationException"
+
+	MemoizedAccountsTTL = time.Hour
 )
 
 type Account = awscfg.Account
@@ -87,7 +89,7 @@ func EnsureSpecialAccount(
 }
 
 func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account, err error) {
-	if memoizedAccounts != nil {
+	if memoizedAccounts != nil && memoizedAccountsExpiry.After(time.Now()) {
 		return memoizedAccounts, nil
 	}
 	client := cfg.Organizations()
@@ -130,6 +132,7 @@ func ListAccounts(ctx context.Context, cfg *awscfg.Config) (accounts []*Account,
 	}
 
 	memoizedAccounts = accounts
+	memoizedAccountsExpiry = time.Now().Add(MemoizedAccountsTTL)
 	return
 }
 
@@ -334,4 +337,7 @@ func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId stri
 	return tags, nil
 }
 
-var memoizedAccounts []*Account
+var (
+	memoizedAccounts       []*Account
+	memoizedAccountsExpiry time.Time
+)
