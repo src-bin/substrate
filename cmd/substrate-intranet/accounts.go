@@ -47,7 +47,7 @@ func accountsHandler(
 			return lambdautil.ErrorResponse(err)
 		}
 
-		roleArn := roles.Arn(accountId, roleName)
+		roleArn := roles.ARN(accountId, roleName)
 		cfg.Telemetry().SetFinalAccountId(accountId)
 		cfg.Telemetry().SetFinalRoleName(roleArn)
 		if cfg, err = cfg.AssumeRole(

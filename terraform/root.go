@@ -130,7 +130,7 @@ func terraformBackend(
 		DynamoDBTable: DynamoDBTableName,
 		Key:           filepath.Join(dirname, "terraform.tfstate"),
 		Region:        region,
-		RoleArn: roles.Arn(
+		RoleArn: roles.ARN(
 			aws.ToString(cfg.MustGetCallerIdentity(ctx).Account),
 			roles.TerraformStateManager,
 		),

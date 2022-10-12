@@ -319,14 +319,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			// The default provider for building out networks in this root module.
 			providersFile.Add(terraform.ProviderFor(
 				region,
-				roles.Arn(accountId, roles.NetworkAdministrator),
+				roles.ARN(accountId, roles.NetworkAdministrator),
 			))
 
 			// A provider for the substrate module to use, if for some reason it's
 			// desired in this context.
 			providersFile.Add(terraform.NetworkProviderFor(
 				region,
-				roles.Arn(accountId, roles.Auditor),
+				roles.ARN(accountId, roles.Auditor),
 			))
 			if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 				ui.Fatal(err)
@@ -417,13 +417,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		providersFile := terraform.NewFile()
 		accepterProvider := terraform.ProviderFor(
 			region1,
-			roles.Arn(accountId, roles.NetworkAdministrator),
+			roles.ARN(accountId, roles.NetworkAdministrator),
 		)
 		accepterProvider.Alias = "accepter"
 		providersFile.Add(accepterProvider)
 		requesterProvider := terraform.ProviderFor(
 			region0,
-			roles.Arn(accountId, roles.NetworkAdministrator),
+			roles.ARN(accountId, roles.NetworkAdministrator),
 		)
 		requesterProvider.Alias = "requester"
 		providersFile.Add(requesterProvider)

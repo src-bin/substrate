@@ -374,10 +374,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
 			region,
-			roles.Arn(aws.ToString(account.Id), roles.Administrator),
+			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
 		providersFile.Add(terraform.UsEast1Provider(
-			roles.Arn(aws.ToString(account.Id), roles.Administrator),
+			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			ui.Fatal(err)
@@ -439,7 +439,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
 			region,
-			roles.Arn(aws.ToString(account.Id), roles.Administrator),
+			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
 		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
 		if err != nil {
@@ -447,7 +447,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
-			roles.Arn(aws.ToString(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
+			roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			ui.Fatal(err)
@@ -489,7 +489,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				)).Regional(region),
 				fmt.Sprintf("%s-%s", oauthoidc.OAuthOIDCClientSecret, clientId),
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
-					roles.Arn(aws.ToString(account.Id), roles.Intranet), // must match intranet/global/main.tf
+					roles.ARN(aws.ToString(account.Id), roles.Intranet), // must match intranet/global/main.tf
 				}}),
 				clientSecretTimestamp,
 				clientSecret,
@@ -558,7 +558,7 @@ func ensureAdministrator(
 	assumeRolePolicyDocument := policies.Merge(
 		canned.AdminRolePrincipals, // must be at index 0
 		policies.AssumeRolePolicyDocument(&policies.Principal{
-			AWS: []string{users.Arn(
+			AWS: []string{users.ARN(
 				aws.ToString(account.Id),
 				users.CredentialFactory,
 			)},

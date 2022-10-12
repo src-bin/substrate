@@ -319,15 +319,15 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		if account.Tags[tagging.SubstrateSpecialAccount] != "" {
 			switch account.Tags[tagging.SubstrateSpecialAccount] {
 			case accounts.Deploy:
-				terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.ToString(account.Id), roles.DeployAdministrator))
+				terraformPrincipals = append(terraformPrincipals, roles.ARN(aws.ToString(account.Id), roles.DeployAdministrator))
 			case accounts.Management:
 				terraformPrincipals = append(
 					terraformPrincipals,
-					roles.Arn(aws.ToString(account.Id), roles.OrganizationAdministrator),
-					users.Arn(aws.ToString(account.Id), users.OrganizationAdministrator),
+					roles.ARN(aws.ToString(account.Id), roles.OrganizationAdministrator),
+					users.ARN(aws.ToString(account.Id), users.OrganizationAdministrator),
 				)
 			case accounts.Network:
-				terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.ToString(account.Id), roles.NetworkAdministrator))
+				terraformPrincipals = append(terraformPrincipals, roles.ARN(aws.ToString(account.Id), roles.NetworkAdministrator))
 			}
 			continue
 		}
@@ -335,7 +335,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		// Every other Substrate-managed account uses the role name
 		// "Administrator" and uses it to run Terraform.
 		if account.Tags[tagging.Domain] != "" {
-			terraformPrincipals = append(terraformPrincipals, roles.Arn(aws.ToString(account.Id), roles.Administrator))
+			terraformPrincipals = append(terraformPrincipals, roles.ARN(aws.ToString(account.Id), roles.Administrator))
 		}
 
 		// But the Administrator role in admin accounts is created during IdP
@@ -588,34 +588,34 @@ func cannedPrincipals(ctx context.Context, cfg *awscfg.Config, bootstrapping boo
 		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
 		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
 		for i, account := range adminAccounts {
-			canned.AdminRolePrincipals.AWS[i] = roles.Arn(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*2] = roles.Arn(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*2+1] = roles.Arn(aws.ToString(account.Id), roles.Auditor)
+			canned.AdminRolePrincipals.AWS[i] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*2] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*2+1] = roles.ARN(aws.ToString(account.Id), roles.Auditor)
 		}
 	} else {
 		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)}   // *2 for Administrator AND Intranet; +2 for the management account and its IAM user
 		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)} // *3 for Administrator AND Auditor AND Intranet; +2 for the management account and its IAM user
 		for i, account := range adminAccounts {
-			canned.AdminRolePrincipals.AWS[i*2] = roles.Arn(aws.ToString(account.Id), roles.Administrator)
-			canned.AdminRolePrincipals.AWS[i*2+1] = roles.Arn(aws.ToString(account.Id), roles.Intranet)
-			canned.AuditorRolePrincipals.AWS[i*3] = roles.Arn(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*3+1] = roles.Arn(aws.ToString(account.Id), roles.Auditor)
-			canned.AuditorRolePrincipals.AWS[i*3+2] = roles.Arn(aws.ToString(account.Id), roles.Intranet)
+			canned.AdminRolePrincipals.AWS[i*2] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
+			canned.AdminRolePrincipals.AWS[i*2+1] = roles.ARN(aws.ToString(account.Id), roles.Intranet)
+			canned.AuditorRolePrincipals.AWS[i*3] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*3+1] = roles.ARN(aws.ToString(account.Id), roles.Auditor)
+			canned.AuditorRolePrincipals.AWS[i*3+2] = roles.ARN(aws.ToString(account.Id), roles.Intranet)
 		}
 	}
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = roles.Arn(
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = roles.ARN(
 		aws.ToString(org.MasterAccountId),
 		roles.OrganizationAdministrator,
 	)
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.Arn(
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.ARN(
 		aws.ToString(org.MasterAccountId),
 		users.OrganizationAdministrator,
 	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = roles.Arn(
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = roles.ARN(
 		aws.ToString(org.MasterAccountId),
 		roles.OrganizationAdministrator,
 	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.Arn(
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.ARN(
 		aws.ToString(org.MasterAccountId),
 		users.OrganizationAdministrator,
 	)

@@ -19,21 +19,21 @@ const (
 	TerraformStateManager         = "TerraformStateManager"
 )
 
-func Arn(accountId, roleName string) string {
+func ARN(accountId, roleName string) string {
 	return fmt.Sprintf("arn:aws:iam::%s:role/%s", accountId, roleName)
 }
 
-type ArnError string
+type ARNError string
 
-func (err ArnError) Error() string {
+func (err ARNError) Error() string {
 	return fmt.Sprintf(
-		"ArnError: %s isn't an anticipated format for an AWS IAM role ARN",
+		"ARNError: %s isn't an anticipated format for an AWS IAM role ARN",
 		string(err),
 	)
 }
 
-func Name(roleArn string) (string, error) {
-	parsed, err := arn.Parse(roleArn)
+func Name(roleARN string) (string, error) {
+	parsed, err := arn.Parse(roleARN)
 	if err != nil {
 		return "", err
 	}
@@ -53,5 +53,5 @@ func Name(roleArn string) (string, error) {
 		}
 	}
 
-	return "", ArnError(roleArn)
+	return "", ARNError(roleARN)
 }

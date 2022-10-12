@@ -134,7 +134,7 @@ func (c *Config) AssumeRole(
 
 	cfg.cfg.Credentials = aws.NewCredentialsCache(stscreds.NewAssumeRoleProvider(
 		c.STS(),
-		roles.Arn(accountId, roleName),
+		roles.ARN(accountId, roleName),
 		func(options *stscreds.AssumeRoleOptions) {
 			options.Duration = duration
 			options.RoleSessionName = roleSessionName

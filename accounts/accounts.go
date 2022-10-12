@@ -61,25 +61,25 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[3][0] = Audit
 	specialAccountsCells[3][1] = aws.ToString(auditAccount.Id)
 	specialAccountsCells[3][2] = roles.Auditor
-	specialAccountsCells[3][3] = roles.Arn(aws.ToString(auditAccount.Id), roles.Auditor)
+	specialAccountsCells[3][3] = roles.ARN(aws.ToString(auditAccount.Id), roles.Auditor)
 	specialAccountsCells[3][4] = aws.ToString(auditAccount.Email)
 
 	specialAccountsCells[4][0] = Deploy
 	specialAccountsCells[4][1] = aws.ToString(deployAccount.Id)
 	specialAccountsCells[4][2] = roles.DeployAdministrator
-	specialAccountsCells[4][3] = roles.Arn(aws.ToString(deployAccount.Id), roles.DeployAdministrator)
+	specialAccountsCells[4][3] = roles.ARN(aws.ToString(deployAccount.Id), roles.DeployAdministrator)
 	specialAccountsCells[4][4] = aws.ToString(deployAccount.Email)
 
 	specialAccountsCells[1][0] = Management
 	specialAccountsCells[1][1] = aws.ToString(managementAccount.Id)
 	specialAccountsCells[1][2] = roles.OrganizationAdministrator
-	specialAccountsCells[1][3] = roles.Arn(aws.ToString(managementAccount.Id), roles.OrganizationAdministrator)
+	specialAccountsCells[1][3] = roles.ARN(aws.ToString(managementAccount.Id), roles.OrganizationAdministrator)
 	specialAccountsCells[1][4] = aws.ToString(managementAccount.Email)
 
 	specialAccountsCells[5][0] = Network
 	specialAccountsCells[5][1] = aws.ToString(networkAccount.Id)
 	specialAccountsCells[5][2] = roles.NetworkAdministrator
-	specialAccountsCells[5][3] = roles.Arn(aws.ToString(networkAccount.Id), roles.NetworkAdministrator)
+	specialAccountsCells[5][3] = roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator)
 	specialAccountsCells[5][4] = aws.ToString(networkAccount.Email)
 
 	for _, account := range adminAccounts {
@@ -87,7 +87,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			account.Tags[tagging.Quality],
 			aws.ToString(account.Id),
 			roles.Administrator,
-			roles.Arn(aws.ToString(account.Id), roles.Administrator),
+			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 			aws.ToString(account.Email),
 		})
 	}
@@ -99,7 +99,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			account.Tags[tagging.Quality],
 			aws.ToString(account.Id),
 			roles.Administrator,
-			roles.Arn(aws.ToString(account.Id), roles.Administrator),
+			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 			aws.ToString(account.Email),
 		})
 	}

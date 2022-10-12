@@ -86,10 +86,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
 			region,
-			roles.Arn(accountId, roles.DeployAdministrator),
+			roles.ARN(accountId, roles.DeployAdministrator),
 		))
 		providersFile.Add(terraform.UsEast1Provider(
-			roles.Arn(accountId, roles.DeployAdministrator),
+			roles.ARN(accountId, roles.DeployAdministrator),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			ui.Fatal(err)
@@ -182,7 +182,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
 			region,
-			roles.Arn(accountId, roles.DeployAdministrator),
+			roles.ARN(accountId, roles.DeployAdministrator),
 		))
 		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
 		if err != nil {
@@ -190,7 +190,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
-			roles.Arn(aws.ToString(networkAccount.Id), roles.Auditor),
+			roles.ARN(aws.ToString(networkAccount.Id), roles.Auditor),
 		))
 		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
 			ui.Fatal(err)
