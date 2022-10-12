@@ -100,11 +100,14 @@ func (c *Config) AssumeRole(
 		return nil, err
 	}
 	callerRoleName, err := roles.Name(aws.ToString(callerIdentity.Arn))
-	if err != nil {
-		return nil, err
-	}
-	if aws.ToString(callerIdentity.Account) == accountId && callerRoleName == roleName {
-		return c, nil
+	if err == nil {
+		if aws.ToString(callerIdentity.Account) == accountId && callerRoleName == roleName {
+			return c, nil
+		}
+	} else if err != nil {
+		if _, ok := err.(roles.ARNError); !ok {
+			return nil, err
+		}
 	}
 
 	roleSessionName := contextutil.ValueString(ctx, telemetry.Username)
