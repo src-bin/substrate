@@ -231,6 +231,10 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 	// Ensure all admin accounts and the management account can administer the
 	// deploy and network accounts.
 	ui.Spin("finding or creating a role to allow admin accounts to administer your deploy artifacts")
+	deployAccount, err := cfg.FindSpecialAccount(ctx, accounts.Deploy)
+	if err != nil {
+		ui.Fatal(err)
+	}
 	deployCfg := awscfg.Must(cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Deploy,
@@ -241,7 +245,21 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		ctx,
 		deployCfg,
 		roles.DeployAdministrator,
-		canned.AdminRolePrincipals,
+
+		// Ensure this role complies with the new, stricter rules for IAM roles
+		// that may assume themselves. This goes belt-and-suspenders with not
+		// actually assuming a role if we already have.
+		// <https://aws.amazon.com/blogs/security/announcing-an-update-to-iam-role-trust-policy-behavior/>
+		policies.Merge(
+			canned.AdminRolePrincipals,
+			policies.AssumeRolePolicyDocument(
+				&policies.Principal{AWS: []string{roles.ARN(
+					aws.ToString(deployAccount.Id),
+					roles.DeployAdministrator,
+				)}},
+			),
+		),
+
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
@@ -266,6 +284,10 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 	ui.Stopf("role %s", role.Name)
 	//log.Printf("%+v", role)
 	ui.Spin("finding or creating a role to allow admin accounts to administer your networks")
+	networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
+	if err != nil {
+		ui.Fatal(err)
+	}
 	networkCfg := awscfg.Must(cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Network,
@@ -276,7 +298,21 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 		ctx,
 		networkCfg,
 		roles.NetworkAdministrator,
-		canned.AdminRolePrincipals,
+
+		// Ensure this role complies with the new, stricter rules for IAM roles
+		// that may assume themselves. This goes belt-and-suspenders with not
+		// actually assuming a role if we already have.
+		// <https://aws.amazon.com/blogs/security/announcing-an-update-to-iam-role-trust-policy-behavior/>
+		policies.Merge(
+			canned.AdminRolePrincipals,
+			policies.AssumeRolePolicyDocument(
+				&policies.Principal{AWS: []string{roles.ARN(
+					aws.ToString(networkAccount.Id),
+					roles.NetworkAdministrator,
+				)}},
+			),
+		),
+
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action:   []string{"*"},
