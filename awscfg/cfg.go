@@ -187,9 +187,9 @@ func defaultLoadOptions() []func(*config.LoadOptions) error {
 	options := []func(*config.LoadOptions) error{
 		//config.WithClientLogMode(aws.LogRequestWithBody | aws.LogResponseWithBody | aws.LogRetries),
 		config.WithRetryMaxAttempts(10), // 0 to debug whether retries are causing timeouts
-		config.WithSharedConfigFiles(nil),
+		config.WithSharedConfigFiles([]string{}),
 		config.WithSharedConfigProfile(""),
-		config.WithSharedCredentialsFiles(nil),
+		config.WithSharedCredentialsFiles([]string{}),
 	}
 	if region, err := regions.DefaultNoninteractive(); err == nil {
 		options = append(options, config.WithRegion(region))
