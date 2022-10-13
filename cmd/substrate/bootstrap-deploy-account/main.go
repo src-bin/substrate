@@ -219,6 +219,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	ui.Print("next, commit the following files to version control:")
 	ui.Print("")
+	ui.Print("modules/deploy/")
 	ui.Print("root-modules/deploy/")
 	ui.Print("")
 	ui.Print("then, run `substrate create-admin-account`")
