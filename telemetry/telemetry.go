@@ -44,6 +44,7 @@ type Event struct {
 	Version                          string
 	InitialAccountId, FinalAccountId string // avoid disclosing domain, environment, and quality
 	EmailDomainName                  string // avoid PII in local portion
+	Prefix                           string
 	InitialRoleName, FinalRoleName   string // "Administrator", "Auditor", or "Other" (avoid disclosing custom role names)
 	IsEC2                            bool
 	Format                           string        `json:",omitempty"` // -format, if applicable
@@ -57,6 +58,7 @@ func NewEvent(ctx context.Context) (*Event, error) {
 		Command:    contextutil.ValueString(ctx, Command),
 		Subcommand: contextutil.ValueString(ctx, Subcommand),
 		Version:    version.Version,
+		Prefix:     prefix(),
 		//Format // TODO when cmdutil.SerializationFormat.Set is called
 		wait: make(chan struct{}),
 	}
@@ -173,6 +175,18 @@ func (e *Event) Wait(ctx context.Context) error {
 	case <-e.wait:
 	}
 	return nil
+}
+
+func prefix() string {
+	pathname, err := fileutil.PathnameInParents(naming.PrefixFilename)
+	if err != nil {
+		return ""
+	}
+	b, err := fileutil.ReadFile(pathname)
+	if err != nil {
+		return ""
+	}
+	return strings.Trim(string(b), "\r\n")
 }
 
 func roleNameFromArn(roleArn string) (string, error) {
