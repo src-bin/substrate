@@ -7,7 +7,6 @@ func TestMerge(t *testing.T) {
 		AssumeRolePolicyDocument(&Principal{AWS: []string{"123456789012"}}),
 		AssumeRolePolicyDocument(&Principal{Service: []string{"ec2.amazonaws.com"}}),
 	)
-	t.Log(doc)
 	if len(doc.Statement) != 2 {
 		t.Fatal(doc)
 	}
