@@ -41,7 +41,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if *domain == "" || *environment == "" || *quality == "" {
 		ui.Fatal(`-domain "..." -environment "..." -quality"..." are required`)
 	}
-	if d := *domain; d == "admin" || d == "deploy" || d == "intranet" || d == "lambda-function" || d == "network" || d == "peering-connection" || d == "substrate" {
+	if d := *domain; d == "admin" || d == "common" || d == "deploy" || d == "intranet" || d == "lambda-function" || d == "network" || d == "peering-connection" || d == "substrate" {
 		ui.Fatalf(`-domain %q is reserved; please choose a different name`, d)
 	}
 	veqpDoc, err := veqp.ReadDocument()
@@ -234,6 +234,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Print("")
 	ui.Print("substrate.*")
 	ui.Printf("modules/%s/", *domain)
+	ui.Print("modules/common/")
 	ui.Print("modules/substrate/")
 	ui.Printf("root-modules/%s/%s/%s/", *domain, *environment, *quality)
 	ui.Print("")

@@ -6,6 +6,8 @@ import (
 )
 
 const (
+	Common = "common"
+
 	EnvironmentsFilename = "substrate.environments"
 	QualitiesFilename    = "substrate.qualities"
 
