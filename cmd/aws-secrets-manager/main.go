@@ -9,6 +9,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
@@ -76,7 +77,7 @@ func main() {
 				ui.Printf("%s in %s: %s", *name, region, err)
 				continue
 			}
-			ui.Printf("%+v", out)
+			ui.Print(jsonutil.MustString(out))
 
 		} else if len(*principals) > 0 {
 
@@ -91,7 +92,7 @@ func main() {
 				ui.Printf("%s in %s: %s", *name, region, err)
 				continue
 			}
-			ui.Printf("%+v", out)
+			ui.Print(jsonutil.MustString(out))
 
 		} else {
 
@@ -101,7 +102,7 @@ func main() {
 				ui.Printf("%s in %s: %s", *name, region, err)
 				continue
 			}
-			ui.Printf("%+v", out)
+			ui.Print(jsonutil.MustString(out))
 
 		}
 		goodRegions = append(goodRegions, region)
