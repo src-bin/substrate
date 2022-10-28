@@ -23,7 +23,8 @@ clean:
 	find -name \*.template.go -delete
 	find -name \*.tf.go -delete
 	find terraform -name \*-global.go -o -name \*-regional.go -delete
-	rm -f cmd/substrate-create-admin-account/substrate-intranet*
+	rm -f cmd/substrate/create-admin-account/bootstrap
+	rm -f cmd/substrate/create-admin-account/substrate-intranet.zip
 	rm -f -r substrate-*-*-*
 	rm -f substrate-*-*-*.tar.gz
 	rm -f terraform/peering-connection.go

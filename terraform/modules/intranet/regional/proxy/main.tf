@@ -7,7 +7,6 @@ module "intranet-proxy" {
   }
   filename           = "${path.module}/../substrate-intranet.zip"
   name               = "IntranetProxy-${var.proxy_path_prefix}"
-  progname           = "substrate-intranet"
   role_arn           = var.lambda_role_arn
   security_group_ids = var.security_group_ids
   subnet_ids         = var.subnet_ids

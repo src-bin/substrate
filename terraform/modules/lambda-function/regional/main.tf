@@ -4,7 +4,8 @@ resource "aws_cloudwatch_log_group" "lambda" {
 }
 
 resource "aws_lambda_function" "function" {
-  depends_on = [aws_cloudwatch_log_group.lambda]
+  architectures = ["arm64"]
+  depends_on    = [aws_cloudwatch_log_group.lambda]
   environment {
     variables = merge(
       { "PREVENT_EMPTY_ENVIRONMENT" = "lambda:CreateFunction fails when given an empty Environment" },
@@ -13,10 +14,10 @@ resource "aws_lambda_function" "function" {
   }
   filename         = var.filename
   function_name    = var.name
-  handler          = var.progname != "" ? var.progname : var.name
+  handler          = "bootstrap"
   memory_size      = 128 # default
   role             = var.role_arn
-  runtime          = "go1.x"
+  runtime          = "provided.al2"
   source_code_hash = filebase64sha256(var.filename)
   tags = {
     Name = var.name

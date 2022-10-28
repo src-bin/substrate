@@ -45,7 +45,6 @@ module "intranet-apigateway-authorizer" {
   }
   filename = local.filename
   name     = "IntranetAPIGatewayAuthorizer"
-  progname = "substrate-intranet"
   role_arn = data.aws_iam_role.intranet-apigateway-authorizer.arn
   source   = "../../lambda-function/regional"
 }
@@ -60,7 +59,6 @@ module "intranet" {
   }
   filename = local.filename
   name     = "Intranet"
-  progname = "substrate-intranet"
   role_arn = data.aws_iam_role.intranet.arn
   source   = "../../lambda-function/regional"
 }
