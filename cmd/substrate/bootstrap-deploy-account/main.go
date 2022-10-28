@@ -137,7 +137,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				},
 				policies.Statement{
 					Principal: &policies.Principal{AWS: []string{"*"}},
-					Action:    []string{"s3:GetObject", "s3:ListBucket"},
+					Action: []string{
+						"s3:GetBucketLocation",
+						"s3:GetObject*",
+						"s3:ListBucket*",
+					},
 					Resource: []string{
 						fmt.Sprintf("arn:aws:s3:::%s", name),
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
@@ -148,7 +152,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				},
 				policies.Statement{
 					Principal: &policies.Principal{AWS: []string{"*"}},
-					Action:    []string{"s3:PutObject", "s3:PutObjectAcl"},
+					Action:    []string{"s3:PutObject*"},
 					Resource: []string{
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
