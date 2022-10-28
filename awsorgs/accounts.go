@@ -2,6 +2,7 @@ package awsorgs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -191,7 +192,8 @@ func createAccount(
 
 		// If we're at the organization's limit on the number of AWS accounts
 		// it can contain, raise the limit and retry.
-		if cveErr, ok := err.(*types.ConstraintViolationException); ok && cveErr.Reason == types.ConstraintViolationExceptionReasonAccountNumberLimitExceeded {
+		var cveErr *types.ConstraintViolationException
+		if errors.As(err, &cveErr) && cveErr.Reason == types.ConstraintViolationExceptionReasonAccountNumberLimitExceeded {
 			accounts, err := ListAccounts(ctx, cfg)
 			if err != nil {
 				return nil, err
