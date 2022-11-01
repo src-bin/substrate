@@ -387,12 +387,12 @@ resource "aws_api_gateway_rest_api" "intranet" {
 
 resource "aws_cloudwatch_log_group" "apigateway" {
   name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.intranet.id}/${var.stage_name}"
-  retention_in_days = 1
+  retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "apigateway-welcome" {
   name              = "/aws/apigateway/welcome"
-  retention_in_days = 1
+  retention_in_days = 7
 }
 
 resource "aws_route53_record" "intranet" {
