@@ -27,7 +27,6 @@ func init() {
 }
 
 func main() {
-	name := flag.String("name", "dispatchMap", "function (or, with -receiver-type, method) name")
 	out := flag.String("o", "dispatch-map.go", "filename where generated Go code will be written (defaults to \"dispatch-map.go\")")
 	pkg := flag.String("package", "main", "package name for the generated Go code (defaults to \"main\")")
 	flag.Parse()
@@ -125,7 +124,7 @@ func main() {
 			fmt.Fprintf(b, "\t\"%s/%s\"\n", pkgPath, dirname)
 		}
 	}
-	fmt.Fprintf(b, ")\n\nvar %s = map[string]func(%s){\n", *name, strings.Join(params, ", "))
+	fmt.Fprintf(b, ")\n\nvar dispatchMap = map[string]func(%s){\n", strings.Join(params, ", "))
 	for _, dirname := range dirnames {
 
 		// Turn camelCase and snake_case into dash-case for the command-line argument.
