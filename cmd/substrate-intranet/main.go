@@ -66,11 +66,11 @@ func main() {
 				fmt.Sprint(event.RequestContext.Authorizer[authorizerutil.PrincipalId]),
 			)
 
+			defer func() { go cfg.Telemetry().Post(ctx) }()
+
 			if h, ok := handlers[event.Path]; ok {
 				return h(ctx, cfg, oc, event)
 			}
-
-			go cfg.Telemetry().Post(ctx)
 
 			return &events.APIGatewayProxyResponse{
 				Body:       "404 Not Found\n",
