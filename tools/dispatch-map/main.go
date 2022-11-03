@@ -104,7 +104,6 @@ func main() {
 				}
 			}
 		}
-
 	}
 
 	// Generate and format Go code that declares the dispatch map. Rewrite

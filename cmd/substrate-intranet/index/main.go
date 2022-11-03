@@ -1,4 +1,4 @@
-package main
+package index
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/src-bin/substrate/oauthoidc"
 )
 
-//go:generate go run ../../tools/template/main.go -name indexTemplate -package main index.html
+//go:generate go run ../../../tools/template/main.go -name indexTemplate index.html
 
 // unlistedPaths are specific complete paths that are not worth listing in the
 // index. There are also patterns that are made unlisted below.
@@ -30,7 +30,7 @@ var unlistedPaths = []string{
 	"/login",
 }
 
-func indexHandler(
+func Main(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	oc *oauthoidc.Client,
@@ -89,5 +89,4 @@ func indexHandler(
 
 func init() {
 	sort.Strings(unlistedPaths)
-	handlers["/"] = indexHandler
 }
