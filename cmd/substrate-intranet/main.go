@@ -16,7 +16,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-// TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
+//go:generate go run ../../tools/dispatch-map/main.go .
 
 type Handler func(
 	context.Context,
