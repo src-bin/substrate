@@ -1,7 +1,6 @@
 package regions
 
 import (
-	"log"
 	"sort"
 
 	"github.com/src-bin/substrate/fileutil"
@@ -23,7 +22,7 @@ var printedDefaultRegion bool
 // ourselves. Regenerate the list by running this command someplace with
 // AWS credentials in the environment:
 //
-//     { printf "package regions\n\nvar allRegions = []string{\n"; aws ec2 describe-regions --region "us-west-2" | jq -e ".Regions[].RegionName" | sort | sed 's/^.*$/\t&,/'; printf "}\n"; } >"../substrate/regions/all.go"
+//	{ printf "package regions\n\n// managed as instructed in regions.go; do not edit\n\nvar allRegions = []string{\n"; aws ec2 describe-regions --all-regions --region "us-west-2" | jq -e ".Regions[].RegionName" | sort | sed 's/^.*$/\t&,/'; printf "}\n"; } >"../substrate/regions/all.go"
 //
 // I wish there was a good way to regenerate this on every build but, since
 // it requires AWS credentials and nothing else about building Substrate does,
@@ -122,7 +121,7 @@ func Select() ([]string, error) {
 func Selected() []string {
 	b, err := fileutil.ReadFile(RegionsFilename)
 	if err != nil {
-		log.Fatal(err)
+		ui.Fatal(err)
 	}
 	ss := fileutil.ToLines(b)
 	sort.Strings(ss)
