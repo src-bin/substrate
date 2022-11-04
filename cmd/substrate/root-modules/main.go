@@ -15,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -32,6 +33,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
+	versionutil.WarnDowngrade(ctx, cfg)
 	adminAccounts, serviceAccounts, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		ui.Fatal(err)

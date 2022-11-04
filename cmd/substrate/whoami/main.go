@@ -9,6 +9,7 @@ import (
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -22,6 +23,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if *quiet {
 		ui.Quiet()
 	}
+	versionutil.WarnDowngrade(ctx, cfg)
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 

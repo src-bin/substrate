@@ -15,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -35,6 +36,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
+	versionutil.WarnDowngrade(ctx, cfg)
 
 	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {

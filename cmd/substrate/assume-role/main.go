@@ -18,6 +18,7 @@ import (
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -82,6 +83,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Fatal(err)
 	}
 	duration := time.Hour
+
+	versionutil.WarnDowngrade(ctx, cfg)
 
 	// Do the dance to get 12-hour credentials in the current role so that we
 	// can get 12-hour credentials for the final role, too.

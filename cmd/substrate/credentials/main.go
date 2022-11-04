@@ -19,6 +19,7 @@ import (
 	"github.com/src-bin/substrate/randutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -85,6 +86,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	cfg.SetCredentials(ctx, *creds)
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+
+	versionutil.WarnDowngrade(ctx, cfg)
 
 	// Print credentials in whatever format was requested.
 	awsutil.PrintCredentials(format, *creds)
