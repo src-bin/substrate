@@ -16,7 +16,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-// TODO refactor this program to use the dispatchMap pattern from cmd/substrate.
+//go:generate go run ../../tools/dispatch-map/main.go .
 
 type Handler func(
 	context.Context,
@@ -66,11 +66,21 @@ func main() {
 				fmt.Sprint(event.RequestContext.Authorizer[authorizerutil.PrincipalId]),
 			)
 
+			defer func() { go cfg.Telemetry().Post(ctx) }()
+
+			// New-style dispatch to handlers in their own packages.
+			k := strings.SplitN(event.Path, "/", 3)[1]
+			if k == "" {
+				k = "index"
+			}
+			if f, ok := dispatchMap[k]; ok {
+				return f(ctx, cfg, oc, event)
+			}
+
+			// Old-style dispatch to handlers still in this package.
 			if h, ok := handlers[event.Path]; ok {
 				return h(ctx, cfg, oc, event)
 			}
-
-			go cfg.Telemetry().Post(ctx)
 
 			return &events.APIGatewayProxyResponse{
 				Body:       "404 Not Found\n",
