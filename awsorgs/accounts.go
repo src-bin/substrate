@@ -280,8 +280,10 @@ func ensureAccount(
 	// unnecessary failure when the account exists but we're precisely at
 	// the organization's limit on the number of accounts in it.
 	account, err := cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
+		if tagsEqual(a.Tags, tags) {
+			return true
+		}
 		return aws.ToString(a.Email) == email && aws.ToString(a.Name) == name
-		// TODO confirm tags match also/instead
 	})
 	if err != nil {
 		return nil, err
@@ -337,6 +339,19 @@ func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId stri
 		}
 	}
 	return tags, nil
+}
+
+func tagsEqual(a, b tagging.Map) bool {
+	if a[tagging.Domain] == "" || b[tagging.Domain] == "" {
+		return false
+	}
+	if a[tagging.Environment] == "" || b[tagging.Environment] == "" {
+		return false
+	}
+	if a[tagging.Quality] == "" || b[tagging.Quality] == "" {
+		return false
+	}
+	return a[tagging.Domain] == b[tagging.Domain] && a[tagging.Environment] == b[tagging.Environment] && a[tagging.Quality] == b[tagging.Quality]
 }
 
 var (
