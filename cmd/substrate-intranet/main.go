@@ -68,6 +68,16 @@ func main() {
 
 			defer func() { go cfg.Telemetry().Post(ctx) }()
 
+			// New-style dispatch to handlers in their own packages.
+			k := strings.SplitN(event.Path, "/", 3)[1]
+			if k == "" {
+				k = "index"
+			}
+			if f, ok := dispatchMap[k]; ok {
+				return f(ctx, cfg, oc, event)
+			}
+
+			// Old-style dispatch to handlers still in this package.
 			if h, ok := handlers[event.Path]; ok {
 				return h(ctx, cfg, oc, event)
 			}
