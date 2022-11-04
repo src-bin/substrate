@@ -31,6 +31,7 @@ func (c *Config) FindAccount(
 
 // FindAccounts returns all []*Account for which the given acceptance test
 // function returns true. It must be called in the management account.
+// TODO memoize this function by unifying it with awsorgs.ListAccounts.
 func (c *Config) FindAccounts(
 	ctx context.Context,
 	f func(*Account) bool,
