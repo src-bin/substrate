@@ -63,7 +63,9 @@ func main() {
 	pkgPath = filepath.Clean(filepath.Join(filepath.Join(mod.Module.Mod.Path, pkgPath), flag.Arg(0)))
 	//log.Print(pkgPath)
 
-	// Look for packages that export a Main function that accepts zero parameters.
+	// Look for packages that export a Main function. Make a note of all its
+	// parameter types. It's presumed they're all the same; the compiler will
+	// catch it if this isn't actually true.
 	entries, err := os.ReadDir(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
