@@ -13,7 +13,8 @@ endif
 
 all:
 	go generate ./lambdautil # dependency of several packages with go:generate directives
-	go generate ./cmd/substrate-intranet # dependency of cmd/substrate/create-admin-account's go:generate directives
+	go generate ./cmd/substrate-intranet     # dependency of cmd/substrate/create-admin-account's...
+	go generate ./cmd/substrate-intranet/... # ...go:generate directives
 	go generate ./... # the rest of the go:generate directives
 	# TODO go vet ...
 
