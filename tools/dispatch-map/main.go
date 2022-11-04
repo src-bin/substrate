@@ -70,7 +70,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var dirnames, params []string
+	var dirnames, params, results []string
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -89,24 +89,19 @@ func main() {
 				for name, object := range file.Scope.Objects {
 					if name == Main && object.Kind == ast.Fun {
 						dirnames = append(dirnames, entry.Name())
-						params = []string{}
-						for _, item := range object.Decl.(*ast.FuncDecl).Type.Params.List {
-							param := ""
-							t := item.Type
-							if starExpr, ok := t.(*ast.StarExpr); ok {
-								param = "*"
-								t = starExpr.X
-							}
-							if selectorExpr, ok := t.(*ast.SelectorExpr); ok {
-								param = fmt.Sprintf("%s%s.%s", param, selectorExpr.X, selectorExpr.Sel)
-							}
-							params = append(params, param)
+						if object.Decl.(*ast.FuncDecl).Type.Params != nil {
+							params = typeListString(object.Decl.(*ast.FuncDecl).Type.Params.List)
+						}
+						if object.Decl.(*ast.FuncDecl).Type.Results != nil {
+							results = typeListString(object.Decl.(*ast.FuncDecl).Type.Results.List)
 						}
 					}
 				}
 			}
 		}
 	}
+	//log.Printf("%+v", params)
+	//log.Printf("%+v", results)
 
 	// Generate and format Go code that declares the dispatch map. Rewrite
 	// camelCase function names in dash-case to match command-line arguments.
@@ -125,7 +120,16 @@ func main() {
 			fmt.Fprintf(b, "\t\"%s/%s\"\n", pkgPath, dirname)
 		}
 	}
-	fmt.Fprintf(b, ")\n\nvar dispatchMap = map[string]func(%s){\n", strings.Join(params, ", "))
+	joinedParams := strings.Join(params, ", ")
+	joinedResults := strings.Join(results, ", ")
+	switch len(results) {
+	case 0:
+		fmt.Fprintf(b, ")\n\nvar dispatchMap = map[string]func(%s){\n", joinedParams)
+	case 1:
+		fmt.Fprintf(b, ")\n\nvar dispatchMap = map[string]func(%s) %s {\n", joinedParams, joinedResults)
+	default:
+		fmt.Fprintf(b, ")\n\nvar dispatchMap = map[string]func(%s) (%s) {\n", joinedParams, joinedResults)
+	}
 	for _, dirname := range dirnames {
 
 		// Turn camelCase and snake_case into dash-case for the command-line argument.
@@ -171,4 +175,25 @@ func main() {
 		log.Fatal(err)
 	}
 
+}
+
+func typeListString(list []*ast.Field) []string {
+	strings := []string{}
+	for _, item := range list {
+		s := ""
+		t := item.Type
+		//log.Printf("%T %+v", t, t)
+		if i, ok := t.(*ast.Ident); ok {
+			s = i.Name
+		}
+		if se, ok := t.(*ast.StarExpr); ok {
+			s = "*"
+			t = se.X
+		}
+		if se, ok := t.(*ast.SelectorExpr); ok {
+			s = fmt.Sprintf("%s%s.%s", s, se.X, se.Sel)
+		}
+		strings = append(strings, s)
+	}
+	return strings
 }
