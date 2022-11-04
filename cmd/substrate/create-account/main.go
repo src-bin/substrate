@@ -30,10 +30,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	environment := flag.String("environment", "", "environment for this new AWS account")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
+	number := flag.String("number", "", "tag and begin managing this account instead of creating a new AWS account")
 	quality := flag.String("quality", "", "quality for this new AWS account")
 	cmdutil.MustChdir()
 	flag.Usage = func() {
-		ui.Print("Usage: substrate create-account [-create] -domain <domain> -environment <environment> -quality <quality> [-auto-approve|-no-apply] [-ignore-service-quotas]")
+		ui.Print("Usage: substrate create-account [-create|-number <number>] -domain <domain> -environment <environment> -quality <quality> [-auto-approve|-no-apply] [-ignore-service-quotas]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -62,11 +63,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Spin("finding the account")
 	var account *awsorgs.Account
 	createdAccount := false
-	{
+	if *number == "" {
 		account, err = cfg.FindServiceAccount(ctx, *domain, *environment, *quality)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		if account == nil {
 			ui.Stop("not found")
 			if !*create {
@@ -90,21 +89,25 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				deadline,
 			)
 			createdAccount = true
-		} else {
-			err = awsorgs.Tag(
-				ctx,
-				cfg,
-				aws.ToString(account.Id),
-				tagging.Map{tagging.SubstrateVersion: version.Version},
-			)
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
-		if err := accounts.CheatSheet(ctx, awscfg.Must(cfg.OrganizationReader(ctx))); err != nil {
-			ui.Fatal(err)
-		}
+	} else {
+		account, err = awsorgs.DescribeAccount(ctx, cfg, *number)
 	}
+	ui.Must(err)
+	ui.Must(awsorgs.Tag(
+		ctx,
+		cfg,
+		aws.ToString(account.Id),
+		tagging.Map{
+			tagging.Domain:      *domain,
+			tagging.Environment: *environment,
+			tagging.Manager:     tagging.Substrate,
+			//tagging.Name: awsorgs.NameFor(*domain, *environment, *quality), // don't override this in case it was an invited account with an important name
+			tagging.Quality:          *quality,
+			tagging.SubstrateVersion: version.Version,
+		},
+	))
+	ui.Must(accounts.CheatSheet(ctx, awscfg.Must(cfg.OrganizationReader(ctx))))
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
