@@ -54,17 +54,11 @@ func (cmp Comparison) String() string {
 }
 
 func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
-	t, err := cfg.Tags(ctx)
-	if awsutil.ErrorCodeIs(err, awscfg.AWSOrganizationsNotInUseException) {
-		return // if we can't even fetch tags, we can't very well claim this is a downgrade
+	taggedVersion, ok := TaggedVersion(ctx, cfg)
+	if !ok {
+		return
 	}
-	if awsutil.ErrorCodeIs(err, awscfg.AccessDenied) {
-		return // likewise if we can't assume OrganizationReader, it's also too early to claim it's a downgrade
-	}
-	if err != nil {
-		ui.Fatal(err)
-	}
-	switch taggedVersion := t[tagging.SubstrateVersion]; Compare(taggedVersion, version.Version) {
+	switch Compare(taggedVersion, version.Version) {
 	case Less:
 		ui.Printf(
 			"upgrading the minimum required Substrate version for your organization from %v to %v",
@@ -79,5 +73,32 @@ func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 		)
 		ui.Print("you should run `substrate upgrade`")
 		os.Exit(1)
+	}
+}
+
+// TaggedVersion returns the SubstrateVersion tag from the calling account
+// and true if that value is meaningful (i.e. non-empty). It returns the
+// empty string and false if for whatever reason it can't read the tag.
+func TaggedVersion(ctx context.Context, cfg *awscfg.Config) (string, bool) {
+	t, err := cfg.Tags(ctx)
+	if awsutil.ErrorCodeIs(err, awscfg.AWSOrganizationsNotInUseException) {
+		return "", false // if we can't even fetch tags, we can't very well claim this is a downgrade
+	}
+	if awsutil.ErrorCodeIs(err, awscfg.AccessDenied) {
+		return "", false // likewise if we can't assume OrganizationReader, it's also too early to claim it's a downgrade
+	}
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return t[tagging.SubstrateVersion], true
+}
+
+func WarnDowngrade(ctx context.Context, cfg *awscfg.Config) {
+	taggedVersion, ok := TaggedVersion(ctx, cfg)
+	if !ok {
+		return
+	}
+	if Compare(taggedVersion, version.Version) == Greater {
+		ui.Printf("your organization has upgraded to Substrate %v; you should run `substrate upgrade`", taggedVersion)
 	}
 }
