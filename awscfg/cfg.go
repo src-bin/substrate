@@ -28,6 +28,8 @@ type (
 )
 
 type Config struct {
+	accounts                []*Account // cache
+	accountsExpiry          time.Time  // cache expiry
 	cfg                     aws.Config
 	deferredTelemetry       func(context.Context) error
 	event                   *telemetry.Event
