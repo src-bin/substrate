@@ -17,7 +17,11 @@ const (
 )
 
 func Environments() ([]string, error) {
-	b, err := fileutil.ReadFile(EnvironmentsFilename)
+	pathname, err := fileutil.PathnameInParents(EnvironmentsFilename)
+	if err != nil {
+		return nil, err
+	}
+	b, err := fileutil.ReadFile(pathname)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +44,11 @@ func Prefix() string {
 }
 
 func Qualities() ([]string, error) {
-	b, err := fileutil.ReadFile(QualitiesFilename)
+	pathname, err := fileutil.PathnameInParents(QualitiesFilename)
+	if err != nil {
+		return nil, err
+	}
+	b, err := fileutil.ReadFile(pathname)
 	if err != nil {
 		return nil, err
 	}
