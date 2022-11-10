@@ -23,9 +23,9 @@ import (
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
 	admin := flag.Bool("admin", false, `shorthand for -domain "admin" -environment "admin"`)
-	domain := flag.String("domain", "", "domain of an AWS account in which to assume a role")
-	environment := flag.String("environment", "", "environment of an AWS account in which to assume a role")
-	quality := flag.String("quality", "", "quality of an AWS account in which to assume a role")
+	domain := cmdutil.DomainFlag("domain of an AWS account in which to assume a role")
+	environment := cmdutil.EnvironmentFlag("environment of an AWS account in which to assume a role")
+	quality := cmdutil.QualityFlag("quality of an AWS account in which to assume a role")
 	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy", "management" or "network")`)
 	management := flag.Bool("management", false, "assume a role in the organization's management AWS account")
 	master := flag.Bool("master", false, "deprecated name for -management")
@@ -37,8 +37,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	oldpwd := cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate assume-role -management|-special <special> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -admin -quality <quality> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -domain <domain> -environment <environment> -quality <quality> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -admin [-quality <quality>] [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -domain <domain> -environment <environment> [-quality <quality>] [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
 		ui.Print("       substrate assume-role -number <number> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
 		flag.PrintDefaults()
 		ui.Print("  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment")
@@ -50,7 +50,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		*domain, *environment = "admin", "admin"
 	}
 	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*management && *number == "" {
-		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -special "..." or -management or -number "..." is required`)
+		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -admin -quality "..." or -special "..." or -management or -number "..." is required`)
 	}
 	if (*domain != "" || *environment != "" || *quality != "") && *special != "" {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality"..." with -special "..."`)

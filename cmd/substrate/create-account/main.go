@@ -26,15 +26,15 @@ import (
 func Main(ctx context.Context, cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	create := flag.Bool("create", false, "create a new AWS account, if necessary, without confirmation")
-	domain := flag.String("domain", "", "domain for this new AWS account")
-	environment := flag.String("environment", "", "environment for this new AWS account")
+	domain := cmdutil.DomainFlag("domain for this new AWS account")
+	environment := cmdutil.EnvironmentFlag("environment for this new AWS account")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	number := flag.String("number", "", "tag and begin managing this account instead of creating a new AWS account")
-	quality := flag.String("quality", "", "quality for this new AWS account")
+	quality := cmdutil.QualityFlag("quality for this new AWS account")
 	cmdutil.MustChdir()
 	flag.Usage = func() {
-		ui.Print("Usage: substrate create-account [-create|-number <number>] -domain <domain> -environment <environment> -quality <quality> [-auto-approve|-no-apply] [-ignore-service-quotas]")
+		ui.Print("Usage: substrate create-account [-create|-number <number>] -domain <domain> -environment <environment> [-quality <quality>] [-auto-approve|-no-apply] [-ignore-service-quotas]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
