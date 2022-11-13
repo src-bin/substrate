@@ -55,7 +55,10 @@ func roleNameFromGoogleIdP(c *Client, user string) (string, error) {
 		Scheme: "https",
 		Host:   "admin.googleapis.com",
 		Path:   path.Join("/admin/directory/v1/users", user),
-	}, url.Values{"projection": {"full"}, "viewType": {"domain_public"}}, &body)
+	}, url.Values{
+		"projection": {"full"},
+		"viewType":   {"domain_public"}, // doesn't appear to be necessary but I'm scared to remove it because other folks' Google could be different
+	}, &body)
 	if err != nil {
 		return "", err
 	}
