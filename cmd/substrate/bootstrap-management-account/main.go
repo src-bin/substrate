@@ -173,6 +173,32 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 
+	// Ensure AWS Config is enabled in all the special accounts in every
+	// region that's in use. Setup an aggregator, too, that can access all
+	// the Config buckets in the organization.
+	// - <https://docs.aws.amazon.com/config/latest/developerguide/gs-cli-subscribe.html>
+	// - <https://docs.aws.amazon.com/config/latest/developerguide/set-up-aggregator-cli.html>
+	// TODO IAM role with "arn:aws:iam::aws:policy/service-role/AWSConfigRoleForOrganizations" attached
+	// TODO regions.Select()
+	// TODO S3 buckets
+	// TODO PutConfigurationRecorder
+	// TODO PutDeliveryChannel
+	// TODO StartConfigurationRecorder
+	// TODO possibly another IAM role for aggregation
+	// TODO delegated administrator for aggregation (the audit account)
+	// TODO PutConfigurationAggregator, etc.
+	// TODO might need to <https://docs.aws.amazon.com/config/latest/developerguide/authorize-aggregator-account-cli.html> for every account in `substrate create-account`
+
+	// Ensure AWS GuardDuty has delegated administration to the audit account,
+	// is enabled in all existing accounts, and is tracking the organization
+	// to enable itself in new accounts.
+	// TODO EnableOrganizationAdminAccount
+	// TODO regions.Select()
+	// TODO CreateDetector
+	// TODO CreateMembers (seems like I might be missing something about enabling GuardDuty for the management and audit accounts)
+	// TODO InviteMembers with disableEmailNotification: true
+	// TODO UpdateOrganizationConfiguration with autoEnable: true
+
 	// Ensure the deploy and network accounts exist.
 	ui.Spinf("finding or creating the deploy account")
 	deployAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Deploy)

@@ -271,6 +271,12 @@ func ensureAccount(
 		accountId = aws.ToString(account.Id) // found right away (before even trying to create it)
 	}
 
+	// Ensure AWS Config is enabled in this account for every region that's in use.
+	// TODO regions.Select()
+	// TODO PutConfigurationRecorder
+	// TODO PutDeliveryChannel
+	// TODO StartConfigurationRecorder
+
 	if err := Tag(ctx, cfg, accountId, tags); err != nil {
 		return nil, err
 	}
