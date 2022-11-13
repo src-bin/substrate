@@ -22,7 +22,7 @@ const (
 	Management = naming.Management
 	Network    = naming.Network
 
-	CheatSheetFilename = "substrate.accounts.txt"
+	CheatSheetFilename = awscfg.AccountsFilename
 )
 
 func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {

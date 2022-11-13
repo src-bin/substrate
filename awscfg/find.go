@@ -3,17 +3,35 @@ package awscfg
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
+	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/ui"
 )
 
-const MemoizedAccountsTTL = time.Hour
+const (
+	AccountsFilename       = "substrate.accounts.txt"
+	CachedAccountsFilename = ".substrate.accounts.json" // cached on disk (obviously)
+	MemoizedAccountsTTL    = time.Hour                  // memoized in memory
+)
+
+func (c *Config) ClearCachedAccounts() error {
+	c.accounts = nil
+	c.accountsExpiry = time.Time{}
+	pathname, err := fileutil.PathnameInParents(CachedAccountsFilename)
+	if err != nil && err != fs.ErrNotExist {
+		return err
+	}
+	return fileutil.Remove(pathname)
+}
 
 // FindAccount returns the first *Account for which the given acceptance test
 // function returns true. It must be called in the management account.
@@ -35,46 +53,45 @@ func (c *Config) FindAccount(
 }
 
 // FindAccounts returns all []*Account for which the given acceptance test
-// function returns true. It must be called in the management account.
-// TODO memoize this function by unifying it with awsorgs.ListAccounts.
+// function returns true. It must be called in the management account. We
+// expect to find an account that matches so if we don't we remove the cache
+// file and try once more
 func (c *Config) FindAccounts(
 	ctx context.Context,
 	f func(*Account) bool,
-) ([]*Account, error) {
-	cfg, err := c.OrganizationReader(ctx)
-	if err != nil {
-		return nil, err
-	}
-	client := cfg.Organizations()
+) (accounts []*Account, err error) {
+	for i := 0; i < 2; i++ {
 
-	var (
-		accounts  []*Account
-		nextToken *string
-	)
-	for {
-		out, err := client.ListAccounts(ctx, &organizations.ListAccountsInput{
-			NextToken: nextToken,
-		})
-		if err != nil {
-			return nil, err
+		// List all accounts, possibly from an on-disk or even in-memory cache,
+		// and collect all the ones that pass the acceptance test function.
+		var allAccounts []*Account
+		if allAccounts, err = c.ListAccounts(ctx); err != nil {
+			return
 		}
-
-		for _, a := range out.Accounts {
-			account := &Account{Account: a}
-			account.Tags, err = cfg.listTagsForResource(ctx, aws.ToString(account.Id))
-			if err != nil {
-				return nil, err
-			}
+		for _, account := range allAccounts {
 			if f(account) {
 				accounts = append(accounts, account)
 			}
 		}
 
-		if nextToken = out.NextToken; nextToken == nil {
+		// If we've found any accounts, we're done. There's an outside
+		// possibility that this result is incomplete. There are precious few
+		// applications that even might return multiple accounts and the only
+		// way one could be missing from ListAccounts is if it was just created
+		// but we clear the cache before creating any accounts. So this seems
+		// safe enough.
+		if len(accounts) > 0 {
 			break
 		}
+
+		// If we're not found any accounts, we need to clear the cache so that
+		// the second pass we're about to do actually means something.
+		if err = c.ClearCachedAccounts(); err != nil {
+			return
+		}
+
 	}
-	return accounts, nil
+	return
 }
 
 // FindAdminAccount returns the *Account for the admin account with the given
@@ -101,9 +118,17 @@ func (c *Config) FindSpecialAccount(ctx context.Context, name string) (*Account,
 }
 
 func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err error) {
-	defer func(t0 time.Time) { log.Print(time.Since(t0)) }(time.Now())
+
+	// Return early if we have memoized accounts that are still valid.
 	if c.accounts != nil && c.accountsExpiry.After(time.Now()) {
 		return c.accounts, nil
+	}
+
+	// Return early if we have cached accounts.
+	if pathname, err := fileutil.PathnameInParents(CachedAccountsFilename); err == nil {
+		if err := jsonutil.Read(pathname, &accounts); err == nil {
+			return accounts, err
+		}
 	}
 
 	cfg, err := c.OrganizationReader(ctx)
@@ -112,6 +137,7 @@ func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err err
 	}
 	client := cfg.Organizations()
 
+	// List all the accounts in the organization, even across multiple pages.
 	var nextToken *string
 	for {
 		out, err := client.ListAccounts(ctx, &organizations.ListAccountsInput{
@@ -136,6 +162,7 @@ func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err err
 		}
 	}
 
+	// List the tags for every account in parallel.
 	ch := make(chan error, len(accounts))
 	for i := 0; i < len(accounts); i++ {
 		go func(i int) {
@@ -150,7 +177,15 @@ func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err err
 		}
 	}
 
+	// Cache the full ListAccounts and ListTagsForResource amalgamation. Do not
+	// treat an error here as fatal, since all it would do is slow us down.
+	if err := jsonutil.Write(accounts, CachedAccountsFilename); err != nil {
+		ui.Print(err)
+	}
+
+	// Memoize - cache in memory - the accounts, too.
 	c.accounts = accounts
 	c.accountsExpiry = time.Now().Add(MemoizedAccountsTTL)
+
 	return
 }

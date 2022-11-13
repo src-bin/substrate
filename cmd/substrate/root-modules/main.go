@@ -34,6 +34,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
 	versionutil.WarnDowngrade(ctx, cfg)
+
+	ui.Must(cfg.ClearCachedAccounts())
 	adminAccounts, serviceAccounts, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		ui.Fatal(err)

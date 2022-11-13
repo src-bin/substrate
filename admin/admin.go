@@ -611,7 +611,7 @@ func cannedPrincipals(ctx context.Context, cfg *awscfg.Config, bootstrapping boo
 	}); err != nil {
 		return
 	}
-	if allAccounts, err = cfg.FindAccounts(ctx, func(*awscfg.Account) bool { return true }); err != nil {
+	if allAccounts, err = cfg.ListAccounts(ctx); err != nil {
 		return
 	}
 	var org *awscfg.Organization
