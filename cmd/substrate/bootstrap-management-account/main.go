@@ -318,12 +318,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Print("")
 	ui.Print("substrate.*")
 	ui.Print("")
-	/*
-		ui.Print("then, ignore the following pattern in version control (i.e. add it to .gitignore):")
-		ui.Print("")
-		ui.Print(".substrate.*")
-		ui.Print("")
-	*/
+	ui.Print("then, ignore the following pattern in version control (i.e. add it to .gitignore):")
+	ui.Print("")
+	ui.Print(".substrate.*")
+	ui.Print("")
 	ui.Print("then, run `substrate bootstrap-network-account`")
 
 	// At the very, very end, when we're exceedingly confident in the
