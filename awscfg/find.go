@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"path/filepath"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -179,8 +180,11 @@ func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err err
 
 	// Cache the full ListAccounts and ListTagsForResource amalgamation. Do not
 	// treat an error here as fatal, since all it would do is slow us down.
-	if err := jsonutil.Write(accounts, CachedAccountsFilename); err != nil {
-		ui.Print(err)
+	if pathname, err := fileutil.PathnameInParents(AccountsFilename); err == nil {
+		pathname = filepath.Join(filepath.Dir(pathname), CachedAccountsFilename)
+		if err := jsonutil.Write(accounts, pathname); err != nil {
+			ui.Print(err)
+		}
 	}
 
 	// Memoize - cache in memory - the accounts, too.
