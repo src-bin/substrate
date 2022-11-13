@@ -25,6 +25,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	versionutil.WarnDowngrade(ctx, cfg)
 
+	// TODO maintain a cache of account number, role name (or just role ARN), and tags by access key ID in .substrate.whoami.json; use that to make this fast enough to use in PS1
+
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	identity, err := cfg.Identity(ctx)
