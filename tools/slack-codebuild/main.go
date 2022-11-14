@@ -55,7 +55,7 @@ func main() {
 		RawQuery: url.Values{
 			"next":   []string{os.Getenv("CODEBUILD_BUILD_URL")},
 			"number": []string{"412086678291"},
-			"role":   []string{"Auditor"},
+			"role":   []string{"Administrator"},
 		}.Encode(),
 	}).String()
 
