@@ -114,7 +114,7 @@ func (c *Config) FindServiceAccount(ctx context.Context, domain, environment, qu
 // name. It must be called in the management account.
 func (c *Config) FindSpecialAccount(ctx context.Context, name string) (*Account, error) {
 	return c.FindAccount(ctx, func(a *Account) bool {
-		return a.Tags[tagging.Name] == name
+		return a.Tags[tagging.Name] == name // TODO tagging.SubstrateSpecialAccount
 	})
 }
 
