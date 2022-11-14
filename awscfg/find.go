@@ -85,7 +85,7 @@ func (c *Config) FindAccounts(
 			break
 		}
 
-		// If we're not found any accounts, we need to clear the cache so that
+		// If we've not found any accounts, we need to clear the cache so that
 		// the second pass we're about to do actually means something.
 		if err = c.ClearCachedAccounts(); err != nil {
 			return
