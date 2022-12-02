@@ -44,12 +44,21 @@ func main() {
 	}
 
 	clientId := os.Getenv(oauthoidc.OAuthOIDCClientId)
+	var pathQualifier oauthoidc.PathQualifier
+	switch oauthoidc.IdPName(clientId) {
+	case oauthoidc.AzureAD:
+		pathQualifier = oauthoidc.AzureADPathQualifier(os.Getenv(oauthoidc.AzureADTenantId))
+	case oauthoidc.Google:
+		pathQualifier = oauthoidc.GooglePathQualifier()
+	case oauthoidc.Okta:
+		pathQualifier = oauthoidc.OktaPathQualifier(os.Getenv(oauthoidc.OktaHostname), "default")
+	}
 	oc, err := oauthoidc.NewClient(
 		ctx,
 		cfg,
 		clientId,
 		os.Getenv(oauthoidc.OAuthOIDCClientSecretTimestamp),
-		os.Getenv(oauthoidc.OktaHostname),
+		pathQualifier,
 	)
 	if err != nil {
 		ui.Fatal(err)

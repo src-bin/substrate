@@ -34,16 +34,12 @@ func NewClient(
 	cfg *awscfg.Config,
 	clientId string,
 	clientSecretTimestamp string, // for finding the real client secret in Secrets Manager
-	hostname string,
+	pathQualifier PathQualifier,
 ) (*Client, error) {
-	if hostname == OktaHostnameValueForGoogleIdP {
-		c.pathQualifier = GooglePathQualifier()
-		c.provider = Google
-	} else {
-		c.pathQualifier = OktaPathQualifier(hostname, "default")
-		c.provider = Okta
 	c := &Client{
 		ClientId:      clientId,
+		pathQualifier: pathQualifier,
+		provider:      IdPName(clientId),
 	}
 
 	chErr := make(chan error) // the first philosopher to dine
