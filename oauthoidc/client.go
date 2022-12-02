@@ -150,11 +150,11 @@ func (c *Client) Provider() Provider { return c.provider }
 func (c *Client) RoleNameFromIdP(user string) (string, error) {
 	switch c.provider {
 	case AzureAD:
-		return roleNameFromAzureADIdP()
+		return roleNameFromAzureADIdP(c, user)
 	case Google:
 		return roleNameFromGoogleIdP(c, user)
 	case Okta:
-		return roleNameFromOktaIdP()
+		return roleNameFromOktaIdP(c, user)
 	}
 	return "", UndefinedRoleError(fmt.Sprintf("%s IdP", c.provider))
 }

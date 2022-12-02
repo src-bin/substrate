@@ -38,6 +38,6 @@ func AzureADPathQualifier(tenantId string) PathQualifier {
 	}
 }
 
-func roleNameFromAzureADIdP() (string, error) {
+func roleNameFromAzureADIdP(c *Client, user string) (string, error) {
 	return roles.Administrator, nil // TODO fetch from Azure AD or get it into the ID token
 }

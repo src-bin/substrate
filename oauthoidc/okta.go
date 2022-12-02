@@ -63,6 +63,6 @@ func OktaPathQualifier(hostname, authServerId string) PathQualifier {
 	}
 }
 
-func roleNameFromOktaIdP() (string, error) {
-	return roles.Administrator, nil // TODO fetch from Okta instead of assuming they followed the old docs
+func roleNameFromOktaIdP(c *Client, user string) (string, error) {
+	return roles.Administrator, nil // TODO fetch from Okta or the ID token
 }
