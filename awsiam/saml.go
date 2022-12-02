@@ -2,6 +2,7 @@ package awsiam
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/oauthoidc"
 )
 
 type SAMLProvider struct {
@@ -19,7 +21,8 @@ type SAMLProvider struct {
 func EnsureSAMLProvider(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	name, metadata string,
+	name oauthoidc.Provider,
+	metadata string,
 ) (*SAMLProvider, error) {
 
 	out, err := createSAMLProvider(ctx, cfg, name, metadata)
@@ -28,7 +31,7 @@ func EnsureSAMLProvider(
 		providers := listSAMLProviders(ctx, cfg)
 		for _, provider := range providers {
 			arn := aws.ToString(provider.Arn)
-			if strings.HasSuffix(arn, "/"+name) {
+			if strings.HasSuffix(arn, fmt.Sprintf("/%s", name)) {
 				out, err = updateSAMLProvider(ctx, cfg, arn, metadata)
 			}
 		}
@@ -47,10 +50,11 @@ func EnsureSAMLProvider(
 func createSAMLProvider(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	name, metadata string,
+	name oauthoidc.Provider,
+	metadata string,
 ) (*SAMLProvider, error) {
 	out, err := cfg.IAM().CreateSAMLProvider(ctx, &iam.CreateSAMLProviderInput{
-		Name:                 aws.String(name),
+		Name:                 aws.String(string(name)),
 		SAMLMetadataDocument: aws.String(metadata),
 	})
 	if err != nil {
