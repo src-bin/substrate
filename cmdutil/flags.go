@@ -18,7 +18,7 @@ func EnvironmentFlag(help string) *string {
 
 func QualityFlag(help string) *string {
 	qualities, err := naming.Qualities()
-	if err != nil && err == fs.ErrNotExist {
+	if err != nil && err != fs.ErrNotExist {
 		ui.Fatal(err)
 	}
 	quality := ""
