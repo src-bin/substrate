@@ -69,17 +69,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Fatal(`-quality "..." is required`)
 	}
 	veqpDoc, err := veqp.ReadDocument()
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	if !veqpDoc.Valid(Environment, *quality) {
 		ui.Fatalf(`-quality %q is not a valid quality for an admin account in your organization`, *quality)
 	}
 
 	if _, err = cfg.GetCallerIdentity(ctx); err != nil {
-		if _, err = cfg.SetRootCredentials(ctx); err != nil {
-			ui.Fatal(err)
-		}
+		_, err = cfg.SetRootCredentials(ctx)
+		ui.Must(err)
 	}
 	cfg = awscfg.Must(cfg.AssumeManagementRole(
 		ctx,
@@ -94,9 +91,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	createdAccount := false
 	{
 		account, err = cfg.FindAdminAccount(ctx, *quality)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		if account == nil {
 			ui.Stop("not found")
 			if !*create {
@@ -128,12 +123,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				tagging.Map{tagging.SubstrateVersion: version.Version},
 			)
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
-		if err := accounts.CheatSheet(ctx, awscfg.Must(cfg.OrganizationReader(ctx))); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
+		ui.Must(accounts.CheatSheet(ctx, awscfg.Must(cfg.OrganizationReader(ctx))))
 	}
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
@@ -184,9 +175,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// the Administrator user.  Terraform will attach policies to it later.
 	ui.Spin("finding or creating an IAM user for your Credential Factory, so it can get 12-hour credentials")
 	user, err := awsiam.EnsureUser(ctx, adminCfg, users.CredentialFactory)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	time.Sleep(5e9) // TODO wait only just long enough for IAM to become consistent, and probably do it in EnsureUser
 	ui.Stopf("user %s", user.UserName)
 
@@ -195,9 +184,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// the Administrator role. Yes, this is a bit of a Catch-22 but it ends up
 	// in a really ergonomic steady state, so we deal with the first run
 	// complexity.
-	if err := ensureAdministrator(ctx, cfg, adminCfg, account, createdAccount, saml); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(ensureAdministrator(ctx, cfg, adminCfg, account, createdAccount, saml))
 
 	// TODO create Terraformer here and probably don't have to create Administrator yet
 
@@ -212,17 +199,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			roles.Administrator, // this is why we can't reuse adminCfg
 			time.Hour,
 		)).Retrieve(ctx)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		consoleSigninURL, err := federation.ConsoleSigninURL(
 			creds,
 			"https://console.aws.amazon.com/route53/home#DomainListing:", // destination
 			nil,
 		)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		ui.OpenURL(consoleSigninURL)
 		ui.Print("buy or transfer a domain into this account or create a hosted zone for a subdomain you've delegated from elsewhere")
 		ui.Prompt("when you've finished, press <enter> to continue")
@@ -231,9 +214,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		naming.IntranetDNSDomainNameFilename,
 		"what DNS domain name (the one you just bought, transferred, or shared) will you use for your organization's Intranet?",
 	)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	ui.Printf("using DNS domain name %s for your organization's Intranet", dnsDomainName)
 	ui.Spinf("waiting for a hosted zone to appear for %s.", dnsDomainName)
 	for {
@@ -242,9 +223,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			time.Sleep(1e9) // TODO exponential backoff
 			continue
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		ui.Stopf("hosted zone %s", zone.Id)
 		break
 	}
@@ -255,9 +234,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		OAuthOIDCClientIdFilename,
 		"paste your OAuth OIDC client ID:",
 	)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	ui.Printf("using OAuth OIDC client ID %s", clientId)
 
 	// Collect the OAuth OIDC client secret now but don't store it permanently
@@ -270,9 +247,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if clientSecretTimestamp == "" {
 		clientSecretTimestamp = time.Now().Format(time.RFC3339)
 		clientSecret, err = ui.Prompt("paste your OAuth OIDC client secret:")
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 	}
 
 	// We might not have gotten to detect idpName above but we'll definitely
@@ -289,56 +264,36 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			OktaHostnameFilename,
 			"paste the hostname of your Okta installation:",
 		)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		ui.Printf("using Okta hostname %s", hostname)
 	}
 
 	// Copy module dependencies that are embedded in this binary into the
 	// user's source tree.
 	intranetGlobalModule := terraform.IntranetGlobalModule()
-	if err := intranetGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/global")); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(intranetGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/global")))
 	intranetRegionalModule := terraform.IntranetRegionalModule()
-	if err := intranetRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional")); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(intranetRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional")))
 	intranetRegionalProxyModule := terraform.IntranetRegionalProxyModule()
-	if err := intranetRegionalProxyModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional/proxy")); err != nil {
-		ui.Fatal(err)
-	}
-	if err := ioutil.WriteFile(
+	ui.Must(intranetRegionalProxyModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional/proxy")))
+	ui.Must(ioutil.WriteFile(
 		filepath.Join(terraform.ModulesDirname, "intranet/regional/substrate-intranet.zip"),
 		SubstrateIntranetZip,
 		0666,
-	); err != nil {
-		ui.Fatal(err)
-	}
+	))
 	lambdaFunctionGlobalModule := terraform.LambdaFunctionGlobalModule()
-	if err := lambdaFunctionGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/global")); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(lambdaFunctionGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/global")))
 	lambdaFunctionRegionalModule := terraform.LambdaFunctionRegionalModule()
-	if err := lambdaFunctionRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/regional")); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(lambdaFunctionRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/regional")))
 	substrateGlobalModule := terraform.SubstrateGlobalModule()
-	if err := substrateGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "substrate/global")); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(substrateGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "substrate/global")))
 	substrateRegionalModule := terraform.SubstrateRegionalModule()
-	if err := substrateRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "substrate/regional")); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(substrateRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "substrate/regional")))
 
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between admin accounts of different qualities.
 	/*
-		if err := terraform.Scaffold(Domain, true); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Scaffold(Domain, true))
 	*/
 
 	if !*autoApprove && !*noApply {
@@ -367,9 +322,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Source: terraform.Q("../../../../modules/intranet/global"),
 		}
 		file.Add(module)
-		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
@@ -379,26 +332,18 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		providersFile.Add(terraform.UsEast1Provider(
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Root(ctx, cfg, dirname, region))
 
-		if err := terraform.Init(dirname); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Init(dirname))
 
 		if *noApply {
 			err = terraform.Plan(dirname)
 		} else {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 	}
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, Domain, *quality, region)
@@ -426,15 +371,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			},
 			Source: terraform.Q("../../../../modules/intranet/regional"),
 		})
-		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
 
 		networkFile := terraform.NewFile()
 		networks.ShareVPC(networkFile, account, Domain, Environment, *quality, region)
-		if err := networkFile.Write(filepath.Join(dirname, "network.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(networkFile.Write(filepath.Join(dirname, "network.tf")))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
@@ -442,33 +383,23 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
 		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
 			roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
 		))
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Root(ctx, cfg, dirname, region))
 
-		if err := terraform.Init(dirname); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Init(dirname))
 
 		if *noApply {
 			err = terraform.Plan(dirname)
 		} else {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 	}
 	if *noApply {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
@@ -479,7 +410,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if clientSecret != "" {
 		ui.Spin("storing your OAuth OIDC client secret in AWS Secrets Manager")
 		for _, region := range regions.Selected() {
-			if _, err := awssecretsmanager.EnsureSecret(
+			_, err := awssecretsmanager.EnsureSecret(
 				ctx,
 				awscfg.Must(cfg.AssumeRole(
 					ctx,
@@ -493,13 +424,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				}}),
 				clientSecretTimestamp,
 				clientSecret,
-			); err != nil {
-				ui.Fatal(err)
-			}
+			)
+			ui.Must(err)
 		}
-		if err := ioutil.WriteFile(OAuthOIDCClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(ioutil.WriteFile(OAuthOIDCClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666))
 		ui.Stop("ok")
 		ui.Printf("wrote %s, which you should commit to version control", OAuthOIDCClientSecretTimestampFilename)
 	}
@@ -507,9 +435,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Recreate the Administrator and Auditor roles. This is a no-op in steady
 	// state but on the first run its assume role policy is missing some
 	// principals that were just created in the initial Terraform run.
-	if err := ensureAdministrator(ctx, cfg, adminCfg, account, createdAccount, saml); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(ensureAdministrator(ctx, cfg, adminCfg, account, createdAccount, saml))
 
 	// Google asks GSuite admins to set custom attributes user by user.  Help
 	// these poor souls out by at least telling them exactly what value to set.
