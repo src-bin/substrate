@@ -186,13 +186,33 @@ func (c *Client) request(method string, u *url.URL) *http.Request {
 	return req
 }
 
+// IdPName detects what sort of IdP this is, definitively, and covering all
+// the supported IdPs, from the structure of the client ID. If this ever
+// becomes impossible then we'll have to ask or just name things so that
+// it doesn't matter.
+func IdPName(clientId string) Provider {
+	if strings.HasSuffix(clientId, ".apps.googleusercontent.com") {
+		return Google
+	} else if ok, _ := regexp.MatchString(
+		"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+		clientId,
+	); ok {
+		return AzureAD
+	} else {
+		return Okta
+	}
+	ui.Fatalf("OAuth OIDC client ID %s is not in a recognized format", clientId)
+	panic("unreachable")
+}
+
 type PathQualifier func(UnqualifiedPath) *url.URL
 
 type Provider string
 
 const (
-	Google Provider = "Google"
-	Okta   Provider = "Okta"
+	AzureAD Provider = "Azure AD"
+	Google  Provider = "Google"
+	Okta    Provider = "Okta"
 )
 
 type UnqualifiedPath string

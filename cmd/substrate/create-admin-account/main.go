@@ -135,22 +135,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// We used to collect this metadata XML interactively. Now if it's there
 	// we use it and if it's not we move along because we're not adding new
 	// SAML providers.
-	var idpName, metadata string
+	var metadata string
 	if b, err := fileutil.ReadFile(SAMLMetadataFilename); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			ui.Fatal(err)
 		}
 	} else {
 		metadata = string(b)
-
-		// Set idpName early, too, since we'll need it to name the SAML
-		// provider we're still managing from the before times.
-		if strings.Contains(metadata, "google.com") {
-			idpName = Google
-		} else {
-			idpName = Okta
-		}
-
 	}
 
 	adminCfg := awscfg.Must(cfg.AssumeRole(
@@ -162,7 +153,18 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	var saml *awsiam.SAMLProvider
 	if metadata != "" {
-		ui.Spinf("configuring %s as your organization's identity provider", idpName)
+
+		// At the last time Substrate helped folks configure a SAML provider,
+		// it only supported Google and Okta. Thus, though it supports more
+		// IdPs now, we don't have to accommodate any more of them here.
+		var idpName oauthoidc.Provider
+		if strings.Contains(metadata, "google.com") {
+			idpName = oauthoidc.Google
+		} else {
+			idpName = oauthoidc.Okta
+		}
+
+		ui.Spinf("configuring %s as your organization's SAML identity provider (a legacy of very early Substrate releases)", idpName)
 		saml, err = awsiam.EnsureSAMLProvider(ctx, adminCfg, idpName, metadata)
 		if err != nil {
 			ui.Fatal(err)
@@ -250,13 +252,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Must(err)
 	}
 
-	// We might not have gotten to detect idpName above but we'll definitely
-	// be able to now that we have an OAuth OIDC client ID.
-	if strings.HasSuffix(clientId, ".apps.googleusercontent.com") {
-		idpName = Google
-	} else {
-		idpName = Okta
-	}
+	idpName := oauthoidc.IdPName(clientId)
+	ui.Printf("configuring %s as your organization's identity provider", idpName)
 
 	var hostname string
 	if idpName == Okta {
