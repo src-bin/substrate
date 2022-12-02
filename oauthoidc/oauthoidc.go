@@ -36,7 +36,7 @@ type IDToken struct {
 	ProfileURL            string            `json:"profile"`
 	Subject               string            `json:"sub"`
 	UpdatedAt             int64             `json:"updated_at"`
-	Version               int               `json:"ver"`
+	Version               string            `json:"ver"`
 	ZoneInfo              string            `json:"zoneinfo"`
 }
 

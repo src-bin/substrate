@@ -38,6 +38,7 @@ locals {
 module "intranet-apigateway-authorizer" {
   apigateway_execution_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.intranet.id}/*"
   environment_variables = {
+    "AZURE_AD_TENANT_ID"                 = var.azure_ad_tenant_id
     "OAUTH_OIDC_CLIENT_ID"               = var.oauth_oidc_client_id
     "OAUTH_OIDC_CLIENT_SECRET_TIMESTAMP" = var.oauth_oidc_client_secret_timestamp
     "OKTA_HOSTNAME"                      = var.okta_hostname
@@ -52,6 +53,7 @@ module "intranet-apigateway-authorizer" {
 module "intranet" {
   apigateway_execution_arn = "${aws_api_gateway_deployment.intranet.execution_arn}/*"
   environment_variables = {
+    "AZURE_AD_TENANT_ID"                 = var.azure_ad_tenant_id
     "OAUTH_OIDC_CLIENT_ID"               = var.oauth_oidc_client_id
     "OAUTH_OIDC_CLIENT_SECRET_TIMESTAMP" = var.oauth_oidc_client_secret_timestamp
     "OKTA_HOSTNAME"                      = var.okta_hostname

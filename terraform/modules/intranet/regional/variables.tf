@@ -1,3 +1,8 @@
+variable "azure_ad_tenant_id" {
+  default = ""
+  type    = string
+}
+
 variable "dns_domain_name" {
   type = string
 }

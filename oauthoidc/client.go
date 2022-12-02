@@ -8,10 +8,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssecretsmanager"
+	"github.com/src-bin/substrate/ui"
 )
 
 const (
@@ -90,12 +92,15 @@ func (c *Client) GetURL(u *url.URL, query url.Values, i interface{}) (*http.Resp
 	if query != nil {
 		u.RawQuery = query.Encode()
 	}
+	//log.Printf("OAuth OIDC request GET %s", u)
 	resp, err := http.DefaultClient.Do(c.request("GET", u))
 	if err != nil {
 		return resp, nil, err
 	}
 	return unmarshalJSON(resp, i)
 }
+
+func (c *Client) IsAzureAD() bool { return c.provider == AzureAD }
 
 func (c *Client) IsGoogle() bool { return c.provider == Google }
 
@@ -127,9 +132,12 @@ func (c *Client) Post(path UnqualifiedPath, body url.Values, i interface{}) (*ht
 }
 
 func (c *Client) PostURL(u *url.URL, body url.Values, i interface{}) (*http.Response, []byte, error) {
+	//log.Printf("OAuth OIDC request POST %s %+v", u, body)
 	req := c.request("POST", u)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Body = ioutil.NopCloser(strings.NewReader(body.Encode()))
+	bodyEnc := body.Encode()
+	req.Body = ioutil.NopCloser(strings.NewReader(bodyEnc))
+	req.ContentLength = int64(len(bodyEnc))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return resp, nil, err
@@ -141,6 +149,8 @@ func (c *Client) Provider() Provider { return c.provider }
 
 func (c *Client) RoleNameFromIdP(user string) (string, error) {
 	switch c.provider {
+	case AzureAD:
+		return roleNameFromAzureADIdP()
 	case Google:
 		return roleNameFromGoogleIdP(c, user)
 	case Okta:
@@ -236,6 +246,7 @@ func unmarshalJSON(
 	if err != nil {
 		return resp, body, err
 	}
+	//log.Printf("OAuth OIDC response %s", string(body))
 	if i != nil {
 		err = json.Unmarshal(body, i)
 	}

@@ -42,14 +42,12 @@ const (
 	Domain      = "admin"
 	Environment = "admin"
 
-	Google = "Google"
-	Okta   = "Okta"
+	AzureADTenantFilename = "substrate.azure-ad-tenant"
+	OktaHostnameFilename  = "substrate.okta-hostname"
+	SAMLMetadataFilename  = "substrate.saml-metadata.xml"
 
 	OAuthOIDCClientIdFilename              = "substrate.oauth-oidc-client-id"
 	OAuthOIDCClientSecretTimestampFilename = "substrate.oauth-oidc-client-secret-timestamp"
-	OktaHostnameFilename                   = "substrate.okta-hostname"
-
-	SAMLMetadataFilename = "substrate.saml-metadata.xml"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -253,10 +251,18 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 
 	idpName := oauthoidc.IdPName(clientId)
-	ui.Printf("configuring %s as your organization's identity provider", idpName)
+	ui.Printf("configuring %s as your organization's OAuth OIDC identity provider", idpName)
 
-	var hostname string
-	if idpName == Okta {
+	var hostname, tenantId string
+	switch idpName {
+	case oauthoidc.AzureAD:
+		tenantId, err = ui.PromptFile(
+			AzureADTenantFilename,
+			"paste the tenant ID from your Azure AD installation:",
+		)
+		ui.Must(err)
+		ui.Printf("using Azure AD tenant ID %s", tenantId)
+	case oauthoidc.Okta:
 		hostname, err = ui.PromptFile(
 			OktaHostnameFilename,
 			"paste the hostname of your Okta installation:",
@@ -356,7 +362,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if hostname != "" {
 			arguments["okta_hostname"] = terraform.Q(hostname)
 		} else {
-			arguments["okta_hostname"] = terraform.Q(oauthoidc.OktaHostnameValueForGoogleIdP)
+			arguments["okta_hostname"] = terraform.Q(oauthoidc.OktaHostnameValueForNonOktaIdP)
+		}
+		if tenantId != "" {
+			arguments["azure_ad_tenant_id"] = terraform.Q(tenantId)
+		} else {
+			arguments["azure_ad_tenant_id"] = terraform.Q(oauthoidc.AzureADTenantValueForNonAzureADIdP)
 		}
 		tags.Region = region
 		file.Add(terraform.Module{
@@ -436,7 +447,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Google asks GSuite admins to set custom attributes user by user.  Help
 	// these poor souls out by at least telling them exactly what value to set.
-	if idpName == Google {
+	if idpName == oauthoidc.Google {
 		ui.Printf("set the custom AWS.RoleName attribute in Google for every user to the name of the IAM role they're authorized to assume")
 	}
 
