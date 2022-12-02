@@ -43,10 +43,11 @@ func main() {
 		ui.Fatal(err)
 	}
 
+	clientId := os.Getenv(oauthoidc.OAuthOIDCClientId)
 	oc, err := oauthoidc.NewClient(
 		ctx,
 		cfg,
-		os.Getenv(oauthoidc.OAuthOIDCClientID),
+		clientId,
 		os.Getenv(oauthoidc.OAuthOIDCClientSecretTimestamp),
 		os.Getenv(oauthoidc.OktaHostname),
 	)

@@ -117,7 +117,7 @@ func loginHandler(
 	}
 
 	q := url.Values{}
-	q.Add("client_id", oc.ClientID)
+	q.Add("client_id", oc.ClientId)
 	nonce, err := oauthoidc.Nonce()
 	if err != nil {
 		return nil, err

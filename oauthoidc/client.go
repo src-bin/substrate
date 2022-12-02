@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	OAuthOIDCClientID              = "OAUTH_OIDC_CLIENT_ID"               // Lambda environment variable name
+	OAuthOIDCClientId              = "OAUTH_OIDC_CLIENT_ID"               // Lambda environment variable name
 	OAuthOIDCClientSecret          = "OAuthOIDCClientSecret"              // Secrets Manager secret name
 	OAuthOIDCClientSecretTimestamp = "OAUTH_OIDC_CLIENT_SECRET_TIMESTAMP" // Lambda environment variable name
 )
 
 type Client struct {
 	AccessToken   string
-	ClientID      string
+	ClientId      string
 	clientSecret  string
 	memoizedKeys  []*Key
 	pathQualifier PathQualifier
@@ -32,17 +32,18 @@ type Client struct {
 func NewClient(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	clientID string,
+	clientId string,
 	clientSecretTimestamp string, // for finding the real client secret in Secrets Manager
 	hostname string,
 ) (*Client, error) {
-	c := &Client{ClientID: clientID}
 	if hostname == OktaHostnameValueForGoogleIdP {
 		c.pathQualifier = GooglePathQualifier()
 		c.provider = Google
 	} else {
 		c.pathQualifier = OktaPathQualifier(hostname, "default")
 		c.provider = Okta
+	c := &Client{
+		ClientId:      clientId,
 	}
 
 	chErr := make(chan error) // the first philosopher to dine
@@ -56,7 +57,7 @@ func NewClient(
 			fmt.Sprintf(
 				"%s-%s",
 				OAuthOIDCClientSecret,
-				clientID,
+				clientId,
 			),
 			clientSecretTimestamp,
 		)
@@ -173,12 +174,12 @@ func (c *Client) request(method string, u *url.URL) *http.Request {
 	}
 	if c.AccessToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.AccessToken)
-	} else if c.ClientID != "" && c.clientSecret != "" {
+	} else if c.ClientId != "" && c.clientSecret != "" {
 		req.Header.Set(
 			"Authorization",
 			"Basic "+base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(
 				"%s:%s",
-				c.ClientID,
+				c.ClientId,
 				c.clientSecret,
 			))),
 		)

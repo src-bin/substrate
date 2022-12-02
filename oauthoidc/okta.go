@@ -15,7 +15,7 @@ const (
 
 type OktaAccessToken struct {
 	Audience string   `json:"aud"`
-	ClientID string   `json:"cid"`
+	ClientId string   `json:"cid"`
 	DebugID  string   `json:"jti"`
 	Expires  int64    `json:"exp"`
 	IssuedAt int64    `json:"iat"`
@@ -35,8 +35,8 @@ func (t *OktaAccessToken) JSONString() (string, error) {
 }
 
 func (t *OktaAccessToken) Verify(c *Client) error {
-	if t.ClientID != c.ClientID {
-		return VerificationError{"cid", t.ClientID, c.ClientID}
+	if t.ClientId != c.ClientId {
+		return VerificationError{"cid", t.ClientId, c.ClientId}
 	}
 	if actual, expected := t.Issuer, c.URL(Issuer, nil).String(); actual != expected {
 		return VerificationError{"iss", actual, expected}

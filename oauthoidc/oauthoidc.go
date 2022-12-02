@@ -49,8 +49,8 @@ func (t *IDToken) JSONString() (string, error) {
 }
 
 func (t *IDToken) Verify(c *Client) error {
-	if t.Audience != c.ClientID {
-		return VerificationError{"aud", t.Audience, c.ClientID}
+	if t.Audience != c.ClientId {
+		return VerificationError{"aud", t.Audience, c.ClientId}
 	}
 	now := time.Now().Unix()
 	if t.Expires < now {
