@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 )
 
@@ -39,5 +38,27 @@ func AzureADPathQualifier(tenantId string) PathQualifier {
 }
 
 func roleNameFromAzureADIdP(c *Client, user string) (string, error) {
-	return roles.Administrator, nil // TODO fetch from Azure AD or get it into the ID token
+	var body struct {
+		CustomSecurityAttributes struct {
+			AWS struct {
+				RoleName string
+			}
+		} `json:"customSecurityAttributes"`
+	}
+	_, _, err := c.GetURL(&url.URL{
+		Scheme: "https",
+		Host:   "graph.microsoft.com",
+		Path:   "/beta/me",
+	}, url.Values{
+		"$select": {"customSecurityAttributes"},
+	}, &body)
+	if err != nil {
+		return "", err
+	}
+	//log.Printf("body: %+v", body)
+	if body.CustomSecurityAttributes.AWS.RoleName != "" {
+		return body.CustomSecurityAttributes.AWS.RoleName, nil
+	}
+
+	return "", UndefinedRoleError(user)
 }

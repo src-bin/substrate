@@ -126,6 +126,9 @@ func loginHandler(
 	q.Add("redirect_uri", redirectURI.String())
 	q.Add("response_type", "code")
 	scope := "openid email profile"
+	if oc.IsAzureAD() {
+		scope += " CustomSecAttributeAssignment.Read.All User.Read"
+	}
 	if oc.IsGoogle() {
 		scope += " https://www.googleapis.com/auth/admin.directory.user.readonly"
 	}
