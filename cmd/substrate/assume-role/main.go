@@ -39,7 +39,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Print("Usage: substrate assume-role -management|-special <special> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
 		ui.Print("       substrate assume-role -admin [-quality <quality>] [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
 		ui.Print("       substrate assume-role -domain <domain> -environment <environment> [-quality <quality>] [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -number <number> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -number <number> -role <role> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
 		flag.PrintDefaults()
 		ui.Print("  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment")
 	}
