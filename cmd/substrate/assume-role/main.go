@@ -52,13 +52,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*management && *number == "" {
 		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -admin -quality "..." or -special "..." or -management or -number "..." is required`)
 	}
-	if (*domain != "" || *environment != "" || *quality != "") && *special != "" {
+	if (*domain != "" || *environment != "" /* || *quality != "" */) && *special != "" {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -special "..."`)
 	}
-	if (*domain != "" || *environment != "" || *quality != "") && *management {
+	if (*domain != "" || *environment != "" /* || *quality != "" */) && *management {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -management`)
 	}
-	if (*domain != "" || *environment != "" || *quality != "") && *number != "" {
+	if (*domain != "" || *environment != "" /* || *quality != "" */) && *number != "" {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -number "..."`)
 	}
 	if *special != "" && *management {
