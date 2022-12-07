@@ -36,7 +36,7 @@ type IDToken struct {
 	ProfileURL            string            `json:"profile"`
 	Subject               string            `json:"sub"`
 	UpdatedAt             int64             `json:"updated_at"`
-	Version               string            `json:"ver"`
+	Version               interface{}       `json:"ver"` // Azure AD encodes this as a string; Okta encodes this as an integer; fucking hell, folks
 	ZoneInfo              string            `json:"zoneinfo"`
 }
 
