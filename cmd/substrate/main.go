@@ -29,12 +29,9 @@ func main() {
 	// the pathname of the symbolic link, which caused the comparison with
 	// os.Args[0] to always succeed.
 	executable, err := os.Executable()
-	if err != nil {
-		ui.Fatal(err)
-	}
-	if executable, err = filepath.EvalSymlinks(executable); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
+	executable, err = filepath.EvalSymlinks(executable)
+	ui.Must(err)
 	if filepath.Base(os.Args[0]) == filepath.Base(executable) {
 		if len(os.Args) < 2 {
 			usage(1)
@@ -84,9 +81,7 @@ func main() {
 	}
 
 	u, err := user.Current()
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	ctx := context.WithValue(
 		context.WithValue(
 			context.WithValue(
@@ -101,9 +96,7 @@ func main() {
 		u.Username,
 	)
 	cfg, err := awscfg.NewConfig(ctx)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	f(ctx, cfg)
 
 	// If no one's posted telemetry yet, post it now, and wait for it to finish.

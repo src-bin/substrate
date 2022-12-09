@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -166,15 +165,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
 	// other environment variables in case they're relevant to the command.
 	if args := flag.Args(); len(args) > 0 {
-		if err := os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID); err != nil {
-			log.Fatal(err)
-		}
-		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey); err != nil {
-			log.Fatal(err)
-		}
-		if err := os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken); err != nil {
-			log.Fatal(err)
-		}
+		ui.Must(os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID))
+		ui.Must(os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey))
+		ui.Must(os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken))
 
 		// Switch back to the original working directory before looking for the
 		// program to execute.
@@ -185,9 +178,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		// Distinguish between a command error, which presumably is described
 		// by the command itself before exiting with a non-zero status, and
 		// command not found, which is our responsibility as the pseudo-shell.
-		if _, err := exec.LookPath(flag.Args()[0]); err != nil {
-			log.Fatal(err)
-		}
+		_, err := exec.LookPath(flag.Args()[0])
+		ui.Must(err)
 
 		cmd := exec.Command(flag.Args()[0], flag.Args()[1:]...)
 		cmd.Stdin = os.Stdin
