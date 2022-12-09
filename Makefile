@@ -30,6 +30,10 @@ clean:
 	rm -f substrate-*-*-*.tar.gz
 	rm -f terraform/peering-connection.go
 
+deps:
+	go get -u ./...
+	go get -u golang.org/x/tools/cmd/goimports
+
 install:
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 
@@ -63,4 +67,4 @@ uninstall:
 	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
 	find ./cmd/substrate -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/substrate-%P\\n | xargs rm -f
 
-.PHONY: all clean install release tarball test uninstall
+.PHONY: all clean deps install release tarball test uninstall
