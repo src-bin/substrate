@@ -24,7 +24,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	noApply := flag.Bool("no-apply", false, `with -format "shell", add the -no-apply flag to all the generated commands that accept it`)
 	number := flag.String("number", "", `with -format "json", account number of the single AWS account to output`)
 	onlyTags := flag.Bool("only-tags", false, `with -format "json" and -number "...", output only the tags on the account`)
-	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate accounts [-format <format>] [-number <number>] [-only-tags]")
 		ui.Print("Usage: substrate accounts -format shell [-auto-approve|-no-apply]")

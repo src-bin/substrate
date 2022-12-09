@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
-	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
@@ -21,7 +20,6 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
-	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate delete-static-access-keys")
 		flag.PrintDefaults()

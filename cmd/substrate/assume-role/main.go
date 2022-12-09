@@ -33,7 +33,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	console := flag.Bool("console", false, "open the AWS Console to assume a role instead of generating an access key")
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	oldpwd := cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate assume-role -management|-special <special> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
 		ui.Print("       substrate assume-role -admin [-quality <quality>] [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
@@ -171,9 +170,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		// Switch back to the original working directory before looking for the
 		// program to execute.
-		if err := os.Chdir(oldpwd); err != nil {
-			log.Fatal(err)
-		}
+		ui.Must(cmdutil.UndoChdir())
 
 		// Distinguish between a command error, which presumably is described
 		// by the command itself before exiting with a non-zero status, and

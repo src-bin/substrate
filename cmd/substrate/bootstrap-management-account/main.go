@@ -16,7 +16,6 @@ import (
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -34,7 +33,6 @@ const (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
-	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate bootstrap-management-account")
 		flag.PrintDefaults()

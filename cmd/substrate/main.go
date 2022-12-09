@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -80,6 +81,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	ui.Must(cmdutil.Chdir())
 	u, err := user.Current()
 	ui.Must(err)
 	ctx := context.WithValue(

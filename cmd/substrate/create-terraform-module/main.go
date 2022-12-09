@@ -6,14 +6,12 @@ import (
 	"log"
 
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
-	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate create-terraform-module <name> [...]")
 		flag.PrintDefaults()

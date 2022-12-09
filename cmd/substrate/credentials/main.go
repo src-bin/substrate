@@ -26,7 +26,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
 	noOpen := flag.Bool("no-open", false, "do not try to open your web browser (so that you can copy the URL and open it yourself)")
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate credentials [-format <format>] [-quiet]")
 		flag.PrintDefaults()

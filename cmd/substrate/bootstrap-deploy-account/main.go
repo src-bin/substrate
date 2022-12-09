@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -24,7 +23,6 @@ import (
 func Main(ctx context.Context, cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
-	cmdutil.MustChdir()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate bootstrap-deploy-account [-auto-approve|-no-apply]")
 		flag.PrintDefaults()
