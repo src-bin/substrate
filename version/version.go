@@ -17,8 +17,7 @@ func Flag() {
 }
 
 func Print() {
-	fmt.Fprintf( // ui.Printf would be a dependency cycle
-		os.Stderr,
+	fmt.Printf( // ui.Printf would be a dependency cycle
 		"Substrate version %s-%s\n",
 		Version,
 		Commit,
