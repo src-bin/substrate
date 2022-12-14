@@ -152,8 +152,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		"tar",
 		"-C", dirname,
 		"-f", f.Name(),
-		"-x",
 		"--strip-components", "2",
+		"-x",
 		fmt.Sprintf(
 			"substrate-%s-%s-%s/bin/substrate",
 			toVersion,
