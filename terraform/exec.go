@@ -71,7 +71,6 @@ func Version() (string, error) {
 	if memoizedVersion != "" {
 		return memoizedVersion, nil
 	}
-	ui.Print("finding and caching Terraform version")
 	cmd := exec.Command("terraform", "version", "-json")
 	cmd.Stdin = os.Stdin
 	stdout := &bytes.Buffer{}
