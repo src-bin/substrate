@@ -111,12 +111,6 @@ func usage(status int) {
 	var commands []string
 
 	for subcommand, _ := range dispatchMap {
-
-		// Remove in 2022.09 when `substrate upgrade` is unveiled.
-		if subcommand == "upgrade" {
-			continue
-		}
-
 		commands = append(commands, fmt.Sprintf("substrate %s", subcommand))
 	}
 
