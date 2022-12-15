@@ -9,12 +9,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -88,30 +87,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 	}
 
-	// Try to preempt common tar(1) failures we encounter when the install
-	// directory ownership and permissions.
-	pathname, err := os.Executable()
-	if err != nil {
-		ui.Fatal(err)
-	}
-	dirname := filepath.Dir(pathname)
-	fi, err := os.Stat(dirname)
-	if err != nil {
-		ui.Fatal(err)
-	}
-	perm := fi.Mode().Perm()
-	sys := fi.Sys().(*syscall.Stat_t)
-	if perm&0200 != 0 && sys.Uid == uint32(os.Geteuid()) {
-		// writable by owner, which we are
-	} else if perm&0020 != 0 && sys.Gid == uint32(os.Getegid()) {
-		// writable by owning group, which is our primary group
-		// TODO also check supplemental groups if you want to be fancy
-	} else if perm&0002 != 0 {
-		// writable by anyone, which is bad but not our problem
-	} else {
-		ui.Printf("%s not writable, so Substrate cannot upgrade itself", dirname)
-		os.Exit(1)
-	}
+	// Be pretty sure the directory where substrate is stored is writable.
+	dirname, err := cmdutil.WritableBinDirname()
+	ui.Must(err)
 
 	// If there's an upgrade available and we've made it here, we're meant to
 	// install it. Start by downloading it.
