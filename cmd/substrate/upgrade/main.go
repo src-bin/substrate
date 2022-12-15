@@ -50,18 +50,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Fetch the upgrade URL to see if there's an upgrade available from this
 	// version for this customer. Exit 0 if there's not.
 	resp, err := http.Get(u.String())
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		ui.Print("there's no Substrate upgrade available yet")
 		return
 	}
 	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	toVersion := strings.TrimSpace(string(body))
 
 	// Construct the download URL.
@@ -77,7 +73,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	ui.Printf("there's a Substrate upgrade available at <%s>", u.String())
 
-	// Exit 1 when there's no upgrade available and either the -no option was
+	// Exit 1 when there's an upgrade available and either the -no option was
 	// given or the user answers "no" to the prompt.
 	if *no {
 		ui.Print("re-run this command without the -no option to install it")
@@ -164,9 +160,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(cmd.Run())
 	ui.Stop("ok")
 
 	ui.Printf("upgraded Substrate to %s", toVersion)
