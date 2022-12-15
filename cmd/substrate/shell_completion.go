@@ -153,7 +153,7 @@ func shellCompletion() {
 			return
 		}
 		options = append(options, "-format", "-quiet")
-	case "upgrade":
+	case "terraform", "upgrade":
 		options = append(options, "-no", "-yes")
 	case "whoami":
 		if previousWord == "-format" {
