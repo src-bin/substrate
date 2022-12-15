@@ -43,7 +43,7 @@ func Fatalf(format string, args ...interface{}) {
 
 func Must(err error) {
 	if err != nil {
-		op(opFatal, fmt.Sprint(withCaller(err)))
+		op(opFatal, fmt.Sprint(withCaller(err)...))
 	}
 }
 
