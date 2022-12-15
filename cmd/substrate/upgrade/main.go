@@ -14,6 +14,7 @@ import (
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -94,38 +95,23 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// If there's an upgrade available and we've made it here, we're meant to
 	// install it. Start by downloading it.
 	ui.Spinf("downloading <%s>", u.String())
-	f, err := os.CreateTemp("", fmt.Sprintf(
+	pathname, err := fileutil.Download(u, fmt.Sprintf(
 		"substrate-%s-%s-%s-*.tar.gz",
 		toVersion,
 		runtime.GOOS,
 		runtime.GOARCH,
 	))
-	if err != nil {
-		ui.Fatal(err)
-	}
-	defer os.Remove(f.Name())
-	if resp, err = http.Get(u.String()); err != nil {
-		ui.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		ui.Fatalf("<%s> responded %s", u.String(), resp.Status)
-	}
-	if _, err = io.Copy(f, resp.Body); err != nil {
-		ui.Fatal(err)
-	}
-	if err := f.Close(); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
+	defer os.Remove(pathname)
 	ui.Stop("ok")
 
 	// Still here, so untar it to overwrite argv[0] with the new binary. Farm
 	// this out to tar(1) to avoid buggily reimplementing the distribution.
-	ui.Spinf("untarring %s", f.Name())
+	ui.Spinf("untarring %s", pathname)
 	cmd := exec.Command(
 		"tar",
 		"-C", dirname,
-		"-f", f.Name(),
+		"-f", pathname,
 		"--strip-components", "2",
 		"-x",
 		fmt.Sprintf(
