@@ -61,6 +61,7 @@ tarball:
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 
 test:
+	go clean -testcache
 	go test -race -v ./...
 
 uninstall:
