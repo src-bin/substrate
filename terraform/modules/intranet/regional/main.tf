@@ -20,7 +20,7 @@ data "aws_route53_zone" "intranet" {
 }
 
 data "external" "zip" {
-  program = ["/bin/sh", "-c", "test -f \"${local.filename}\" || substrate intranet-zip >\"${local.filename}\"; echo \"{}\""]
+  program = ["/bin/sh", "-c", "substrate intranet-zip >\"${local.filename}\"; echo \"{}\""]
 }
 
 locals {
