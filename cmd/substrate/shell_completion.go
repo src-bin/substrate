@@ -147,7 +147,11 @@ func shellCompletion() {
 		options = append(options, "-format", "-quiet")
 	case "delete-static-access-keys":
 	case "intranet-zip":
-		options = append(options, "-base64sha256")
+		if previousWord == "-format" {
+			shellCompletionMatches([]string{"json", "text"}, word)
+			return
+		}
+		options = append(options, "-base64sha256", "-format")
 	case "root-modules":
 		if previousWord == "-format" {
 			shellCompletionMatches([]string{"json", "shell"}, word)

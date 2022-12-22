@@ -10,12 +10,15 @@ import (
 
 	"github.com/src-bin/substrate/awscfg"
 	createadminaccount "github.com/src-bin/substrate/cmd/substrate/create-admin-account"
+	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
 	base64sha256 := flag.Bool("base64sha256", false, "print the base-64-encoded, SHA256 sum of the substrate-intranet binary instead of the binary itself (useful for rectifying lambda:UpdateFunctionCode API arguments and Terraform plans)")
+	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText)
 	flag.Usage = func() {
 		ui.Print("Usage: substrate intranet-zip")
 		flag.PrintDefaults()
@@ -32,11 +35,34 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// printed without that option.
 	if *base64sha256 {
 		sum := sha256.Sum256(createadminaccount.SubstrateIntranetZip)
-		fmt.Println(base64.RawStdEncoding.EncodeToString(sum[:]))
+		enc := base64.StdEncoding.EncodeToString(sum[:])
+		switch format.String() {
+		case cmdutil.SerializationFormatJSON:
+			fmt.Println(jsonutil.MustString(terraformExternal{enc}))
+		case cmdutil.SerializationFormatText:
+			fmt.Println(enc)
+		default:
+			ui.Fatalf("-format %q not supported", format)
+		}
 		return
+	}
+
+	// Without -base64sha256, -format is nonsense since the default mode is
+	// to write an ELF binary to standard output. Thus, any value but its
+	// default should be rejected.
+	if format.String() != cmdutil.SerializationFormatText {
+		ui.Fatal(`can't specify -format "..." without -base64sha256`)
 	}
 
 	// By default write the substrate-intranet binary to standard output.
 	os.Stdout.Write(createadminaccount.SubstrateIntranetZip)
 
+}
+
+// terraformExternal is a type used to wrap the base-64-encoded SHA256 sum of
+// the substrate-intranet binary in enough JSON structure that it can be
+// queried from Terraform. This JSON output is used in
+// modules/terraform/intranet/regional/main.tf.
+type terraformExternal struct {
+	Base64SHA256 string `json:"base64sha256"` // make it make sense in Terraform
 }
