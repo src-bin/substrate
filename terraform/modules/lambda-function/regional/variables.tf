@@ -24,6 +24,10 @@ variable "security_group_ids" {
   type    = list(string)
 }
 
+variable "source_code_hash" {
+  type = string
+}
+
 variable "subnet_ids" {
   default = []
   type    = list(string)

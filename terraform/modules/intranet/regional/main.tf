@@ -20,7 +20,7 @@ data "aws_route53_zone" "intranet" {
 }
 
 data "external" "zip" {
-  program = ["/bin/sh", "-c", "substrate intranet-zip >\"${local.filename}\"; echo \"{}\""]
+  program = ["/bin/sh", "-c", "substrate intranet-zip >\"${local.filename}\" && substrate intranet-zip -base64sha256 -format json"]
 }
 
 locals {
@@ -44,10 +44,11 @@ module "intranet-apigateway-authorizer" {
     "OKTA_HOSTNAME"                      = var.okta_hostname
     "SELECTED_REGIONS"                   = join(",", var.selected_regions)
   }
-  filename = local.filename
-  name     = "IntranetAPIGatewayAuthorizer"
-  role_arn = data.aws_iam_role.intranet-apigateway-authorizer.arn
-  source   = "../../lambda-function/regional"
+  filename         = local.filename
+  name             = "IntranetAPIGatewayAuthorizer"
+  role_arn         = data.aws_iam_role.intranet-apigateway-authorizer.arn
+  source_code_hash = data.external.zip.result.base64sha256
+  source           = "../../lambda-function/regional"
 }
 
 module "intranet" {
@@ -59,10 +60,11 @@ module "intranet" {
     "OKTA_HOSTNAME"                      = var.okta_hostname
     "SELECTED_REGIONS"                   = join(",", var.selected_regions)
   }
-  filename = local.filename
-  name     = "Intranet"
-  role_arn = data.aws_iam_role.intranet.arn
-  source   = "../../lambda-function/regional"
+  filename         = local.filename
+  name             = "Intranet"
+  role_arn         = data.aws_iam_role.intranet.arn
+  source_code_hash = data.external.zip.result.base64sha256
+  source           = "../../lambda-function/regional"
 }
 
 resource "aws_acm_certificate" "intranet" {

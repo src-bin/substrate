@@ -18,7 +18,7 @@ resource "aws_lambda_function" "function" {
   memory_size      = 128 # default
   role             = var.role_arn
   runtime          = "provided.al2"
-  source_code_hash = filebase64sha256(var.filename)
+  source_code_hash = var.source_code_hash
   tags = {
     Name = var.name
   }
