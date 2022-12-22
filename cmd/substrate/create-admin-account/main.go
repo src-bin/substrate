@@ -278,11 +278,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Must(intranetRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional")))
 	intranetRegionalProxyModule := terraform.IntranetRegionalProxyModule()
 	ui.Must(intranetRegionalProxyModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional/proxy")))
-	ui.Must(ioutil.WriteFile(
-		filepath.Join(terraform.ModulesDirname, "intranet/regional/substrate-intranet.zip"),
-		SubstrateIntranetZip,
-		0666,
-	))
 	lambdaFunctionGlobalModule := terraform.LambdaFunctionGlobalModule()
 	ui.Must(lambdaFunctionGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/global")))
 	lambdaFunctionRegionalModule := terraform.LambdaFunctionRegionalModule()
