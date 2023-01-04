@@ -39,7 +39,15 @@ func Init(dirname string) error {
 
 func Plan(dirname string) error {
 	ui.Printf("planning Terraform changes in %s", dirname)
-	return execdlp(dirname, "terraform", "plan")
+	err := execdlp(dirname, "terraform", "plan")
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		return err
+	}
+	if exitErr.ExitCode() != 0 {
+		return nil // it's OK if a plan fails; that's useful data
+	}
+	return err
 }
 
 func ShortVersion() (string, error) {
