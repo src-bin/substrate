@@ -17,6 +17,9 @@ type Identity struct {
 
 func (c *Config) Identity(ctx context.Context) (*Identity, error) {
 	callerIdentity, err := c.GetCallerIdentity(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	cfg, err := c.OrganizationReader(ctx)
 	if err != nil {
