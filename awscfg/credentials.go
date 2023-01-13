@@ -45,7 +45,9 @@ func (c *Config) SetCredentials(
 		return
 	}
 
-	callerIdentity, err = c.WaitUntilCredentialsWork(ctx)
+	if callerIdentity, err = c.WaitUntilCredentialsWork(ctx); err != nil {
+		return
+	}
 
 	if c.deferredTelemetry != nil {
 		ctx10s, _ := context.WithTimeout(ctx, 10*time.Second)
@@ -78,6 +80,9 @@ func (c *Config) SetRootCredentials(ctx context.Context) (*sts.GetCallerIdentity
 	}
 	ui.Printf("using access key ID %s", creds.AccessKeyID)
 	out, err := c.SetCredentials(ctx, creds)
+	if err != nil {
+		return nil, err
+	}
 	accountId := aws.ToString(out.Account)
 
 	// Ensure we're either not yet an organization or that these credentials
