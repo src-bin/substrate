@@ -2,9 +2,12 @@ package awscfg
 
 import (
 	"context"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
@@ -186,12 +189,31 @@ func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tag
 }
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
+	i, err := strconv.Atoi(os.Getenv("SUBSTRATE_DEBUG_AWS_RETRIES"))
+	if err != nil {
+		i = 9 // default to 10 total tries like the SDK does by its own defaults
+	}
+	if i == 0 {
+		ui.Printf("configuring the AWS SDK to not retry per SUBSTRATE_DEBUG_AWS_RETRIES", i)
+	} else if i != 10 {
+		ui.Printf("configuring the AWS SDK to retry up to %d times instead of the default 10 per SUBSTRATE_DEBUG_AWS_RETRIES", i)
+	}
 	options := []func(*config.LoadOptions) error{
-		//config.WithClientLogMode(aws.LogRequestWithBody | aws.LogResponseWithBody | aws.LogRetries),
-		config.WithRetryMaxAttempts(10), // 0 to debug whether retries are causing timeouts
+		config.WithRetryer(func() aws.Retryer {
+			return retry.NewStandard(func(o *retry.StandardOptions) {
+				o.MaxAttempts = i + 1
+			})
+		}),
 		config.WithSharedConfigFiles([]string{}),
 		config.WithSharedConfigProfile(""),
 		config.WithSharedCredentialsFiles([]string{}),
+	}
+	if os.Getenv("SUBSTRATE_DEBUG_AWS_LOGS") != "" {
+		options = append(
+			options,
+			config.WithClientLogMode(aws.LogRequestWithBody|aws.LogResponseWithBody|aws.LogRetries),
+		)
+		ui.Print("configuring the AWS SDK to log request and response bodies per SUBSTRATE_DEBUG_AWS_LOGS")
 	}
 	if region, err := regions.DefaultNoninteractive(); err == nil {
 		options = append(options, config.WithRegion(region))
