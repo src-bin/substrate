@@ -189,13 +189,14 @@ func (c *Config) listTagsForResource(ctx context.Context, accountId string) (tag
 }
 
 func defaultLoadOptions() []func(*config.LoadOptions) error {
+	const defaultRetries = 9 // default to 10 total tries like the SDK does by its own defaults
 	i, err := strconv.Atoi(os.Getenv("SUBSTRATE_DEBUG_AWS_RETRIES"))
 	if err != nil {
-		i = 9 // default to 10 total tries like the SDK does by its own defaults
+		i = defaultRetries
 	}
 	if i == 0 {
 		ui.Printf("configuring the AWS SDK to not retry per SUBSTRATE_DEBUG_AWS_RETRIES", i)
-	} else if i != 10 {
+	} else if i != defaultRetries {
 		ui.Printf("configuring the AWS SDK to retry up to %d times instead of the default 10 per SUBSTRATE_DEBUG_AWS_RETRIES", i)
 	}
 	options := []func(*config.LoadOptions) error{
