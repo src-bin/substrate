@@ -17,3 +17,8 @@ Here's what you need to do Substrate development:
 * The version of Go specified in `go.mod`
 * `GOBIN` set (explicitly or implicitly - verify with `go env GOBIN`) to a writeable directory on your `PATH`
 * Terraform (by running `substrate terraform`, among other options)
+
+Use the following environment variables to control debugging features:
+
+* `SUBSTRATE_DEBUG_AWS_LOGS`: Set to a non-empty string to get full request and response logs of every request made by the AWS SDK.
+* `SUBSTRATE_DEBUG_AWS_RETRIES`: Set to an integer to control the maximum number of times a request will be retried by the AWS SDK.
