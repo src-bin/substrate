@@ -98,44 +98,52 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	ui.Printf("using qualities %s", strings.Join(qualities, ", "))
 
-	// Combine all environments and qualities.  If a given combination doesn't
-	// appear in substrate.valid-environment-quality-pairs.json then offer its
-	// inclusion before validating the final document.
+	// Combine all environments and qualities. If there's only one quality then
+	// there's only one possible document; create it non-interactively. If
+	// there's more than one quality, offer every combination that doesn't
+	// appear in substrate.valid-environment-quality-pairs.json. Finally,
+	// validate the document.
 	veqpDoc, err := veqp.ReadDocument()
 	if err != nil {
 		ui.Fatal(err)
 	}
-	if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
-		ui.Print("you currently allow the following combinations of environment and quality in your Substrate-managed infrastructure:")
-		for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
-			ui.Printf("\t%-12s %s", eq.Environment, eq.Quality)
+	if len(qualities) == 1 {
+		for _, environment := range environments {
+			veqpDoc.Ensure(environment, qualities[0])
 		}
-	}
-	if ui.Interactivity() == ui.FullyInteractive || ui.Interactivity() == ui.MinimallyInteractive && len(veqpDoc.ValidEnvironmentQualityPairs) == 0 {
-		var ok bool
+	} else {
 		if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
-			if ok, err = ui.Confirm("is this correct? (yes/no)"); err != nil {
-				ui.Fatal(err)
+			ui.Print("you currently allow the following combinations of environment and quality in your Substrate-managed infrastructure:")
+			for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
+				ui.Printf("\t%-12s %s", eq.Environment, eq.Quality)
 			}
 		}
-		if !ok {
-			for _, environment := range environments {
-				for _, quality := range qualities {
-					if !veqpDoc.Valid(environment, quality) {
-						ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
-						if err != nil {
-							ui.Fatal(err)
-						}
-						if ok {
-							veqpDoc.Ensure(environment, quality)
+		if ui.Interactivity() == ui.FullyInteractive || ui.Interactivity() == ui.MinimallyInteractive && len(veqpDoc.ValidEnvironmentQualityPairs) == 0 {
+			var ok bool
+			if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
+				if ok, err = ui.Confirm("is this correct? (yes/no)"); err != nil {
+					ui.Fatal(err)
+				}
+			}
+			if !ok {
+				for _, environment := range environments {
+					for _, quality := range qualities {
+						if !veqpDoc.Valid(environment, quality) {
+							ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
+							if err != nil {
+								ui.Fatal(err)
+							}
+							if ok {
+								veqpDoc.Ensure(environment, quality)
+							}
 						}
 					}
 				}
 			}
+		} else {
+			ui.Print("if this is not correct, press ^C and re-run this command with -fully-interactive")
+			time.Sleep(5e9) // give them a chance to ^C
 		}
-	} else {
-		ui.Print("if this is not correct, press ^C and re-run this command with -fully-interactive")
-		time.Sleep(5e9) // give them a chance to ^C
 	}
 	if err := veqpDoc.Validate(environments, qualities); err != nil {
 		ui.Fatal(err)
