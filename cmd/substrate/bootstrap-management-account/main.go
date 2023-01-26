@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -27,6 +29,7 @@ import (
 )
 
 const (
+	EnforceIMDSv2Filename    = "substrate.enforce-imdsv2"
 	ServiceControlPolicyName = "SubstrateServiceControlPolicy"
 	TagPolicyName            = "SubstrateTaggingPolicy"
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
@@ -230,7 +233,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		log.Fatal(err)
 	}
 
-	ui.Spin("configuring your organization's service control and tagging policies")
+	//ui.Spin("configuring your organization's service control and tagging policies")
+	ui.Spin("configuring your organization's service control policy")
 
 	// The management account isn't the organization, though.  It's just an account.
 	// To affect the entire organization, we need its root.
@@ -240,72 +244,94 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 
 	// Ensure service control policies are enabled and that Substrate's is
-	// attached and up-to-date.
+	// attached and up-to-date. As of 2023.02 we ask during the first run
+	// (specifically, we ask whenever the policy doesn't already exist) if
+	// we should enforce IMDSv2 via SCP. If this isn't the first run, we
+	// presume IMDSv2 should be enforced as this is what we did in 2023.01
+	// and prior versions.
 	//
 	// This MUST happen AFTER configuring CloudTrail.
-	if err := awsorgs.EnablePolicyType(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY); err != nil {
-		ui.Fatal(err)
+	ui.Must(awsorgs.EnablePolicyType(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY))
+	policySummaries, err := awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
+	ui.Must(err)
+	found := false
+	for _, policySummary := range policySummaries {
+		found = found || aws.ToString(policySummary.Name) == ServiceControlPolicyName
 	}
-	if err := awsorgs.EnsurePolicy(
+	enforceIMDSv2 := true
+	if found {
+		err = ioutil.WriteFile(EnforceIMDSv2Filename, []byte("yes\n"), 0666)
+	} else {
+		enforceIMDSv2, err = ui.ConfirmFile(
+			EnforceIMDSv2Filename,
+			"do you want to enforce the use of the EC2 IMDSv2 organization-wide? (yes/no; improves security posture but may break legacy EC2 workloads)",
+		)
+	}
+	ui.Must(err)
+	statements := []policies.Statement{
+
+		// Allow everything not explicitly denied. Bring it on.
+		policies.Statement{
+			Action:   []string{"*"},
+			Resource: []string{"*"},
+		},
+
+		// It's catastrophically expensive to create a second trail
+		// so let's not let anyone do it. Also don't let them delete
+		// the one existing trail.
+		policies.Statement{
+			Action: []string{
+				"cloudtrail:CreateTrail",
+				"cloudtrail:DeleteTrail",
+			},
+			Effect:   policies.Deny,
+			Resource: []string{"*"},
+		},
+	}
+	if enforceIMDSv2 {
+		statements = append(
+			statements,
+
+			// Enforce exclusive IMDSv2 use at ec2:RunInstances.
+			policies.Statement{
+				Action: []string{"ec2:RunInstances"},
+				Condition: policies.Condition{
+					"StringNotEquals": {
+						"ec2:MetadataHttpTokens": "required",
+					},
+				},
+				Effect:   policies.Deny,
+				Resource: []string{"arn:aws:ec2:*:*:instance/*"},
+			},
+
+			// Also enforce exclusive IMDSv2 use by voiding credentials from IMDSv1.
+			policies.Statement{
+				Action: []string{"*"},
+				Condition: policies.Condition{
+					"NumericLessThan": {
+						"ec2:RoleDelivery": "2.0",
+					},
+				},
+				Effect:   policies.Deny,
+				Resource: []string{"*"},
+			},
+		)
+	}
+	ui.Must(awsorgs.EnsurePolicy(
 		ctx,
 		cfg,
 		root,
 		ServiceControlPolicyName,
 		awsorgs.SERVICE_CONTROL_POLICY,
-		&policies.Document{
-			Statement: []policies.Statement{
-
-				// It's catastrophically expensive to create a second trail
-				// so let's not let anyone do it. Also don't let them delete
-				// the one existing trail.
-				policies.Statement{
-					Action: []string{
-						"cloudtrail:CreateTrail",
-						"cloudtrail:DeleteTrail",
-					},
-					Effect:   policies.Deny,
-					Resource: []string{"*"},
-				},
-
-				// Enforce exclusive IMDSv2 use at ec2:RunInstances.
-				policies.Statement{
-					Action: []string{"ec2:RunInstances"},
-					Condition: policies.Condition{
-						"StringNotEquals": {
-							"ec2:MetadataHttpTokens": "required",
-						},
-					},
-					Effect:   policies.Deny,
-					Resource: []string{"arn:aws:ec2:*:*:instance/*"},
-				},
-
-				// Also enforce exclusive IMDSv2 use by voiding credentials from IMDSv1.
-				policies.Statement{
-					Action: []string{"*"},
-					Condition: policies.Condition{
-						"NumericLessThan": {
-							"ec2:RoleDelivery": "2.0",
-						},
-					},
-					Effect:   policies.Deny,
-					Resource: []string{"*"},
-				},
-
-				// Allow everything else, bring it on.
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
-		},
-	); err != nil {
-		ui.Fatal(err)
+		&policies.Document{Statement: statements},
+	))
+	//*
+	policySummaries, err = awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
+	ui.Must(err)
+	for _, policySummary := range policySummaries {
+		log.Print(jsonutil.MustString(policySummary))
 	}
-	/*
-		for policySummary := range awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY) {
-			log.Printf("%+v", policySummary)
-		}
-		//*/
+	//*/
 
 	// Ensure tagging policies are enabled and that Substrate's is attached
 	// and up-to-date.
