@@ -86,9 +86,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err != nil {
 		ui.Fatal(err)
 	}
-	if err := accounts.WriteManagementAccountIdToDisk(aws.ToString(org.MasterAccountId)); err != nil {
-		ui.Fatal(err)
-	}
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
