@@ -32,13 +32,14 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	}
 	defer f.Close()
 
-	adminAccountsCells := ui.MakeTableCells(5, 1)
+	adminAccountsCells := ui.MakeTableCells(6, 1)
 	adminAccountsCells[0][0] = "Quality"
 	adminAccountsCells[0][1] = "Account Number"
 	adminAccountsCells[0][2] = "Role Name"
 	adminAccountsCells[0][3] = "Role ARN"
 	adminAccountsCells[0][4] = "E-mail"
-	serviceAccountsCells := ui.MakeTableCells(7, 1)
+	adminAccountsCells[0][5] = "Version"
+	serviceAccountsCells := ui.MakeTableCells(8, 1)
 	serviceAccountsCells[0][0] = "Domain"
 	serviceAccountsCells[0][1] = "Environment"
 	serviceAccountsCells[0][2] = "Quality"
@@ -46,12 +47,14 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	serviceAccountsCells[0][4] = "Role Name"
 	serviceAccountsCells[0][5] = "Role ARN"
 	serviceAccountsCells[0][6] = "E-mail"
-	specialAccountsCells := ui.MakeTableCells(5, 6)
+	serviceAccountsCells[0][7] = "Version"
+	specialAccountsCells := ui.MakeTableCells(6, 6)
 	specialAccountsCells[0][0] = "Account Name"
 	specialAccountsCells[0][1] = "Account Number"
 	specialAccountsCells[0][2] = "Role Name"
 	specialAccountsCells[0][3] = "Role ARN"
 	specialAccountsCells[0][4] = "E-mail"
+	specialAccountsCells[0][5] = "Version"
 
 	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
 	if err != nil {
@@ -63,24 +66,28 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[3][2] = roles.Auditor
 	specialAccountsCells[3][3] = roles.ARN(aws.ToString(auditAccount.Id), roles.Auditor)
 	specialAccountsCells[3][4] = aws.ToString(auditAccount.Email)
+	specialAccountsCells[3][5] = auditAccount.Tags[tagging.SubstrateVersion]
 
 	specialAccountsCells[4][0] = Deploy
 	specialAccountsCells[4][1] = aws.ToString(deployAccount.Id)
 	specialAccountsCells[4][2] = roles.DeployAdministrator
 	specialAccountsCells[4][3] = roles.ARN(aws.ToString(deployAccount.Id), roles.DeployAdministrator)
 	specialAccountsCells[4][4] = aws.ToString(deployAccount.Email)
+	specialAccountsCells[4][5] = deployAccount.Tags[tagging.SubstrateVersion]
 
 	specialAccountsCells[1][0] = Management
 	specialAccountsCells[1][1] = aws.ToString(managementAccount.Id)
 	specialAccountsCells[1][2] = roles.OrganizationAdministrator
 	specialAccountsCells[1][3] = roles.ARN(aws.ToString(managementAccount.Id), roles.OrganizationAdministrator)
 	specialAccountsCells[1][4] = aws.ToString(managementAccount.Email)
+	specialAccountsCells[1][5] = managementAccount.Tags[tagging.SubstrateVersion]
 
 	specialAccountsCells[5][0] = Network
 	specialAccountsCells[5][1] = aws.ToString(networkAccount.Id)
 	specialAccountsCells[5][2] = roles.NetworkAdministrator
 	specialAccountsCells[5][3] = roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator)
 	specialAccountsCells[5][4] = aws.ToString(networkAccount.Email)
+	specialAccountsCells[5][5] = networkAccount.Tags[tagging.SubstrateVersion]
 
 	for _, account := range adminAccounts {
 		adminAccountsCells = append(adminAccountsCells, []string{
@@ -89,6 +96,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			roles.Administrator,
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 			aws.ToString(account.Email),
+			account.Tags[tagging.SubstrateVersion],
 		})
 	}
 
@@ -101,6 +109,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			roles.Administrator,
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 			aws.ToString(account.Email),
+			account.Tags[tagging.SubstrateVersion],
 		})
 	}
 
