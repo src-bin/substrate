@@ -84,6 +84,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Must(err)
 	doc.ManagementAccountId = aws.ToString(org.MasterAccountId)
 	ui.Must(doc.Write())
+	// TODO rewrite EnsureManagementAccountIdMatchesDisk then ui.Must(fileutil.Remove(awscfg.ManagementAccountFilename))
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
