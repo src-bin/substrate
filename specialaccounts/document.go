@@ -1,4 +1,4 @@
-package accounts
+package specialaccounts
 
 import (
 	"encoding/json"
@@ -10,9 +10,9 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-const SpecialAccountsFilename = "substrate.special-accounts.json"
+const Filename = "substrate.special-accounts.json"
 
-type SpecialAccountsDocument struct {
+type Document struct {
 	Admonition jsonutil.Admonition `json:"#"`
 
 	ManagementAccountId string
@@ -24,8 +24,12 @@ type SpecialAccountsDocument struct {
 	SubstrateVersion jsonutil.SubstrateVersion
 }
 
-func ReadSpecialAccountsDocument() (*SpecialAccountsDocument, error) {
-	b, err := fileutil.ReadFile(SpecialAccountsFilename)
+func ReadDocument() (*Document, error) {
+	var b []byte
+	pathname, err := fileutil.PathnameInParents(Filename)
+	if err == nil {
+		b, err = fileutil.ReadFile(pathname)
+	}
 	if errors.Is(err, fs.ErrNotExist) {
 		b = []byte("{}")
 		err = nil
@@ -33,7 +37,7 @@ func ReadSpecialAccountsDocument() (*SpecialAccountsDocument, error) {
 	if err != nil {
 		return nil, err
 	}
-	d := &SpecialAccountsDocument{}
+	d := &Document{}
 	if err := json.Unmarshal(b, d); err != nil {
 		return nil, err
 	}
@@ -41,6 +45,6 @@ func ReadSpecialAccountsDocument() (*SpecialAccountsDocument, error) {
 	return d, nil
 }
 
-func (d *SpecialAccountsDocument) Write() error {
-	return jsonutil.Write(d, SpecialAccountsFilename)
+func (d *Document) Write() error {
+	return jsonutil.Write(d, Filename)
 }

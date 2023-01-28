@@ -20,6 +20,7 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/specialaccounts"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -57,7 +58,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	versionutil.PreventDowngrade(ctx, cfg)
 
 	// Get ready to take some notes about the organization's special accounts.
-	doc, err := accounts.ReadSpecialAccountsDocument()
+	doc, err := specialaccounts.ReadDocument()
 	ui.Must(err)
 
 	// Ensure this account is (in) an organization.
