@@ -119,6 +119,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// being a little slow in bootstrapping the organization for this the first
 	// of several account creations.
 	ui.Spin("finding or creating the audit account")
+	// TODO see if the SubstrateSpecialAccount = audit account already exists
+	// TODO if so, note its account number
+	// TODO if not, see if they want to create it or designate an existing account number
+	// TODO maybe save breadcrumbs to substrate.special-accounts.json or something like that with an accounts.SpecialDocument type
 	auditAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Audit)
 	ui.Must(err)
 	// TODO ensure the audit account is a member of the organization
@@ -167,6 +171,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if err := awsorgs.EnableAWSServiceAccess(ctx, cfg, "cloudtrail.amazonaws.com"); err != nil {
 		ui.Fatal(err)
 	}
+	// TODO check if the trail already exists
+	// TODO if not, see if they want to create it
 	trail, err := awscloudtrail.EnsureTrail(ctx, cfg, TrailName, bucketName)
 	if err != nil {
 		ui.Fatal(err)
