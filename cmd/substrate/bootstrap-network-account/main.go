@@ -450,7 +450,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if *noApply {
 			err = terraform.Plan(dirname)
 		} else {
-			err = terraform.Apply(dirname, *autoApprove)
+			err = terraform.Apply(dirname, true) // always auto-approve peering since it's low-stakes and high-annoyance
 		}
 		if err != nil {
 			ui.Fatal(err)
