@@ -56,6 +56,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	)).Regional(region)
 	versionutil.PreventDowngrade(ctx, cfg)
 
+	// Get ready to take some notes about the organization's special accounts.
+	doc, err := accounts.ReadSpecialAccountsDocument()
+	ui.Must(err)
+
 	// Ensure this account is (in) an organization.
 	ui.Spin("finding or creating your organization")
 	org, err := cfg.DescribeOrganization(ctx)
@@ -75,14 +79,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		// Create the organization since it doesn't yet exist.
 		org, err = awsorgs.CreateOrganization(ctx, cfg)
-		if err != nil {
-			ui.Fatal(err)
-		}
 
 	}
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
+	doc.ManagementAccountId = aws.ToString(org.MasterAccountId)
+	ui.Must(doc.Write())
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
@@ -116,9 +117,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// of several account creations.
 	ui.Spin("finding or creating the audit account")
 	auditAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Audit)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
+	// TODO ensure the audit account is a member of the organization
+	doc.AuditAccountId = aws.ToString(auditAccount.Id)
+	ui.Must(doc.Write())
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
@@ -197,16 +199,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Ensure the deploy and network accounts exist.
 	ui.Spinf("finding or creating the deploy account")
 	deployAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Deploy)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
+	doc.DeployAccountId = aws.ToString(deployAccount.Id)
+	ui.Must(doc.Write())
 	ui.Stopf("account %s", deployAccount.Id)
 	//log.Printf("%+v", deployAccount)
 	ui.Spinf("finding or creating the network account")
 	networkAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Network)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
+	doc.NetworkAccountId = aws.ToString(networkAccount.Id)
+	ui.Must(doc.Write())
 	ui.Stopf("account %s", networkAccount.Id)
 	//log.Printf("%+v", networkAccount)
 
