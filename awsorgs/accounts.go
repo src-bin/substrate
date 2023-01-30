@@ -82,7 +82,7 @@ func EnsureSpecialAccount(
 	return ensureAccount(ctx, cfg, name, tagging.Map{
 		tagging.Manager:                 tagging.Substrate,
 		tagging.Name:                    name,
-		tagging.SubstrateSpecialAccount: name, // TODO get rid of this
+		tagging.SubstrateSpecialAccount: name,
 		tagging.SubstrateVersion:        version.Version,
 	}, time.Time{})
 }
