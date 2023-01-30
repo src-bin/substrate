@@ -119,11 +119,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// being a little slow in bootstrapping the organization for this the first
 	// of several account creations.
 	ui.Spin("finding or creating the audit account")
-	// TODO see if the SubstrateSpecialAccount = audit account already exists
-	// TODO if so, note its account number
-	// TODO if not, see if they want to create it or designate an existing account number
-	// TODO maybe save breadcrumbs to substrate.special-accounts.json or something like that with an accounts.SpecialDocument type
-	auditAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Audit)
+	auditAccount, err := cfg.FindSpecialAccount(ctx, accounts.Audit)
+	ui.Must(err)
+	if auditAccount == nil {
+		// TODO if not, see if they want to create it or designate an existing account number
+	}
+	auditAccount, err = awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Audit)
 	ui.Must(err)
 	// TODO ensure the audit account is a member of the organization
 	doc.AuditAccountId = aws.ToString(auditAccount.Id)
