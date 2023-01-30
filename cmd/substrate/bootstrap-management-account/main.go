@@ -86,7 +86,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Must(err)
 	doc.ManagementAccountId = aws.ToString(org.MasterAccountId)
 	ui.Must(doc.Write())
-	ui.Must(fileutil.Remove(awscfg.ManagementAccountFilename))
+	ui.Must(fileutil.Remove("substrate.management-account-id"))
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
