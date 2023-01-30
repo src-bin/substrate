@@ -118,10 +118,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// being a little slow in bootstrapping the organization for this the first
 	// of several account creations.
 	ui.Spin("finding or creating the audit account")
-	auditAccount, err := awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Audit)
-	if err != nil {
-		ui.Fatal(err)
+	auditAccount, err := cfg.FindSpecialAccount(ctx, accounts.Audit)
+	ui.Must(err)
+	if auditAccount == nil {
+		// TODO if not, see if they want to create it or designate an existing account number
 	}
+	auditAccount, err = awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Audit)
+	ui.Must(err)
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
