@@ -77,9 +77,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			},
 			Source: terraform.Q("../../../modules/", accounts.Deploy, "/global"),
 		})
-		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(file.WriteIfNotExists(filepath.Join(dirname, "main.tf")))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
@@ -89,26 +87,18 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		providersFile.Add(terraform.UsEast1Provider(
 			roles.ARN(accountId, roles.DeployAdministrator),
 		))
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Root(ctx, cfg, dirname, region))
 
-		if err := terraform.Init(dirname); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Init(dirname))
 
 		if *noApply {
 			err = terraform.Plan(dirname)
 		} else {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 	}
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, accounts.Deploy, region)
@@ -177,9 +167,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Label:           terraform.Label(tags),
 			ObjectOwnership: terraform.Q(terraform.BucketOwnerPreferred),
 		})
-		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
@@ -187,33 +175,23 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			roles.ARN(accountId, roles.DeployAdministrator),
 		))
 		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
 			roles.ARN(aws.ToString(networkAccount.Id), roles.Auditor),
 		))
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Root(ctx, cfg, dirname, region))
 
-		if err := terraform.Init(dirname); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Init(dirname))
 
 		if *noApply {
 			err = terraform.Plan(dirname)
 		} else {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 	}
 	if *noApply {
 		ui.Print("-no-apply given so not invoking `terraform apply`")

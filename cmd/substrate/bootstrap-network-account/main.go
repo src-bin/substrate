@@ -334,39 +334,29 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				region,
 				roles.ARN(accountId, roles.Auditor),
 			))
-			if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-			if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(terraform.Root(ctx, cfg, dirname, region))
 
-			if err := terraform.Init(dirname); err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(terraform.Fmt(dirname))
+
+			ui.Must(terraform.Init(dirname))
 
 			if *noApply {
 				err = terraform.Plan(dirname)
 			} else {
 				err = terraform.Apply(dirname, *autoApprove)
 			}
-			if err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(err)
 		}
 	}
 
 	// Now that all the networks exist, establish a fully-connected mesh of
 	// peering connections within each environment's qualities and regions.
 	peeringConnectionModule := terraform.PeeringConnectionModule()
-	if err := peeringConnectionModule.Write(filepath.Join(terraform.ModulesDirname, "peering-connection")); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(peeringConnectionModule.Write(filepath.Join(terraform.ModulesDirname, "peering-connection")))
 	peeringConnections, err := networks.EnumeratePeeringConnections()
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	for _, pc := range peeringConnections.Slice() {
 		eq0, eq1, region0, region1 := pc.Ends()
 
@@ -416,9 +406,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			},
 			Source: terraform.Q("../../../../../../../../../modules/peering-connection"),
 		})
-		if err := file.Write(filepath.Join(dirname, "main.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
 
 		providersFile := terraform.NewFile()
 		accepterProvider := terraform.ProviderFor(
@@ -433,28 +421,20 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		)
 		requesterProvider.Alias = "requester"
 		providersFile.Add(requesterProvider)
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
 		// The choice of region0 here is arbitrary.  Only one side
 		// can store the Terraform state and region0 wins.
-		if err := terraform.Root(ctx, cfg, dirname, region0); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Root(ctx, cfg, dirname, region0))
 
-		if err := terraform.Init(dirname); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Init(dirname))
 
 		if *noApply {
 			err = terraform.Plan(dirname)
 		} else {
 			err = terraform.Apply(dirname, true) // always auto-approve peering since it's low-stakes and high-annoyance
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 	}
 
 	if *noApply {

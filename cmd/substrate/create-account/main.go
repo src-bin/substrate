@@ -117,9 +117,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between all of a domain's accounts.
-	if err := terraform.Scaffold(*domain, true); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(terraform.Scaffold(*domain, true))
 
 	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect every AWS region in rapid succession")
@@ -138,9 +136,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			},
 			Source: terraform.Q("../../../../../modules/", *domain, "/global"),
 		})
-		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(file.WriteIfNotExists(filepath.Join(dirname, "main.tf")))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
@@ -150,26 +146,18 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		providersFile.Add(terraform.UsEast1Provider(
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Root(ctx, cfg, dirname, region))
 
-		if err := terraform.Init(dirname); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Init(dirname))
 
 		if *noApply {
 			err = terraform.Plan(dirname)
 		} else {
 			err = terraform.Apply(dirname, *autoApprove)
 		}
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 	}
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, region)
@@ -183,15 +171,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			},
 			Source: terraform.Q("../../../../../modules/", *domain, "/regional"),
 		})
-		if err := file.WriteIfNotExists(filepath.Join(dirname, "main.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(file.WriteIfNotExists(filepath.Join(dirname, "main.tf")))
 
 		networkFile := terraform.NewFile()
 		networks.ShareVPC(networkFile, account, *domain, *environment, *quality, region)
-		if err := networkFile.Write(filepath.Join(dirname, "network.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(networkFile.Write(filepath.Join(dirname, "network.tf")))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
@@ -199,33 +183,23 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
 		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
 			roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
 		))
-		if err := providersFile.Write(filepath.Join(dirname, "providers.tf")); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-		if err := terraform.Root(ctx, cfg, dirname, region); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Root(ctx, cfg, dirname, region))
 
-		if err := terraform.Init(dirname); err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(terraform.Init(dirname))
 
 		if *noApply {
 			if err := terraform.Plan(dirname); err != nil {
 				ui.Print(err) // allow these plans to fail and keep going to accommodate folks who keep certain regions' networks destroyed
 			}
 		} else {
-			if err := terraform.Apply(dirname, *autoApprove); err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(terraform.Apply(dirname, *autoApprove))
 		}
 	}
 	if *noApply {
