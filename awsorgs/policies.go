@@ -28,6 +28,20 @@ const (
 	TAG_POLICY                         PolicyType = "TAG_POLICY"
 )
 
+func DescribePolicy(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	policyId string,
+) (*Policy, error) {
+	out, err := cfg.Organizations().DescribePolicy(ctx, &organizations.DescribePolicyInput{
+		PolicyId: aws.String(policyId),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out.Policy, nil
+}
+
 func EnablePolicyType(
 	ctx context.Context,
 	cfg *awscfg.Config,

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -17,6 +18,7 @@ import (
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -256,21 +258,37 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	//
 	// This MUST happen AFTER configuring CloudTrail.
 	ui.Must(awsorgs.EnablePolicyType(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY))
-	policySummaries, err := awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
-	ui.Must(err)
-	found := false
-	for _, policySummary := range policySummaries {
-		found = found || aws.ToString(policySummary.Name) == ServiceControlPolicyName
+	if !fileutil.Exists(EnforceIMDSv2Filename) {
+		ui.Spin("scoping out your organization's service control policies")
+		policySummaries, err := awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
+		ui.Must(err)
+		for _, policySummary := range policySummaries {
+			if aws.ToString(policySummary.Name) == ServiceControlPolicyName {
+				policy, err := awsorgs.DescribePolicy(ctx, cfg, aws.ToString(policySummary.Id))
+				ui.Must(err)
+
+				// This line smoothly infers the contents of the enforce-imdsv2
+				// file so that we don't bother existing installations with a
+				// choice they've already dealt with.
+				//
+				// However, this also means that if someone who has (implicitly
+				// or explicitly) answered "yes" below then deletes the file
+				// expecting to be able to change their answer to "no", they'll
+				// be surprised to find that we infer based on the contents
+				// of their existing SCP that they want the answer to be "yes".
+				if strings.Contains(aws.ToString(policy.Content), `"ec2:RoleDelivery": "2.0"`) {
+
+					ui.Must(ioutil.WriteFile(EnforceIMDSv2Filename, []byte("yes\n"), 0666))
+					break
+				}
+			}
+		}
+		ui.Stop("ok")
 	}
-	enforceIMDSv2 := true
-	if found {
-		err = ioutil.WriteFile(EnforceIMDSv2Filename, []byte("yes\n"), 0666)
-	} else {
-		enforceIMDSv2, err = ui.ConfirmFile(
-			EnforceIMDSv2Filename,
-			"do you want to enforce the use of the EC2 IMDSv2 organization-wide? (yes/no; improves security posture but may break legacy EC2 workloads)",
-		)
-	}
+	enforceIMDSv2, err := ui.ConfirmFile(
+		EnforceIMDSv2Filename,
+		`do you want to enforce the use of the EC2 IMDSv2 organization-wide? (yes/no; answering "yes" improves security posture but may break legacy EC2 workloads)`,
+	)
 	ui.Must(err)
 	ui.Spin("configuring your organization's service control policy")
 	statements := []policies.Statement{
