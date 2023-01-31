@@ -242,9 +242,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// names, and role ARNs that folks might need to get the job done.
 	ui.Must(accounts.CheatSheet(ctx, cfg))
 
-	//ui.Spin("configuring your organization's service control and tagging policies")
-	ui.Spin("configuring your organization's service control policy")
-
 	// The management account isn't the organization, though.  It's just an account.
 	// To affect the entire organization, we need its root.
 	root, err := awsorgs.DescribeRoot(ctx, cfg)
@@ -275,6 +272,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		)
 	}
 	ui.Must(err)
+	ui.Spin("configuring your organization's service control policy")
 	statements := []policies.Statement{
 
 		// Allow everything not explicitly denied. Bring it on.
@@ -332,6 +330,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		awsorgs.SERVICE_CONTROL_POLICY,
 		&policies.Document{Statement: statements},
 	))
+	ui.Stop("ok")
 	/*
 		policySummaries, err = awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
 		ui.Must(err)
@@ -343,6 +342,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Ensure tagging policies are enabled and that Substrate's is attached
 	// and up-to-date.
 	/*
+		ui.Spin("configuring your organization's tag policy")
 		if err := awsorgs.EnsurePolicy(
 			ctx,
 			cfg,
@@ -353,14 +353,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		); err != nil {
 			log.Fatal(err)
 		}
+		ui.Stop("ok")
 	*/
 	/*
 		for policySummary := range awsorgs.ListPolicies(ctx, cfg, awsorgs.TAG_POLICY) {
 			log.Printf("%+v", policySummary)
 		}
 		//*/
-
-	ui.Stop("ok")
 
 	// Enable resource sharing throughout the organization.
 	ui.Spin("enabling resource sharing throughout your organization")
