@@ -19,6 +19,7 @@ const (
 const (
 	Substrate                = "Substrate"
 	SubstrateInstanceFactory = "substrate-instance-factory" // remove in 2022.10
+	Unknown                  = "unknown"
 )
 
 type Map map[string]string

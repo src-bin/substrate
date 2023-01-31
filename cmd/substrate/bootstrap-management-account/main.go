@@ -144,50 +144,65 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	//log.Printf("%+v", auditAccount)
 
 	// Ensure CloudTrail is permanently enabled organization-wide.
-	ui.Spin("configuring CloudTrail for your organization (every account, every region)")
-	auditCfg := awscfg.Must(cfg.AssumeRole(
-		ctx,
-		aws.ToString(auditAccount.Id),
-		roles.OrganizationAccountAccessRole,
-		time.Hour,
-	))
-	bucketName := fmt.Sprintf("%s-cloudtrail", prefix)
-	if err := awss3.EnsureBucket(
-		ctx,
-		auditCfg,
-		bucketName,
-		region,
-		&policies.Document{
-			Statement: []policies.Statement{
-				{
-					Principal: &policies.Principal{AWS: []string{aws.ToString(auditAccount.Id)}},
-					Action:    []string{"s3:*"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
-						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+	if doc.CloudTrail.TrailName == "" {
+		trails, err := awscloudtrail.DescribeTrails(ctx, cfg)
+		ui.Must(err)
+		if len(trails) == 1 {
+			// TODO offer to adopt this trail
+			// TODO doc.CloudTrail.BucketName = TODO
+			doc.CloudTrail.Manager = tagging.Unknown
+			// TODO doc.CloudTrail.TrailName = TODO
+		} else if len(trails) > 0 {
+			// TODO offer to adopt one of these trails
+			// TODO doc.CloudTrail.BucketName = TODO
+			doc.CloudTrail.Manager = tagging.Unknown
+			// TODO doc.CloudTrail.TrailName = TODO
+		}
+		ui.Must(doc.Write())
+	} else {
+		doc.CloudTrail.Manager = tagging.Substrate
+	}
+	if doc.CloudTrail.Manager == tagging.Substrate {
+		bucketName := fmt.Sprintf("%s-cloudtrail", prefix)
+		doc.CloudTrail.BucketName = bucketName
+		doc.CloudTrail.TrailName = TrailName
+		ui.Must(doc.Write())
+		ui.Spin("configuring CloudTrail for your organization (every account, every region)")
+		auditCfg := awscfg.Must(cfg.AssumeRole(
+			ctx,
+			aws.ToString(auditAccount.Id),
+			roles.OrganizationAccountAccessRole,
+			time.Hour,
+		))
+		ui.Must(awss3.EnsureBucket(
+			ctx,
+			auditCfg,
+			bucketName,
+			region,
+			&policies.Document{
+				Statement: []policies.Statement{
+					{
+						Principal: &policies.Principal{AWS: []string{aws.ToString(auditAccount.Id)}},
+						Action:    []string{"s3:*"},
+						Resource: []string{
+							fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+							fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+						},
 					},
-				},
-				{
-					Principal: &policies.Principal{Service: []string{"cloudtrail.amazonaws.com"}},
-					Action:    []string{"s3:GetBucketAcl", "s3:PutObject"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
-						fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
+					{
+						Principal: &policies.Principal{Service: []string{"cloudtrail.amazonaws.com"}},
+						Action:    []string{"s3:GetBucketAcl", "s3:PutObject"},
+						Resource: []string{
+							fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+							fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
+						},
 					},
 				},
 			},
-		},
-	); err != nil {
-		ui.Fatal(err)
-	}
-	if err := awsorgs.EnableAWSServiceAccess(ctx, cfg, "cloudtrail.amazonaws.com"); err != nil {
-		ui.Fatal(err)
-	}
-	// TODO check if the trail already exists
-	// TODO if not, see if they want to create it
-	trail, err := awscloudtrail.EnsureTrail(ctx, cfg, TrailName, bucketName)
-	if err != nil {
-		ui.Fatal(err)
+		))
+		ui.Must(awsorgs.EnableAWSServiceAccess(ctx, cfg, "cloudtrail.amazonaws.com"))
+		trail, err := awscloudtrail.EnsureTrail(ctx, cfg, TrailName, bucketName)
+		ui.Must(err)
 	}
 	ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 

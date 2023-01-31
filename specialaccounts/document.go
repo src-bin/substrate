@@ -22,6 +22,11 @@ type Document struct {
 	NetworkAccountId string
 
 	SubstrateVersion jsonutil.SubstrateVersion
+
+	CloudTrail struct {
+		BucketName, TrailName string
+		Manager               string // "Substrate" or "unknown"
+	}
 }
 
 func ReadDocument() (*Document, error) {
