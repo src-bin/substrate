@@ -11,7 +11,7 @@ const (
 
 	Name = "Name"
 
-	SubstrateSpecialAccount = "SubstrateSpecialAccount" // TODO get rid of this
+	SubstrateSpecialAccount = "SubstrateSpecialAccount"
 	SubstrateVersion        = "SubstrateVersion"
 )
 
