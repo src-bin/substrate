@@ -3,12 +3,14 @@ package awscfg
 import (
 	"context"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -230,6 +232,19 @@ func defaultLoadOptions() []func(*config.LoadOptions) error {
 		)
 		ui.Print("configuring the AWS SDK to log request and response bodies per SUBSTRATE_DEBUG_AWS_LOGS")
 	}
+
+	// Sometimes, for reasons we don't quite understand, 169.254.169.254 takes
+	// a long time to fail on a Mac which makes literally every Substrate
+	// program much slower than necessary. To avoid this, we no longer make
+	// any attempt to use the EC2 IMDS on a Mac. (Realistically no one is ever
+	// going to use Substrate on one of those fancy EC2 Macs so this is fine.)
+	if runtime.GOOS == "darwin" {
+		options = append(
+			options,
+			config.WithEC2IMDSClientEnableState(imds.ClientDisabled),
+		)
+	}
+
 	if region, err := regions.DefaultNoninteractive(); err == nil {
 		options = append(options, config.WithRegion(region))
 	}
