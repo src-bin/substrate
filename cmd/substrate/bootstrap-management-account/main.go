@@ -31,6 +31,7 @@ import (
 
 const (
 	EnforceIMDSv2Filename    = "substrate.enforce-imdsv2"
+	ManageCloudTrailFilename = "substrate.manage-cloudtrail"
 	ServiceControlPolicyName = "SubstrateServiceControlPolicy"
 	TagPolicyName            = "SubstrateTaggingPolicy"
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
@@ -141,51 +142,78 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
-	// Ensure CloudTrail is permanently enabled organization-wide.
-	ui.Spin("configuring CloudTrail for your organization (every account, every region)")
-	auditCfg := awscfg.Must(cfg.AssumeRole(
-		ctx,
-		aws.ToString(auditAccount.Id),
-		roles.OrganizationAccountAccessRole,
-		time.Hour,
-	))
-	bucketName := fmt.Sprintf("%s-cloudtrail", prefix)
-	if err := awss3.EnsureBucket(
-		ctx,
-		auditCfg,
-		bucketName,
-		region,
-		&policies.Document{
-			Statement: []policies.Statement{
-				{
-					Principal: &policies.Principal{AWS: []string{aws.ToString(auditAccount.Id)}},
-					Action:    []string{"s3:*"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
-						fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+	// Ensure CloudTrail is permanently enabled organization-wide (unless
+	// they opt-out).
+	if !fileutil.Exists(ManageCloudTrailFilename) {
+		ui.Spin("scoping out your organization's CloudTrail configuration(s)")
+		trails, err := awscloudtrail.DescribeTrails(ctx, cfg)
+		ui.Must(err)
+		count := 0
+		for _, trail := range trails {
+
+			// If the Substrate-managed trail exists, presume that they opted
+			// in or would have if they'd been given a choice by the earlier
+			// version of Substrate that bootstrapped their management account.
+			if aws.ToString(trail.Name) == TrailName { // TODO check more conditions? (IsMultiRegionTrail, IsOrganizationTrail, S3BucketName)
+				ui.Must(ioutil.WriteFile(ManageCloudTrailFilename, []byte("yes\n"), 0666))
+
+			} else {
+				count++
+			}
+		}
+		if count > 0 {
+			ui.Stopf("found %d extra trails", count)
+			ui.Print("having more than one CloudTrail configuration in an AWS organization can be very expensive")
+		} else {
+			ui.Stop("ok")
+		}
+
+	}
+	manageCloudTrail, err := ui.ConfirmFile(
+		ManageCloudTrailFilename,
+		`do you want Substrate to create and manage a CloudTrail configuration? (yes/no)`,
+	)
+	ui.Must(err)
+	if manageCloudTrail {
+		ui.Spin("configuring CloudTrail for your organization (every account, every region)")
+		auditCfg := awscfg.Must(cfg.AssumeRole(
+			ctx,
+			aws.ToString(auditAccount.Id),
+			roles.OrganizationAccountAccessRole,
+			time.Hour,
+		))
+		bucketName := fmt.Sprintf("%s-cloudtrail", prefix)
+		ui.Must(awss3.EnsureBucket(
+			ctx,
+			auditCfg,
+			bucketName,
+			region,
+			&policies.Document{
+				Statement: []policies.Statement{
+					{
+						Principal: &policies.Principal{AWS: []string{aws.ToString(auditAccount.Id)}},
+						Action:    []string{"s3:*"},
+						Resource: []string{
+							fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+							fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+						},
 					},
-				},
-				{
-					Principal: &policies.Principal{Service: []string{"cloudtrail.amazonaws.com"}},
-					Action:    []string{"s3:GetBucketAcl", "s3:PutObject"},
-					Resource: []string{
-						fmt.Sprintf("arn:aws:s3:::%s", bucketName),
-						fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
+					{
+						Principal: &policies.Principal{Service: []string{"cloudtrail.amazonaws.com"}},
+						Action:    []string{"s3:GetBucketAcl", "s3:PutObject"},
+						Resource: []string{
+							fmt.Sprintf("arn:aws:s3:::%s", bucketName),
+							fmt.Sprintf("arn:aws:s3:::%s/AWSLogs/*", bucketName),
+						},
 					},
 				},
 			},
-		},
-	); err != nil {
-		ui.Fatal(err)
+		))
+		ui.Must(awsorgs.EnableAWSServiceAccess(ctx, cfg, "cloudtrail.amazonaws.com"))
+		trail, err := awscloudtrail.EnsureTrail(ctx, cfg, TrailName, bucketName)
+		ui.Must(err)
+		ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 	}
-	if err := awsorgs.EnableAWSServiceAccess(ctx, cfg, "cloudtrail.amazonaws.com"); err != nil {
-		ui.Fatal(err)
-	}
-	trail, err := awscloudtrail.EnsureTrail(ctx, cfg, TrailName, bucketName)
-	if err != nil {
-		ui.Fatal(err)
-	}
-	ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 
 	// TODO THIS IS VERY DUBIOUSLY VALUABLE, PROBABLY DON'T DO IT
 	// Ensure AWS Config is enabled in all the special accounts in every
