@@ -103,11 +103,8 @@ func instanceFactoryHandler(
 				cfg.Regional(region),
 				[]awsec2.Filter{
 					{
-						Name: aws.String(fmt.Sprintf("tag:%s", tagging.Manager)),
-						Values: []string{
-							tagging.Substrate,
-							tagging.SubstrateInstanceFactory, // remove in 2022.10
-						},
+						Name:   aws.String(fmt.Sprintf("tag:%s", tagging.Manager)),
+						Values: []string{tagging.Substrate},
 					},
 					{
 						Name:   aws.String("key-name"),

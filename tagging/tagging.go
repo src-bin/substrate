@@ -17,8 +17,7 @@ const (
 
 // Values.
 const (
-	Substrate                = "Substrate"
-	SubstrateInstanceFactory = "substrate-instance-factory" // remove in 2022.10
+	Substrate = "Substrate"
 )
 
 type Map map[string]string

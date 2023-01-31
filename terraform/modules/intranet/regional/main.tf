@@ -434,27 +434,6 @@ resource "aws_security_group" "instance-factory" {
   }
 }
 
-resource "aws_security_group" "substrate-instance-factory" { // remove in 2022.05 with release notes about failure if Instance Factory instances have existed for more than six months
-  name        = "substrate-instance-factory"
-  description = "Allow inbound SSH access to instances managed by substrate-instance-factory"
-  vpc_id      = module.substrate.vpc_id
-  tags = {
-    Environment = module.substrate.tags.environment
-    Name        = "InstanceFactory"
-    Quality     = module.substrate.tags.quality
-  }
-}
-
-resource "aws_security_group_rule" "egress" { // remove in 2022.05
-  cidr_blocks       = ["0.0.0.0/0"]
-  from_port         = 0
-  ipv6_cidr_blocks  = ["::/0"]
-  protocol          = "-1"
-  security_group_id = aws_security_group.substrate-instance-factory.id
-  to_port           = 0
-  type              = "egress"
-}
-
 resource "aws_security_group_rule" "instance-factory-egress" {
   cidr_blocks       = ["0.0.0.0/0"]
   from_port         = 0
@@ -471,16 +450,6 @@ resource "aws_security_group_rule" "instance-factory-ssh-ingress" {
   ipv6_cidr_blocks  = ["::/0"]
   protocol          = "tcp"
   security_group_id = aws_security_group.instance-factory.id
-  to_port           = 22
-  type              = "ingress"
-}
-
-resource "aws_security_group_rule" "ssh-ingress" { // remove in 2022.05
-  cidr_blocks       = ["0.0.0.0/0"]
-  from_port         = 22
-  ipv6_cidr_blocks  = ["::/0"]
-  protocol          = "tcp"
-  security_group_id = aws_security_group.substrate-instance-factory.id
   to_port           = 22
   type              = "ingress"
 }

@@ -33,7 +33,7 @@ func (CSRFError) Error() string {
 func PreventCSRF(body url.Values, event *events.APIGatewayProxyRequest) error {
 	csrf := CSRFCookie(event)
 	if csrf == "" {
-		return nil // TODO transition to CSRFError{} in 2022.07
+		return CSRFError{}
 	}
 	if body.Get(FieldName) == csrf {
 		return nil
