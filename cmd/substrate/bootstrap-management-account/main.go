@@ -191,6 +191,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 
+	// TODO THIS IS VERY DUBIOUSLY VALUABLE, PROBABLY DON'T DO IT
 	// Ensure AWS Config is enabled in all the special accounts in every
 	// region that's in use. Setup an aggregator, too, that can access all
 	// the Config buckets in the organization.
@@ -207,6 +208,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// TODO PutConfigurationAggregator, etc.
 	// TODO might need to <https://docs.aws.amazon.com/config/latest/developerguide/authorize-aggregator-account-cli.html> for every account in `substrate create-account`
 
+	// TODO THIS IS PROBABLY MUCH MORE DEFENSIBLY VALUABLE
 	// Ensure AWS GuardDuty has delegated administration to the audit account,
 	// is enabled in all existing accounts, and is tracking the organization
 	// to enable itself in new accounts.
