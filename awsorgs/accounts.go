@@ -219,6 +219,9 @@ func emailFor(ctx context.Context, cfg *awscfg.Config, name string) (string, err
 	), nil
 }
 
+// ensureAccount uses FindAccount and createAccount to ensure an account that
+// meets the given criteria exists and is tagged appropriately. The given tags
+// may be modified by this function.
 func ensureAccount(
 	ctx context.Context,
 	cfg *awscfg.Config,
@@ -257,7 +260,10 @@ func ensureAccount(
 	}
 
 	// If we can't find it, try to create it.
-	var accountId string
+	var (
+		accountId string
+		nameTag   bool // whether to set the Name tag, which we only do on account creation
+	)
 	if account == nil {
 		status, err := createAccount(ctx, cfg, name, email, deadline)
 		if err != nil {
@@ -270,6 +276,7 @@ func ensureAccount(
 			accountId = aws.ToString(account.Id) // found after createAccount failure
 		} else {
 			accountId = aws.ToString(status.AccountId) // newly-created
+			nameTag = true
 		}
 	} else {
 		accountId = aws.ToString(account.Id) // found right away (before even trying to create it)
@@ -281,6 +288,9 @@ func ensureAccount(
 	// TODO PutDeliveryChannel
 	// TODO StartConfigurationRecorder
 
+	if !nameTag {
+		delete(tags, tagging.Name)
+	}
 	if err := Tag(ctx, cfg, accountId, tags); err != nil {
 		return nil, err
 	}
