@@ -17,7 +17,6 @@ import (
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -232,20 +231,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Tag the management account.
 	ui.Spin("tagging the management account")
-	if err := awsorgs.Tag(ctx, cfg, aws.ToString(org.MasterAccountId), map[string]string{
+	ui.Must(awsorgs.Tag(ctx, cfg, aws.ToString(org.MasterAccountId), map[string]string{
 		tagging.Manager:                 tagging.Substrate,
 		tagging.SubstrateSpecialAccount: accounts.Management,
 		tagging.SubstrateVersion:        version.Version,
-	}); err != nil {
-		log.Fatal(err)
-	}
+	}))
 	ui.Stop("ok")
 
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
-	if err := accounts.CheatSheet(ctx, cfg); err != nil {
-		log.Fatal(err)
-	}
+	ui.Must(accounts.CheatSheet(ctx, cfg))
 
 	//ui.Spin("configuring your organization's service control and tagging policies")
 	ui.Spin("configuring your organization's service control policy")
@@ -253,9 +248,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// The management account isn't the organization, though.  It's just an account.
 	// To affect the entire organization, we need its root.
 	root, err := awsorgs.DescribeRoot(ctx, cfg)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 
 	// Ensure service control policies are enabled and that Substrate's is
 	// attached and up-to-date. As of 2023.02 we ask during the first run
@@ -339,13 +332,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		awsorgs.SERVICE_CONTROL_POLICY,
 		&policies.Document{Statement: statements},
 	))
-	//*
-	policySummaries, err = awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
-	ui.Must(err)
-	for _, policySummary := range policySummaries {
-		log.Print(jsonutil.MustString(policySummary))
-	}
-	//*/
+	/*
+		policySummaries, err = awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
+		ui.Must(err)
+		for _, policySummary := range policySummaries {
+			log.Print(jsonutil.MustString(policySummary))
+		}
+		//*/
 
 	// Ensure tagging policies are enabled and that Substrate's is attached
 	// and up-to-date.
@@ -371,9 +364,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Enable resource sharing throughout the organization.
 	ui.Spin("enabling resource sharing throughout your organization")
-	if err := awsram.EnableSharingWithAwsOrganization(ctx, cfg); err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(awsram.EnableSharingWithAwsOrganization(ctx, cfg))
 	ui.Stop("ok")
 
 	admin.EnsureAdminRolesAndPolicies(ctx, cfg, true) // could detect if we created any special accounts but this way there's a simple do-it-anyway option if things get out of sync
