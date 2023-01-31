@@ -333,6 +333,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		ui.Must(terraform.Root(ctx, cfg, dirname, region))
 
+		ui.Must(terraform.Fmt(dirname))
+
 		ui.Must(terraform.Init(dirname))
 
 		if *noApply {

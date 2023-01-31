@@ -427,6 +427,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		// can store the Terraform state and region0 wins.
 		ui.Must(terraform.Root(ctx, cfg, dirname, region0))
 
+		ui.Must(terraform.Fmt(dirname))
+
 		ui.Must(terraform.Init(dirname))
 
 		if *noApply {
