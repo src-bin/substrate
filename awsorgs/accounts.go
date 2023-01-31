@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -231,6 +232,18 @@ func ensureAccount(
 		return nil, err
 	}
 
+	// findAccount is a closure to be passed to cfg.FindAccount during the
+	// idempotency guarantees when creating accounts.
+	findAccount := func(a *awscfg.Account) bool {
+		log.Printf("findAccount a.Tags: %+v, tags: %+v")
+		if tagsEqual(a.Tags, tags) {
+			log.Print("findAccount true thanks to tagsEqual")
+			return true
+		}
+		log.Print("findAccount %v thanks to email and name", aws.ToString(a.Email) == email && aws.ToString(a.Name) == name)
+		return aws.ToString(a.Email) == email && aws.ToString(a.Name) == name
+	}
+
 	// Try to find the account here, first, even though that looks like a
 	// TOCTTOU vulnerability. It isn't, really, since AWS is still enforcing
 	// its uniqueness constraint on email address and possibly other aspects
@@ -238,12 +251,7 @@ func ensureAccount(
 	// early, without attempting to create the account, which avoids an
 	// unnecessary failure when the account exists but we're precisely at
 	// the organization's limit on the number of accounts in it.
-	account, err := cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
-		if tagsEqual(a.Tags, tags) {
-			return true
-		}
-		return aws.ToString(a.Email) == email && aws.ToString(a.Name) == name
-	})
+	account, err := cfg.FindAccount(ctx, findAccount)
 	if err != nil {
 		return nil, err
 	}
@@ -256,11 +264,7 @@ func ensureAccount(
 			return nil, err
 		}
 		if status.FailureReason == types.CreateAccountFailureReasonEmailAlreadyExists {
-			account, err = cfg.FindAccount(ctx, func(a *awscfg.Account) bool {
-				return aws.ToString(a.Name) == name // confirms name matches in addition to email
-				// TODO confirm tags match also/instead
-			})
-			if err != nil {
+			if account, err = cfg.FindAccount(ctx, findAccount); err != nil {
 				return nil, err
 			}
 			accountId = aws.ToString(account.Id) // found after createAccount failure
@@ -307,6 +311,11 @@ func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId stri
 }
 
 func tagsEqual(a, b tagging.Map) bool {
+	if a[tagging.SubstrateSpecialAccount] != "" && a[tagging.SubstrateSpecialAccount] == b[tagging.SubstrateSpecialAccount] {
+		log.Print("tagsEqual true thanks to SubstrateSpecialAccount")
+		return true
+	}
+
 	if a[tagging.Domain] == "" || b[tagging.Domain] == "" {
 		return false
 	}
