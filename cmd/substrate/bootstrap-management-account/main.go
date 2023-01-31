@@ -122,11 +122,22 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	auditAccount, err := cfg.FindSpecialAccount(ctx, accounts.Audit)
 	ui.Must(err)
 	if auditAccount == nil {
-		// TODO if not, see if they want to create it or designate an existing account number
+		ui.Stop("not found")
+		reuse, err := ui.Confirm("does your AWS organization already have an account that stores audit logs which you'd like Substrate to use? (yes/no)")
+		ui.Must(err)
+		if reuse {
+			auditAccountId, err := ui.Prompt("enter the account number of your existing audit account:")
+			ui.Must(err)
+			ui.Spin("adopting your existing audit account")
+			ui.Must(awsorgs.Tag(ctx, cfg, auditAccountId, tagging.Map{
+				tagging.SubstrateSpecialAccount: accounts.Audit,
+			})) // this also ensures the account is in the organization
+		} else {
+			ui.Spin("creating the audit account")
+		}
 	}
 	auditAccount, err = awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Audit)
 	ui.Must(err)
-	// TODO ensure the audit account is a member of the organization
 	doc.AuditAccountId = aws.ToString(auditAccount.Id)
 	ui.Must(doc.Write())
 	ui.Stopf("account %s", auditAccount.Id)
