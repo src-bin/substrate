@@ -14,11 +14,24 @@ import (
 
 const TrailAlreadyExistsException = "TrailAlreadyExistsException"
 
-type Trail struct {
-	Arn, Name *string
+type Trail = types.Trail
+
+type TrailDescriptor struct { // because the various APIs don't all use types.Trail
+	TrailARN, Name *string
 }
 
-func EnsureTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*Trail, error) {
+func DescribeTrails(ctx context.Context, cfg *awscfg.Config) ([]Trail, error) {
+	out, err := cfg.CloudTrail().DescribeTrails(ctx, &cloudtrail.DescribeTrailsInput{
+		IncludeShadowTrails: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, err
+	}
+	//log.Print(jsonutil.MustString(out))
+	return out.TrailList, nil
+}
+
+func EnsureTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*TrailDescriptor, error) {
 
 	trail, err := createTrail(ctx, cfg, name, bucketName)
 	if awsutil.ErrorCodeIs(err, TrailAlreadyExistsException) {
@@ -31,7 +44,7 @@ func EnsureTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName strin
 	client := cfg.CloudTrail()
 
 	if _, err := client.AddTags(ctx, &cloudtrail.AddTagsInput{
-		ResourceId: trail.Arn,
+		ResourceId: trail.TrailARN,
 		TagsList:   tagList(),
 	}); err != nil {
 		return nil, err
@@ -46,7 +59,7 @@ func EnsureTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName strin
 	return trail, nil
 }
 
-func createTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*Trail, error) {
+func createTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*TrailDescriptor, error) {
 	out, err := cfg.CloudTrail().CreateTrail(ctx, &cloudtrail.CreateTrailInput{
 		EnableLogFileValidation:    aws.Bool(true),
 		IncludeGlobalServiceEvents: aws.Bool(true),
@@ -60,10 +73,10 @@ func createTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName strin
 		return nil, err
 	}
 	//log.Printf("%+v", out)
-	return &Trail{Arn: out.TrailARN, Name: out.Name}, nil
+	return &TrailDescriptor{TrailARN: out.TrailARN, Name: out.Name}, nil
 }
 
-func updateTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*Trail, error) {
+func updateTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName string) (*TrailDescriptor, error) {
 	out, err := cfg.CloudTrail().UpdateTrail(ctx, &cloudtrail.UpdateTrailInput{
 		EnableLogFileValidation:    aws.Bool(true),
 		IncludeGlobalServiceEvents: aws.Bool(true),
@@ -76,7 +89,7 @@ func updateTrail(ctx context.Context, cfg *awscfg.Config, name, bucketName strin
 		return nil, err
 	}
 	//log.Printf("%+v", out)
-	return &Trail{Arn: out.TrailARN, Name: out.Name}, nil
+	return &TrailDescriptor{TrailARN: out.TrailARN, Name: out.Name}, nil
 }
 
 func tagList() []types.Tag {
