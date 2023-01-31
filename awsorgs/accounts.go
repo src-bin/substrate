@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -238,12 +237,9 @@ func ensureAccount(
 	// findAccount is a closure to be passed to cfg.FindAccount during the
 	// idempotency guarantees when creating accounts.
 	findAccount := func(a *awscfg.Account) bool {
-		log.Printf("findAccount a.Tags: %+v, tags: %+v")
 		if tagsEqual(a.Tags, tags) {
-			log.Print("findAccount true thanks to tagsEqual")
 			return true
 		}
-		log.Print("findAccount %v thanks to email and name", aws.ToString(a.Email) == email && aws.ToString(a.Name) == name)
 		return aws.ToString(a.Email) == email && aws.ToString(a.Name) == name
 	}
 
@@ -322,7 +318,6 @@ func listTagsForResource(ctx context.Context, cfg *awscfg.Config, accountId stri
 
 func tagsEqual(a, b tagging.Map) bool {
 	if a[tagging.SubstrateSpecialAccount] != "" && a[tagging.SubstrateSpecialAccount] == b[tagging.SubstrateSpecialAccount] {
-		log.Print("tagsEqual true thanks to SubstrateSpecialAccount")
 		return true
 	}
 
