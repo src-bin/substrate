@@ -22,7 +22,10 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-const TooManyRequestsException = "TooManyRequestsException"
+const (
+	TooManyRequestsException    = "TooManyRequestsException"
+	UnrecognizedClientException = "UnrecognizedClientException"
+)
 
 type (
 	Account struct {
@@ -200,7 +203,7 @@ func defaultLoadOptions() []func(*config.LoadOptions) error {
 	// to not work. It's possible this new setting is too aggressive but we're
 	// going to see how it feels in the run up to 2023.02 and through that
 	// release before possibly increasing it back towards its original default.
-	const defaultRetries = 1
+	const defaultRetries = 3
 
 	i, err := strconv.Atoi(os.Getenv("SUBSTRATE_DEBUG_AWS_RETRIES"))
 	if err != nil {
@@ -219,6 +222,12 @@ func defaultLoadOptions() []func(*config.LoadOptions) error {
 		config.WithRetryer(func() aws.Retryer {
 			return retry.NewStandard(func(o *retry.StandardOptions) {
 				o.MaxAttempts = i + 1
+				o.Retryables = append(o.Retryables, retry.IsErrorRetryableFunc(func(err error) aws.Ternary {
+					if awsutil.ErrorCodeIs(err, UnrecognizedClientException) {
+						return aws.TrueTernary
+					}
+					return aws.UnknownTernary
+				}))
 			})
 		}),
 		config.WithSharedConfigFiles([]string{}),
