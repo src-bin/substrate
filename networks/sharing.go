@@ -14,7 +14,7 @@ func ShareVPC(
 	account *awsorgs.Account,
 	domain, environment, quality string,
 	region string,
-) {
+) (dependsOn terraform.ValueSlice) {
 	rs := terraform.ResourceShare{
 		Provider: terraform.NetworkProviderAlias,
 		Tags: terraform.Tags{
@@ -69,22 +69,26 @@ func ShareVPC(
 	}
 	f.Add(dataSubnet)
 
-	f.Add(terraform.EC2Tag{
+	t := terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		ForEach:    terraform.U(dataSubnet.Ref()),
 		Key:        terraform.Q(tagging.Connectivity),
 		Label:      terraform.Label(rs.Tags, "subnet-connectivity"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.U(fmt.Sprintf("each.value.tags[\"%s\"]", tagging.Connectivity)),
-	})
-	f.Add(terraform.EC2Tag{
+	}
+	f.Add(t)
+	dependsOn = append(dependsOn, t.Ref())
+	t = terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		ForEach:    terraform.U(dataSubnet.Ref()),
 		Key:        terraform.Q(tagging.Environment),
 		Label:      terraform.Label(rs.Tags, "subnet-environment"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.Q(environment),
-	})
+	}
+	f.Add(t)
+	dependsOn = append(dependsOn, t.Ref())
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		ForEach:    terraform.U(dataSubnet.Ref()),
@@ -93,22 +97,26 @@ func ShareVPC(
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.U(fmt.Sprintf("\"%s-%s-${each.value.tags[\"%s\"]}-${each.value.availability_zone}\"", environment, quality, tagging.Connectivity)),
 	})
-	f.Add(terraform.EC2Tag{
+	t = terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		ForEach:    terraform.U(dataSubnet.Ref()),
 		Key:        terraform.Q(tagging.Quality),
 		Label:      terraform.Label(rs.Tags, "subnet-quality"),
 		ResourceId: terraform.U("each.value.id"),
 		Value:      terraform.Q(quality),
-	})
+	}
+	f.Add(t)
+	dependsOn = append(dependsOn, t.Ref())
 
-	f.Add(terraform.EC2Tag{
+	t = terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		Key:        terraform.Q(tagging.Environment),
 		Label:      terraform.Label(rs.Tags, "vpc-environment"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(environment),
-	})
+	}
+	f.Add(t)
+	dependsOn = append(dependsOn, t.Ref())
 	f.Add(terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		Key:        terraform.Q(tagging.Name),
@@ -116,13 +124,15 @@ func ShareVPC(
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(fmt.Sprintf("%s-%s", environment, quality)),
 	})
-	f.Add(terraform.EC2Tag{
+	t = terraform.EC2Tag{
 		DependsOn:  terraform.ValueSlice{ts.Ref()},
 		Key:        terraform.Q(tagging.Quality),
 		Label:      terraform.Label(rs.Tags, "vpc-quality"),
 		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
 		Value:      terraform.Q(quality),
-	})
+	}
+	f.Add(t)
+	dependsOn = append(dependsOn, t.Ref())
 
 	ra := terraform.ResourceAssociation{
 		ForEach:          terraform.U(dataSubnet.Ref()),
@@ -136,4 +146,5 @@ func ShareVPC(
 	ts.DependsOn = terraform.ValueSlice{ra.Ref()}
 	f.Add(ts)
 
+	return dependsOn
 }

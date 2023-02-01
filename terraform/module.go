@@ -2,6 +2,7 @@ package terraform
 
 type Module struct {
 	Arguments map[string]Value
+	DependsOn ValueSlice
 	Label     Value
 	Provider  ProviderAlias
 	Providers map[ProviderAlias]ProviderAlias
@@ -18,6 +19,9 @@ func (Module) Template() string {
   {{$k}} = {{$v.Value}}
 {{- end}}
 
+{{- if .DependsOn}}
+    depends_on = {{.DependsOn.Value}}
+{{- end}}
 {{- if or .Provider .Providers}}
   providers = {
 {{- if .Provider}}

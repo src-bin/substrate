@@ -347,6 +347,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, Domain, *quality, region)
 
+		networkFile := terraform.NewFile()
+		dependsOn := networks.ShareVPC(networkFile, account, Domain, Environment, *quality, region)
+		ui.Must(networkFile.Write(filepath.Join(dirname, "network.tf")))
+
 		file := terraform.NewFile()
 		arguments := map[string]terraform.Value{
 			"dns_domain_name":                    terraform.Q(dnsDomainName),
@@ -368,6 +372,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		tags.Region = region
 		file.Add(terraform.Module{
 			Arguments: arguments,
+			DependsOn: dependsOn,
 			Label:     terraform.Q("intranet"),
 			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
 				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
@@ -376,10 +381,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Source: terraform.Q("../../../../modules/intranet/regional"),
 		})
 		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
-
-		networkFile := terraform.NewFile()
-		networks.ShareVPC(networkFile, account, Domain, Environment, *quality, region)
-		ui.Must(networkFile.Write(filepath.Join(dirname, "network.tf")))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(

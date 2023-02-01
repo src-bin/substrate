@@ -164,9 +164,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, region)
 
+		networkFile := terraform.NewFile()
+		dependsOn := networks.ShareVPC(networkFile, account, *domain, *environment, *quality, region)
+		ui.Must(networkFile.Write(filepath.Join(dirname, "network.tf")))
+
 		file := terraform.NewFile()
 		file.Add(terraform.Module{
-			Label: terraform.Q(*domain),
+			DependsOn: dependsOn,
+			Label:     terraform.Q(*domain),
 			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
 				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
 				terraform.NetworkProviderAlias: terraform.NetworkProviderAlias,
@@ -174,10 +179,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			Source: terraform.Q("../../../../../modules/", *domain, "/regional"),
 		})
 		ui.Must(file.WriteIfNotExists(filepath.Join(dirname, "main.tf")))
-
-		networkFile := terraform.NewFile()
-		networks.ShareVPC(networkFile, account, *domain, *environment, *quality, region)
-		ui.Must(networkFile.Write(filepath.Join(dirname, "network.tf")))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
