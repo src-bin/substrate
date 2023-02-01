@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strings"
 	"time"
 
@@ -80,14 +79,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		// Create the organization since it doesn't yet exist.
 		org, err = awsorgs.CreateOrganization(ctx, cfg)
-		if err != nil {
-			ui.Fatal(err)
-		}
+		ui.Must(err)
 
 	}
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
@@ -102,7 +97,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	callerIdentity := cfg.MustGetCallerIdentity(ctx)
 	org = cfg.MustDescribeOrganization(ctx)
 	if aws.ToString(callerIdentity.Account) != aws.ToString(org.MasterAccountId) {
-		log.Fatalf(
+		ui.Fatalf(
 			"access key is from account %v instead of your organization's management account, %v",
 			aws.ToString(callerIdentity.Account),
 			aws.ToString(org.MasterAccountId),
