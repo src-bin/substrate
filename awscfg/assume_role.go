@@ -147,6 +147,17 @@ func (c *Config) AssumeRole(
 	callerIdentity, err = cfg.WaitUntilCredentialsWork(ctx)
 	//log.Print(jsonutil.MustString(callerIdentity))
 
+	// TODO detect when we're Administrator (or whatever) in a service account
+	// and trying to assume OrganizationAdministrator in the management
+	// account, which will have just failed repeatedly, to provide an actually
+	// helpful error message. It may be possible to push such an error further
+	// up the stack so that we get it faster, too, but that seems dangerously
+	// close to reimplementing part of IAM which is a bad idea.
+	//
+	// This will specifically improve the experience I had on a demo call
+	// during which I forgot I'd assumed a role and needed to unassume-role
+	// before carrying on.
+
 	return cfg, err
 }
 
