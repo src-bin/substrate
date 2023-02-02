@@ -1,7 +1,7 @@
 output "tags" {
   value = {
-    domain      = local.domain_environment_quality_region[0]
-    environment = local.domain_environment_quality_region[1]
-    quality     = local.domain_environment_quality_region[2]
+    domain      = local.tags[0]
+    environment = local.tags[local.tags[0] == "admin" ? 0 : 1]
+    quality     = local.tags[local.tags[0] == "admin" ? 1 : 2]
   }
 }
