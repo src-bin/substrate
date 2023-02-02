@@ -202,6 +202,8 @@ func (c *Config) WaitUntilCredentialsWork(ctx context.Context) (
 		if callerIdentity, err = c.GetCallerIdentity(ctx); err == nil {
 			if _, err = c.DescribeOrganization(ctx); err == nil {
 				break
+			} else if awsutil.ErrorCodeIs(err, AWSOrganizationsNotInUseException) {
+				err = nil
 			}
 		}
 		time.Sleep(1e9) // TODO exponential backoff
