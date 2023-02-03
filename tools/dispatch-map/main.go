@@ -5,19 +5,18 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/src-bin/substrate/fileutil"
 	"golang.org/x/mod/modfile"
+	"golang.org/x/tools/imports"
 )
 
 const Main = "Main"
@@ -156,22 +155,11 @@ func main() {
 		}
 	}
 	fmt.Fprint(b, "}\n")
-	p, err := format.Source(b.Bytes())
+	p, err := imports.Process(*out, b.Bytes(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if err := ioutil.WriteFile(*out, p, 0666); err != nil {
-		log.Fatal(err)
-	}
-
-	// Now run goimports against the generated code in order to resolve
-	// package paths for funciton parameters. This is the lazy way, perhaps,
-	// but the AST does not make it at all easy to get at the package path.
-	cmd := exec.Command("goimports", "-w", *out)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
 		log.Fatal(err)
 	}
 
