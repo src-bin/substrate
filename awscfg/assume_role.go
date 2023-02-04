@@ -87,6 +87,7 @@ func (c *Config) AssumeRole(
 	roleName string,
 	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/> is 1 hour
 ) (*Config, error) {
+	//ui.Printf("assuming %s in %s", roleName, accountId)
 	if roleName != roles.OrganizationReader {
 		c.event.FinalAccountId = accountId
 		c.event.FinalRoleName = roleName
@@ -102,6 +103,7 @@ func (c *Config) AssumeRole(
 	callerRoleName, err := roles.Name(aws.ToString(callerIdentity.Arn))
 	if err == nil {
 		if aws.ToString(callerIdentity.Account) == accountId && callerRoleName == roleName {
+			//ui.Printf("short-circuiting while assuming %s in %s", roleName, accountId)
 			return c, nil
 		}
 	} else if err != nil {
