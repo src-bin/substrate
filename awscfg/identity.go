@@ -12,6 +12,7 @@ type Identity struct {
 	AccountID string
 	Tags      struct {
 		Domain, Environment, Quality string
+		SubstrateSpecialAccount      string
 	}
 }
 
@@ -44,10 +45,14 @@ func (c *Config) Identity(ctx context.Context) (*Identity, error) {
 	return &Identity{
 		ARN:       aws.ToString(callerIdentity.Arn),
 		AccountID: aws.ToString(callerIdentity.Account),
-		Tags: struct{ Domain, Environment, Quality string }{
-			Domain:      tags[tagging.Domain],
-			Environment: tags[tagging.Environment],
-			Quality:     tags[tagging.Quality],
+		Tags: struct {
+			Domain, Environment, Quality string
+			SubstrateSpecialAccount      string
+		}{
+			Domain:                  tags[tagging.Domain],
+			Environment:             tags[tagging.Environment],
+			Quality:                 tags[tagging.Quality],
+			SubstrateSpecialAccount: tags[tagging.SubstrateSpecialAccount],
 		},
 	}, nil
 }

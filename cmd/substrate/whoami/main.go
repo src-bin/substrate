@@ -7,6 +7,7 @@ import (
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/versionutil"
@@ -30,42 +31,77 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
 	identity, err := cfg.Identity(ctx)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 
 	switch format.String() {
 	case cmdutil.SerializationFormatEnv:
-		fmt.Printf(
-			"DOMAIN=%q\nENVIRONMENT=%q\nQUALITY=%q\nROLE=%q\n",
-			identity.Tags.Domain,
-			identity.Tags.Environment,
-			identity.Tags.Quality,
-			identity.ARN,
-		)
+		if identity.Tags.SubstrateSpecialAccount != "" {
+			fmt.Printf(
+				"ROLE=%q SUBSTRATE_SPECIAL_ACCOUNT=%q\n",
+				identity.ARN,
+				identity.Tags.SubstrateSpecialAccount,
+			)
+		} else {
+			fmt.Printf(
+				"DOMAIN=%q\nENVIRONMENT=%q\nQUALITY=%q\nROLE=%q\n",
+				identity.Tags.Domain,
+				identity.Tags.Environment,
+				identity.Tags.Quality,
+				identity.ARN,
+			)
+		}
 	case cmdutil.SerializationFormatExport, cmdutil.SerializationFormatExportWithHistory:
-		fmt.Printf(
-			"export DOMAIN=%q ENVIRONMENT=%q QUALITY=%q ROLE=%q\n",
-			identity.Tags.Domain,
-			identity.Tags.Environment,
-			identity.Tags.Quality,
-			identity.ARN,
-		)
+		if identity.Tags.SubstrateSpecialAccount != "" {
+			fmt.Printf(
+				"export ROLE=%q SUBSTRATE_SPECIAL_ACCOUNT=%q\n",
+				identity.ARN,
+				identity.Tags.SubstrateSpecialAccount,
+			)
+		} else {
+			fmt.Printf(
+				"export DOMAIN=%q ENVIRONMENT=%q QUALITY=%q ROLE=%q\n",
+				identity.Tags.Domain,
+				identity.Tags.Environment,
+				identity.Tags.Quality,
+				identity.ARN,
+			)
+		}
 	case cmdutil.SerializationFormatJSON:
-		ui.PrettyPrintJSON(map[string]string{
-			tagging.Domain:      identity.Tags.Domain,
-			tagging.Environment: identity.Tags.Environment,
-			tagging.Quality:     identity.Tags.Quality,
-			"Role":              identity.ARN,
-		})
+		if identity.Tags.SubstrateSpecialAccount != "" {
+			ui.PrettyPrintJSON(map[string]string{
+				"Role":                          identity.ARN,
+				tagging.SubstrateSpecialAccount: identity.Tags.SubstrateSpecialAccount,
+			})
+		} else {
+			ui.PrettyPrintJSON(map[string]string{
+				tagging.Domain:      identity.Tags.Domain,
+				tagging.Environment: identity.Tags.Environment,
+				tagging.Quality:     identity.Tags.Quality,
+				"Role":              identity.ARN,
+			})
+		}
 	case cmdutil.SerializationFormatText:
-		ui.Printf(
-			"you're %s in\nDomain:      %s\nEnvironment: %s\nQuality:     %s",
-			identity.ARN,
-			identity.Tags.Domain,
-			identity.Tags.Environment,
-			identity.Tags.Quality,
-		)
+		if identity.Tags.SubstrateSpecialAccount != "" {
+			ui.Printf(
+				"you're %s in your %s account",
+				identity.ARN,
+				identity.Tags.SubstrateSpecialAccount,
+			)
+		} else if identity.Tags.Domain == naming.Admin {
+			ui.Printf(
+				"you're %s in your admin account\nQuality: %s",
+				identity.ARN,
+				identity.Tags.Quality,
+			)
+		} else {
+			ui.Printf(
+				"you're %s in\nDomain:      %s\nEnvironment: %s\nQuality:     %s",
+				identity.ARN,
+				identity.Tags.Domain,
+				identity.Tags.Environment,
+				identity.Tags.Quality,
+			)
+		}
 	default:
 		ui.Fatalf("-format %q not supported", format)
 	}
