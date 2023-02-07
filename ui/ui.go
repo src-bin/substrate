@@ -1,12 +1,14 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/version"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -33,17 +35,27 @@ func Confirmf(format string, args ...interface{}) (bool, error) {
 
 func Fatal(args ...interface{}) {
 	args = dereference(args)
+	for i, arg := range args {
+		if err, ok := arg.(error); ok {
+			args[i] = helpful(err)
+		}
+	}
 	op(opFatal, fmt.Sprint(withCaller(args...)...))
 }
 
 func Fatalf(format string, args ...interface{}) {
 	args = dereference(args)
+	for i, arg := range args {
+		if err, ok := arg.(error); ok {
+			args[i] = helpful(err)
+		}
+	}
 	op(opFatal, fmt.Sprint(withCaller(fmt.Sprintf(format, args...))...))
 }
 
 func Must(err error) {
 	if err != nil {
-		op(opFatal, fmt.Sprint(withCaller(err)...))
+		op(opFatal, fmt.Sprint(withCaller(helpful(err))...))
 	}
 }
 
@@ -118,6 +130,21 @@ func dereference(args []interface{}) []interface{} {
 		}
 	}
 	return returns
+}
+
+// helpful might swap an obtuse error for one that's more helpful so that the
+// fatal error that's about to terminate the program can be...helpful.
+func helpful(err error) error {
+
+	// If the AWS SDK thinks it's missing a region it is almost certainly the
+	// case that the program's been invoked outside the Substrate repository
+	// and without SUBSTRATE_ROOT set.
+	var mrErr *aws.MissingRegionError
+	if errors.As(err, &mrErr) {
+		return errors.New("couldn't find your default AWS region which most likely means this program's been invoked from outside your Substrate repository without SUBSTRATE_ROOT in the environment; change your working directory to your Substrate repository or set SUBSTRATE_ROOT in your environment to the absolute path to your Substrate repository")
+	}
+
+	return err
 }
 
 func shorten(pathname string) string {

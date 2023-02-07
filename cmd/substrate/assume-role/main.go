@@ -72,14 +72,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Quiet()
 	}
 
-	callerIdentity, err := cfg.GetCallerIdentity(ctx)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	callerIdentity := cfg.MustGetCallerIdentity(ctx)
 	currentRoleName, err := roles.Name(aws.ToString(callerIdentity.Arn))
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	duration := time.Hour
 
 	versionutil.WarnDowngrade(ctx, cfg)
