@@ -32,6 +32,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
+	ui.InteractivityFlags()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate bootstrap-network-account [-auto-approve|-no-apply] [-ignore-service-quotas]")
 		flag.PrintDefaults()

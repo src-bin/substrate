@@ -56,6 +56,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	quality := cmdutil.QualityFlag("quality for this new AWS account")
+	ui.InteractivityFlags()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate create-admin-account [-create] [-quality <quality>] [-auto-approve|-no-apply] [-ignore-service-quotas]")
 		flag.PrintDefaults()

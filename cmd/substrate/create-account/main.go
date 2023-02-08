@@ -32,6 +32,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	number := flag.String("number", "", "tag and begin managing this account instead of creating a new AWS account")
 	quality := cmdutil.QualityFlag("quality for this new AWS account")
+	ui.InteractivityFlags()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate create-account [-create|-number <number>] -domain <domain> -environment <environment> [-quality <quality>] [-auto-approve|-no-apply] [-ignore-service-quotas]")
 		flag.PrintDefaults()

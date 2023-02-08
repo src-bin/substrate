@@ -37,6 +37,7 @@ const (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
+	ui.InteractivityFlags()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate bootstrap-management-account")
 		flag.PrintDefaults()
