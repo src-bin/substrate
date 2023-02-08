@@ -69,103 +69,198 @@ func shellCompletion() {
 		subcommand = strings.TrimPrefix(compLine[0], "substrate-")
 	}
 	options := []string{
-		"-fully-interactive",
-		"-minimally-interactive",
-		"-non-interactive",
 		"-version",
 	}
 	switch subcommand {
+
 	case "accounts":
 		if previousWord == "-format" {
 			shellCompletionMatches([]string{"json", "shell"}, word)
 			return
 		}
 		options = append(options, "-auto-approve", "-format", "-no-apply", "-number", "-only-tags")
+
 	case "assume-role":
-		// TODO autocomplete for domains
-		if previousWord == "-environment" {
+		switch previousWord {
+		case "-domain":
+			// TODO autocomplete for domains
+			shellCompletionMatches([]string{}, word)
+			return
+		case "-environment":
 			environments, err := naming.Environments()
-			if err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(err)
 			shellCompletionMatches(environments, word)
 			return
-		}
-		if previousWord == "-format" {
+		case "-format":
 			shellCompletionMatches([]string{"env", "export", "json"}, word)
 			return
-		}
-		if previousWord == "-quality" {
+		case "-quality":
 			qualities, err := naming.Qualities()
-			if err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(err)
 			shellCompletionMatches(qualities, word)
 			return
 		}
-		options = append(options, "-admin", "-console", "-domain", "-environment", "-format", "-management", "-number", "-quality", "-quiet", "-role", "-special")
+		options = append(
+			options,
+			"-admin",
+			"-console",
+			"-domain",
+			"-environment",
+			"-format",
+			"-management",
+			"-number",
+			"-quality",
+			"-quiet",
+			"-role",
+			"-special",
+		)
+
 	case "bootstrap-deploy-account":
-		options = append(options, "-auto-approve", "-no-apply")
+		options = append(
+			options,
+			"-auto-approve",
+			"-no-apply",
+			"-fully-interactive", "-minimally-interactive", "-non-interactive",
+		)
+
 	case "bootstrap-management-account":
+		options = append(
+			options,
+			"-fully-interactive", "-minimally-interactive", "-non-interactive",
+		)
+
 	case "bootstrap-network-account":
-		options = append(options, "-auto-approve", "-ignore-service-quotas", "-no-apply")
+		options = append(
+			options,
+			"-auto-approve",
+			"-ignore-service-quotas",
+			"-no-apply",
+			"-fully-interactive", "-minimally-interactive", "-non-interactive",
+		)
+
 	case "create-account":
-		// TODO autocomplete for domains
-		if previousWord == "-environment" {
+		switch previousWord {
+		case "-domain":
+			// TODO autocomplete for domains
+			shellCompletionMatches([]string{}, word)
+			return
+		case "-environment":
 			environments, err := naming.Environments()
-			if err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(err)
 			shellCompletionMatches(environments, word)
 			return
-		}
-		if previousWord == "-quality" {
+		case "-quality":
 			qualities, err := naming.Qualities()
-			if err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(err)
 			shellCompletionMatches(qualities, word)
 			return
 		}
-		options = append(options, "-auto-approve", "-create", "-domain", "-environment", "-ignore-service-quotas", "-no-apply", "-quality")
+		options = append(
+			options,
+			"-auto-approve",
+			"-create",
+			"-domain",
+			"-environment",
+			"-ignore-service-quotas",
+			"-no-apply",
+			"-quality",
+			"-fully-interactive", "-minimally-interactive", "-non-interactive",
+		)
+
 	case "create-admin-account":
-		if previousWord == "-quality" {
+		switch previousWord {
+		case "-quality":
 			qualities, err := naming.Qualities()
-			if err != nil {
-				ui.Fatal(err)
-			}
+			ui.Must(err)
 			shellCompletionMatches(qualities, word)
 			return
 		}
-		options = append(options, "-auto-approve", "-create", "-ignore-service-quotas", "-no-apply", "-quality")
+		options = append(
+			options,
+			"-auto-approve",
+			"-create",
+			"-ignore-service-quotas",
+			"-no-apply",
+			"-quality",
+			"-fully-interactive", "-minimally-interactive", "-non-interactive",
+		)
+
+	case "create-role":
+		switch previousWord {
+		case "-domain":
+			// TODO autocomplete for domains
+			shellCompletionMatches([]string{}, word)
+			return
+		case "-environment":
+			environments, err := naming.Environments()
+			ui.Must(err)
+			shellCompletionMatches(environments, word)
+			return
+		case "-quality":
+			qualities, err := naming.Qualities()
+			ui.Must(err)
+			shellCompletionMatches(qualities, word)
+			return
+		case "-aws-service", "-github-actions":
+			shellCompletionMatches([]string{}, word)
+			return
+		case "-assume-role-policy":
+			// TODO autocomplete filenames
+			shellCompletionMatches([]string{}, word)
+			return
+		}
+		options = append(
+			options,
+			"-admin",
+			"-assume-role-policy",
+			"-aws-service",
+			"-domain",
+			"-environment",
+			"-github-actions",
+			"-humans",
+			"-management",
+			"-number",
+			"-quality",
+			"-quiet",
+			"-role",
+			"-special",
+		)
+
 	case "create-terraform-module":
+
 	case "credentials":
 		if previousWord == "-format" {
 			shellCompletionMatches([]string{"env", "export", "json"}, word)
 			return
 		}
 		options = append(options, "-format", "-quiet")
+
 	case "delete-static-access-keys":
+
 	case "intranet-zip":
 		if previousWord == "-format" {
 			shellCompletionMatches([]string{"json", "text"}, word)
 			return
 		}
 		options = append(options, "-base64sha256", "-format")
+
 	case "root-modules":
 		if previousWord == "-format" {
 			shellCompletionMatches([]string{"json", "shell"}, word)
 			return
 		}
 		options = append(options, "-format", "-quiet")
+
 	case "terraform", "upgrade":
 		options = append(options, "-no", "-yes")
+
 	case "whoami":
 		if previousWord == "-format" {
 			shellCompletionMatches([]string{"env", "export", "json"}, word)
 			return
 		}
 		options = append(options, "-format", "-quiet")
+
 	}
 	shellCompletionMatches(options, word)
 
