@@ -7,15 +7,15 @@ import (
 	"github.com/src-bin/substrate/naming"
 )
 
-func DomainFlag(help string) *string {
-	return flag.String("domain", "", help)
+func DomainFlag(usage string) *string {
+	return flag.String("domain", "", usage)
 }
 
-func EnvironmentFlag(help string) *string {
-	return flag.String("environment", "", help)
+func EnvironmentFlag(usage string) *string {
+	return flag.String("environment", "", usage)
 }
 
-func QualityFlag(help string) *string {
+func QualityFlag(usage string) *string {
 	quality := ""
 	if qualities, _ := naming.Qualities(); len(qualities) == 1 {
 		quality = qualities[0]
