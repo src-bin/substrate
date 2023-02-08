@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"flag"
-	"strings"
 	"time"
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssecretsmanager"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
@@ -16,22 +16,9 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-type StringSliceFlag []string
-
-func (ssf *StringSliceFlag) String() string {
-	return strings.Join(*ssf, ", ")
-}
-
-func (ssf *StringSliceFlag) Set(s string) error {
-	*ssf = append(*ssf, s)
-	return nil
-}
-
 func main() {
-
 	name := flag.String("name", "", "name (in the UI) or ID (in the API) of the secret in AWS Secrets Manager")
-	principals := &StringSliceFlag{}
-	flag.Var(principals, "principal", "principal ARN to be allowed to GetSecretValue (if any are provided, the secret's policy will be updated to allow exactly and only those principals given)")
+	principals := cmdutil.StringSliceFlag("principal", "principal ARN to be allowed to GetSecretValue (if any are provided, the secret's policy will be updated to allow exactly and only those principals given)")
 	stage := flag.String("stage", "", "identifier for this stage (or version) of the secret (to be provided when fetching it later)")
 	value := flag.String("value", "", "secret value to associate with -name (does not overwrite prior versions)") // XXX do this with a prompt instead!
 	flag.Usage = func() {
