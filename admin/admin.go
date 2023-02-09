@@ -35,7 +35,7 @@ func CannedAssumeRolePolicyDocuments(ctx context.Context, cfg *awscfg.Config, bo
 	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
 	err error,
 ) {
-	cp, err := cannedPrincipals(ctx, cfg, bootstrapping)
+	cp, err := CannedPrincipals(ctx, cfg, bootstrapping)
 
 	var extraAdmin, extraAuditor policies.Document
 	if err := jsonutil.Read("substrate.Administrator.assume-role-policy.json", &extraAdmin); err == nil {
@@ -78,6 +78,75 @@ func CannedAssumeRolePolicyDocuments(ctx context.Context, cfg *awscfg.Config, bo
 
 	canned.OrgAccountPrincipals = policies.AssumeRolePolicyDocument(cp.OrgAccountPrincipals)
 	return canned, err
+}
+
+// CannedPrincipals constructs and groups all the ARNs necessary to construct
+// assume role policies. It must be called from the management account.
+func CannedPrincipals(ctx context.Context, cfg *awscfg.Config, bootstrapping bool) (
+	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
+	err error,
+) {
+	var adminAccounts, allAccounts []*awsorgs.Account
+	if adminAccounts, err = cfg.FindAccounts(ctx, func(a *awscfg.Account) bool {
+		return a.Tags[tagging.Domain] == naming.Admin
+	}); err != nil {
+		return
+	}
+	if allAccounts, err = cfg.ListAccounts(ctx); err != nil {
+		return
+	}
+	var org *awscfg.Organization
+	org, err = cfg.DescribeOrganization(ctx)
+	if err != nil {
+		return
+	}
+
+	if bootstrapping {
+		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
+		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
+		for i, account := range adminAccounts {
+			canned.AdminRolePrincipals.AWS[i] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*2] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*2+1] = roles.ARN(aws.ToString(account.Id), roles.Auditor)
+		}
+	} else {
+		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)}   // *2 for Administrator AND Intranet; +2 for the management account and its IAM user
+		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)} // *3 for Administrator AND Auditor AND Intranet; +2 for the management account and its IAM user
+		for i, account := range adminAccounts {
+			canned.AdminRolePrincipals.AWS[i*2] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
+			canned.AdminRolePrincipals.AWS[i*2+1] = roles.ARN(aws.ToString(account.Id), roles.Intranet)
+			canned.AuditorRolePrincipals.AWS[i*3] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
+			canned.AuditorRolePrincipals.AWS[i*3+1] = roles.ARN(aws.ToString(account.Id), roles.Auditor)
+			canned.AuditorRolePrincipals.AWS[i*3+2] = roles.ARN(aws.ToString(account.Id), roles.Intranet)
+		}
+	}
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = roles.ARN(
+		aws.ToString(org.MasterAccountId),
+		roles.OrganizationAdministrator,
+	)
+	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.ARN(
+		aws.ToString(org.MasterAccountId),
+		users.OrganizationAdministrator,
+	)
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = roles.ARN(
+		aws.ToString(org.MasterAccountId),
+		roles.OrganizationAdministrator,
+	)
+	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.ARN(
+		aws.ToString(org.MasterAccountId),
+		users.OrganizationAdministrator,
+	)
+	sort.Strings(canned.AdminRolePrincipals.AWS)   // to avoid spurious policy diffs
+	sort.Strings(canned.AuditorRolePrincipals.AWS) // to avoid spurious policy diffs
+
+	canned.OrgAccountPrincipals = &policies.Principal{AWS: make([]string, len(allAccounts))}
+	for i, account := range allAccounts {
+		canned.OrgAccountPrincipals.AWS[i] = aws.ToString(account.Id)
+	}
+	sort.Strings(canned.OrgAccountPrincipals.AWS) // to avoid spurious policy diffs
+
+	//log.Printf("%+v", canned)
+	return
 }
 
 // EnsureAdminRolesAndPolicies creates or updates the entire matrix of
@@ -597,73 +666,4 @@ func EnsureCloudWatchCrossAccountSharingRole(
 	}
 
 	return role, nil
-}
-
-// cannedPrincipals constructs and groups all the ARNs necessary to construct
-// assume role policies. It must be called from the management account.
-func cannedPrincipals(ctx context.Context, cfg *awscfg.Config, bootstrapping bool) (
-	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
-	err error,
-) {
-	var adminAccounts, allAccounts []*awsorgs.Account
-	if adminAccounts, err = cfg.FindAccounts(ctx, func(a *awscfg.Account) bool {
-		return a.Tags[tagging.Domain] == naming.Admin
-	}); err != nil {
-		return
-	}
-	if allAccounts, err = cfg.ListAccounts(ctx); err != nil {
-		return
-	}
-	var org *awscfg.Organization
-	org, err = cfg.DescribeOrganization(ctx)
-	if err != nil {
-		return
-	}
-
-	if bootstrapping {
-		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
-		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
-		for i, account := range adminAccounts {
-			canned.AdminRolePrincipals.AWS[i] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*2] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*2+1] = roles.ARN(aws.ToString(account.Id), roles.Auditor)
-		}
-	} else {
-		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)}   // *2 for Administrator AND Intranet; +2 for the management account and its IAM user
-		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)} // *3 for Administrator AND Auditor AND Intranet; +2 for the management account and its IAM user
-		for i, account := range adminAccounts {
-			canned.AdminRolePrincipals.AWS[i*2] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
-			canned.AdminRolePrincipals.AWS[i*2+1] = roles.ARN(aws.ToString(account.Id), roles.Intranet)
-			canned.AuditorRolePrincipals.AWS[i*3] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*3+1] = roles.ARN(aws.ToString(account.Id), roles.Auditor)
-			canned.AuditorRolePrincipals.AWS[i*3+2] = roles.ARN(aws.ToString(account.Id), roles.Intranet)
-		}
-	}
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = roles.ARN(
-		aws.ToString(org.MasterAccountId),
-		roles.OrganizationAdministrator,
-	)
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.ARN(
-		aws.ToString(org.MasterAccountId),
-		users.OrganizationAdministrator,
-	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = roles.ARN(
-		aws.ToString(org.MasterAccountId),
-		roles.OrganizationAdministrator,
-	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.ARN(
-		aws.ToString(org.MasterAccountId),
-		users.OrganizationAdministrator,
-	)
-	sort.Strings(canned.AdminRolePrincipals.AWS)   // to avoid spurious policy diffs
-	sort.Strings(canned.AuditorRolePrincipals.AWS) // to avoid spurious policy diffs
-
-	canned.OrgAccountPrincipals = &policies.Principal{AWS: make([]string, len(allAccounts))}
-	for i, account := range allAccounts {
-		canned.OrgAccountPrincipals.AWS[i] = aws.ToString(account.Id)
-	}
-	sort.Strings(canned.OrgAccountPrincipals.AWS) // to avoid spurious policy diffs
-
-	//log.Printf("%+v", canned)
-	return
 }
