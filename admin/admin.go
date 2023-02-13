@@ -214,7 +214,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 				Principal: &policies.Principal{AWS: []string{"*"}},
 				Action:    []string{"sts:AssumeRole"},
 				Condition: policies.Condition{"StringEquals": {
-					"aws:PrincipalOrgID": aws.ToString(org.Id),
+					"aws:PrincipalOrgID": []string{aws.ToString(org.Id)},
 				}},
 			}},
 		},

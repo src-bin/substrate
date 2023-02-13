@@ -138,7 +138,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
 					Condition: policies.Condition{"StringEquals": {
-						"aws:PrincipalOrgID": aws.ToString(org.Id),
+						"aws:PrincipalOrgID": []string{aws.ToString(org.Id)},
 					}},
 				},
 				policies.Statement{
@@ -148,8 +148,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 						fmt.Sprintf("arn:aws:s3:::%s/*", name),
 					},
 					Condition: policies.Condition{"StringEquals": {
-						"aws:PrincipalOrgID": aws.ToString(org.Id),
-						"s3:x-amz-acl":       "bucket-owner-full-control",
+						"aws:PrincipalOrgID": []string{aws.ToString(org.Id)},
+						"s3:x-amz-acl":       []string{"bucket-owner-full-control"},
 					}},
 				},
 			},

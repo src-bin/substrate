@@ -344,7 +344,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				Action: []string{"ec2:RunInstances"},
 				Condition: policies.Condition{
 					"StringNotEquals": {
-						"ec2:MetadataHttpTokens": "required",
+						"ec2:MetadataHttpTokens": []string{"required"},
 					},
 				},
 				Effect:   policies.Deny,
@@ -356,7 +356,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				Action: []string{"*"},
 				Condition: policies.Condition{
 					"NumericLessThan": {
-						"ec2:RoleDelivery": "2.0",
+						"ec2:RoleDelivery": []string{"2.0"},
 					},
 				},
 				Effect:   policies.Deny,

@@ -26,7 +26,7 @@ func AssumeRolePolicyDocument(principal *Principal) *Document {
 	if principal.Federated != nil {
 		for i := 0; i < len(doc.Statement); i++ {
 			doc.Statement[i].Action[0] = "sts:AssumeRoleWithSAML"
-			doc.Statement[i].Condition = Condition{"StringEquals": {"SAML:aud": "https://signin.aws.amazon.com/saml"}}
+			doc.Statement[i].Condition = Condition{"StringEquals": {"SAML:aud": []string{"https://signin.aws.amazon.com/saml"}}}
 		}
 	}
 
@@ -97,7 +97,7 @@ type Principal struct {
 
 func (p *Principal) String() string { return fmt.Sprintf("%+v", *p) }
 
-type Condition map[string]map[string]string
+type Condition map[string]map[string][]string
 
 type version struct{}
 
