@@ -89,6 +89,14 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 	return
 }
 
+func (c *Config) AccountId(ctx context.Context) (string, error) {
+	callerIdentity, err := c.GetCallerIdentity(ctx)
+	if err != nil {
+		return "", err
+	}
+	return aws.ToString(callerIdentity.Account), nil
+}
+
 func (c *Config) Copy() *Config {
 	c2 := *c
 	return &c2
@@ -125,19 +133,21 @@ func (c *Config) GetCallerIdentity(ctx context.Context) (*sts.GetCallerIdentityO
 	return out, nil
 }
 
+func (c *Config) MustAccountId(ctx context.Context) string {
+	accountId, err := c.AccountId(ctx)
+	ui.Must(err)
+	return accountId
+}
+
 func (c *Config) MustDescribeOrganization(ctx context.Context) *Organization {
 	org, err := c.DescribeOrganization(ctx)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	return org
 }
 
 func (c *Config) MustGetCallerIdentity(ctx context.Context) *sts.GetCallerIdentityOutput {
 	callerIdentity, err := c.GetCallerIdentity(ctx)
-	if err != nil {
-		ui.Fatal(err)
-	}
+	ui.Must(err)
 	return callerIdentity
 }
 
