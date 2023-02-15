@@ -40,12 +40,11 @@ func ListUserTags(
 func TagUser(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	userName, key, value string,
+	userName string,
+	tags tagging.Map,
 ) error {
 	_, err := cfg.IAM().TagUser(ctx, &iam.TagUserInput{
-		Tags: []types.Tag{
-			{Key: aws.String(key), Value: aws.String(value)},
-		},
+		Tags:     tagStructs(tags),
 		UserName: aws.String(userName),
 	})
 	return err
@@ -68,4 +67,15 @@ func tagsFor(name string) []types.Tag {
 		{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
 		{Key: aws.String(tagging.SubstrateVersion), Value: aws.String(version.Version)},
 	}
+}
+
+func tagStructs(tags tagging.Map) []types.Tag {
+	structs := make([]types.Tag, 0, len(tags))
+	for key, value := range tags {
+		structs = append(structs, types.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
+	}
+	return structs
 }

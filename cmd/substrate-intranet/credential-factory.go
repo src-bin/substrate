@@ -135,11 +135,10 @@ func credentialFactoryAuthorizeHandler(
 		ctx,
 		cfg,
 		users.CredentialFactory,
-		TagKeyPrefix+token,
-		NewTagValue(
+		tagging.Map{TagKeyPrefix + token: NewTagValue(
 			event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string),
 			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
-		).String(),
+		).String()},
 	); err != nil {
 		return nil, err
 	}
