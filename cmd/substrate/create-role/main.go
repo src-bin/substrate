@@ -144,7 +144,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			)
 			ui.Must(err)
 			//log.Printf("%+v", role)
-			// TODO tag this role for finding and reconstructing commands later, too
+			ui.Must(awsiam.TagRole(ctx, cfg, role.Name, tagging.Map{
+				tagging.SubstrateAccountSelectors: "humans",
+			}))
 			adminPrincipals.AWS = append(adminPrincipals.AWS, role.Arn)
 		}
 		ui.Stop("ok")

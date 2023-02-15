@@ -37,6 +37,19 @@ func ListUserTags(
 	return tags, nil
 }
 
+func TagRole(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	roleName string,
+	tags tagging.Map,
+) error {
+	_, err := cfg.IAM().TagRole(ctx, &iam.TagRoleInput{
+		RoleName: aws.String(roleName),
+		Tags:     tagStructs(tags),
+	})
+	return err
+}
+
 func TagUser(
 	ctx context.Context,
 	cfg *awscfg.Config,

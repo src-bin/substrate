@@ -11,8 +11,9 @@ const (
 
 	Name = "Name"
 
-	SubstrateSpecialAccount = "SubstrateSpecialAccount"
-	SubstrateVersion        = "SubstrateVersion"
+	SubstrateAccountSelectors = "SubstrateAccountSelectors"
+	SubstrateSpecialAccount   = "SubstrateSpecialAccount"
+	SubstrateVersion          = "SubstrateVersion"
 )
 
 // Values.
