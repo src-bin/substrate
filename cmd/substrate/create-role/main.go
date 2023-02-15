@@ -133,13 +133,16 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 					time.Hour,
 				)),
 				*roleName,
-				policies.AssumeRolePolicyDocument(&policies.Principal{
-					AWS: []string{
-						roles.ARN(aws.ToString(account.Id), roles.Intranet),
-						users.ARN(aws.ToString(account.Id), users.CredentialFactory),
-					},
-					Service: []string{"ec2.amazonaws.com"},
-				}),
+				policies.Merge(
+					policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals), // Administrator can do anything, after all
+					policies.AssumeRolePolicyDocument(&policies.Principal{
+						AWS: []string{
+							roles.ARN(aws.ToString(account.Id), roles.Intranet),
+							users.ARN(aws.ToString(account.Id), users.CredentialFactory),
+						},
+						Service: []string{"ec2.amazonaws.com"},
+					}),
+				),
 				minimalPolicy,
 			)
 			ui.Must(err)
