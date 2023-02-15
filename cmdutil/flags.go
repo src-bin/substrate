@@ -23,27 +23,19 @@ func QualityFlag(usage string) *string {
 	return flag.String("quality", quality, usage)
 }
 
-type StringSlice struct {
-	slice []string
-}
+type StringSlice []string
 
 func StringSliceFlag(name, usage string) *StringSlice {
-	return StringSliceFlagVar([]string{}, name, usage)
-}
-
-func StringSliceFlagVar(slice []string, name, usage string) *StringSlice {
-	ss := &StringSlice{slice}
+	ss := &StringSlice{}
 	flag.Var(ss, name, usage)
 	return ss
 }
 
-func (ss *StringSlice) Len() int { return len(ss.slice) }
-
-func (ss *StringSlice) Slice() []string { return ss.slice }
-
-func (ss *StringSlice) String() string { return strings.Join(ss.slice, ", ") }
+func (ss *StringSlice) String() string {
+	return strings.Join(*ss, ", ")
+}
 
 func (ss *StringSlice) Set(s string) error {
-	ss.slice = append(ss.slice, s)
+	*ss = append(*ss, s)
 	return nil
 }
