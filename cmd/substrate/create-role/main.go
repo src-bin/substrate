@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
-	"log"
 	"strings"
 	"time"
 
@@ -69,40 +68,68 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Must(err)
 
 	// Collect configs for all the accounts selected by the given options.
-	var cfgs []*awscfg.Config
+	var selection []selectedAccount
 	if *management {
-		cfgs = append(cfgs, awscfg.Must(cfg.AssumeManagementRole(ctx, roles.OrganizationAdministrator, time.Hour)))
+		selection = append(selection, selectedAccount{
+			cfg:       awscfg.Must(cfg.AssumeManagementRole(ctx, roles.OrganizationAdministrator, time.Hour)),
+			selectors: []string{"management"},
+		})
 	}
 	for _, special := range *specials {
 		switch special {
 		case accounts.Deploy:
-			cfgs = append(cfgs, awscfg.Must(cfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)))
+			selection = append(selection, selectedAccount{
+				cfg:       awscfg.Must(cfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)),
+				selectors: []string{"special"},
+			})
 		case accounts.Network:
-			cfgs = append(cfgs, awscfg.Must(cfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour)))
+			selection = append(selection, selectedAccount{
+				cfg:       awscfg.Must(cfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour)),
+				selectors: []string{"special"},
+			})
 		default:
 			ui.Fatal("creating additional roles in the audit account is not supported")
 		}
 	}
-	match := func(account *awsorgs.Account) bool {
-		if len(*domains) != 0 && !contains(*domains, account.Tags[tagging.Domain]) {
-			return false
+	match := func(account *awsorgs.Account) (selectors []string, ok bool) {
+		ok = true
+		if len(*domains) > 0 {
+			if contains(*domains, account.Tags[tagging.Domain]) {
+				selectors = append(selectors, "domain")
+			} else {
+				ok = false
+			}
 		}
-		if len(*environments) != 0 && !contains(*environments, account.Tags[tagging.Environment]) {
-			return false
+		if len(*environments) > 0 {
+			if contains(*environments, account.Tags[tagging.Environment]) {
+				selectors = append(selectors, "environment")
+			} else {
+				ok = false
+			}
 		}
-		if len(*qualities) != 0 && !contains(*qualities, account.Tags[tagging.Quality]) {
-			return false
+		if len(*qualities) > 0 {
+			if contains(*qualities, account.Tags[tagging.Quality]) {
+				selectors = append(selectors, "quality")
+			} else {
+				ok = false
+			}
 		}
-		return true
+		return
 	}
 	for _, account := range serviceAccounts {
-		if match(account) {
-			cfgs = append(cfgs, awscfg.Must(cfg.AssumeRole(ctx, aws.ToString(account.Id), roles.Administrator, time.Hour)))
+		if selectors, ok := match(account); ok {
+			selection = append(selection, selectedAccount{
+				cfg:       awscfg.Must(cfg.AssumeRole(ctx, aws.ToString(account.Id), roles.Administrator, time.Hour)),
+				selectors: selectors,
+			})
 		}
 	}
 	if len(*numbers) > 0 {
 		for _, number := range *numbers {
-			cfgs = append(cfgs, awscfg.Must(cfg.AssumeRole(ctx, number, roles.Administrator, time.Hour)))
+			selection = append(selection, selectedAccount{
+				cfg:       awscfg.Must(cfg.AssumeRole(ctx, number, roles.Administrator, time.Hour)),
+				selectors: []string{"number"},
+			})
 		}
 	}
 
@@ -161,13 +188,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// uniquely for each one because certain aspects, e.g. the GitHub Actions
 	// OAuth OIDC provider, may differ in the details from one account to
 	// another.
-	for _, cfg := range cfgs {
-		accountId := cfg.MustAccountId(ctx)
+	for _, selected := range selection {
+		accountId := selected.cfg.MustAccountId(ctx)
 		ui.Printf("constructing an assume-role policy for the %s role in account number %s", *roleName, accountId)
 
 		// Construct the assume-role policy for this role as it will be created in
 		// this account. This governs who may assume this role.
-		// TODO accommodate multiple invocations with subtly different options.
 		assumeRolePolicy := &policies.Document{}
 		if *humans {
 			ui.Printf("allowing humans to assume the %s role in account number %s via admin accounts and your IdP", *roleName, accountId)
@@ -195,7 +221,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			)
 			arn, err := awsiam.EnsureOpenIDConnectProvider(
 				ctx,
-				cfg,
+				selected.cfg,
 				[]string{"sts.amazonaws.com"},
 				[]string{"6938fd4d98bab03faadb97b34396831e3780aea1"},
 				"https://token.actions.githubusercontent.com",
@@ -223,12 +249,21 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			ui.Fatal(err)
 		}
-		log.Print(jsonutil.MustString(assumeRolePolicy))
+		//log.Print(jsonutil.MustString(assumeRolePolicy)) // TODO make the awsiam.EnsureRole function(s) sensitive to SUBSTRATE_DEBUG_ASSUME_ROLE_POLICY
 
 		ui.Spinf("finding or creating the %s role in account number %s", *roleName, accountId)
-		// TODO create the role with this assume-role policy
-		// TODO tag the roles to make sure we can find them later
-		// TODO tag the roles abstractly enough that we'll be able to expand to cover newly created accounts that match their parameters at creation time
+		role, err := awsiam.EnsureRoleWithPolicy(
+			ctx,
+			selected.cfg,
+			*roleName,
+			assumeRolePolicy,
+			minimalPolicy,
+		)
+		ui.Must(err)
+		//log.Printf("%+v", role)
+		ui.Must(awsiam.TagRole(ctx, selected.cfg, role.Name, tagging.Map{
+			tagging.SubstrateAccountSelectors: strings.Join(selected.selectors, " "),
+		}))
 		ui.Stopf("ok")
 
 		// TODO -administrator and -auditor canned attached policies, too, plus -policy to attach a policy everywhere (except, possibly, admin accounts)
@@ -243,4 +278,9 @@ func contains(ss []string, s string) bool {
 		}
 	}
 	return false
+}
+
+type selectedAccount struct {
+	cfg       *awscfg.Config
+	selectors []string
 }
