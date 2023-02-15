@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -45,10 +46,17 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if d := *domain; d == "admin" || d == "common" || d == "deploy" || d == "intranet" || d == "lambda-function" || d == "network" || d == "peering-connection" || d == "substrate" {
 		ui.Fatalf(`-domain %q is reserved; please choose a different name`, d)
 	}
-	veqpDoc, err := veqp.ReadDocument()
-	if err != nil {
-		ui.Fatal(err)
+	if strings.ContainsAny(*domain, ", ") {
+		ui.Fatalf("-domain %q cannot contain commas or spaces", *domain)
 	}
+	if strings.ContainsAny(*environment, ", ") {
+		ui.Fatalf("-environment %q cannot contain commas or spaces", *environment)
+	}
+	if strings.ContainsAny(*quality, ", ") {
+		ui.Fatalf("-quality %q cannot contain commas or spaces", *quality)
+	}
+	veqpDoc, err := veqp.ReadDocument()
+	ui.Must(err)
 	if !veqpDoc.Valid(*environment, *quality) {
 		ui.Fatalf(`-environment %q -quality %q is not a valid environment and quality pair in your organization`, *environment, *quality)
 	}
