@@ -65,6 +65,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	adminAccounts, serviceAccounts, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 	ui.Must(err)
+	canned, err := admin.CannedPrincipals(ctx, cfg, false)
+	ui.Must(err)
 
 	// Collect configs for all the accounts selected by the given options.
 	var cfgs []*awscfg.Config
@@ -159,8 +161,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// uniquely for each one because certain aspects, e.g. the GitHub Actions
 	// OAuth OIDC provider, may differ in the details from one account to
 	// another.
-	canned, err := admin.CannedPrincipals(ctx, cfg, false)
-	ui.Must(err)
 	for _, cfg := range cfgs {
 		accountId := cfg.MustAccountId(ctx)
 		ui.Printf("constructing an assume-role policy for the %s role in account number %s", *roleName, accountId)
