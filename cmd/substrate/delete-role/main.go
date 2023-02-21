@@ -62,12 +62,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			}
 		}
 
-		err := awsiam.DeleteRolePolicy(ctx, cfg, *roleName)
+		err = awsiam.DeleteRolePolicy(ctx, assumedCfg, *roleName)
 		if awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 			err = nil
 		}
 		ui.Must(err)
-		err = awsiam.DeleteRole(ctx, cfg, *roleName)
+		err = awsiam.DeleteRole(ctx, assumedCfg, *roleName)
 		if awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 			err = nil
 		}
