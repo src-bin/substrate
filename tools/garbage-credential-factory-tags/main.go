@@ -6,7 +6,6 @@
 // 1. `eval $(substrate credentials)` in your Substrate repository
 // 2. `cd ../substrate` (or wherever you put it)
 // 3. `go run tools/garbage-credential-factory-tags/main.go`
-//
 package main
 
 import (
@@ -18,6 +17,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/randutil"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 )
@@ -40,13 +40,12 @@ func main() {
 			ctx,
 			cfg,
 			users.CredentialFactory,
-			TagKeyPrefix+randutil.String(),
-			fmt.Sprintf(
+			tagging.Map{TagKeyPrefix + randutil.String(): fmt.Sprintf(
 				TagValueFormat,
 				"example@example.com",
 				"Nobody",
 				time.Now().Add(-time.Hour).Format(time.RFC3339),
-			),
+			)},
 		); err != nil {
 			break
 		}
