@@ -15,6 +15,10 @@ const (
 )
 
 func Interactivity() InteractivityLevel {
+	if fullyInteractive == nil || minimallyInteractive == nil || nonInteractive == nil { // true if InteractivityFlags was never called
+		return MinimallyInteractive // default
+	}
+
 	if !*fullyInteractive && !*minimallyInteractive && !*nonInteractive {
 		return MinimallyInteractive // default
 	}
