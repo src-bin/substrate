@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -213,7 +214,7 @@ func credentialFactoryFetchHandler(
 		ctx,
 		cfg,
 		users.CredentialFactory,
-		TagKeyPrefix+token,
+		[]string{TagKeyPrefix + token},
 	); err != nil {
 		return nil, err
 	}
@@ -246,24 +247,28 @@ func credentialFactoryFetchHandler(
 }
 
 func gcExpiredTags(ctx context.Context, cfg *awscfg.Config, tags tagging.Map) {
-	i := 0
+	keys := make([]string, 0, GCExpiredTagsLimit)
 	for key, raw := range tags {
-		value, err := ParseTagValue(raw)
-		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				log.Print(err)
-			}
-			continue
-		}
-		if value.Expired() {
-			if err := awsiam.UntagUser(ctx, cfg, users.CredentialFactory, key); err != nil {
-				log.Print(err)
-			}
-			i++
-			if i >= GCExpiredTagsLimit {
-				return
+		if strings.HasPrefix(key, TagKeyPrefix) || strings.HasPrefix(key, "substrate-credential-factory:") /* old format */ {
+			value, err := ParseTagValue(raw)
+			if err == nil {
+				if value.Expired() {
+					keys = append(keys, key) // append instead of using [i] in case there are fewer than GCExpiredTagsLimit
+				}
+			} else {
+				keys = append(keys, key)
+				if !errors.Is(err, io.EOF) {
+					log.Print(err)
+				}
 			}
 		}
+		if len(keys) >= GCExpiredTagsLimit {
+			break
+		}
+	}
+	//log.Print(keys)
+	if err := awsiam.UntagUser(ctx, cfg, users.CredentialFactory, keys); err != nil {
+		log.Print(err)
 	}
 }
 

@@ -66,10 +66,11 @@ func TagUser(
 func UntagUser(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	userName, key string,
-) error { // make it keys ...string if needed
+	userName string,
+	keys []string,
+) error {
 	_, err := cfg.IAM().UntagUser(ctx, &iam.UntagUserInput{
-		TagKeys:  []string{key},
+		TagKeys:  keys,
 		UserName: aws.String(userName),
 	})
 	return err
