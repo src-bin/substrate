@@ -99,6 +99,9 @@ func shellCompletion() {
 			ui.Must(err)
 			shellCompletionMatches(qualities, word)
 			return
+		case "-role":
+			shellCompletionMatches([]string{}, word)
+			return
 		}
 		options = append(
 			options,
@@ -201,7 +204,7 @@ func shellCompletion() {
 			ui.Must(err)
 			shellCompletionMatches(qualities, word)
 			return
-		case "-aws-service", "-github-actions":
+		case "-aws-service", "-github-actions", "-role":
 			shellCompletionMatches([]string{}, word)
 			return
 		case "-assume-role-policy":
