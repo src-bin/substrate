@@ -33,8 +33,8 @@ func TestCreateAndDeleteHumanRole(t *testing.T) {
 		time.Hour,
 	))
 
-	//ensureRoleDoesNotExist(t, ctx, cfg, roleName)
-	//ensureRoleDoesNotExist(t, ctx, fooCfg, roleName)
+	ensureRoleDoesNotExist(t, ctx, cfg, roleName)
+	ensureRoleDoesNotExist(t, ctx, fooCfg, roleName)
 
 	cmdutil.OverrideArgs("-domain", domain, "-humans", "-role", roleName)
 	createrole.Main(ctx, cfg)
