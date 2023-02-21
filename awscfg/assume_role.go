@@ -3,7 +3,9 @@ package awscfg
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -126,6 +128,9 @@ func (c *Config) AssumeRole(
 			contextutil.ValueString(ctx, telemetry.Command),
 			safeSubcommand,
 		)
+		if roleSessionName == "-" {
+			roleSessionName = filepath.Base(os.Args[0])
+		}
 	}
 	if len(roleSessionName) > 64 {
 		roleSessionName = roleSessionName[:64]
