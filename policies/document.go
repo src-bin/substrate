@@ -97,7 +97,7 @@ type Principal struct {
 
 func (p *Principal) String() string { return fmt.Sprintf("%+v", *p) }
 
-type Condition map[string]map[string][]string
+type Condition map[string]map[string]jsonutil.StringSlice
 
 type version struct{}
 
