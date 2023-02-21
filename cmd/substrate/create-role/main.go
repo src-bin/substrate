@@ -62,7 +62,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Fatal(`-role "..." is required`)
 	}
 
-	adminAccounts, serviceAccounts, _, _, _, _, err := accounts.Grouped(ctx, cfg)
+	adminAccounts, serviceAccounts, _, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	ui.Must(err)
 	canned, err := admin.CannedPrincipals(ctx, cfg, false)
 	ui.Must(err)
@@ -71,6 +71,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	var selection []selectedAccount
 	if *management {
 		selection = append(selection, selectedAccount{
+			account:   managementAccount,
 			cfg:       awscfg.Must(cfg.AssumeManagementRole(ctx, roles.OrganizationAdministrator, time.Hour)),
 			selectors: []string{"management"},
 		})
@@ -79,11 +80,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		switch special {
 		case accounts.Deploy:
 			selection = append(selection, selectedAccount{
+				account:   deployAccount,
 				cfg:       awscfg.Must(cfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)),
 				selectors: []string{"special"},
 			})
 		case accounts.Network:
 			selection = append(selection, selectedAccount{
+				account:   networkAccount,
 				cfg:       awscfg.Must(cfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour)),
 				selectors: []string{"special"},
 			})
@@ -119,6 +122,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	for _, account := range serviceAccounts {
 		if selectors, ok := match(account); ok {
 			selection = append(selection, selectedAccount{
+				account:   account,
 				cfg:       awscfg.Must(cfg.AssumeRole(ctx, aws.ToString(account.Id), roles.Administrator, time.Hour)),
 				selectors: selectors,
 			})
@@ -127,6 +131,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if len(*numbers) > 0 {
 		for _, number := range *numbers {
 			selection = append(selection, selectedAccount{
+				account:   awsorgs.StringableZeroAccount(number),
 				cfg:       awscfg.Must(cfg.AssumeRole(ctx, number, roles.Administrator, time.Hour)),
 				selectors: []string{"number"},
 			})
@@ -189,14 +194,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// OAuth OIDC provider, may differ in the details from one account to
 	// another.
 	for _, selected := range selection {
-		accountId := selected.cfg.MustAccountId(ctx)
-		ui.Printf("constructing an assume-role policy for the %s role in account number %s", *roleName, accountId)
+		account := selected.account
+		ui.Printf("constructing an assume-role policy for the %s role in %s", *roleName, account)
 
 		// Construct the assume-role policy for this role as it will be created in
 		// this account. This governs who may assume this role.
 		assumeRolePolicy := &policies.Document{}
 		if *humans {
-			ui.Printf("allowing humans to assume the %s role in account number %s via admin accounts and your IdP", *roleName, accountId)
+			ui.Printf("allowing humans to assume the %s role in %s via admin accounts and your IdP", *roleName, account)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
 				policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals), // Administrator can do anything, after all
@@ -204,7 +209,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			)
 		}
 		if len(*awsServices) > 0 {
-			ui.Printf("allowing %s to assume the %s role in account number %s", strings.Join(*awsServices, ", "), *roleName, accountId)
+			ui.Printf("allowing %s to assume the %s role in %s", strings.Join(*awsServices, ", "), *roleName, account)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
 				policies.AssumeRolePolicyDocument(&policies.Principal{
@@ -214,9 +219,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		if len(*githubActions) > 0 {
 			ui.Printf(
-				"allowing GitHub Actions to assume the %s role in account number %s on behalf of %s",
+				"allowing GitHub Actions to assume the %s role in %s on behalf of %s",
 				*roleName,
-				accountId,
+				account,
 				strings.Join(*githubActions, ", "),
 			)
 			arn, err := awsiam.EnsureOpenIDConnectProvider(
@@ -251,7 +256,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		//log.Print(jsonutil.MustString(assumeRolePolicy)) // TODO make the awsiam.EnsureRole function(s) sensitive to SUBSTRATE_DEBUG_ASSUME_ROLE_POLICY
 
-		ui.Spinf("finding or creating the %s role in account number %s", *roleName, accountId)
+		ui.Spinf("finding or creating the %s role in %s", *roleName, account)
 		role, err := awsiam.EnsureRoleWithPolicy(
 			ctx,
 			selected.cfg,
@@ -281,6 +286,7 @@ func contains(ss []string, s string) bool {
 }
 
 type selectedAccount struct {
+	account   *awsorgs.Account
 	cfg       *awscfg.Config
 	selectors []string
 }

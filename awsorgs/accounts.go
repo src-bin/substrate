@@ -25,6 +25,15 @@ const (
 
 type Account = awscfg.Account
 
+// StringableZeroAccount returns an *Account with just enough fields filled in
+// to allow it to respond to the String method.
+func StringableZeroAccount(number string) *Account {
+	return &Account{
+		Account: types.Account{Id: aws.String(number)},
+		Tags:    tagging.Map{},
+	}
+}
+
 type AccountNotFound string
 
 func (err AccountNotFound) Error() string {
