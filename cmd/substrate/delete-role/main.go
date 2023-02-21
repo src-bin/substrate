@@ -45,16 +45,20 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			time.Hour,
 		))
 
+		// There's no role here to delete so don't bother confirming and don't
+		// bother printing any progress indication.
+		_, err := awsiam.GetRole(
+			ctx,
+			assumedCfg,
+			*roleName,
+		)
+		if awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+			continue
+		}
+		ui.Must(err)
+
+		// Confirm role deletion account-by-account without -delete.
 		if !*del {
-			_, err := awsiam.GetRole(
-				ctx,
-				assumedCfg,
-				*roleName,
-			)
-			if awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
-				continue
-			}
-			ui.Must(err)
 			ok, err := ui.Confirmf("delete role %s in %s? (yes/no)", *roleName, a)
 			ui.Must(err)
 			if !ok {
@@ -62,6 +66,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			}
 		}
 
+		ui.Spinf("deleting role %s in %s", *roleName, a)
 		err = awsiam.DeleteRolePolicy(ctx, assumedCfg, *roleName)
 		if awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 			err = nil
@@ -72,5 +77,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			err = nil
 		}
 		ui.Must(err)
+		ui.Stop("ok")
 	}
 }
