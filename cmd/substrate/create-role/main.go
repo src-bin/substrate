@@ -199,12 +199,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		// Construct the assume-role policy for this role as it will be created in
 		// this account. This governs who may assume this role.
-		assumeRolePolicy := &policies.Document{}
+		assumeRolePolicy := policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals) // Administrator can do anything, after all
 		if *humans {
 			ui.Printf("allowing humans to assume the %s role in %s via admin accounts and your IdP", *roleName, account)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
-				policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals), // Administrator can do anything, after all
 				policies.AssumeRolePolicyDocument(adminPrincipals),
 			)
 		}
