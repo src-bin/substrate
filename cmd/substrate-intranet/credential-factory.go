@@ -27,8 +27,8 @@ import (
 // TODO use session policies <https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/credentials/stscreds#AssumeRoleOptions> to constrain where these credentials can go by e.g. lists of domains, environments, and/or qualities they're allowed to assume roles into (though we also need to account for Instance Factory instances)
 
 const (
-	GCExpiredTagsLimit         = 10
-	GCExpiredTagsSyncThreshold = 40 // the default limit is 50
+	GCExpiredTagsLimit         = 25
+	GCExpiredTagsSyncThreshold = 25 // the default limit is 50
 
 	MinTokenLength = 40
 
