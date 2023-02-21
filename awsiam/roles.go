@@ -67,6 +67,13 @@ func CreateServiceLinkedRole(
 	return roleFromAPI(out.Role)
 }
 
+func DeleteRole(ctx context.Context, cfg *awscfg.Config, roleName string) error {
+	_, err := cfg.IAM().DeleteRole(ctx, &iam.DeleteRoleInput{
+		RoleName: aws.String(roleName),
+	})
+	return err
+}
+
 func DeleteRolePolicy(ctx context.Context, cfg *awscfg.Config, roleName string) error {
 	_, err := cfg.IAM().DeleteRolePolicy(ctx, &iam.DeleteRolePolicyInput{
 		PolicyName: aws.String(SubstrateManaged),
