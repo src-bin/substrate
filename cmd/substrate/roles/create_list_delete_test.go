@@ -61,6 +61,8 @@ func TestCreateAndDeleteManagementRole(t *testing.T) {
 		time.Hour,
 	))
 
+	ensureRoleDoesNotExist(t, ctx, mgmtCfg, roleName)
+
 	cmdutil.OverrideArgs("-management", "-role", roleName)
 	createrole.Main(ctx, cfg)
 

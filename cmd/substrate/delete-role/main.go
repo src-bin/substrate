@@ -67,6 +67,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 
 		ui.Spinf("deleting role %s in %s", *roleName, a)
+		err = awsiam.DeleteInstanceProfile(ctx, assumedCfg, *roleName)
+		if awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+			err = nil
+		}
+		ui.Must(err)
 		err = awsiam.DeleteRolePolicy(ctx, assumedCfg, *roleName)
 		if awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 			err = nil
