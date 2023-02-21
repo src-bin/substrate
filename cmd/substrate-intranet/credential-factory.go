@@ -53,13 +53,13 @@ func ParseTagValue(raw string) (*TagValue, error) {
 	if raw == "" {
 		return nil, errors.New("empty tag value")
 	}
-	var s string
+	var expiry string
 	v := &TagValue{}
-	_, err := fmt.Sscanf(raw, TagValueFormat, &v.PrincipalId, &v.RoleName, &s)
+	_, err := fmt.Sscanf(raw, TagValueFormat, &v.PrincipalId, &v.RoleName, &expiry)
 	if err != nil {
 		return nil, fmt.Errorf(`"%s" %w`, raw, err)
 	}
-	v.Expiry, err = time.Parse(time.RFC3339, s)
+	v.Expiry, err = time.Parse(time.RFC3339, expiry)
 	return v, err
 }
 
