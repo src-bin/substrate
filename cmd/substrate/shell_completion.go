@@ -238,6 +238,19 @@ func shellCompletion() {
 		}
 		options = append(options, "-format", "-quiet")
 
+	case "delete-role":
+		switch previousWord {
+		case "-role":
+			shellCompletionMatches([]string{}, word)
+			return
+		}
+		options = append(
+			options,
+			"-delete",
+			"-quiet",
+			"-role",
+		)
+
 	case "delete-static-access-keys":
 
 	case "intranet-zip":
