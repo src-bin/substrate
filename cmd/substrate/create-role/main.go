@@ -184,6 +184,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			ui.Must(awsiam.TagRole(ctx, cfg, role.Name, tagging.Map{
 				tagging.SubstrateAccountSelectors: "humans",
 			}))
+			_, err = awsiam.EnsureInstanceProfile(ctx, cfg, role.Name)
+			ui.Must(err)
 			adminPrincipals.AWS = append(adminPrincipals.AWS, role.Arn)
 		}
 		ui.Stop("ok")
@@ -268,6 +270,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Must(awsiam.TagRole(ctx, selected.cfg, role.Name, tagging.Map{
 			tagging.SubstrateAccountSelectors: strings.Join(selected.selectors, " "),
 		}))
+		for _, awsService := range *awsServices {
+			if awsService == "ec2.amazonaws.com" {
+				_, err = awsiam.EnsureInstanceProfile(ctx, selected.cfg, *roleName)
+				ui.Must(err)
+			}
+		}
 		ui.Stopf("ok")
 
 		// TODO -administrator and -auditor canned attached policies, too, plus -policy to attach a policy everywhere (except, possibly, admin accounts)
