@@ -174,7 +174,7 @@ func main() {
 	}
 
 	// Send a reminder to deploy the website.
-	slack("Deploy release notes and documentation updates to https://src-bin.com/substrate/manual/.")
+	slack("Deploy release notes and documentation updates to https://docs.src-bin.com/substrate/ via https://app.gitbook.com/")
 
 	// Send the checklist of customers who need the announcement.
 	for _, customer := range split(os.Getenv("CUSTOMERS_ANNOUNCE")) {
