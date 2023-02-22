@@ -76,7 +76,17 @@ func (s *Selector) Selection() (*Selection, error) {
 	if !flag.Parsed() {
 		panic("(*Selector).Selection called before flag.Parse")
 	}
+
 	// TODO validation and maybe return nil, SelectionError("...")
+
+	// If no explicit -quality was given and we only have one quality,
+	// imply -all-qualities.
+	if s.Qualities.Len() == 0 {
+		if qualities, _ := naming.Qualities(); len(qualities) == 1 {
+			*s.AllQualities = true
+		}
+	}
+
 	return &Selection{
 		AllDomains: *s.AllDomains,
 		Domains:    s.Domains.Slice(), // TODO expand if AllDomains == true?
