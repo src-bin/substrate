@@ -41,7 +41,13 @@ func TestCreateAndDeleteHumanRole(t *testing.T) {
 	//testRole(t, ctx, cfg, roleName, testNotExists)
 	//testRole(t, ctx, fooCfg, roleName, testNotExists)
 
-	cmdutil.OverrideArgs("-domain", domain, "-humans", "-role", roleName)
+	cmdutil.OverrideArgs(
+		"-role", roleName,
+		"-domain", domain,
+		"-all-environments",
+		"-all-qualities",
+		"-humans",
+	)
 	createrole.Main(ctx, cfg)
 
 	testRole(t, ctx, cfg, roleName, testExists)    // because -humans
@@ -77,12 +83,12 @@ func TestCreateAndDeleteManagementRole(t *testing.T) {
 
 	//testRole(t, ctx, mgmtCfg, roleName, testNotExists)
 
-	cmdutil.OverrideArgs("-management", "-role", roleName)
+	cmdutil.OverrideArgs("-role", roleName, "-management")
 	createrole.Main(ctx, cfg)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)                            // because no -humans
 	testRole(t, ctx, mgmtCfg, roleName, testExists)                           // because -management
-	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because -management and no -domain, -environment, or -quality
+	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because no -domain, -environment, or -quality
 	testRoleInAccounts(t, ctx, cfg, []*awsorgs.Account{
 		deployAccount,  // because no -special "deploy"
 		networkAccount, // because no -special "network"
@@ -104,14 +110,19 @@ func TestCreateAndDeleteServiceRole(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmdutil.OverrideArgs("-role", roleName)
+	cmdutil.OverrideArgs(
+		"-role", roleName,
+		"-all-domains",
+		"-all-environments",
+		"-all-qualities", // TODO test that we can omit this with only one quality
+	)
 	createrole.Main(ctx, cfg)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)                         // because no -humans
-	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testExists) // because defaults
+	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testExists) // because -all-{domains,environments,qualities}
 	testRoleInAccounts(t, ctx, cfg, []*awsorgs.Account{
+		managementAccount, // because no -management
 		deployAccount,     // because no -special "deploy"
-		managementAccount, // because no -management or -special
 		networkAccount,    // because no -special "network"
 	}, roleName, testNotExists)
 
@@ -147,13 +158,17 @@ func TestCreateAndDeleteSpecialRole(t *testing.T) {
 	//testRole(t, ctx, deployCfg, roleName, testNotExists)
 	//testRole(t, ctx, networkCfg, roleName, testNotExists)
 
-	cmdutil.OverrideArgs("-role", roleName, "-special", naming.Deploy, "-special", naming.Network)
+	cmdutil.OverrideArgs(
+		"-role", roleName,
+		"-special", naming.Deploy,
+		"-special", naming.Network,
+	)
 	createrole.Main(ctx, cfg)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)                            // because no -humans
 	testRole(t, ctx, deployCfg, roleName, testExists)                         // because -special deploy
 	testRole(t, ctx, networkCfg, roleName, testExists)                        // because -special network
-	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because -special and no -domain, -environment, or -quality
+	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because no -domain, -environment, or -quality
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
 	deleterole.Main(ctx, cfg)

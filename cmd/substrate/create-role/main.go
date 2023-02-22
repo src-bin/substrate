@@ -26,40 +26,49 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
-	management := flag.Bool("management", false, "create this role in the organization's management AWS account")
-	specials := cmdutil.StringSlice("special", `create this role in a special AWS account (may be repeated; "deploy" and/or "network")`)
-	domains := cmdutil.StringSlice("domain", "only create this role in AWS accounts in this domain (may be repeated; if unspecified, create the role in all domains)")
-	environments := cmdutil.StringSlice("environment", "only create this role in AWS accounts in this environment (may be repeated; if unspecified, create the role in all environments)")
-	qualities := cmdutil.StringSlice("quality", "only create this role in AWS accounts of this quality (may be repeated; if unspecified, create the role for all qualities)") // TODO do we need to do anything to cover the special case of only having one quality which may be omitted in single-account selection contexts?
-	numbers := cmdutil.StringSlice("number", "create this role in a specific AWS account, by 12-digit account number (may be repeated)")
 	roleName := flag.String("role", "", "name of the IAM role to create")
-	humans := flag.Bool("humans", false, "allow humans with this role set in your IdP to assume this role via the Credential Factory")
+	selector := accounts.NewSelector(accounts.SelectorUsage{
+		AllDomains:      "create the role in all domains (potentially constrained by -environment and/or -quality)",
+		Domains:         "only create this role in AWS accounts in this domain (may be repeated)",
+		AllEnvironments: "create the role in all environments (potentially constrained by -domain and/or -quality)",
+		Environments:    "only create this role in AWS accounts in this environment (may be repeated)",
+		AllQualities:    "create the role in all qualities (potentially constrained by -domain and/or -environment)",
+		Qualities:       "only create this role in AWS accounts of this quality (may be repeated)",
+		Admin:           "create this role in the organization's admin account(s) (potentially constrained by -quality)",
+		Management:      "create this role in the organization's management AWS account",
+		Specials:        `create this role in a special AWS account (may be repeated; "deploy" and/or "network")`,
+		Numbers:         "create this role in a specific AWS account, by 12-digit account number (may be repeated)",
+	})
+	humans := flag.Bool("humans", false, "allow humans with this role set in your IdP to assume this role via the Credential Factory (implies -admin)")
 	awsServices := cmdutil.StringSlice("aws-service", `allow an AWS service (by URL; e.g. "ec2.amazonaws.com") to assume role (may be repeated)`)
 	githubActions := cmdutil.StringSlice("github-actions", `allow GitHub Actions to assume this role in the context of the given GitHub organization and repository (separated by a literal '/'; may be repeated)`)
 	assumeRolePolicyFilename := flag.String("assume-role-policy", "", "filename containing an assume-role policy to be merged into this role's final assume-role policy")
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {
-		ui.Print("Usage: substrate create-role [account selection flags] -role <role> [assume-role policy flags] [-quiet]")
-		ui.Print("       [account selection flags]:  -management|-special <special>")
-		ui.Print("                                   [-domain <domain>][...] [-environment <environment>][...] [-quality <quality>][...]")
-		ui.Print("                                   -number <number>[...]")
+		ui.Print("Usage: substrate create-role [account selection flags] -role <role> [assume-role policy flags] [policy flags] [-quiet]")
+		ui.Print("       [account selection flags]:  [-all-domains|-domain <domain> [...]]")
+		ui.Print("                                   [-all-environments|-environment <environment> [...]]")
+		ui.Print("                                   [-all-qualities|-quality <quality> [...]]")
+		ui.Print("                                   [-admin [-quality <quality>]]")
+		ui.Print("                                   [-management] [-special <special> [...]]")
+		ui.Print("                                   [-number <number> [...]]")
 		ui.Print("       [assume-role policy flags]: [-humans] [-aws-service <aws-service-url>] [-github-actions <org/repo>] [-assume-role-policy <filename>]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
 	version.Flag()
+	if *quiet {
+		ui.Quiet()
+	}
+	if *roleName == "" {
+		ui.Fatal(`-role "..." is required`)
+	}
 	subs := make([]string, len(*githubActions))
 	for i, repo := range *githubActions {
 		if !strings.Contains(repo, "/") {
 			ui.Fatal(`-github-actions "..." must contain a '/'`)
 		}
 		subs[i] = fmt.Sprintf("repo:%s:*", repo)
-	}
-	if *quiet {
-		ui.Quiet()
-	}
-	if *roleName == "" {
-		ui.Fatal(`-role "..." is required`)
 	}
 
 	adminAccounts, serviceAccounts, _, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
@@ -69,14 +78,60 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Collect configs for all the accounts selected by the given options.
 	var selection []selectedAccount
-	if *management {
+	match := func(account *awsorgs.Account) (selectors []string, ok bool) {
+		ok = true
+		if *selector.AllDomains {
+			selectors = append(selectors, "all-domains")
+		} else if len(*selector.Domains) > 0 {
+			if contains(*selector.Domains, account.Tags[tagging.Domain]) {
+				selectors = append(selectors, "domain")
+			} else {
+				ok = false
+			}
+		} else {
+			ok = false
+		}
+		if *selector.AllEnvironments {
+			selectors = append(selectors, "all-environments")
+		} else if len(*selector.Environments) > 0 {
+			if contains(*selector.Environments, account.Tags[tagging.Environment]) {
+				selectors = append(selectors, "environment")
+			} else {
+				ok = false
+			}
+		} else {
+			ok = false
+		}
+		if *selector.AllQualities {
+			selectors = append(selectors, "all-qualities")
+		} else if len(*selector.Qualities) > 0 {
+			if contains(*selector.Qualities, account.Tags[tagging.Quality]) {
+				selectors = append(selectors, "quality")
+			} else {
+				ok = false
+			}
+		} else {
+			ok = false
+		}
+		return
+	}
+	for _, account := range serviceAccounts {
+		if selectors, ok := match(account); ok {
+			selection = append(selection, selectedAccount{
+				account:   account,
+				cfg:       awscfg.Must(cfg.AssumeRole(ctx, aws.ToString(account.Id), roles.Administrator, time.Hour)),
+				selectors: selectors,
+			})
+		}
+	}
+	if *selector.Management {
 		selection = append(selection, selectedAccount{
 			account:   managementAccount,
 			cfg:       awscfg.Must(cfg.AssumeManagementRole(ctx, roles.OrganizationAdministrator, time.Hour)),
 			selectors: []string{"management"},
 		})
 	}
-	for _, special := range *specials {
+	for _, special := range *selector.Specials {
 		switch special {
 		case accounts.Deploy:
 			selection = append(selection, selectedAccount{
@@ -94,48 +149,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			ui.Fatal("creating additional roles in the audit account is not supported")
 		}
 	}
-	match := func(account *awsorgs.Account) (selectors []string, ok bool) {
-		ok = true
-		if len(*domains) > 0 {
-			if contains(*domains, account.Tags[tagging.Domain]) {
-				selectors = append(selectors, "domain")
-			} else {
-				ok = false
-			}
-		}
-		if len(*environments) > 0 {
-			if contains(*environments, account.Tags[tagging.Environment]) {
-				selectors = append(selectors, "environment")
-			} else {
-				ok = false
-			}
-		}
-		if len(*qualities) > 0 {
-			if contains(*qualities, account.Tags[tagging.Quality]) {
-				selectors = append(selectors, "quality")
-			} else {
-				ok = false
-			}
-		}
-		return
-	}
-	for _, account := range serviceAccounts {
-		if selectors, ok := match(account); ok {
-			selection = append(selection, selectedAccount{
-				account:   account,
-				cfg:       awscfg.Must(cfg.AssumeRole(ctx, aws.ToString(account.Id), roles.Administrator, time.Hour)),
-				selectors: selectors,
-			})
-		}
-	}
-	if len(*numbers) > 0 {
-		for _, number := range *numbers {
-			selection = append(selection, selectedAccount{
-				account:   awsorgs.StringableZeroAccount(number),
-				cfg:       awscfg.Must(cfg.AssumeRole(ctx, number, roles.Administrator, time.Hour)),
-				selectors: []string{"number"},
-			})
-		}
+	for _, number := range *selector.Numbers {
+		selection = append(selection, selectedAccount{
+			account:   awsorgs.StringableZeroAccount(number),
+			cfg:       awscfg.Must(cfg.AssumeRole(ctx, number, roles.Administrator, time.Hour)),
+			selectors: []string{"number"},
+		})
 	}
 
 	// Every role we create needs these minimal privileges in order to use
