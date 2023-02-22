@@ -27,15 +27,15 @@ import (
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
 	management := flag.Bool("management", false, "create this role in the organization's management AWS account")
-	specials := cmdutil.StringSliceFlag("special", `create this role in a special AWS account (may be repeated; "deploy" and/or "network")`)
-	domains := cmdutil.StringSliceFlag("domain", "only create this role in AWS accounts in this domain (may be repeated; if unspecified, create the role in all domains)")
-	environments := cmdutil.StringSliceFlag("environment", "only create this role in AWS accounts in this environment (may be repeated; if unspecified, create the role in all environments)")
-	qualities := cmdutil.StringSliceFlag("quality", "only create this role in AWS accounts of this quality (may be repeated; if unspecified, create the role for all qualities)") // TODO do we need to do anything to cover the special case of only having one quality which may be omitted in single-account selection contexts?
-	numbers := cmdutil.StringSliceFlag("number", "create this role in a specific AWS account, by 12-digit account number (may be repeated)")
+	specials := cmdutil.StringSlice("special", `create this role in a special AWS account (may be repeated; "deploy" and/or "network")`)
+	domains := cmdutil.StringSlice("domain", "only create this role in AWS accounts in this domain (may be repeated; if unspecified, create the role in all domains)")
+	environments := cmdutil.StringSlice("environment", "only create this role in AWS accounts in this environment (may be repeated; if unspecified, create the role in all environments)")
+	qualities := cmdutil.StringSlice("quality", "only create this role in AWS accounts of this quality (may be repeated; if unspecified, create the role for all qualities)") // TODO do we need to do anything to cover the special case of only having one quality which may be omitted in single-account selection contexts?
+	numbers := cmdutil.StringSlice("number", "create this role in a specific AWS account, by 12-digit account number (may be repeated)")
 	roleName := flag.String("role", "", "name of the IAM role to create")
 	humans := flag.Bool("humans", false, "allow humans with this role set in your IdP to assume this role via the Credential Factory")
-	awsServices := cmdutil.StringSliceFlag("aws-service", `allow an AWS service (by URL; e.g. "ec2.amazonaws.com") to assume role (may be repeated)`)
-	githubActions := cmdutil.StringSliceFlag("github-actions", `allow GitHub Actions to assume this role in the context of the given GitHub organization and repository (separated by a literal '/'; may be repeated)`)
+	awsServices := cmdutil.StringSlice("aws-service", `allow an AWS service (by URL; e.g. "ec2.amazonaws.com") to assume role (may be repeated)`)
+	githubActions := cmdutil.StringSlice("github-actions", `allow GitHub Actions to assume this role in the context of the given GitHub organization and repository (separated by a literal '/'; may be repeated)`)
 	assumeRolePolicyFilename := flag.String("assume-role-policy", "", "filename containing an assume-role policy to be merged into this role's final assume-role policy")
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {

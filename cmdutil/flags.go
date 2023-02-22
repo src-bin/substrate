@@ -23,19 +23,26 @@ func QualityFlag(usage string) *string {
 	return flag.String("quality", quality, usage)
 }
 
-type StringSlice []string
+type StringSliceFlag []string
 
-func StringSliceFlag(name, usage string) *StringSlice {
-	ss := &StringSlice{}
+func StringSlice(name, usage string) *StringSliceFlag {
+	ss := &StringSliceFlag{}
 	flag.Var(ss, name, usage)
 	return ss
 }
 
-func (ss *StringSlice) String() string {
-	return strings.Join(*ss, ", ")
+func (ssf *StringSliceFlag) Set(s string) error {
+	*ssf = append(*ssf, s)
+	return nil
 }
 
-func (ss *StringSlice) Set(s string) error {
-	*ss = append(*ss, s)
-	return nil
+func (ssf *StringSliceFlag) Slice() []string {
+	if ssf == nil || *ssf == nil {
+		return []string{}
+	}
+	return append([]string{}, *ssf...)
+}
+
+func (ssf *StringSliceFlag) String() string {
+	return strings.Join(*ssf, ", ")
 }
