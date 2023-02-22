@@ -33,21 +33,21 @@ func TestCreateAndDeleteHumanRole(t *testing.T) {
 		time.Hour,
 	))
 
-	//testRoleDoesNotExist(t, ctx, cfg, roleName)
-	//testRoleDoesNotExist(t, ctx, fooCfg, roleName)
+	//testRole(t, ctx, cfg, roleName, testNotExists)
+	//testRole(t, ctx, fooCfg, roleName, testNotExists)
 
 	cmdutil.OverrideArgs("-domain", domain, "-humans", "-role", roleName)
 	createrole.Main(ctx, cfg)
 
-	testRoleExists(t, ctx, cfg, roleName)    // because -humans
-	testRoleExists(t, ctx, fooCfg, roleName) // because -domain
+	testRole(t, ctx, cfg, roleName, testExists)    // because -humans
+	testRole(t, ctx, fooCfg, roleName, testExists) // because -domain
 	// TODO test that this role does not exist in any other accounts
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
 	deleterole.Main(ctx, cfg)
 
-	testRoleDoesNotExist(t, ctx, cfg, roleName)
-	testRoleDoesNotExist(t, ctx, fooCfg, roleName)
+	testRole(t, ctx, cfg, roleName, testNotExists)
+	testRole(t, ctx, fooCfg, roleName, testNotExists)
 }
 
 func TestCreateAndDeleteManagementRole(t *testing.T) {
@@ -61,19 +61,19 @@ func TestCreateAndDeleteManagementRole(t *testing.T) {
 		time.Hour,
 	))
 
-	//testRoleDoesNotExist(t, ctx, mgmtCfg, roleName)
+	//testRole(t, ctx, mgmtCfg, roleName, testNotExists)
 
 	cmdutil.OverrideArgs("-management", "-role", roleName)
 	createrole.Main(ctx, cfg)
 
-	testRoleDoesNotExist(t, ctx, cfg, roleName) // because no -humans
-	testRoleExists(t, ctx, mgmtCfg, roleName)   // because -management
+	testRole(t, ctx, cfg, roleName, testNotExists)  // because no -humans
+	testRole(t, ctx, mgmtCfg, roleName, testExists) // because -management
 	// TODO test that this role does not exist in any other accounts
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
 	deleterole.Main(ctx, cfg)
 
-	testRoleDoesNotExist(t, ctx, mgmtCfg, roleName)
+	testRole(t, ctx, mgmtCfg, roleName, testNotExists)
 }
 
 func TestCreateAndDeleteSpecialRole(t *testing.T) {
@@ -94,39 +94,48 @@ func TestCreateAndDeleteSpecialRole(t *testing.T) {
 		time.Hour,
 	))
 
-	//testRoleDoesNotExist(t, ctx, deployCfg, roleName)
-	//testRoleDoesNotExist(t, ctx, networkCfg, roleName)
+	//testRole(t, ctx, deployCfg, roleName, testNotExists)
+	//testRole(t, ctx, networkCfg, roleName, testNotExists)
 
 	cmdutil.OverrideArgs("-role", roleName, "-special", naming.Deploy, "-special", naming.Network)
 	createrole.Main(ctx, cfg)
 
-	testRoleDoesNotExist(t, ctx, cfg, roleName)  // because no -humans
-	testRoleExists(t, ctx, deployCfg, roleName)  // because -special deploy
-	testRoleExists(t, ctx, networkCfg, roleName) // because -special network
+	testRole(t, ctx, cfg, roleName, testNotExists)     // because no -humans
+	testRole(t, ctx, deployCfg, roleName, testExists)  // because -special deploy
+	testRole(t, ctx, networkCfg, roleName, testExists) // because -special network
 	// TODO test that this role does not exist in any other accounts
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
 	deleterole.Main(ctx, cfg)
 
-	testRoleDoesNotExist(t, ctx, deployCfg, roleName)
-	testRoleDoesNotExist(t, ctx, networkCfg, roleName)
+	testRole(t, ctx, deployCfg, roleName, testNotExists)
+	testRole(t, ctx, networkCfg, roleName, testNotExists)
 }
 
-func testRoleDoesNotExist(t *testing.T, ctx context.Context, cfg *awscfg.Config, roleName string) {
-	role, err := awsiam.GetRole(ctx, cfg, roleName)
-	if err == nil {
-		t.Fatalf("found %+v but expected NoSuchEntity", role)
-	}
-	if !awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
-		t.Fatalf("error is %v but expected NoSuchEntity", err)
-	}
-	t.Log(role)
-}
+const (
+	testExists    = true
+	testNotExists = false
+)
 
-func testRoleExists(t *testing.T, ctx context.Context, cfg *awscfg.Config, roleName string) {
+func testRole(
+	t *testing.T,
+	ctx context.Context,
+	cfg *awscfg.Config,
+	roleName string,
+	test bool,
+) {
 	role, err := awsiam.GetRole(ctx, cfg, roleName)
-	if err != nil {
-		t.Fatalf("error is %v but expected nil", err)
+	if test == testExists {
+		if err != nil {
+			t.Fatalf("expected nil but got %v", err)
+		}
+	} else {
+		if err == nil {
+			t.Fatalf("expected NoSuchEntity but got %+v", role)
+		}
+		if !awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+			t.Fatalf("expected NoSuchEntity but got %v", err)
+		}
 	}
 	t.Log(role)
 }
