@@ -31,6 +31,13 @@ func StringSlice(name, usage string) *StringSliceFlag {
 	return ss
 }
 
+func (ssf *StringSliceFlag) Len() int {
+	if ssf == nil || *ssf == nil {
+		return 0
+	}
+	return len(*ssf)
+}
+
 func (ssf *StringSliceFlag) Set(s string) error {
 	*ssf = append(*ssf, s)
 	return nil
