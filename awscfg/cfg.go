@@ -2,7 +2,6 @@ package awscfg
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"runtime"
 	"strconv"
@@ -16,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
@@ -28,39 +26,6 @@ const (
 	TooManyRequestsException    = "TooManyRequestsException"
 	UnrecognizedClientException = "UnrecognizedClientException"
 )
-
-type Account struct {
-	types.Account
-	Tags tagging.Map
-}
-
-func (a *Account) AdministratorRoleName() string {
-	switch a.Tags[tagging.SubstrateSpecialAccount] {
-	case naming.Deploy:
-		return roles.DeployAdministrator
-	case naming.Management:
-		return roles.OrganizationAdministrator
-	case naming.Network:
-		return roles.NetworkAdministrator
-	}
-	return roles.Administrator
-}
-
-func (a *Account) String() string {
-	if special := a.Tags[tagging.SubstrateSpecialAccount]; special != "" {
-		return fmt.Sprintf("%s account number %s", special, aws.ToString(a.Id))
-	}
-	domain := a.Tags[tagging.Domain]
-	environment := a.Tags[tagging.Environment]
-	quality := a.Tags[tagging.Quality]
-	if domain == naming.Admin && quality != "" {
-		return fmt.Sprintf("admin account number %s (Quality: %s)", aws.ToString(a.Id), quality)
-	}
-	if domain != "" && environment != "" && quality != "" {
-		return fmt.Sprintf("service account number %s (Domain: %s, Environment: %s, Quality: %s)", aws.ToString(a.Id), domain, environment, quality)
-	}
-	return fmt.Sprintf("account number %s", aws.ToString(a.Id))
-}
 
 type Config struct {
 	accounts                []*Account // cache
