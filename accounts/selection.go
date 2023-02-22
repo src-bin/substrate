@@ -1,11 +1,22 @@
 package accounts
 
 import (
+	"context"
 	"flag"
 	"fmt"
 
+	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/naming"
+	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/ui"
 )
+
+type AccountWithSelectors struct {
+	Account   *awsorgs.Account
+	Selectors []string
+}
 
 type Selection struct {
 	Admin bool
@@ -24,6 +35,116 @@ type Selection struct {
 	Specials []string
 
 	Numbers []string // raw 12-digit AWS account numbers
+}
+
+func (s *Selection) Match(a *awsorgs.Account) (selectors []string, ok bool) {
+	ok = true
+	if s.AllDomains {
+		selectors = append(selectors, "all-domains")
+	} else if len(s.Domains) > 0 {
+		if contains(s.Domains, a.Tags[tagging.Domain]) {
+			selectors = append(selectors, "domain")
+		} else {
+			ok = false
+		}
+	} else {
+		ok = false
+	}
+	if s.AllEnvironments {
+		selectors = append(selectors, "all-environments")
+	} else if len(s.Environments) > 0 {
+		if contains(s.Environments, a.Tags[tagging.Environment]) {
+			selectors = append(selectors, "environment")
+		} else {
+			ok = false
+		}
+	} else {
+		ok = false
+	}
+	if s.AllQualities {
+		selectors = append(selectors, "all-qualities")
+	} else if len(s.Qualities) > 0 {
+		if contains(s.Qualities, a.Tags[tagging.Quality]) {
+			selectors = append(selectors, "quality")
+		} else {
+			ok = false
+		}
+	} else {
+		ok = false
+	}
+	return
+}
+
+func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
+	selected []AccountWithSelectors,
+	unselected []*awsorgs.Account,
+	err error,
+) {
+	adminAccounts, serviceAccounts, _, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, account := range serviceAccounts {
+		if account.Tags[tagging.Domain] == "" {
+			continue // don't overreach into not-quite-Substrate-managed accounts
+		}
+		if selectors, ok := s.Match(account); ok {
+			selected = append(selected, AccountWithSelectors{
+				Account:   account,
+				Selectors: selectors,
+			})
+		} else {
+			unselected = append(unselected, account)
+		}
+	}
+
+	if s.Management {
+		selected = append(selected, AccountWithSelectors{
+			Account:   managementAccount,
+			Selectors: []string{"management"},
+		})
+	} else {
+		unselected = append(unselected, managementAccount)
+	}
+
+	var selectedDeploy, selectedNetwork bool
+	for _, special := range s.Specials {
+		switch special {
+		case Deploy:
+			selected = append(selected, AccountWithSelectors{
+				Account:   deployAccount,
+				Selectors: []string{"special"},
+			})
+			selectedDeploy = true
+		case Network:
+			selected = append(selected, AccountWithSelectors{
+				Account:   networkAccount,
+				Selectors: []string{"special"},
+			})
+			selectedNetwork = true
+		default:
+			return nil, nil, SelectionError("creating additional roles in the audit account is not supported")
+		}
+	}
+	if !selectedDeploy {
+		unselected = append(unselected, deployAccount)
+	}
+	if !selectedNetwork {
+		unselected = append(unselected, networkAccount)
+	}
+
+	if len(s.Numbers) > 0 {
+		ui.Print("warning: `substrate roles` and `substrate delete-role` will not be able to find roles created in numbered accounts; if you wish to delete them in the future you will have to do so yourself")
+		for _, number := range s.Numbers {
+			selected = append(selected, AccountWithSelectors{
+				Account:   awsorgs.StringableZeroAccount(number),
+				Selectors: []string{"number"},
+			})
+		}
+	}
+
+	return
 }
 
 type SelectionError string
@@ -125,4 +246,13 @@ type SelectorUsage struct {
 	Specials string
 
 	Numbers string
+}
+
+func contains(ss []string, s string) bool {
+	for i := 0; i < len(ss); i++ {
+		if ss[i] == s {
+			return true
+		}
+	}
+	return false
 }

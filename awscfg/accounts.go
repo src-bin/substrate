@@ -35,7 +35,7 @@ func (a *Account) Config(
 	roleName string,
 	duration time.Duration,
 ) (*Config, error) {
-	panic("not implemented") // TODO
+	return cfg.AssumeRole(ctx, aws.ToString(a.Id), roleName, duration)
 }
 
 func (a *Account) String() string {
