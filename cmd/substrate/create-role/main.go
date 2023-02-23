@@ -207,8 +207,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				ctx,
 				accountCfg,
 				[]string{"sts.amazonaws.com"},
-				[]string{"6938fd4d98bab03faadb97b34396831e3780aea1"},
-				"https://token.actions.githubusercontent.com",
+				[]string{awsiam.GitHubActionsOAuthOIDCThumbprint},
+				awsiam.GitHubActionsOAuthOIDCURL,
 			)
 			ui.Must(err)
 			assumeRolePolicy = policies.Merge(

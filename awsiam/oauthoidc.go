@@ -14,6 +14,11 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
+const (
+	GitHubActionsOAuthOIDCThumbprint = "6938fd4d98bab03faadb97b34396831e3780aea1"
+	GitHubActionsOAuthOIDCURL        = "https://token.actions.githubusercontent.com"
+)
+
 func EnsureOpenIDConnectProvider(
 	ctx context.Context,
 	cfg *awscfg.Config,
