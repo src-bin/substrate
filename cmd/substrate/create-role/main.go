@@ -14,8 +14,10 @@ import (
 	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
@@ -62,6 +64,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if *roleName == "" {
 		ui.Fatal(`-role "..." is required`)
 	}
+	if *humans {
+		*selector.Admin = true
+	}
 	selection, err := selector.Selection()
 	ui.Must(err)
 	subs := make([]string, len(*githubActions))
@@ -103,42 +108,31 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	ui.Must(err)
 
 	// If this role's for humans to use via the IdP, create a role by the same
-	// name in admin accounts that can't (necessarily) do the same things; its
-	// purpose is to be allowed (later) to assume the roles created in the
-	// various other accounts.
+	// name in admin accounts. This role must exist before we enter the main
+	// role and policy loop because that loop will need to reference these role
+	// ARNs and they must exist at that time. The assume-role policy created
+	// here will be expanded, possibly greatly, below, which is why we use
+	// CreateRole and squash the EntityAlreadyExists error.
 	adminPrincipals := &policies.Principal{AWS: []string{}}
 	if *humans {
 		ui.Spinf("finding or creating the %s role in your admin account(s) for humans to assume via your IdP", *roleName)
-		adminAccounts, _, _, _, _, _, err := accounts.Grouped(ctx, cfg) // TODO shouldn't need this in the era of accounts.Selection
-		ui.Must(err)                                                    // TODO
+		adminAccounts, _, _, _, _, _, err := accounts.Grouped(ctx, cfg)
+		ui.Must(err)
 		for _, account := range adminAccounts {
-			role, err := awsiam.EnsureRoleWithPolicy(
+			accountCfg := awscfg.Must(account.Config(ctx, cfg, roles.Administrator, time.Hour))
+			role, err := awsiam.CreateRole(
 				ctx,
-				awscfg.Must(cfg.AssumeRole(
-					ctx,
-					aws.ToString(account.Id),
-					roles.Administrator,
-					time.Hour,
-				)),
+				accountCfg,
 				*roleName,
-				policies.Merge(
-					policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals), // Administrator can do anything, after all
-					policies.AssumeRolePolicyDocument(&policies.Principal{
-						AWS: []string{
-							roles.ARN(aws.ToString(account.Id), roles.Intranet),
-							users.ARN(aws.ToString(account.Id), users.CredentialFactory),
-						},
-						Service: []string{"ec2.amazonaws.com"},
-					}),
-				),
-				minimalPolicy,
+				policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
 			)
-			ui.Must(err)
-			//log.Printf("%+v", role)
-			ui.Must(awsiam.TagRole(ctx, cfg, role.Name, tagging.Map{
-				tagging.SubstrateAccountSelectors: "humans",
-			}))
-			_, err = awsiam.EnsureInstanceProfile(ctx, cfg, role.Name)
+			if err == nil {
+				ui.Must(awsiam.TagRole(ctx, cfg, role.Name, tagging.Map{
+					tagging.SubstrateAccountSelectors: "humans",
+				}))
+			} else if awsutil.ErrorCodeIs(err, awsiam.EntityAlreadyExists) {
+				role, err = awsiam.GetRole(ctx, accountCfg, *roleName)
+			}
 			ui.Must(err)
 			adminPrincipals.AWS = append(adminPrincipals.AWS, role.Arn)
 		}
@@ -155,16 +149,43 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		selectors := as.Selectors
 		ui.Printf("constructing an assume-role policy for the %s role in %s", *roleName, account)
 
-		// Construct the assume-role policy for this role as it will be created in
-		// this account. This governs who may assume this role.
+		// Start the assume-role policy for the role in this account with the
+		// standard Substrate-managed principals like Administrator and
+		// OrganizationAdministrator.
 		assumeRolePolicy := policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals) // Administrator can do anything, after all
+
+		// If -humans was given, allow the pre-created roles in the admin
+		// account(s) to assume this role.
 		if *humans {
 			ui.Printf("allowing humans to assume the %s role in %s via admin accounts and your IdP", *roleName, account)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
 				policies.AssumeRolePolicyDocument(adminPrincipals),
 			)
+
+			// Further, if this account is, in fact, an admin account, allow
+			// the Intranet's principals to assume the role, too, so the
+			// Credential Factory will work and create an EC2 instance profile
+			// so the Instance Factory can use the role. Preserve the "humans"
+			// element in its selectors so we can introspect the role later.
+			if account.Tags[tagging.Domain] == naming.Admin {
+				assumeRolePolicy = policies.Merge(
+					assumeRolePolicy,
+					policies.AssumeRolePolicyDocument(&policies.Principal{
+						AWS: []string{
+							roles.ARN(aws.ToString(account.Id), roles.Intranet),
+							users.ARN(aws.ToString(account.Id), users.CredentialFactory),
+						},
+						Service: []string{"ec2.amazonaws.com"},
+					}),
+				)
+				_, err = awsiam.EnsureInstanceProfile(ctx, cfg, *roleName)
+				ui.Must(err)
+				selectors = append(selectors, "humans")
+			}
+
 		}
+
 		if len(*awsServices) > 0 {
 			ui.Printf("allowing %s to assume the %s role in %s", strings.Join(*awsServices, ", "), *roleName, account)
 			assumeRolePolicy = policies.Merge(
@@ -174,6 +195,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				}),
 			)
 		}
+
 		if len(*githubActions) > 0 {
 			ui.Printf(
 				"allowing GitHub Actions to assume the %s role in %s on behalf of %s",
@@ -204,6 +226,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				},
 			)
 		}
+
 		var filePolicy policies.Document
 		if err := jsonutil.Read(*assumeRolePolicyFilename, &filePolicy); err == nil {
 			ui.Printf("reading additional assume-role policy statements from %s", *assumeRolePolicyFilename)
@@ -211,6 +234,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			ui.Fatal(err)
 		}
+
 		//log.Print(jsonutil.MustString(assumeRolePolicy)) // TODO make the awsiam.EnsureRole function(s) sensitive to SUBSTRATE_DEBUG_ASSUME_ROLE_POLICY
 
 		ui.Spinf("finding or creating the %s role in %s", *roleName, account)

@@ -99,6 +99,17 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 		}
 	}
 
+	for _, account := range adminAccounts {
+		if selectors, ok := s.Match(account); ok {
+			selected = append(selected, AccountWithSelectors{
+				Account:   account,
+				Selectors: selectors,
+			})
+		} else {
+			unselected = append(unselected, account)
+		}
+	}
+
 	if s.Management {
 		selected = append(selected, AccountWithSelectors{
 			Account:   managementAccount,
@@ -228,8 +239,6 @@ func (s *Selector) Selection() (*Selection, error) {
 		panic("(*Selector).Selection called before flag.Parse")
 	}
 
-	// TODO validation and maybe return nil, SelectionError("...")
-
 	// If no explicit -quality was given and we only have one quality,
 	// imply -all-qualities.
 	if s.Qualities.Len() == 0 {
@@ -237,6 +246,20 @@ func (s *Selector) Selection() (*Selection, error) {
 			*s.AllQualities = true
 		}
 	}
+
+	// If -admin was given and either of -all-domains or -all-environments
+	// weren't, add "admin" to the selected domains and/or environments so
+	// that the matcher will select admin accounts, too.
+	if *s.Admin {
+		if !*s.AllDomains {
+			s.Domains.Set(naming.Admin)
+		}
+		if !*s.AllEnvironments {
+			s.Environments.Set(naming.Admin)
+		}
+	}
+
+	// TODO validation and maybe return nil, SelectionError("...")
 
 	return &Selection{
 		AllDomains: *s.AllDomains,
