@@ -166,6 +166,14 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 		}
 	}
 
+	Sort(adminAccounts)
+	Sort(serviceAccounts)
+
+	return
+}
+
+func Sort(slice []*awsorgs.Account) {
+
 	// Try to get the authoritative order of environments and qualities from
 	// substrate.{environments,qualities}. We won't have access to that in
 	// Lambda, though, so we've got to come up with something. I decided to
@@ -173,7 +181,10 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 	// use Substrate, and how folks name environments and release channels in
 	// the broader world. I hope Substrate thrives sufficiently for me to
 	// regret this.
-	var environments, qualities []string
+	var (
+		environments, qualities []string
+		err                     error
+	)
 	if environments, err = naming.Environments(); err != nil {
 		environments = []string{
 			"dev", "devel", "development",
@@ -189,34 +200,20 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 			"gamma", "default",
 		}
 	}
-	err = nil
 
-	sort.Slice(adminAccounts, func(i, j int) bool {
-		return searchUnsorted(qualities, adminAccounts[i].Tags[tagging.Quality]) < searchUnsorted(qualities, adminAccounts[j].Tags[tagging.Quality])
-	})
-	sort.Slice(serviceAccounts, func(i, j int) bool {
-		if serviceAccounts[i].Tags[tagging.Domain] != serviceAccounts[j].Tags[tagging.Domain] {
-			return serviceAccounts[i].Tags[tagging.Domain] < serviceAccounts[j].Tags[tagging.Domain]
+	sort.Slice(slice, func(i, j int) bool {
+		if slice[i].Tags[tagging.Domain] != slice[j].Tags[tagging.Domain] {
+			return slice[i].Tags[tagging.Domain] < slice[j].Tags[tagging.Domain]
 		}
-		if serviceAccounts[i].Tags[tagging.Environment] != serviceAccounts[j].Tags[tagging.Environment] {
-			return searchUnsorted(environments, serviceAccounts[i].Tags[tagging.Environment]) < searchUnsorted(environments, serviceAccounts[j].Tags[tagging.Environment])
+		if slice[i].Tags[tagging.Environment] != slice[j].Tags[tagging.Environment] {
+			return naming.Index(environments, slice[i].Tags[tagging.Environment]) < naming.Index(environments, slice[j].Tags[tagging.Environment])
 		}
-		if serviceAccounts[i].Tags[tagging.Quality] != serviceAccounts[j].Tags[tagging.Quality] {
-			return searchUnsorted(qualities, serviceAccounts[i].Tags[tagging.Quality]) < searchUnsorted(qualities, serviceAccounts[j].Tags[tagging.Quality])
+		if slice[i].Tags[tagging.Quality] != slice[j].Tags[tagging.Quality] {
+			return naming.Index(qualities, slice[i].Tags[tagging.Quality]) < naming.Index(qualities, slice[j].Tags[tagging.Quality])
+		}
+		if slice[i].Tags[tagging.SubstrateSpecialAccount] != slice[j].Tags[tagging.SubstrateSpecialAccount] {
+			return slice[i].Tags[tagging.SubstrateSpecialAccount] < slice[j].Tags[tagging.SubstrateSpecialAccount]
 		}
 		return false
 	})
-
-	return
-}
-
-// searchUnsorted is like sort.SearchStrings but it allows for the search
-// space to be unsorted and assumes it's pretty small.
-func searchUnsorted(a []string, x string) int {
-	for i, s := range a {
-		if s == x {
-			return i
-		}
-	}
-	return -1
 }
