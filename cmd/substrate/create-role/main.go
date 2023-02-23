@@ -24,6 +24,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -76,6 +77,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		subs[i] = fmt.Sprintf("repo:%s:*", repo)
 	}
+
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+
+	versionutil.PreventDowngrade(ctx, cfg)
 
 	// Partition accounts by the given options so the role may be created or
 	// deleted as appropriate.

@@ -14,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
@@ -31,6 +32,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if *roleName == "" {
 		ui.Fatal(`-role "..." is required`)
 	}
+
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+
+	versionutil.PreventDowngrade(ctx, cfg)
 
 	allAccounts, err := awsorgs.ListAccounts(ctx, cfg)
 	ui.Must(err)
