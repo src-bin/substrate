@@ -11,6 +11,32 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
+func ListRoleTags(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	roleName string,
+) (tagging.Map, error) {
+	var marker *string
+	tags := make(tagging.Map)
+	for {
+		out, err := cfg.IAM().ListRoleTags(ctx, &iam.ListRoleTagsInput{
+			Marker:   marker,
+			RoleName: aws.String(roleName),
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, tag := range out.Tags {
+			tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+		}
+		if !out.IsTruncated {
+			break
+		}
+		marker = out.Marker
+	}
+	return tags, nil
+}
+
 func ListUserTags(
 	ctx context.Context,
 	cfg *awscfg.Config,

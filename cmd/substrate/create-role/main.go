@@ -134,7 +134,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				role, err = awsiam.GetRole(ctx, accountCfg, *roleName)
 			}
 			ui.Must(err)
-			adminPrincipals.AWS = append(adminPrincipals.AWS, role.Arn)
+			adminPrincipals.AWS = append(adminPrincipals.AWS, role.ARN)
 		}
 		ui.Stop("ok")
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/tagging"
 )
 
 func AttachRolePolicy(
@@ -48,7 +49,7 @@ func CreateRole(
 	}
 	//log.Printf("%+v", out)
 	time.Sleep(10e9) // give IAM time to become consistent (TODO do it gracefully)
-	return roleFromAPI(out.Role)
+	return roleFromAPI(ctx, cfg, out.Role)
 }
 
 func CreateServiceLinkedRole(
@@ -64,7 +65,7 @@ func CreateServiceLinkedRole(
 	}
 	//log.Printf("%+v", out)
 	time.Sleep(10e9) // give IAM time to become consistent (TODO do it gracefully)
-	return roleFromAPI(out.Role)
+	return roleFromAPI(ctx, cfg, out.Role)
 }
 
 func DeleteRole(ctx context.Context, cfg *awscfg.Config, roleName string) error {
@@ -200,24 +201,54 @@ func GetRole(ctx context.Context, cfg *awscfg.Config, roleName string) (*Role, e
 		return nil, err
 	}
 	//log.Printf("%+v", out)
-	return roleFromAPI(out.Role)
+	return roleFromAPI(ctx, cfg, out.Role)
+}
+
+func ListRoles(ctx context.Context, cfg *awscfg.Config) ([]*Role, error) {
+	out, err := cfg.IAM().ListRoles(ctx, &iam.ListRolesInput{})
+	if err != nil {
+		return nil, err
+	}
+	//log.Printf("%+v", out)
+	roles := make([]*Role, len(out.Roles))
+	for i := 0; i < len(out.Roles); i++ {
+		roles[i], err = roleFromAPI(ctx, cfg, &out.Roles[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	//log.Printf("%+v", roles)
+	return roles, nil
 }
 
 type Role struct {
-	Arn              string
+	ARN              string
 	AssumeRolePolicy *policies.Document
 	Name             string
+	Tags             tagging.Map
 }
 
-func roleFromAPI(role *types.Role) (*Role, error) {
+func roleFromAPI(ctx context.Context, cfg *awscfg.Config, role *types.Role) (*Role, error) {
+	name := aws.ToString(role.RoleName)
+
 	s, err := url.PathUnescape(aws.ToString(role.AssumeRolePolicyDocument))
 	if err != nil {
 		return nil, err
 	}
 	doc, err := policies.UnmarshalString(s)
+	if err != nil {
+		return nil, err
+	}
+
+	tags, err := ListRoleTags(ctx, cfg, name)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Role{
-		Arn:              aws.ToString(role.Arn),
+		ARN:              aws.ToString(role.Arn),
 		AssumeRolePolicy: doc,
-		Name:             aws.ToString(role.RoleName),
+		Name:             name,
+		Tags:             tags,
 	}, err
 }
