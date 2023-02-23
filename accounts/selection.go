@@ -173,6 +173,36 @@ type Selector struct {
 }
 
 func NewSelector(su SelectorUsage) *Selector {
+	if su.AllDomains == "" {
+		panic("SelectorUsage.AllDomains can't be empty")
+	}
+	if su.Domains == "" {
+		panic("SelectorUsage.Domains can't be empty")
+	}
+	if su.AllEnvironments == "" {
+		panic("SelectorUsage.AllEnvironments can't be empty")
+	}
+	if su.Environments == "" {
+		panic("SelectorUsage.Environments can't be empty")
+	}
+	if su.AllQualities == "" {
+		panic("SelectorUsage.AllQualities can't be empty")
+	}
+	if su.Qualities == "" {
+		panic("SelectorUsage.Qualities can't be empty")
+	}
+	if su.Admin == "" {
+		panic("SelectorUsage.Admin can't be empty")
+	}
+	if su.Management == "" {
+		panic("SelectorUsage.Management can't be empty")
+	}
+	if su.Specials == "" {
+		panic("SelectorUsage.Specials can't be empty")
+	}
+	if su.Numbers == "" {
+		panic("SelectorUsage.Numbers can't be empty")
+	}
 	return &Selector{
 		AllDomains: flag.Bool("all-domains", false, su.AllDomains),
 		Domains:    cmdutil.StringSlice("domain", su.Domains),
