@@ -39,6 +39,7 @@ type Selection struct {
 
 func (s *Selection) Match(a *awsorgs.Account) (selectors []string, ok bool) {
 	ok = true
+
 	if s.AllDomains {
 		selectors = append(selectors, "all-domains")
 	} else if len(s.Domains) > 0 {
@@ -50,6 +51,7 @@ func (s *Selection) Match(a *awsorgs.Account) (selectors []string, ok bool) {
 	} else {
 		ok = false
 	}
+
 	if s.AllEnvironments {
 		selectors = append(selectors, "all-environments")
 	} else if len(s.Environments) > 0 {
@@ -61,6 +63,11 @@ func (s *Selection) Match(a *awsorgs.Account) (selectors []string, ok bool) {
 	} else {
 		ok = false
 	}
+
+	if a.Tags[tagging.Domain] == naming.Admin && a.Tags[tagging.Environment] == naming.Admin && len(selectors) == 2 && selectors[0] == "domain" && selectors[1] == "environment" {
+		selectors = []string{"admin"}
+	}
+
 	if s.AllQualities {
 		selectors = append(selectors, "all-qualities")
 	} else if len(s.Qualities) > 0 {
@@ -72,6 +79,7 @@ func (s *Selection) Match(a *awsorgs.Account) (selectors []string, ok bool) {
 	} else {
 		ok = false
 	}
+
 	return
 }
 
