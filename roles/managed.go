@@ -33,6 +33,17 @@ func (p *ManagedAssumeRolePolicy) Arguments() []string {
 	return ss
 }
 
+func (p *ManagedAssumeRolePolicy) GitHubActionsSubs() ([]string, error) {
+	subs := make([]string, len(p.GitHubActions))
+	for i, repo := range p.GitHubActions {
+		if !strings.Contains(repo, "/") {
+			return nil, ManagedAssumeRolePolicyError(`-github-actions "..." must contain a '/'`)
+		}
+		subs[i] = fmt.Sprintf("repo:%s:*", repo)
+	}
+	return subs, nil
+}
+
 func (p *ManagedAssumeRolePolicy) Sort() {
 	sort.Strings(p.AWSServices)
 	sort.Strings(p.GitHubActions)
@@ -41,6 +52,12 @@ func (p *ManagedAssumeRolePolicy) Sort() {
 
 func (p *ManagedAssumeRolePolicy) String() string {
 	return strings.Join(p.Arguments(), " ")
+}
+
+type ManagedAssumeRolePolicyError string
+
+func (err ManagedAssumeRolePolicyError) Error() string {
+	return fmt.Sprint("ManagedAssumeRolePolicyError: ", string(err))
 }
 
 type ManagedAssumeRolePolicyFlags struct {

@@ -3,7 +3,6 @@ package createrole
 import (
 	"context"
 	"flag"
-	"fmt"
 	"strings"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
@@ -39,10 +37,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		Specials:        `create this role in a special AWS account (may be repeated; "deploy" and/or "network")`,
 		Numbers:         "create this role in a specific AWS account, by 12-digit account number (may be repeated)",
 	})
-	humans := flag.Bool("humans", false, "allow humans with this role set in your IdP to assume this role via the Credential Factory (implies -admin)")
-	awsServices := cmdutil.StringSlice("aws-service", `allow an AWS service (by URL; e.g. "ec2.amazonaws.com") to assume role (may be repeated)`)
-	githubActions := cmdutil.StringSlice("github-actions", `allow GitHub Actions to assume this role in the context of the given GitHub organization and repository (separated by a literal '/'; may be repeated)`)
-	assumeRolePolicyFilenames := cmdutil.StringSlice("assume-role-policy", "filename containing an assume-role policy to be merged into this role's final assume-role policy (may be repeated)")
+	managedAssumeRolePolicyFlags := roles.NewManagedAssumeRolePolicyFlags(roles.ManagedAssumeRolePolicyFlagsUsage{
+		Humans:        "allow humans with this role set in your IdP to assume this role via the Credential Factory (implies -admin)",
+		AWSServices:   `allow an AWS service (by URL; e.g. "ec2.amazonaws.com") to assume role (may be repeated)`,
+		GitHubActions: `allow GitHub Actions to assume this role in the context of the given GitHub organization and repository (separated by a literal '/'; may be repeated)`,
+		Filenames:     "filename containing an assume-role policy to be merged into this role's final assume-role policy (may be repeated)",
+	})
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {
 		ui.Print("Usage: substrate create-role [account selection flags] -role <role> [assume-role policy flags] [policy flags] [-quiet]")
@@ -63,19 +63,15 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	if *roleName == "" {
 		ui.Fatal(`-role "..." is required`)
 	}
-	if *humans {
+	if *managedAssumeRolePolicyFlags.Humans {
 		*selectionFlags.Admin = true
 	}
+	managedAssumeRolePolicy, err := managedAssumeRolePolicyFlags.ManagedAssumeRolePolicy()
+	ui.Must(err)
+	//log.Printf("%+v", managedAssumeRolePolicy)
 	selection, err := selectionFlags.Selection()
 	ui.Must(err)
 	//log.Printf("%+v", selection)
-	subs := make([]string, len(*githubActions))
-	for i, repo := range *githubActions {
-		if !strings.Contains(repo, "/") {
-			ui.Fatal(`-github-actions "..." must contain a '/'`)
-		}
-		subs[i] = fmt.Sprintf("repo:%s:*", repo)
-	}
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
@@ -133,7 +129,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// here will be expanded, possibly greatly, below, which is why we use
 	// CreateRole and squash the EntityAlreadyExists error.
 	adminPrincipals := &policies.Principal{AWS: []string{}}
-	if *humans {
+	if managedAssumeRolePolicy.Humans {
 		ui.Spinf("finding or creating the %s role in your admin account(s) for humans to assume via your IdP", *roleName)
 		adminAccounts, _, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 		ui.Must(err)
@@ -175,7 +171,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		// If -humans was given, allow the pre-created roles in the admin
 		// account(s) to assume this role.
-		if *humans {
+		if managedAssumeRolePolicy.Humans {
 			ui.Printf("allowing humans to assume the %s role in %s via admin accounts and your IdP", *roleName, account)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
@@ -203,22 +199,22 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		}
 
-		if len(*awsServices) > 0 {
-			ui.Printf("allowing %s to assume the %s role in %s", strings.Join(*awsServices, ", "), *roleName, account)
+		if len(managedAssumeRolePolicy.AWSServices) > 0 {
+			ui.Printf("allowing %s to assume the %s role in %s", strings.Join(managedAssumeRolePolicy.AWSServices, ", "), *roleName, account)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
 				policies.AssumeRolePolicyDocument(&policies.Principal{
-					Service: jsonutil.StringSlice(*awsServices),
+					Service: jsonutil.StringSlice(managedAssumeRolePolicy.AWSServices),
 				}),
 			)
 		}
 
-		if len(*githubActions) > 0 {
+		if len(managedAssumeRolePolicy.GitHubActions) > 0 {
 			ui.Printf(
 				"allowing GitHub Actions to assume the %s role in %s on behalf of %s",
 				*roleName,
 				account,
-				strings.Join(*githubActions, ", "),
+				strings.Join(managedAssumeRolePolicy.GitHubActions, ", "),
 			)
 			arn, err := awsiam.EnsureOpenIDConnectProvider(
 				ctx,
@@ -227,6 +223,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				[]string{awsiam.GitHubActionsOAuthOIDCThumbprint},
 				awsiam.GitHubActionsOAuthOIDCURL,
 			)
+			ui.Must(err)
+			subs, err := managedAssumeRolePolicy.GitHubActionsSubs()
 			ui.Must(err)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
@@ -244,7 +242,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			)
 		}
 
-		for _, filename := range *assumeRolePolicyFilenames {
+		for _, filename := range managedAssumeRolePolicy.Filenames {
 			ui.Printf("reading additional assume-role policy statements from %s", filename)
 			var filePolicy policies.Document
 			ui.Must(jsonutil.Read(filename, &filePolicy))
@@ -264,12 +262,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		tags := tagging.Map{
 			tagging.SubstrateAccountSelectors: strings.Join(selectors, " "),
 		}
-		if len(*assumeRolePolicyFilenames) > 0 {
-			tags[tagging.SubstrateAssumeRolePolicyFilenames] = strings.Join(*assumeRolePolicyFilenames, " ")
+		if len(managedAssumeRolePolicy.Filenames) > 0 {
+			tags[tagging.SubstrateAssumeRolePolicyFilenames] = strings.Join(managedAssumeRolePolicy.Filenames, " ")
 		}
 		ui.Must(awsiam.TagRole(ctx, accountCfg, role.Name, tags))
-		for _, awsService := range *awsServices {
-			if awsService == "ec2.amazonaws.com" {
+		for _, service := range managedAssumeRolePolicy.AWSServices {
+			if service == "ec2.amazonaws.com" {
 				_, err = awsiam.EnsureInstanceProfile(ctx, accountCfg, *roleName)
 				ui.Must(err)
 			}
