@@ -64,6 +64,10 @@ func (s *Selection) Match(a *awsorgs.Account) (selectors []string, ok bool) {
 		ok = false
 	}
 
+	// Basically no one is going to write -domain "admin" -environment "admin"
+	// to select admin accounts. They're going to write -admin. And we should
+	// be smart enough to parrot that back to them in `substrate roles`, even
+	// if it's syntactic sugar.
 	if a.Tags[tagging.Domain] == naming.Admin && a.Tags[tagging.Environment] == naming.Admin && len(selectors) == 2 && selectors[0] == "domain" && selectors[1] == "environment" {
 		selectors = []string{"admin"}
 	}
@@ -88,6 +92,7 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 	unselected []*awsorgs.Account,
 	err error,
 ) {
+	// TODO there's some redundancy in Grouped and Partition which maybe can be rectified later
 	adminAccounts, serviceAccounts, _, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
 	if err != nil {
 		return nil, nil, err
