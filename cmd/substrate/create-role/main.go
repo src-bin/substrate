@@ -2,10 +2,8 @@ package createrole
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
 	"strings"
 	"time"
 
@@ -44,7 +42,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	humans := flag.Bool("humans", false, "allow humans with this role set in your IdP to assume this role via the Credential Factory (implies -admin)")
 	awsServices := cmdutil.StringSlice("aws-service", `allow an AWS service (by URL; e.g. "ec2.amazonaws.com") to assume role (may be repeated)`)
 	githubActions := cmdutil.StringSlice("github-actions", `allow GitHub Actions to assume this role in the context of the given GitHub organization and repository (separated by a literal '/'; may be repeated)`)
-	assumeRolePolicyFilename := flag.String("assume-role-policy", "", "filename containing an assume-role policy to be merged into this role's final assume-role policy")
+	assumeRolePolicyFilenames := cmdutil.StringSlice("assume-role-policy", "filename containing an assume-role policy to be merged into this role's final assume-role policy (may be repeated)")
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {
 		ui.Print("Usage: substrate create-role [account selection flags] -role <role> [assume-role policy flags] [policy flags] [-quiet]")
@@ -54,7 +52,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Print("                                   [-admin [-quality <quality>]]")
 		ui.Print("                                   [-management] [-special <special> [...]]")
 		ui.Print("                                   [-number <number> [...]]")
-		ui.Print("       [assume-role policy flags]: [-humans] [-aws-service <aws-service-url>] [-github-actions <org/repo>] [-assume-role-policy <filename>]")
+		ui.Print("       [assume-role policy flags]: [-humans] [-aws-service <aws-service-url>] [-github-actions <org/repo>] [-assume-role-policy <filename> [...]]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -232,12 +230,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			)
 		}
 
-		var filePolicy policies.Document
-		if err := jsonutil.Read(*assumeRolePolicyFilename, &filePolicy); err == nil {
-			ui.Printf("reading additional assume-role policy statements from %s", *assumeRolePolicyFilename)
+		for _, filename := range *assumeRolePolicyFilenames {
+			ui.Printf("reading additional assume-role policy statements from %s", filename)
+			var filePolicy policies.Document
+			ui.Must(jsonutil.Read(filename, &filePolicy))
 			assumeRolePolicy = policies.Merge(assumeRolePolicy, &filePolicy)
-		} else if !errors.Is(err, fs.ErrNotExist) {
-			ui.Fatal(err)
+
 		}
 
 		//log.Print(jsonutil.MustString(assumeRolePolicy)) // TODO make the awsiam.EnsureRole function(s) sensitive to SUBSTRATE_DEBUG_ASSUME_ROLE_POLICY
@@ -252,9 +250,13 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		)
 		ui.Must(err)
 		//log.Printf("%+v", role)
-		ui.Must(awsiam.TagRole(ctx, accountCfg, role.Name, tagging.Map{
+		tags := tagging.Map{
 			tagging.SubstrateAccountSelectors: strings.Join(selectors, " "),
-		}))
+		}
+		if len(*assumeRolePolicyFilenames) > 0 {
+			tags[tagging.SubstrateAssumeRolePolicyFilenames] = strings.Join(*assumeRolePolicyFilenames, " ")
+		}
+		ui.Must(awsiam.TagRole(ctx, accountCfg, role.Name, tags))
 		for _, awsService := range *awsServices {
 			if awsService == "ec2.amazonaws.com" {
 				_, err = awsiam.EnsureInstanceProfile(ctx, accountCfg, *roleName)
