@@ -236,8 +236,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		}
 
-		//log.Print(jsonutil.MustString(assumeRolePolicy)) // TODO make the awsiam.EnsureRole function(s) sensitive to SUBSTRATE_DEBUG_ASSUME_ROLE_POLICY
-
 		ui.Spinf("finding or creating the %s role in %s", *roleName, account)
 		role, err := awsiam.EnsureRoleWithPolicy(
 			ctx,

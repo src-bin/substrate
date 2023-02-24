@@ -3,6 +3,7 @@ package awsiam
 import (
 	"context"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -10,8 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/ui"
 )
 
 func AttachRolePolicy(
@@ -33,6 +36,15 @@ func CreateRole(
 	assumeRolePolicyDoc *policies.Document,
 	// TODO permissionsBoundaryPolicyArn,
 ) (*Role, error) {
+	if os.Getenv("SUBSTRATE_DEBUG_AWS_IAM_ASSUME_ROLE_POLICIES") != "" {
+		ui.Printf(
+			"assume-role policy document for %s in account number %s: %s",
+			roleName,
+			cfg.MustAccountId(ctx),
+			jsonutil.MustString(assumeRolePolicyDoc),
+		)
+	}
+
 	docJSON, err := assumeRolePolicyDoc.Marshal()
 	if err != nil {
 		return nil, err
