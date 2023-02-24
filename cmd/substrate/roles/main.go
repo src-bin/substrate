@@ -39,6 +39,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	versionutil.WarnDowngrade(ctx, cfg)
 
+	// Gather up all the Substrate-managed roles from all the AWS accounts in
+	// the whole organization so we can collate them.
 	ui.Spin("inspecting all the roles in all your AWS accounts")
 	allAccounts, err := cfg.ListAccounts(ctx)
 	ui.Must(err)
@@ -83,16 +85,24 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	// Collate the Substrate-managed roles from all the AWS accounts into
 	// compact singular definitions of what they are.
 	collated := make(map[string]struct {
+		ManagedAssumeRolePolicy  *roles.ManagedAssumeRolePolicy
+		ManagedPolicyAttachments *roles.ManagedPolicyAttachments
 		Selection                *accounts.Selection
 	})
 	for _, roleName := range roleNames {
 		if _, ok := collated[roleName]; !ok {
 			collated[roleName] = struct {
+				ManagedAssumeRolePolicy  *roles.ManagedAssumeRolePolicy
+				ManagedPolicyAttachments *roles.ManagedPolicyAttachments
 				Selection                *accounts.Selection
 			}{
+				&roles.ManagedAssumeRolePolicy{},
+				&roles.ManagedPolicyAttachments{},
 				&accounts.Selection{},
 			}
 		}
+		managedAssumeRolePolicy := collated[roleName].ManagedAssumeRolePolicy
+		//managedPolicyAttachments := collated[roleName].ManagedPolicyAttachments
 		selection := collated[roleName].Selection
 
 		for _, tn := range tree[roleName] {
@@ -156,12 +166,14 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 					}
 				}
 				if credentialFactory && ec2 && intranet {
-					log.Print("-humans") // XXX
+					managedAssumeRolePolicy.Humans = true
 				}
 
 				// -aws-service "..."
 				for _, service := range statement.Principal.Service {
-					log.Printf("-aws-service %q", service) // XXX
+					if naming.Index(managedAssumeRolePolicy.AWSServices, service) < 0 {
+						managedAssumeRolePolicy.AWSServices = append(managedAssumeRolePolicy.AWSServices, service)
+					}
 				}
 
 				// -github-actions "..."
@@ -179,7 +191,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 								if _, err := fmt.Sscanf(value, "repo:%s:*", &repo); err != nil {
 									continue
 								}
-								log.Printf("-github-actions %q", repo) // XXX
+								if naming.Index(managedAssumeRolePolicy.GitHubActions, repo) < 0 {
+									managedAssumeRolePolicy.GitHubActions = append(managedAssumeRolePolicy.GitHubActions, repo)
+								}
 							}
 						}
 					}
@@ -191,7 +205,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			// SubstrateAssumeRolePolicyFilenames tag, if present.
 			filenames := strings.Split(role.Tags[tagging.SubstrateAssumeRolePolicyFilenames], " ")
 			for _, filename := range filenames {
-				log.Printf("-assume-role-policy %q", filename) // XXX
+				if naming.Index(managedAssumeRolePolicy.Filenames, filename) < 0 {
+					managedAssumeRolePolicy.Filenames = append(managedAssumeRolePolicy.Filenames, filename)
+				}
 			}
 
 		}
