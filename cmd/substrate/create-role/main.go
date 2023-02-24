@@ -131,7 +131,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			)
 			if err == nil {
 				ui.Must(awsiam.TagRole(ctx, cfg, role.Name, tagging.Map{
-					tagging.SubstrateAccountSelectors: "humans",
+					tagging.SubstrateAccountSelectors: "admin",
 				}))
 			} else if awsutil.ErrorCodeIs(err, awsiam.EntityAlreadyExists) {
 				role, err = awsiam.GetRole(ctx, accountCfg, *roleName)
@@ -169,8 +169,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			// Further, if this account is, in fact, an admin account, allow
 			// the Intranet's principals to assume the role, too, so the
 			// Credential Factory will work and create an EC2 instance profile
-			// so the Instance Factory can use the role. Preserve the "humans"
-			// element in its selectors so we can introspect the role later.
+			// so the Instance Factory can use the role.
 			if account.Tags[tagging.Domain] == naming.Admin {
 				assumeRolePolicy = policies.Merge(
 					assumeRolePolicy,
@@ -184,7 +183,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				)
 				_, err = awsiam.EnsureInstanceProfile(ctx, cfg, *roleName)
 				ui.Must(err)
-				selectors = append(selectors, "humans")
 			}
 
 		}
