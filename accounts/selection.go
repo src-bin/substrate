@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
@@ -19,8 +21,6 @@ type AccountWithSelectors struct {
 }
 
 type Selection struct {
-	Admin bool
-
 	AllDomains bool
 	Domains    []string
 
@@ -30,11 +30,59 @@ type Selection struct {
 	AllQualities bool
 	Qualities    []string
 
+	Admin bool
+
 	Management bool
 
 	Specials []string
 
 	Numbers []string // raw 12-digit AWS account numbers
+}
+
+func (s *Selection) Arguments() []string {
+	var ss []string
+
+	if s.AllDomains {
+		ss = append(ss, "-all-domains")
+	} else {
+		for _, domain := range s.Domains {
+			ss = append(ss, "-domain", domain)
+		}
+	}
+
+	if s.AllEnvironments {
+		ss = append(ss, "-all-environments")
+	} else {
+		for _, environment := range s.Environments {
+			ss = append(ss, "-environment", environment)
+		}
+	}
+
+	if s.AllQualities {
+		ss = append(ss, "-all-qualities")
+	} else {
+		for _, quality := range s.Qualities {
+			ss = append(ss, "-quality", quality)
+		}
+	}
+
+	if s.Admin {
+		ss = append(ss, "-admin")
+	}
+
+	if s.Management {
+		ss = append(ss, "-management")
+	}
+
+	for _, special := range s.Specials {
+		ss = append(ss, "-special", special)
+	}
+
+	for _, number := range s.Numbers {
+		ss = append(ss, "-number", number)
+	}
+
+	return ss
 }
 
 func (s *Selection) Match(a *awsorgs.Account) (selectors []string, ok bool) {
@@ -171,13 +219,34 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 	return
 }
 
+func (s *Selection) Sort() error {
+	sort.Strings(s.Domains)
+	environments, err := naming.Environments()
+	if err != nil {
+		return err
+	}
+	naming.IndexedSort(s.Environments, environments)
+	qualities, err := naming.Qualities()
+	if err != nil {
+		return err
+	}
+	naming.IndexedSort(s.Qualities, qualities)
+	sort.Strings(s.Specials)
+	sort.Strings(s.Numbers)
+	return nil
+}
+
+func (s *Selection) String() string {
+	return strings.Join(s.Arguments(), " ")
+}
+
 type SelectionError string
 
 func (err SelectionError) Error() string {
 	return fmt.Sprint("SelectionError: ", string(err))
 }
 
-type Selector struct {
+type SelectionFlags struct {
 	AllDomains *bool
 	Domains    *cmdutil.StringSliceFlag
 
@@ -196,106 +265,105 @@ type Selector struct {
 	Numbers *cmdutil.StringSliceFlag
 }
 
-func NewSelector(su SelectorUsage) *Selector {
-	if su.AllDomains == "" {
-		panic("SelectorUsage.AllDomains can't be empty")
+func NewSelectionFlags(u SelectionFlagsUsage) *SelectionFlags {
+	if u.AllDomains == "" {
+		panic("SelectionFlagsUsage.AllDomains can't be empty")
 	}
-	if su.Domains == "" {
-		panic("SelectorUsage.Domains can't be empty")
+	if u.Domains == "" {
+		panic("SelectionFlagsUsage.Domains can't be empty")
 	}
-	if su.AllEnvironments == "" {
-		panic("SelectorUsage.AllEnvironments can't be empty")
+	if u.AllEnvironments == "" {
+		panic("SelectionFlagsUsage.AllEnvironments can't be empty")
 	}
-	if su.Environments == "" {
-		panic("SelectorUsage.Environments can't be empty")
+	if u.Environments == "" {
+		panic("SelectionFlagsUsage.Environments can't be empty")
 	}
-	if su.AllQualities == "" {
-		panic("SelectorUsage.AllQualities can't be empty")
+	if u.AllQualities == "" {
+		panic("SelectionFlagsUsage.AllQualities can't be empty")
 	}
-	if su.Qualities == "" {
-		panic("SelectorUsage.Qualities can't be empty")
+	if u.Qualities == "" {
+		panic("SelectionFlagsUsage.Qualities can't be empty")
 	}
-	if su.Admin == "" {
-		panic("SelectorUsage.Admin can't be empty")
+	if u.Admin == "" {
+		panic("SelectionFlagsUsage.Admin can't be empty")
 	}
-	if su.Management == "" {
-		panic("SelectorUsage.Management can't be empty")
+	if u.Management == "" {
+		panic("SelectionFlagsUsage.Management can't be empty")
 	}
-	if su.Specials == "" {
-		panic("SelectorUsage.Specials can't be empty")
+	if u.Specials == "" {
+		panic("SelectionFlagsUsage.Specials can't be empty")
 	}
-	if su.Numbers == "" {
-		panic("SelectorUsage.Numbers can't be empty")
+	if u.Numbers == "" {
+		panic("SelectionFlagsUsage.Numbers can't be empty")
 	}
-	return &Selector{
-		AllDomains: flag.Bool("all-domains", false, su.AllDomains),
-		Domains:    cmdutil.StringSlice("domain", su.Domains),
+	return &SelectionFlags{
+		AllDomains: flag.Bool("all-domains", false, u.AllDomains),
+		Domains:    cmdutil.StringSlice("domain", u.Domains),
 
-		AllEnvironments: flag.Bool("all-environments", false, su.AllEnvironments),
-		Environments:    cmdutil.StringSlice("environment", su.Environments),
+		AllEnvironments: flag.Bool("all-environments", false, u.AllEnvironments),
+		Environments:    cmdutil.StringSlice("environment", u.Environments),
 
-		AllQualities: flag.Bool("all-qualities", false, su.AllQualities),
-		Qualities:    cmdutil.StringSlice("quality", su.Qualities),
+		AllQualities: flag.Bool("all-qualities", false, u.AllQualities),
+		Qualities:    cmdutil.StringSlice("quality", u.Qualities),
 
-		Admin: flag.Bool("admin", false, su.Admin),
+		Admin: flag.Bool("admin", false, u.Admin),
 
-		Management: flag.Bool("management", false, su.Management),
+		Management: flag.Bool("management", false, u.Management),
 
-		Specials: cmdutil.StringSlice("special", su.Specials),
+		Specials: cmdutil.StringSlice("special", u.Specials),
 
-		Numbers: cmdutil.StringSlice("number", su.Numbers),
+		Numbers: cmdutil.StringSlice("number", u.Numbers),
 	}
 }
 
-func (s *Selector) Selection() (*Selection, error) {
+func (f *SelectionFlags) Selection() (*Selection, error) {
 	if !flag.Parsed() {
-		panic("(*Selector).Selection called before flag.Parse")
+		panic("(*SelectionFlags).Selection called before flag.Parse")
 	}
 
 	// If no explicit -quality was given and we only have one quality,
 	// imply -all-qualities.
-	if s.Qualities.Len() == 0 {
+	if f.Qualities.Len() == 0 {
 		if qualities, _ := naming.Qualities(); len(qualities) == 1 {
-			*s.AllQualities = true
+			*f.AllQualities = true
 		}
 	}
 
 	// If -admin was given and either of -all-domains or -all-environments
 	// weren't, add "admin" to the selected domains and/or environments so
 	// that the matcher will select admin accounts, too.
-	if *s.Admin {
-		if !*s.AllDomains {
-			s.Domains.Set(naming.Admin)
+	if *f.Admin {
+		if !*f.AllDomains {
+			f.Domains.Set(naming.Admin)
 		}
-		if !*s.AllEnvironments {
-			s.Environments.Set(naming.Admin)
+		if !*f.AllEnvironments {
+			f.Environments.Set(naming.Admin)
 		}
 	}
 
 	// TODO validation and maybe return nil, SelectionError("...")
 
 	return &Selection{
-		AllDomains: *s.AllDomains,
-		Domains:    s.Domains.Slice(), // TODO expand if AllDomains == true?
+		AllDomains: *f.AllDomains,
+		Domains:    f.Domains.Slice(),
 
-		AllEnvironments: *s.AllEnvironments,
-		Environments:    s.Environments.Slice(), // TODO expand if AllEnvironments == true?
+		AllEnvironments: *f.AllEnvironments,
+		Environments:    f.Environments.Slice(),
 
-		AllQualities: *s.AllQualities,
-		Qualities:    s.Qualities.Slice(), // TODO expand if AllQualities == true?
-		// TODO do we need to do anything to cover the special case of only having one quality which may be omitted in single-account selection contexts?
+		AllQualities: *f.AllQualities,
+		Qualities:    f.Qualities.Slice(),
 
-		Admin: *s.Admin,
+		Admin: *f.Admin,
 
-		Management: *s.Management,
+		Management: *f.Management,
 
-		Specials: s.Specials.Slice(),
+		Specials: f.Specials.Slice(),
 
-		Numbers: s.Numbers.Slice(),
+		Numbers: f.Numbers.Slice(),
 	}, nil
 }
 
-type SelectorUsage struct {
+type SelectionFlagsUsage struct {
 	Admin string
 
 	AllDomains string

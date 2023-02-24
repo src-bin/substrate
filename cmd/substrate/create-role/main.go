@@ -27,7 +27,7 @@ import (
 
 func Main(ctx context.Context, cfg *awscfg.Config) {
 	roleName := flag.String("role", "", "name of the IAM role to create")
-	selector := accounts.NewSelector(accounts.SelectorUsage{
+	selectionFlags := accounts.NewSelectionFlags(accounts.SelectionFlagsUsage{
 		AllDomains:      "create the role in all domains (potentially constrained by -environment and/or -quality)",
 		Domains:         "only create this role in AWS accounts in this domain (may be repeated)",
 		AllEnvironments: "create the role in all environments (potentially constrained by -domain and/or -quality)",
@@ -64,9 +64,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Fatal(`-role "..." is required`)
 	}
 	if *humans {
-		*selector.Admin = true
+		*selectionFlags.Admin = true
 	}
-	selection, err := selector.Selection()
+	selection, err := selectionFlags.Selection()
 	ui.Must(err)
 	//log.Printf("%+v", selection)
 	subs := make([]string, len(*githubActions))

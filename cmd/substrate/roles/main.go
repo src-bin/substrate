@@ -80,10 +80,21 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	u, err := url.Parse(awsiam.GitHubActionsOAuthOIDCURL)
 	ui.Must(err)
 
-	selections := make(map[string]*accounts.Selection)
+	// Collate the Substrate-managed roles from all the AWS accounts into
+	// compact singular definitions of what they are.
+	collated := make(map[string]struct {
+		Selection                *accounts.Selection
+	})
 	for _, roleName := range roleNames {
-		selection := &accounts.Selection{}
-		selections[roleName] = selection
+		if _, ok := collated[roleName]; !ok {
+			collated[roleName] = struct {
+				Selection                *accounts.Selection
+			}{
+				&accounts.Selection{},
+			}
+		}
+		selection := collated[roleName].Selection
+
 		for _, tn := range tree[roleName] {
 			account := tn.Account
 			role := tn.Role
@@ -123,13 +134,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 					ui.Printf("unknown account selector %q", selector)
 				}
 			}
-			sort.Strings(selection.Domains)
-			environments, err := naming.Environments()
-			ui.Must(err)
-			naming.IndexedSort(selection.Environments, environments)
-			qualities, err := naming.Qualities()
-			ui.Must(err)
-			naming.IndexedSort(selection.Qualities, qualities)
+			ui.Must(selection.Sort())
 
 			// Derive most assume-role policy flags from the statements in the
 			// assume-role policy.
@@ -195,11 +200,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	switch format.String() {
 
 	case cmdutil.SerializationFormatJSON:
-		log.Print(jsonutil.MustString(selections)) // TODO a real JSON output, not this stupid one that just satisfies that selections is used
+		log.Print(jsonutil.MustString(collated)) // TODO a real JSON output, not this stupid one that just satisfies that selections is used
 
 	case cmdutil.SerializationFormatShell:
 		for _, roleName := range roleNames {
-			selection := selections[roleName]
+			selection := collated[roleName].Selection
 			log.Printf("roleName: %s selection: %+v", roleName, selection)
 			// TODO stringify selection into command-line arguments
 			// TODO stringify assume-role policy detections into command-line arguments
