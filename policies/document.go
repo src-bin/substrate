@@ -10,7 +10,7 @@ import (
 
 type Document struct {
 	Version   version
-	Statement []Statement
+	Statement []Statement // annoyingly signular because AWS made it singular
 }
 
 func AssumeRolePolicyDocument(principal *Principal) *Document {

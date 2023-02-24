@@ -260,6 +260,13 @@ func shellCompletion() {
 		}
 		options = append(options, "-base64sha256", "-format")
 
+	case "roles":
+		if previousWord == "-format" {
+			shellCompletionMatches([]string{"json", "shell"}, word)
+			return
+		}
+		options = append(options, "-format")
+
 	case "root-modules":
 		if previousWord == "-format" {
 			shellCompletionMatches([]string{"json", "shell"}, word)
