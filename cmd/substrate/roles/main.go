@@ -75,7 +75,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			)
 		}
 	}
-	sort.Strings(roleNames) // so that eventual output is stable
+	sort.Strings(roleNames) // so that all output formats are stable
+	for _, treeNodes := range tree {
+		sort.Slice(treeNodes, func(i, j int) bool {
+			return treeNodes[i].Role.ARN < treeNodes[j].Role.ARN
+		}) // so that role ARNs in the text output are stable
+	}
 	ui.Stop("ok")
 
 	// Needed later but no need to parse it on every loop.
@@ -224,11 +229,22 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			log.Printf("roleName: %s selection: %+v", roleName, selection)
 			// TODO stringify selection into command-line arguments
 			// TODO stringify assume-role policy detections into command-line arguments
+			// TODO stringify policy detections into command-line arguments
 		}
 
 	case cmdutil.SerializationFormatText:
-		for _, roleName := range roleNames {
-			fmt.Println(roleName) // TODO include selectors, account numbers, maybe flagging whether it's outdated (i.e. new accounts with the domain), etc.
+		for i, roleName := range roleNames {
+			if i > 0 {
+				ui.Print("")
+			}
+			ui.Print(roleName)
+			ui.Print("\taccount selection flags:  ", collated[roleName].Selection)
+			ui.Print("\tassume role policy flags: ", collated[roleName].ManagedAssumeRolePolicy)
+			ui.Print("\tpolicy attachment flags:  ", collated[roleName].ManagedPolicyAttachments)
+			ui.Print("\trole ARNs:")
+			for _, tn := range tree[roleName] {
+				ui.Print("\t\t", tn.Role.ARN)
+			}
 		}
 
 	default:
