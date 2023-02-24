@@ -43,9 +43,15 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		GitHubActions: `allow GitHub Actions to assume this role in the context of the given GitHub organization and repository (separated by a literal '/'; may be repeated)`,
 		Filenames:     "filename containing an assume-role policy to be merged into this role's final assume-role policy (may be repeated)",
 	})
+	managedPolicyAttachmentsFlags := roles.NewManagedPolicyAttachmentsFlags(roles.ManagedPolicyAttachmentsFlagsUsage{
+		Administrator: "attach the AWS-managed AdministratorAccess policy to these roles, allowing total access to all AWS APIs and resources", // arn:aws:iam::aws:policy/AdministratorAccess
+		ReadOnly:      "attach the AWS-managed ReadOnlyAccess policy to these roles, allowing read access to all AWS resources",                // arn:aws:iam::aws:policy/ReadOnlyAccess
+		ARNs:          "attach a specific AWS-managed policy to these roles (may be repeated)",
+		Filenames:     "filename containing a policy to attach to these roles (may be repeated)",
+	})
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {
-		ui.Print("Usage: substrate create-role [account selection flags] -role <role> [assume-role policy flags] [policy flags] [-quiet]")
+		ui.Print("Usage: substrate create-role [account selection flags] -role <role> [assume-role policy flags] [policy attachment flags] [-quiet]")
 		ui.Print("       [account selection flags]:  [-all-domains|-domain <domain> [...]]")
 		ui.Print("                                   [-all-environments|-environment <environment> [...]]")
 		ui.Print("                                   [-all-qualities|-quality <quality> [...]]")
@@ -53,6 +59,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.Print("                                   [-management] [-special <special> [...]]")
 		ui.Print("                                   [-number <number> [...]]")
 		ui.Print("       [assume-role policy flags]: [-humans] [-aws-service <aws-service-url>] [-github-actions <org/repo>] [-assume-role-policy <filename> [...]]")
+		ui.Print("       [policy attachment flags]:  [-administrator|-read-only] [-policy-arn <arn> [...]] [-policy <filename> [...]]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -69,6 +76,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	managedAssumeRolePolicy, err := managedAssumeRolePolicyFlags.ManagedAssumeRolePolicy()
 	ui.Must(err)
 	//log.Printf("%+v", managedAssumeRolePolicy)
+	managedPolicyAttachments, err := managedPolicyAttachmentsFlags.ManagedPolicyAttachments()
+	ui.Must(err)
+	//log.Printf("%+v", managedPolicyAttachments)
 	selection, err := selectionFlags.Selection()
 	ui.Must(err)
 	//log.Printf("%+v", selection)
@@ -274,7 +284,27 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 		ui.Stopf("ok")
 
-		// TODO -administrator and -auditor canned attached policies, too, plus -policy to attach a policy everywhere (except, possibly, admin accounts)
+		if managedPolicyAttachments.Administrator {
+			ui.Spinf("attaching the AdministratorAccess policy to the %s role in %s", *roleName, account)
+			ui.Stopf("ok")
+		}
+		if managedPolicyAttachments.ReadOnly {
+			ui.Spinf("attaching the ReadOnlyAccess policy to the %s role in %s", *roleName, account)
+			ui.Stopf("ok")
+		}
+		if len(managedPolicyAttachments.ARNs) > 0 {
+			ui.Spinf("attaching AWS-managed policies to the %s role in %s", *roleName, account)
+			for _, arn := range managedPolicyAttachments.ARNs {
+			}
+			ui.Stopf("ok")
+		}
+		if len(managedPolicyAttachments.Filenames) > 0 {
+			ui.Spinf("finding or creating and attaching custom policies to the %s role in %s", *roleName, account)
+			for _, filename := range managedPolicyAttachments.Filenames {
+			}
+			ui.Stopf("ok")
+		}
+
 	}
 
 }
