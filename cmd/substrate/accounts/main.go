@@ -37,6 +37,10 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
 	versionutil.WarnDowngrade(ctx, cfg)
 
+	// Update substrate.accounts.txt unconditionally as this is the expected
+	// side-effect of running this program.
+	ui.Must(accounts.CheatSheet(ctx, cfg))
+
 	if *number == "" {
 		ui.Must(cfg.ClearCachedAccounts())
 	}
@@ -132,12 +136,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	default:
 		ui.Fatalf("-format %q not supported", format)
-	}
-
-	// Update substrate.accounts.txt unconditionally as this is the expected
-	// side-effect of running this program.
-	if err := accounts.CheatSheet(ctx, cfg); err != nil {
-		ui.Fatal(err)
 	}
 
 }
