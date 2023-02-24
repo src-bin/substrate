@@ -22,13 +22,13 @@ func (p *ManagedAssumeRolePolicy) Arguments() []string {
 		ss = append(ss, "-humans")
 	}
 	for _, service := range p.AWSServices {
-		ss = append(ss, "-aws-service", service)
+		ss = append(ss, "-aws-service", fmt.Sprintf("%q", service))
 	}
 	for _, githubActions := range p.GitHubActions {
-		ss = append(ss, "-github-actions", githubActions)
+		ss = append(ss, "-github-actions", fmt.Sprintf("%q", githubActions))
 	}
 	for _, filename := range p.Filenames {
-		ss = append(ss, "-assume-role-policy", filename)
+		ss = append(ss, "-assume-role-policy", fmt.Sprintf("%q", filename))
 	}
 	return ss
 }
@@ -124,10 +124,10 @@ func (a *ManagedPolicyAttachments) Arguments() []string {
 		ss = append(ss, "-read-only")
 	}
 	for _, arn := range a.ARNs {
-		ss = append(ss, "-policy-arn", arn)
+		ss = append(ss, "-policy-arn", fmt.Sprintf("%q", arn))
 	}
 	for _, filename := range a.Filenames {
-		ss = append(ss, "-policy", filename)
+		ss = append(ss, "-policy", fmt.Sprintf("%q", filename))
 	}
 	return ss
 }

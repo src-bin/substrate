@@ -215,21 +215,27 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				}
 			}
 
+			// Derive the policy flags from the policies attached to the role
+			// plus the SubstratePolicyFilenames tag, if present.
+			// TODO derive the policy flags
+
 		}
 	}
 
 	switch format.String() {
 
 	case cmdutil.SerializationFormatJSON:
-		log.Print(jsonutil.MustString(collated)) // TODO a real JSON output, not this stupid one that just satisfies that selections is used
+		log.Print(jsonutil.MustString(collated)) // XXX
 
 	case cmdutil.SerializationFormatShell:
+		fmt.Println("set -e -x")
 		for _, roleName := range roleNames {
-			selection := collated[roleName].Selection
-			log.Printf("roleName: %s selection: %+v", roleName, selection)
-			// TODO stringify selection into command-line arguments
-			// TODO stringify assume-role policy detections into command-line arguments
-			// TODO stringify policy detections into command-line arguments
+			fmt.Println(strings.Join([]string{
+				fmt.Sprintf("substrate create-role -role %q", roleName),
+				collated[roleName].Selection.String(),
+				collated[roleName].ManagedAssumeRolePolicy.String(),
+				collated[roleName].ManagedPolicyAttachments.String(),
+			}, " "))
 		}
 
 	case cmdutil.SerializationFormatText:

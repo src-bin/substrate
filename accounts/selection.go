@@ -46,7 +46,7 @@ func (s *Selection) Arguments() []string {
 		ss = append(ss, "-all-domains")
 	} else {
 		for _, domain := range s.Domains {
-			ss = append(ss, "-domain", domain)
+			ss = append(ss, "-domain", fmt.Sprintf("%q", domain))
 		}
 	}
 
@@ -54,7 +54,7 @@ func (s *Selection) Arguments() []string {
 		ss = append(ss, "-all-environments")
 	} else {
 		for _, environment := range s.Environments {
-			ss = append(ss, "-environment", environment)
+			ss = append(ss, "-environment", fmt.Sprintf("%q", environment))
 		}
 	}
 
@@ -62,7 +62,7 @@ func (s *Selection) Arguments() []string {
 		ss = append(ss, "-all-qualities")
 	} else {
 		for _, quality := range s.Qualities {
-			ss = append(ss, "-quality", quality)
+			ss = append(ss, "-quality", fmt.Sprintf("%q", quality))
 		}
 	}
 
@@ -75,11 +75,11 @@ func (s *Selection) Arguments() []string {
 	}
 
 	for _, special := range s.Specials {
-		ss = append(ss, "-special", special)
+		ss = append(ss, "-special", fmt.Sprintf("%q", special))
 	}
 
 	for _, number := range s.Numbers {
-		ss = append(ss, "-number", number)
+		ss = append(ss, "-number", fmt.Sprintf("%q", number))
 	}
 
 	return ss
