@@ -68,6 +68,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	}
 	selection, err := selector.Selection()
 	ui.Must(err)
+	//log.Printf("%+v", selection)
 	subs := make([]string, len(*githubActions))
 	for i, repo := range *githubActions {
 		if !strings.Contains(repo, "/") {
@@ -245,7 +246,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			minimalPolicy,
 		)
 		ui.Must(err)
-		//log.Printf("%+v", role)
 		tags := tagging.Map{
 			tagging.SubstrateAccountSelectors: strings.Join(selectors, " "),
 		}
