@@ -42,6 +42,8 @@ func (err AccountNotFound) Error() string {
 
 type CreateAccountStatus = types.CreateAccountStatus
 
+// DescribeAccount fetches an account from the AWS Organizations API and
+// augments it with its tags. The *Config must be in the management account.
 func DescribeAccount(ctx context.Context, cfg *awscfg.Config, accountId string) (*Account, error) {
 	out, err := cfg.Organizations().DescribeAccount(ctx, &organizations.DescribeAccountInput{
 		AccountId: aws.String(accountId),

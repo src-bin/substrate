@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
@@ -93,6 +94,77 @@ func DeleteRolePolicy(ctx context.Context, cfg *awscfg.Config, roleName string) 
 		RoleName:   aws.String(roleName),
 	})
 	return err
+}
+
+// DeleteRoleWithConfirmation is a higher-level way to delete a role that
+// checks to see if the role even exists, confirms the deletion, and then
+// deletes not only the role but also the instance profile and inline
+// policies that must be detached and/or deleted first.
+func DeleteRoleWithConfirmation(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	roleName string,
+	force bool,
+) error {
+
+	// If there's no role to delete, don't bother confirming and don't
+	// bother printing any progress indication.
+	role, err := GetRole(ctx, cfg, roleName)
+	if awsutil.ErrorCodeIs(err, NoSuchEntity) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	// This seems annoyingly superfluous but since we're confirming whether
+	// we should delete a potentially critical role, we should really give
+	// them the best possible information.
+	mgmtCfg, err := cfg.OrganizationReader(ctx)
+	if err != nil {
+		return err
+	}
+	accountId, err := cfg.AccountId(ctx)
+	if err != nil {
+		return err
+	}
+	account, err := awsorgs.DescribeAccount(ctx, mgmtCfg, accountId)
+	if err != nil {
+		return err
+	}
+
+	// Only offer to delete Substrate-managed roles.
+	if role.Tags[tagging.Manager] != tagging.Substrate {
+		return nil
+	}
+
+	// There's a role to delete. Confirm before proceeding unless we've been
+	// told to force it.
+	if !force {
+		ok, err := ui.Confirmf("delete role %s in %s? (yes/no)", roleName, account)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return nil
+		}
+	}
+
+	ui.Spinf("deleting role %s in %s", roleName, account)
+	err = DeleteInstanceProfile(ctx, cfg, roleName)
+	if err != nil && !awsutil.ErrorCodeIs(err, NoSuchEntity) {
+		return err
+	}
+	err = DeleteRolePolicy(ctx, cfg, roleName)
+	if err != nil && !awsutil.ErrorCodeIs(err, NoSuchEntity) {
+		return err
+	}
+	err = DeleteRole(ctx, cfg, roleName)
+	if err != nil && !awsutil.ErrorCodeIs(err, NoSuchEntity) {
+		return err
+	}
+	ui.Stop("ok")
+
+	return nil
 }
 
 func EnsureRole(

@@ -83,14 +83,29 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	// Partition accounts by the given options so the role may be created or
 	// deleted as appropriate.
+	ui.Spin("inspecting all your AWS accounts")
 	selected, unselected, err := selection.Partition(ctx, cfg)
 	ui.Must(err)
+	ui.Stop("ok")
 
 	// Delete this role in accounts where it's no longer necessary per the
 	// given options. We do this first so that if one of the confirmations
 	// spooks the user, there's less to unwind.
-	for _, account := range unselected {
-		_ = account
+	if len(unselected) > 0 {
+		ui.Printf("finding Substrate-managed %s roles that should now be deleted according to these account selection flags", *roleName)
+		for _, account := range unselected {
+			ui.Must(awsiam.DeleteRoleWithConfirmation(
+				ctx,
+				awscfg.Must(account.Config(
+					ctx,
+					cfg,
+					account.AdministratorRoleName(),
+					time.Hour,
+				)),
+				*roleName,
+				false, // always confirm these probably surprising deletes
+			))
+		}
 	}
 
 	// Every role we create needs these minimal privileges in order to use
