@@ -44,8 +44,8 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		Filenames:     "filename containing an assume-role policy to be merged into this role's final assume-role policy (may be repeated)",
 	})
 	managedPolicyAttachmentsFlags := roles.NewManagedPolicyAttachmentsFlags(roles.ManagedPolicyAttachmentsFlagsUsage{
-		Administrator: "attach the AWS-managed AdministratorAccess policy to these roles, allowing total access to all AWS APIs and resources", // arn:aws:iam::aws:policy/AdministratorAccess
-		ReadOnly:      "attach the AWS-managed ReadOnlyAccess policy to these roles, allowing read access to all AWS resources",                // arn:aws:iam::aws:policy/ReadOnlyAccess
+		Administrator: "attach the AWS-managed AdministratorAccess policy to these roles, allowing total access to all AWS APIs and resources",
+		ReadOnly:      "attach the AWS-managed ReadOnlyAccess policy to these roles, allowing read access to all AWS resources",
 		ARNs:          "attach a specific AWS-managed policy to these roles (may be repeated)",
 		Filenames:     "filename containing a policy to attach to these roles (may be repeated)",
 	})
@@ -257,7 +257,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			var filePolicy policies.Document
 			ui.Must(jsonutil.Read(filename, &filePolicy))
 			assumeRolePolicy = policies.Merge(assumeRolePolicy, &filePolicy)
-
 		}
 
 		ui.Spinf("finding or creating the %s role in %s", *roleName, account)
@@ -275,6 +274,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		if len(managedAssumeRolePolicy.Filenames) > 0 {
 			tags[tagging.SubstrateAssumeRolePolicyFilenames] = strings.Join(managedAssumeRolePolicy.Filenames, " ")
 		}
+		if len(managedPolicyAttachments.Filenames) > 0 {
+			tags[tagging.SubstratePolicyAttachmentFilenames] = strings.Join(managedPolicyAttachments.Filenames, " ")
+		}
 		ui.Must(awsiam.TagRole(ctx, accountCfg, role.Name, tags))
 		for _, service := range managedAssumeRolePolicy.AWSServices {
 			if service == "ec2.amazonaws.com" {
@@ -286,22 +288,40 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 		if managedPolicyAttachments.Administrator {
 			ui.Spinf("attaching the AdministratorAccess policy to the %s role in %s", *roleName, account)
+			ui.Must(awsiam.AttachRolePolicy(
+				ctx,
+				accountCfg,
+				*roleName,
+				"arn:aws:iam::aws:policy/AdministratorAccess",
+			))
 			ui.Stopf("ok")
 		}
 		if managedPolicyAttachments.ReadOnly {
 			ui.Spinf("attaching the ReadOnlyAccess policy to the %s role in %s", *roleName, account)
+			ui.Must(awsiam.AttachRolePolicy(
+				ctx,
+				accountCfg,
+				*roleName,
+				"arn:aws:iam::aws:policy/ReadOnlyAccess",
+			))
 			ui.Stopf("ok")
 		}
 		if len(managedPolicyAttachments.ARNs) > 0 {
 			ui.Spinf("attaching AWS-managed policies to the %s role in %s", *roleName, account)
 			for _, arn := range managedPolicyAttachments.ARNs {
+				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, arn))
 			}
 			ui.Stopf("ok")
 		}
 		if len(managedPolicyAttachments.Filenames) > 0 {
-			ui.Spinf("finding or creating and attaching custom policies to the %s role in %s", *roleName, account)
+			ui.Spinf("merging custom policies into the %s role in %s", *roleName, account)
+			policy := minimalPolicy
 			for _, filename := range managedPolicyAttachments.Filenames {
+				var filePolicy policies.Document
+				ui.Must(jsonutil.Read(filename, &filePolicy))
+				policy = policies.Merge(policy, &filePolicy)
 			}
+			ui.Must(awsiam.PutRolePolicy(ctx, accountCfg, *roleName, awsiam.SubstrateManaged, policy))
 			ui.Stopf("ok")
 		}
 

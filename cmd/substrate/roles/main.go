@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"net/url"
 	"sort"
 	"strings"
@@ -16,7 +15,6 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
@@ -69,9 +67,15 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			if _, ok := tree[role.Name]; !ok {
 				roleNames = append(roleNames, role.Name)
 			}
+			arns, err := awsiam.ListAttachedRolePolicies(ctx, accountCfg, role.Name)
+			ui.Must(err)
 			tree[role.Name] = append(
 				tree[role.Name],
-				treeNode{account, role},
+				treeNode{
+					Account:    account,
+					PolicyARNs: arns,
+					Role:       role,
+				},
 			)
 		}
 	}
@@ -107,11 +111,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 			}
 		}
 		managedAssumeRolePolicy := collated[roleName].ManagedAssumeRolePolicy
-		//managedPolicyAttachments := collated[roleName].ManagedPolicyAttachments
+		managedPolicyAttachments := collated[roleName].ManagedPolicyAttachments
 		selection := collated[roleName].Selection
 
 		for _, tn := range tree[roleName] {
 			account := tn.Account
+			policyARNs := tn.PolicyARNs
 			role := tn.Role
 
 			// Derive the account selection flags from the selectors stored
@@ -208,24 +213,61 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 			// Derive the -assume-role-policy flag from the
 			// SubstrateAssumeRolePolicyFilenames tag, if present.
-			filenames := strings.Split(role.Tags[tagging.SubstrateAssumeRolePolicyFilenames], " ")
-			for _, filename := range filenames {
+			for _, filename := range strings.Split(
+				role.Tags[tagging.SubstrateAssumeRolePolicyFilenames],
+				" ",
+			) {
 				if naming.Index(managedAssumeRolePolicy.Filenames, filename) < 0 {
 					managedAssumeRolePolicy.Filenames = append(managedAssumeRolePolicy.Filenames, filename)
 				}
 			}
 
 			// Derive the policy flags from the policies attached to the role
-			// plus the SubstratePolicyFilenames tag, if present.
-			// TODO derive the policy flags
+			// plus the SubstratePolicyAttachmentFilenames tag, if present.
+			for _, arn := range policyARNs {
+				if arn == "arn:aws:iam::aws:policy/AdministratorAccess" {
+					managedPolicyAttachments.Administrator = true
+				} else if arn == "arn:aws:iam::aws:policy/ReadOnlyAccess" {
+					managedPolicyAttachments.ReadOnly = true
+				} else if naming.Index(managedPolicyAttachments.ARNs, arn) < 0 {
+					managedPolicyAttachments.ARNs = append(managedPolicyAttachments.ARNs, arn)
+				}
+			}
+			for _, filename := range strings.Split(
+				role.Tags[tagging.SubstratePolicyAttachmentFilenames],
+				" ",
+			) {
+				if naming.Index(managedPolicyAttachments.Filenames, filename) < 0 {
+					managedPolicyAttachments.Filenames = append(managedPolicyAttachments.Filenames, filename)
+				}
+			}
 
+			managedAssumeRolePolicy.Sort()
+			managedPolicyAttachments.Sort()
 		}
 	}
 
 	switch format.String() {
 
 	case cmdutil.SerializationFormatJSON:
-		log.Print(jsonutil.MustString(collated)) // XXX
+		doc := make([]struct {
+			RoleName          string
+			AccountSelection  *accounts.Selection
+			AssumeRolePolicy  *roles.ManagedAssumeRolePolicy
+			PolicyAttachments *roles.ManagedPolicyAttachments
+			RoleARNs          []string
+		}, len(roleNames))
+		for i, roleName := range roleNames {
+			doc[i].RoleName = roleName
+			doc[i].AccountSelection = collated[roleName].Selection
+			doc[i].AssumeRolePolicy = collated[roleName].ManagedAssumeRolePolicy
+			doc[i].PolicyAttachments = collated[roleName].ManagedPolicyAttachments
+			doc[i].RoleARNs = make([]string, len(tree[roleName]))
+			for j, tn := range tree[roleName] {
+				doc[i].RoleARNs[j] = tn.Role.ARN
+			}
+		}
+		ui.PrettyPrintJSON(doc)
 
 	case cmdutil.SerializationFormatShell:
 		fmt.Println("set -e -x")
@@ -259,6 +301,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 }
 
 type treeNode struct {
-	Account *awsorgs.Account
-	Role    *awsiam.Role
+	Account    *awsorgs.Account
+	PolicyARNs []string
+	Role       *awsiam.Role
 }

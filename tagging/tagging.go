@@ -13,6 +13,7 @@ const (
 
 	SubstrateAccountSelectors          = "SubstrateAccountSelectors"
 	SubstrateAssumeRolePolicyFilenames = "SubstrateAssumeRolePolicyFilenames"
+	SubstratePolicyAttachmentFilenames = "SubstratePolicyAttachmentFilenames"
 	SubstrateSpecialAccount            = "SubstrateSpecialAccount"
 	SubstrateVersion                   = "SubstrateVersion"
 )

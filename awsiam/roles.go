@@ -237,15 +237,7 @@ func EnsureRoleWithPolicy(
 		return nil, err
 	}
 
-	docJSON, err := doc.Marshal()
-	if err != nil {
-		return nil, err
-	}
-	if _, err := cfg.IAM().PutRolePolicy(ctx, &iam.PutRolePolicyInput{
-		PolicyDocument: aws.String(docJSON),
-		PolicyName:     aws.String(SubstrateManaged),
-		RoleName:       aws.String(roleName),
-	}); err != nil {
+	if err := PutRolePolicy(ctx, cfg, roleName, SubstrateManaged, doc); err != nil {
 		return nil, err
 	}
 
@@ -288,6 +280,34 @@ func GetRole(ctx context.Context, cfg *awscfg.Config, roleName string) (*Role, e
 	return roleFromAPI(ctx, cfg, out.Role)
 }
 
+func ListAttachedRolePolicies(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	roleName string,
+) ([]string, error) {
+	var (
+		arns   []string
+		marker *string
+	)
+	for {
+		out, err := cfg.IAM().ListAttachedRolePolicies(ctx, &iam.ListAttachedRolePoliciesInput{
+			Marker:   marker,
+			RoleName: aws.String(roleName),
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, attachment := range out.AttachedPolicies {
+			arns = append(arns, aws.ToString(attachment.PolicyArn))
+		}
+		if !out.IsTruncated {
+			break
+		}
+		marker = out.Marker
+	}
+	return arns, nil
+}
+
 func ListRoles(ctx context.Context, cfg *awscfg.Config) ([]*Role, error) {
 	out, err := cfg.IAM().ListRoles(ctx, &iam.ListRolesInput{})
 	if err != nil {
@@ -303,6 +323,24 @@ func ListRoles(ctx context.Context, cfg *awscfg.Config) ([]*Role, error) {
 	}
 	//log.Printf("%+v", roles)
 	return roles, nil
+}
+
+func PutRolePolicy(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	roleName, policyName string,
+	doc *policies.Document,
+) error {
+	docJSON, err := doc.Marshal()
+	if err != nil {
+		return err
+	}
+	_, err = cfg.IAM().PutRolePolicy(ctx, &iam.PutRolePolicyInput{
+		PolicyDocument: aws.String(docJSON),
+		PolicyName:     aws.String(policyName),
+		RoleName:       aws.String(roleName),
+	})
+	return err
 }
 
 type Role struct {
