@@ -200,7 +200,7 @@ func testRole(
 		}
 	} else {
 		if err == nil {
-			t.Errorf("expected NoSuchEntity in account %s but got %s", cfg.MustAccountId(ctx), role.Arn)
+			t.Errorf("expected NoSuchEntity in account %s but got %s", cfg.MustAccountId(ctx), role.ARN)
 		} else if !awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 			t.Errorf("expected NoSuchEntity in account %s but got %v", cfg.MustAccountId(ctx), err)
 		}
