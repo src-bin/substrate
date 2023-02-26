@@ -114,7 +114,7 @@ func TestCreateAndDeleteServiceRole(t *testing.T) {
 		"-role", roleName,
 		"-all-domains",
 		"-all-environments",
-		"-all-qualities", // TODO test that we can omit this with only one quality
+		// "-all-qualities", // test that we can omit this with only one quality as we have in test1
 	)
 	createrole.Main(ctx, cfg)
 
@@ -196,7 +196,7 @@ func testRole(
 	role, err := awsiam.GetRole(ctx, cfg, roleName)
 	if test == testExists {
 		if err != nil {
-			t.Errorf("expected nil in account %s but got %v", cfg.MustAccountId(ctx), err)
+			t.Errorf("expected a role in account %s but got %v", cfg.MustAccountId(ctx), err)
 		}
 	} else {
 		if err == nil {
