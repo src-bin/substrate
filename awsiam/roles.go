@@ -21,11 +21,11 @@ import (
 func AttachRolePolicy(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	roleName, policyArn string,
+	roleName, policyARN string,
 ) error {
 	_, err := cfg.IAM().AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
+		PolicyArn: aws.String(policyARN),
 		RoleName:  aws.String(roleName),
-		PolicyArn: aws.String(policyArn),
 	})
 	return err
 }
@@ -35,7 +35,7 @@ func CreateRole(
 	cfg *awscfg.Config,
 	roleName string,
 	assumeRolePolicyDoc *policies.Document,
-	// TODO permissionsBoundaryPolicyArn,
+	// TODO permissionsBoundaryPolicyARN,
 ) (*Role, error) {
 	if os.Getenv("SUBSTRATE_DEBUG_AWS_IAM_ASSUME_ROLE_POLICIES") != "" {
 		ui.Printf(
@@ -53,7 +53,7 @@ func CreateRole(
 	out, err := cfg.IAM().CreateRole(ctx, &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
 		MaxSessionDuration:       aws.Int32(43200),
-		// TODO permissionsBoundaryPolicyArn,
+		// TODO permissionsBoundaryPolicyARN,
 		RoleName: aws.String(roleName),
 		Tags:     tagsFor(roleName),
 	})
@@ -172,7 +172,7 @@ func EnsureRole(
 	cfg *awscfg.Config,
 	roleName string,
 	assumeRolePolicyDoc *policies.Document,
-	// TODO permissionsBoundaryPolicyArn,
+	// TODO permissionsBoundaryPolicyARN,
 ) (*Role, error) {
 	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
 	client := cfg.IAM()
@@ -182,7 +182,7 @@ func EnsureRole(
 		cfg,
 		roleName,
 		policies.AssumeRolePolicyDocument(&policies.Principal{Service: []string{"ec2.amazonaws.com"}}), // harmless solution to chicken and egg problem
-		// TODO permissionsBoundaryPolicyArn,
+		// TODO permissionsBoundaryPolicyARN,
 	)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
 
@@ -227,7 +227,7 @@ func EnsureRoleWithPolicy(
 	cfg *awscfg.Config,
 	roleName string,
 	assumeRolePolicyDoc *policies.Document,
-	// TODO permissionsBoundaryPolicyArn,
+	// TODO permissionsBoundaryPolicyARN,
 	doc *policies.Document,
 ) (*Role, error) {
 	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
