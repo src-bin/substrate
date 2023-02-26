@@ -324,7 +324,11 @@ func (f *SelectionFlags) Selection() (*Selection, error) {
 	// If no explicit -quality was given and we only have one quality,
 	// imply -all-qualities.
 	if f.Qualities.Len() == 0 {
-		if qualities, _ := naming.Qualities(); len(qualities) == 1 {
+		qualities, err := naming.Qualities()
+		if err != nil {
+			return nil, err
+		}
+		if len(qualities) == 1 {
 			*f.AllQualities = true
 		}
 	}

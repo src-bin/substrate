@@ -2,6 +2,7 @@ package testawscfg
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/src-bin/substrate/awscfg"
@@ -19,6 +20,7 @@ const (
 // Test1 returns an *awscfg.Config with the given role in the src-bin-test1
 // organization's admin account.
 func Test1(roleName string) *awscfg.Config {
+	substrateRoot("test1")
 	return awscfg.Must(cfg(ctx()).AssumeRole(
 		ctx(),
 		Test1AdminAccountId,
@@ -30,6 +32,7 @@ func Test1(roleName string) *awscfg.Config {
 // Test2 returns an *awscfg.Config with the given role in the src-bin-test1
 // organization's admin account.
 func Test2(roleName string) *awscfg.Config {
+	substrateRoot("test2")
 	return awscfg.Must(cfg(ctx()).AssumeRole(
 		ctx(),
 		Test2AdminAccountId,
@@ -41,6 +44,7 @@ func Test2(roleName string) *awscfg.Config {
 // Test3 returns an *awscfg.Config with the given role in the src-bin-test1
 // organization's admin account.
 func Test3(roleName string) *awscfg.Config {
+	substrateRoot("test3")
 	return awscfg.Must(cfg(ctx()).AssumeRole(
 		ctx(),
 		Test3AdminAccountId,
@@ -58,6 +62,7 @@ func Test3(roleName string) *awscfg.Config {
 // Test6 returns an *awscfg.Config with the given role in the src-bin-test1
 // organization's admin account.
 func Test6(roleName string) *awscfg.Config {
+	substrateRoot("test6")
 	return awscfg.Must(cfg(ctx()).AssumeRole(
 		ctx(),
 		Test6AdminAccountId,
@@ -97,4 +102,18 @@ func ctx() context.Context {
 		"Username",
 		"test",
 	)
+}
+
+func substrateRoot(repo string) {
+	for {
+		if err := os.Chdir(repo); err == nil {
+			break
+		}
+		if dirname, err := os.Getwd(); err == nil && dirname == "/" {
+			break // panic(fmt.Sprintf("%s not found in any parent directory"))
+		}
+		if err := os.Chdir(".."); err != nil {
+			panic(err)
+		}
+	}
 }

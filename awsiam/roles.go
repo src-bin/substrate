@@ -158,6 +158,15 @@ func DeleteRoleWithConfirmation(
 	if err != nil && !awsutil.ErrorCodeIs(err, NoSuchEntity) {
 		return err
 	}
+	policyARNs, err := ListAttachedRolePolicies(ctx, cfg, roleName)
+	if err != nil {
+		return err
+	}
+	for _, policyARN := range policyARNs {
+		if err := DetachRolePolicy(ctx, cfg, roleName, policyARN); err != nil {
+			return err
+		}
+	}
 	err = DeleteRole(ctx, cfg, roleName)
 	if err != nil && !awsutil.ErrorCodeIs(err, NoSuchEntity) {
 		return err
@@ -165,6 +174,18 @@ func DeleteRoleWithConfirmation(
 	ui.Stop("ok")
 
 	return nil
+}
+
+func DetachRolePolicy(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	roleName, policyARN string,
+) error {
+	_, err := cfg.IAM().DetachRolePolicy(ctx, &iam.DetachRolePolicyInput{
+		PolicyArn: aws.String(policyARN),
+		RoleName:  aws.String(roleName),
+	})
+	return err
 }
 
 func EnsureRole(
