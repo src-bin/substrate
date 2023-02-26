@@ -112,14 +112,6 @@ func (s *Selection) Match(a *awsorgs.Account) (selectors []string, ok bool) {
 		ok = false
 	}
 
-	// Basically no one is going to write -domain "admin" -environment "admin"
-	// to select admin accounts. They're going to write -admin. And we should
-	// be smart enough to parrot that back to them in `substrate roles`, even
-	// if it's syntactic sugar.
-	if a.Tags[tagging.Domain] == naming.Admin && a.Tags[tagging.Environment] == naming.Admin && len(selectors) == 2 && selectors[0] == "domain" && selectors[1] == "environment" {
-		selectors = []string{"admin"}
-	}
-
 	if s.AllQualities {
 		selectors = append(selectors, "all-qualities")
 	} else if len(s.Qualities) > 0 {
@@ -160,15 +152,15 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 		}
 	}
 
-	for _, account := range adminAccounts {
-		if selectors, ok := s.Match(account); ok {
+	if s.Admin {
+		for _, account := range adminAccounts {
 			selected = append(selected, AccountWithSelectors{
 				Account:   account,
-				Selectors: selectors,
+				Selectors: []string{"admin"},
 			})
-		} else {
-			unselected = append(unselected, account)
 		}
+	} else {
+		unselected = append(unselected, adminAccounts...)
 	}
 
 	if s.Management {
@@ -330,18 +322,6 @@ func (f *SelectionFlags) Selection() (*Selection, error) {
 		}
 		if len(qualities) == 1 {
 			*f.AllQualities = true
-		}
-	}
-
-	// If -admin was given and either of -all-domains or -all-environments
-	// weren't, add "admin" to the selected domains and/or environments so
-	// that the matcher will select admin accounts, too.
-	if *f.Admin {
-		if !*f.AllDomains {
-			f.Domains.Set(naming.Admin)
-		}
-		if !*f.AllEnvironments {
-			f.Environments.Set(naming.Admin)
 		}
 	}
 
