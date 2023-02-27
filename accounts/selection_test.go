@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg/testawscfg"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/roles"
 )
 
@@ -42,7 +41,6 @@ func TestSelectionAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(jsonutil.MustString(selected))
 	assert(t, len(selected), 1)
 	assert(t, aws.ToString(selected[0].Account.Id), "716893237583")
 }
