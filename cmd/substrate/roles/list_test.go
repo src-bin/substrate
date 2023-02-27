@@ -17,7 +17,7 @@ import (
 )
 
 func TestEverything(t *testing.T) {
-	const roleName = "Everything"
+	const roleName = "TestEverything"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
@@ -37,10 +37,10 @@ func TestEverything(t *testing.T) {
 		"-aws-service", "lambda.amazonaws.com",
 		"-github-actions", "src-bin/src-bin",
 		"-github-actions", "src-bin/substrate",
-		"-assume-role-policy", "policies/FooBar.assume-role-policy.json",
+		"-assume-role-policy", "policies/TestEverything.assume-role-policy.json",
 		"-administrator",
 		"-policy-arn", "arn:aws:iam::aws:policy/job-function/Billing",
-		"-policy", "policies/FooBar.policy.json",
+		"-policy", "policies/TestEverything.policy.json",
 	)
 	createrole.Main(ctx, cfg)
 
@@ -62,14 +62,13 @@ func TestEverything(t *testing.T) {
 	cmdutil.OverrideArgs("-format", "json")
 	Main(ctx, cfg)
 
-	os.Stdout = stdout
 	actual, err := fileutil.ReadFile(pathname)
 	if err != nil {
 		t.Fatal(err)
 	}
 	expected := []byte(`[
 	{
-		"RoleName": "Everything",
+		"RoleName": "TestEverything",
 		"AccountSelection": {
 			"AllDomains": false,
 			"Domains": [
@@ -98,7 +97,7 @@ func TestEverything(t *testing.T) {
 			],
 			"GitHubActions": null,
 			"Filenames": [
-				"policies/FooBar.assume-role-policy.json"
+				"policies/TestEverything.assume-role-policy.json"
 			]
 		},
 		"PolicyAttachments": {
@@ -108,68 +107,16 @@ func TestEverything(t *testing.T) {
 				"arn:aws:iam::aws:policy/job-function/Billing"
 			],
 			"Filenames": [
-				"policies/FooBar.policy.json"
+				"policies/TestEverything.policy.json"
 			]
 		},
 		"RoleARNs": [
-			"arn:aws:iam::306228446141:role/Everything",
-			"arn:aws:iam::488246444926:role/Everything",
-			"arn:aws:iam::617136454425:role/Everything",
-			"arn:aws:iam::716893237583:role/Everything",
-			"arn:aws:iam::765683503745:role/Everything",
-			"arn:aws:iam::903998760555:role/Everything"
-		]
-	},
-	{
-		"RoleName": "FooBar",
-		"AccountSelection": {
-			"AllDomains": false,
-			"Domains": [
-				"bar",
-				"foo"
-			],
-			"AllEnvironments": false,
-			"Environments": [
-				"staging"
-			],
-			"AllQualities": true,
-			"Qualities": null,
-			"Admin": true,
-			"Management": true,
-			"Specials": [
-				"deploy",
-				"network"
-			],
-			"Numbers": null
-		},
-		"AssumeRolePolicy": {
-			"Humans": true,
-			"AWSServices": [
-				"ec2.amazonaws.com",
-				"lambda.amazonaws.com"
-			],
-			"GitHubActions": null,
-			"Filenames": [
-				"policies/FooBar.assume-role-policy.json"
-			]
-		},
-		"PolicyAttachments": {
-			"Administrator": true,
-			"ReadOnly": false,
-			"ARNs": [
-				"arn:aws:iam::aws:policy/job-function/Billing"
-			],
-			"Filenames": [
-				"policies/FooBar.policy.json"
-			]
-		},
-		"RoleARNs": [
-			"arn:aws:iam::306228446141:role/FooBar",
-			"arn:aws:iam::488246444926:role/FooBar",
-			"arn:aws:iam::617136454425:role/FooBar",
-			"arn:aws:iam::716893237583:role/FooBar",
-			"arn:aws:iam::765683503745:role/FooBar",
-			"arn:aws:iam::903998760555:role/FooBar"
+			"arn:aws:iam::306228446141:role/TestEverything",
+			"arn:aws:iam::488246444926:role/TestEverything",
+			"arn:aws:iam::617136454425:role/TestEverything",
+			"arn:aws:iam::716893237583:role/TestEverything",
+			"arn:aws:iam::765683503745:role/TestEverything",
+			"arn:aws:iam::903998760555:role/TestEverything"
 		]
 	}
 ]

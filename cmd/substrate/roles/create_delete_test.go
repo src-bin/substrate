@@ -21,7 +21,7 @@ import (
 )
 
 func TestAdmin(t *testing.T) {
-	const roleName = "Admin"
+	const roleName = "TestAdmin"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
@@ -50,7 +50,7 @@ func TestAdmin(t *testing.T) {
 }
 
 func TestFooBarBaz(t *testing.T) {
-	const roleName = "FooBarBaz"
+	const roleName = "TestFooBarBaz"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
@@ -86,7 +86,7 @@ func TestFooBarBaz(t *testing.T) {
 
 func TestFooHumans(t *testing.T) {
 	const (
-		roleName    = "Foo"
+		roleName    = "TestFoo"
 		domain      = "foo"
 		otherDomain = "bar"
 		environment = "staging"
@@ -131,7 +131,7 @@ func TestFooHumans(t *testing.T) {
 }
 
 func TestManagement(t *testing.T) {
-	const roleName = "Mgmt"
+	const roleName = "TestMgmt"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
@@ -165,7 +165,7 @@ func TestManagement(t *testing.T) {
 }
 
 func TestSpecial(t *testing.T) {
-	const roleName = "Special"
+	const roleName = "TestSpecial"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
