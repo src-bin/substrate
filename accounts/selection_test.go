@@ -12,27 +12,6 @@ import (
 	"github.com/src-bin/substrate/roles"
 )
 
-/*
-	cmdutil.OverrideArgs(
-		"-role", "FooBar",
-		"-domain", "foo",
-		"-domain", "bar",
-		"-environment", "staging",
-		"-management",
-		"-special", "deploy",
-		"-special", "network",
-		"-humans",
-		"-aws-service", "ec2.amazonaws.com",
-		"-aws-service", "lambda.amazonaws.com",
-		"-github-actions", "src-bin/src-bin",
-		"-github-actions", "src-bin/substrate",
-		"-assume-role-policy", "policies/FooBar.assume-role-policy.json",
-		"-administrator",
-		"-policy-arn", "arn:aws:iam::aws:policy/job-function/Billing",
-		"-policy", "policies/FooBar.policy.json",
-	)
-*/
-
 func TestSelectionAdmin(t *testing.T) {
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
