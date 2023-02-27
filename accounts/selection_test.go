@@ -85,7 +85,7 @@ func TestSelectionFlagsToSelection1(t *testing.T) {
 	assertSlice(t, s.Domains, []string{"bar", "foo"})
 	assert(t, s.AllEnvironments, false)
 	assertSlice(t, s.Environments, []string{"staging"})
-	assert(t, s.AllQualities, false)
+	assert(t, s.AllQualities, true)
 	assertSlice(t, s.Qualities, []string{})
 	assert(t, s.Admin, false)
 	assert(t, s.Management, true)
