@@ -224,6 +224,7 @@ func testRole(
 	roleName string,
 	test bool,
 ) {
+	t.Helper()
 	role, err := awsiam.GetRole(ctx, cfg, roleName)
 	if test == testExists {
 		if err != nil {
@@ -247,6 +248,7 @@ func testRoleInAccounts(
 	roleName string,
 	test bool,
 ) {
+	t.Helper()
 	for _, account := range accounts {
 		testRole(t, ctx, awscfg.Must(cfg.AssumeRole(
 			ctx,

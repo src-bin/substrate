@@ -123,12 +123,14 @@ func TestSelectionFlagsToSelection2(t *testing.T) {
 }
 
 func assert[T comparable](t *testing.T, actual, expected T) {
+	t.Helper()
 	if actual != expected {
 		t.Errorf("actual: %+v != expected: %+v", actual, expected)
 	}
 }
 
 func assertSlice[T comparable](t *testing.T, actual, expected []T) {
+	t.Helper()
 	if len(actual) != len(expected) {
 		t.Errorf("len(actual): %d != len(expected): %d", len(actual), len(expected))
 		return
