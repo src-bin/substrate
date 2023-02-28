@@ -2,6 +2,7 @@ package awsiam
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -23,6 +24,7 @@ func AllDayCredentials(
 	roleName string,
 ) (creds aws.Credentials, err error) {
 	var accessKey *types.AccessKey
+	t0 := time.Now()
 	for i := 0; i < CreateAccessKeyTriesTotal; i++ {
 		accessKey, err = CreateAccessKey(ctx, cfg, users.CredentialFactory)
 		if awsutil.ErrorCodeIs(err, LimitExceeded) {
@@ -30,6 +32,7 @@ func AllDayCredentials(
 				if err = DeleteAllAccessKeys(ctx, cfg, users.CredentialFactory); err != nil {
 					return
 				}
+				log.Print("deleted all access keys")
 			}
 			continue
 		}
@@ -38,6 +41,7 @@ func AllDayCredentials(
 	if err != nil {
 		return
 	}
+	log.Printf("created access key ID %s in %v", accessKey.AccessKeyId, time.Since(t0))
 	defer func() {
 		if err := DeleteAccessKey(
 			ctx,

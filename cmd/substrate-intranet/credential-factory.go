@@ -220,6 +220,7 @@ func credentialFactoryFetchHandler(
 	}
 	//log.Printf("deleted tag key %s with value %s", TagKeyPrefix+token, tagValue)
 
+	t0 := time.Now()
 	creds, err := awsiam.AllDayCredentials(
 
 		// Since this API is unauthenticated, at least in the typical way, we
@@ -233,7 +234,7 @@ func credentialFactoryFetchHandler(
 	if err != nil {
 		return lambdautil.ErrorResponseJSON(http.StatusInternalServerError, err)
 	}
-	log.Printf("exchanged token %s %s for access key ID %s", TagKeyPrefix+token, tagValue, creds.AccessKeyID)
+	log.Printf("exchanged token %s %s for access key ID %s in %v", TagKeyPrefix+token, tagValue, creds.AccessKeyID, time.Since(t0))
 
 	body, err := json.MarshalIndent(creds, "", "\t")
 	if err != nil {
