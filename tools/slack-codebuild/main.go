@@ -21,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/fileutil"
 )
 
-const codebuildLogMaxLen = 2048 // maximum Slack message length is theoretically 40,000 characters but this seems to be just about all I can get to fit in a single message
+const codebuildLogMaxLen = 1500 // maximum Slack message length is theoretically 40,000 characters but empirically it seems a lot lower to avoid splitting
 
 func codebuildLog(ctx context.Context) string {
 
