@@ -128,7 +128,7 @@ func main() {
 		tmpl, err = template.New("release").Parse(
 			"Substrate {{.Version}} is out!\n" +
 				"\n" +
-				"Full release notes: https://src-bin.com/substrate/manual/releases/#{{.Version}}\n" +
+				"Full release notes: https://docs.src-bin.com/substrate/releases#{{.Version}}\n" +
 				"\n" +
 				"Get it by running `substrate upgrade` or downloading the appropriate release tarball:\n" +
 				"{{range .Filenames -}}\n" +
@@ -176,9 +176,6 @@ func main() {
 	if !taggedRelease {
 		return
 	}
-
-	// Send a reminder to deploy the website.
-	slack("Deploy release notes and documentation updates to https://docs.src-bin.com/substrate/ via https://app.gitbook.com/")
 
 	// Send the checklist of customers who need the announcement.
 	for _, customer := range split(os.Getenv("CUSTOMERS_ANNOUNCE")) {
