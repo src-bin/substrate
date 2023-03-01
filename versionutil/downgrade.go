@@ -27,13 +27,6 @@ const (
 // version numbers we set on development builds to compare equal to a release
 // version from that same month.
 func Compare(v1, v2 string) Comparison {
-
-	// If this is a test suite run, pretend the versions are equal so that
-	// preventing downgrades is never the reason a test suite fails.
-	if executable, _ := os.Executable(); strings.HasSuffix(executable, ".test") {
-		return Equal
-	}
-
 	if len(v1) >= 7 {
 		v1 = v1[:7]
 	}
@@ -88,6 +81,13 @@ func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 // and true if that value is meaningful (i.e. non-empty). It returns the
 // empty string and false if for whatever reason it can't read the tag.
 func TaggedVersion(ctx context.Context, cfg *awscfg.Config) (string, bool) {
+
+	// If this is a test suite run, return early so that preventing downgrades
+	// is never the reason a test suite fails.
+	if executable, _ := os.Executable(); strings.HasSuffix(executable, ".test") {
+		return "", false
+	}
+
 	t, err := cfg.Tags(ctx)
 	if awsutil.ErrorCodeIs(err, awscfg.AWSOrganizationsNotInUseException) {
 		return "", false // if we can't even fetch tags, we can't very well claim this is a downgrade
