@@ -2,6 +2,7 @@ package testawscfg
 
 import (
 	"context"
+	"log"
 	"os"
 	"time"
 
@@ -116,4 +117,5 @@ func substrateRoot(repo string) {
 			panic(err)
 		}
 	}
+	log.Println(os.Getwd())
 }

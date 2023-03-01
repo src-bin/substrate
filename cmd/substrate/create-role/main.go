@@ -3,6 +3,8 @@ package createrole
 import (
 	"context"
 	"flag"
+	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -254,7 +256,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		for _, filename := range managedAssumeRolePolicy.Filenames {
 			ui.Printf("reading additional assume-role policy statements from %s", filename)
 			var filePolicy policies.Document
-			ui.Must(jsonutil.Read(filename, &filePolicy))
+			//ui.Must(jsonutil.Read(filename, &filePolicy))
+			if err := jsonutil.Read(filename, &filePolicy); err != nil {
+				log.Println(os.Getwd())
+				ui.Fatal(err)
+			}
 			assumeRolePolicy = policies.Merge(assumeRolePolicy, &filePolicy)
 		}
 
