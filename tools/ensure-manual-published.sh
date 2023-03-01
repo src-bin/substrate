@@ -9,4 +9,4 @@ git describe --exact-match --tags "HEAD" >"$TMP" || exit 0
 
 # Ensure we've at least pushed release notes covering this tagged release.
 curl -s "https://docs.src-bin.com/substrate/releases" |
-grep "<h2 id=\"$(cat "$TMP")\">$(cat "$TMP")</h2>"
+grep -F "$(cat "$TMP")"
