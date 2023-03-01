@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -23,6 +24,9 @@ import (
 const codebuildLogMaxLen = 2048 // maximum Slack message length is theoretically 40,000 characters but this seems to be just about all I can get to fit in a single message
 
 func codebuildLog(ctx context.Context) string {
+
+	time.Sleep(10 * time.Second) // give CloudWatch Logs time to catch up with reality
+
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		log.Fatal(err)
