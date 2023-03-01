@@ -25,9 +25,6 @@ phases:
       - curl -L -o"golang.tar.gz" -s "https://redirector.gvt1.com/edgedl/go/go$GO_VERSION.linux-arm64.tar.gz"
       - tar -C"$HOME" -f"golang.tar.gz" -x
       - rm -f "golang.tar.gz"
-      - which "go"
-      - file "$(which "go")"
-      - go version
 
       # Install our pinned version of Terraform.
       - cat "terraform.version" | xargs -I"VERSION" curl -L -o"terraform.zip" -s "https://releases.hashicorp.com/terraform/VERSION/terraform_VERSION_linux_arm64.zip"
