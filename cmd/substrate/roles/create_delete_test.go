@@ -17,7 +17,6 @@ import (
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/ui"
 )
 
 func TestAdmin(t *testing.T) {
@@ -206,10 +205,6 @@ func TestSpecial(t *testing.T) {
 
 	testRole(t, ctx, deployCfg, roleName, testNotExists)
 	testRole(t, ctx, networkCfg, roleName, testNotExists)
-}
-
-func init() {
-	ui.Quiet()
 }
 
 const (
