@@ -16,7 +16,7 @@ phases:
       - mkdir -p "$HOME/bin"
 
       # Install the AWS CLI v2.
-      - curl -o"$HOME/awscli.zip" "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"
+      - curl -o"$HOME/awscli.zip" -s "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"
       - unzip -q "$HOME/awscli.zip" -d "$HOME"
       - $HOME/aws/install -b "$HOME/bin" -i "$HOME/aws" --update
       - rm -f "$HOME/awscli.zip"
