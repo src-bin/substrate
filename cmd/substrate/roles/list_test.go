@@ -122,7 +122,7 @@ func TestEverything(t *testing.T) {
 ]
 `)
 	if !bytes.Equal(actual, expected) {
-		t.Error("`substrate roles -format json` output is wrong") // TODO pass actual and expected to diff(1)
+		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 	if _, err := os.Stdout.Seek(0, os.SEEK_SET); err != nil {
 		t.Fatal(err)
@@ -142,7 +142,7 @@ func TestEverything(t *testing.T) {
 substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -environment "staging" -all-qualities -admin -management -special "deploy" -special "network" -humans -aws-service "ec2.amazonaws.com" -aws-service "lambda.amazonaws.com" -assume-role-policy "policies/TestEverything.assume-role-policy.json" -administrator -policy-arn "arn:aws:iam::aws:policy/job-function/Billing" -policy "policies/TestEverything.policy.json"
 `)
 	if !bytes.Equal(actual, expected) {
-		t.Error("`substrate roles -format shell` output is wrong") // TODO pass actual and expected to diff(1)
+		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
 	os.Stdout = stdout
