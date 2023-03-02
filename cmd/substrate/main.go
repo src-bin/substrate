@@ -12,6 +12,7 @@ import (
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -88,13 +89,13 @@ func main() {
 		context.WithValue(
 			context.WithValue(
 				context.Background(),
-				"Command",
+				contextutil.Command,
 				"substrate",
 			),
-			"Subcommand",
+			contextutil.Subcommand,
 			subcommand,
 		),
-		"Username",
+		contextutil.Username,
 		u.Username,
 	)
 	cfg, err := awscfg.NewConfig(ctx)

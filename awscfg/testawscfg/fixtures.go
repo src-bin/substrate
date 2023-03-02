@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/contextutil"
 )
 
 const (
@@ -93,13 +94,13 @@ func ctx() context.Context {
 		context.WithValue(
 			context.WithValue(
 				context.Background(),
-				"Command",
+				contextutil.Command,
 				"test",
 			),
-			"Subcommand",
+			contextutil.Subcommand,
 			"test",
 		),
-		"Username",
+		contextutil.Username,
 		"test",
 	)
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/telemetry"
 	"github.com/src-bin/substrate/users"
 )
 
@@ -114,18 +113,18 @@ func (c *Config) AssumeRole(
 		}
 	}
 
-	roleSessionName := contextutil.ValueString(ctx, telemetry.Username)
+	roleSessionName := contextutil.ValueString(ctx, contextutil.Username)
 	if roleSessionName == "" {
 		safeSubcommand, _, _ := strings.Cut(
 			strings.TrimPrefix(
-				contextutil.ValueString(ctx, telemetry.Subcommand),
+				contextutil.ValueString(ctx, contextutil.Subcommand),
 				"/",
 			),
 			"/",
 		)
 		roleSessionName = fmt.Sprintf(
 			"%s-%s",
-			contextutil.ValueString(ctx, telemetry.Command),
+			contextutil.ValueString(ctx, contextutil.Command),
 			safeSubcommand,
 		)
 		if roleSessionName == "-" {

@@ -22,13 +22,7 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-const (
-	Filename = "substrate.telemetry"
-
-	Command    = "Command"
-	Subcommand = "Subcommand"
-	Username   = "Username"
-)
+const Filename = "substrate.telemetry"
 
 // Endpoint is an HTTP(S) URL where telemetry is sent, if it's not an empty
 // string. The following values are useful:
@@ -55,8 +49,8 @@ type Event struct {
 
 func NewEvent(ctx context.Context) (*Event, error) {
 	e := &Event{
-		Command:    contextutil.ValueString(ctx, Command),
-		Subcommand: contextutil.ValueString(ctx, Subcommand),
+		Command:    contextutil.ValueString(ctx, contextutil.Command),
+		Subcommand: contextutil.ValueString(ctx, contextutil.Subcommand),
 		Version:    version.Version,
 		Prefix:     prefix(),
 		//Format // TODO when cmdutil.SerializationFormat.Set is called
