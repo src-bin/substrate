@@ -199,12 +199,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 								continue
 							}
 							for _, value := range values {
-								var repo string
-								if _, err := fmt.Sscanf(value, "repo:%s:*", &repo); err != nil {
+								parts := strings.Split(value, ":")
+								if len(parts) != 3 || parts[0] != "repo" || parts[2] != "*" {
 									continue
 								}
-								if naming.Index(managedAssumeRolePolicy.GitHubActions, repo) < 0 {
-									managedAssumeRolePolicy.GitHubActions = append(managedAssumeRolePolicy.GitHubActions, repo)
+								if naming.Index(managedAssumeRolePolicy.GitHubActions, parts[1]) < 0 {
+									managedAssumeRolePolicy.GitHubActions = append(managedAssumeRolePolicy.GitHubActions, parts[1])
 								}
 							}
 						}
