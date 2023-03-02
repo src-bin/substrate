@@ -101,6 +101,16 @@ func TestSelectionFlagsToSelection2(t *testing.T) {
 	assertSlice(t, s.Numbers, f.Numbers.Slice())
 }
 
+func TestSelectionZero(t *testing.T) {
+	s := &Selection{}
+	if len(s.Arguments()) != 0 {
+		t.Errorf("len(s.Arguments()): %d != 0; s.Arguments(): %+v", len(s.Arguments()), s.Arguments())
+	}
+	if s.String() != "" {
+		t.Errorf(`s.String(): %q != ""`, s.String())
+	}
+}
+
 func assert[T comparable](t *testing.T, actual, expected T) {
 	t.Helper()
 	if actual != expected {
