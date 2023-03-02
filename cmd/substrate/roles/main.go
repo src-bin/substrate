@@ -267,7 +267,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				doc[i].RoleARNs[j] = tn.Role.ARN
 			}
 		}
-		ui.PrettyPrintJSON(doc)
+		ui.PrettyPrintJSON(f, doc)
 
 	case cmdutil.SerializationFormatShell:
 		fmt.Println("set -e -x")

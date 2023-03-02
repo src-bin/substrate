@@ -2,11 +2,11 @@ package ui
 
 import (
 	"encoding/json"
-	"os"
+	"io"
 )
 
-func PrettyPrintJSON(i interface{}) {
-	enc := json.NewEncoder(os.Stdout)
+func PrettyPrintJSON(w io.Writer, i interface{}) {
+	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "\t")
 	if err := enc.Encode(i); err != nil {

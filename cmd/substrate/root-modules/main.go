@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/src-bin/substrate/accounts"
@@ -137,7 +138,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	switch format.String() {
 	case cmdutil.SerializationFormatJSON:
-		ui.PrettyPrintJSON(rootModules)
+		ui.PrettyPrintJSON(os.Stdout, rootModules)
 	case cmdutil.SerializationFormatText:
 		for _, rootModule := range rootModules {
 			fmt.Println(rootModule)

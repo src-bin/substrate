@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
@@ -68,12 +69,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 	case cmdutil.SerializationFormatJSON:
 		if identity.Tags.SubstrateSpecialAccount != "" {
-			ui.PrettyPrintJSON(map[string]string{
+			ui.PrettyPrintJSON(os.Stdout, map[string]string{
 				"Role":                          identity.ARN,
 				tagging.SubstrateSpecialAccount: identity.Tags.SubstrateSpecialAccount,
 			})
 		} else {
-			ui.PrettyPrintJSON(map[string]string{
+			ui.PrettyPrintJSON(os.Stdout, map[string]string{
 				tagging.Domain:      identity.Tags.Domain,
 				tagging.Environment: identity.Tags.Environment,
 				tagging.Quality:     identity.Tags.Quality,
