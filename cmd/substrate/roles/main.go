@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
@@ -247,6 +249,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 	}
 
+	f := os.Stdout
+	if pathname := contextutil.ValueString(ctx, contextutil.RedirectStdoutTo); pathname != "" {
+		f, err = os.Create(pathname)
+		ui.Must(err)
+	}
 	switch format.String() {
 
 	case cmdutil.SerializationFormatJSON:
@@ -270,9 +277,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		ui.PrettyPrintJSON(f, doc)
 
 	case cmdutil.SerializationFormatShell:
-		fmt.Println("set -e -x")
+		fmt.Fprintln(f, "set -e -x")
 		for _, roleName := range roleNames {
-			fmt.Println(strings.Join([]string{
+			fmt.Fprintln(f, strings.Join([]string{
 				fmt.Sprintf("substrate create-role -role %q", roleName),
 				collated[roleName].Selection.String(),
 				collated[roleName].ManagedAssumeRolePolicy.String(),

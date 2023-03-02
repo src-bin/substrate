@@ -12,6 +12,7 @@ import (
 	createrole "github.com/src-bin/substrate/cmd/substrate/create-role"
 	deleterole "github.com/src-bin/substrate/cmd/substrate/delete-role"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/roles"
 )
@@ -19,7 +20,9 @@ import (
 func TestEverything(t *testing.T) {
 	const roleName = "TestEverything"
 	defer cmdutil.RestoreArgs()
-	ctx := context.Background()
+	ctx := stdoutContext(t, "TestEverything-*.stdout")
+	pathname := contextutil.ValueString(ctx, contextutil.RedirectStdoutTo)
+	defer os.Remove(pathname)
 	cfg := testawscfg.Test1(roles.Administrator)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
@@ -50,14 +53,6 @@ func TestEverything(t *testing.T) {
 		roles.Administrator,
 		time.Hour,
 	)), roleName, testNotExists) // because no -domain "baz"
-
-	var err error
-	os.Stdout, err = os.CreateTemp("", "TestEverything-*.stdout")
-	if err != nil {
-		t.Fatal(err)
-	}
-	pathname := os.Stdout.Name()
-	defer os.Remove(pathname)
 
 	cmdutil.OverrideArgs("-format", "json")
 	Main(ctx, cfg)
@@ -124,10 +119,8 @@ func TestEverything(t *testing.T) {
 	if !bytes.Equal(actual, expected) {
 		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
-	if _, err := os.Stdout.Seek(0, os.SEEK_SET); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Stdout.Truncate(0); err != nil {
+
+	if err := os.Truncate(pathname, 0); err != nil {
 		t.Fatal(err)
 	}
 
@@ -145,12 +138,27 @@ substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -enviro
 		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
-	os.Stdout = stdout
-
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
 	deleterole.Main(ctx, cfg)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
 
-var stdout = os.Stdout
+func stdoutContext(t *testing.T, pattern string) context.Context {
+	t.Helper()
+	f, err := os.CreateTemp("", pattern)
+	if err != nil {
+		t.Fatal(err)
+		return context.Background()
+	}
+	pathname := f.Name()
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+		return context.Background()
+	}
+	return context.WithValue(
+		context.Background(),
+		contextutil.RedirectStdoutTo,
+		pathname,
+	)
+}
