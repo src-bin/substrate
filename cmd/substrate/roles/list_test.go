@@ -14,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 )
 

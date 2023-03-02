@@ -215,12 +215,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 			// Derive the -assume-role-policy flag from the
 			// SubstrateAssumeRolePolicyFilenames tag, if present.
-			for _, filename := range strings.Split(
-				role.Tags[tagging.SubstrateAssumeRolePolicyFilenames],
-				" ",
-			) {
-				if naming.Index(managedAssumeRolePolicy.Filenames, filename) < 0 {
-					managedAssumeRolePolicy.Filenames = append(managedAssumeRolePolicy.Filenames, filename)
+			if filenames, ok := role.Tags[tagging.SubstrateAssumeRolePolicyFilenames]; ok && filenames != "" {
+				for _, filename := range strings.Split(filenames, " ") {
+					if naming.Index(managedAssumeRolePolicy.Filenames, filename) < 0 {
+						managedAssumeRolePolicy.Filenames = append(managedAssumeRolePolicy.Filenames, filename)
+					}
 				}
 			}
 
@@ -235,12 +234,11 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 					managedPolicyAttachments.ARNs = append(managedPolicyAttachments.ARNs, arn)
 				}
 			}
-			for _, filename := range strings.Split(
-				role.Tags[tagging.SubstratePolicyAttachmentFilenames],
-				" ",
-			) {
-				if naming.Index(managedPolicyAttachments.Filenames, filename) < 0 {
-					managedPolicyAttachments.Filenames = append(managedPolicyAttachments.Filenames, filename)
+			if filenames, ok := role.Tags[tagging.SubstratePolicyAttachmentFilenames]; ok && filenames != "" {
+				for _, filename := range strings.Split(filenames, " ") {
+					if naming.Index(managedPolicyAttachments.Filenames, filename) < 0 {
+						managedPolicyAttachments.Filenames = append(managedPolicyAttachments.Filenames, filename)
+					}
 				}
 			}
 
@@ -285,6 +283,19 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				collated[roleName].ManagedAssumeRolePolicy.String(),
 				collated[roleName].ManagedPolicyAttachments.String(),
 			}, " "))
+			fmt.Fprintln(f, strings.Join(
+				append(
+					append(
+						append(
+							[]string{fmt.Sprintf("substrate create-role -role %q", roleName)},
+							collated[roleName].Selection.Arguments()...,
+						),
+						collated[roleName].ManagedAssumeRolePolicy.Arguments()...,
+					),
+					collated[roleName].ManagedPolicyAttachments.Arguments()...,
+				),
+				" ",
+			))
 		}
 
 	case cmdutil.SerializationFormatText:
