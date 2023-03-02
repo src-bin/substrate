@@ -147,6 +147,92 @@ substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -enviro
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
 
+func TestZero(t *testing.T) {
+	const roleName = "TestZero"
+	defer cmdutil.RestoreArgs()
+	ctx := stdoutContext(t, "TestZero-*.stdout")
+	pathname := contextutil.ValueString(ctx, contextutil.RedirectStdoutTo)
+	defer os.Remove(pathname)
+	cfg := testawscfg.Test1(roles.Administrator)
+
+	testRole(t, ctx, cfg, roleName, testNotExists)
+
+	cmdutil.OverrideArgs(
+		"-role", roleName,
+		"-special", naming.Deploy,
+	)
+	createrole.Main(ctx, cfg)
+
+	cmdutil.OverrideArgs("-format", "json")
+	Main(ctx, cfg)
+
+	actual, err := fileutil.ReadFile(pathname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []byte(`[
+	{
+		"RoleName": "TestZero",
+		"AccountSelection": {
+			"AllDomains": false,
+			"Domains": null,
+			"AllEnvironments": false,
+			"Environments": null,
+			"AllQualities": false,
+			"Qualities": null,
+			"Admin": false,
+			"Management": false,
+			"Specials": [
+				"deploy"
+			],
+			"Numbers": null
+		},
+		"AssumeRolePolicy": {
+			"Humans": false,
+			"AWSServices": null,
+			"GitHubActions": null,
+			"Filenames": null
+		},
+		"PolicyAttachments": {
+			"Administrator": false,
+			"ReadOnly": false,
+			"ARNs": null,
+			"Filenames": null
+		},
+		"RoleARNs": [
+			"arn:aws:iam::903998760555:role/TestZero"
+		]
+	}
+]
+`)
+	if !bytes.Equal(actual, expected) {
+		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+	}
+
+	if err := os.Truncate(pathname, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	cmdutil.OverrideArgs("-format", "shell")
+	Main(ctx, cfg)
+
+	actual, err = fileutil.ReadFile(pathname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected = []byte(`set -e -x
+substrate create-role -role "TestZero" -special "deploy"
+`)
+	if !bytes.Equal(actual, expected) {
+		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+	}
+
+	cmdutil.OverrideArgs("-delete", "-role", roleName)
+	deleterole.Main(ctx, cfg)
+
+	testRole(t, ctx, cfg, roleName, testNotExists)
+}
+
 func stdoutContext(t *testing.T, pattern string) context.Context {
 	t.Helper()
 	f, err := os.CreateTemp("", pattern)
