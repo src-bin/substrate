@@ -277,12 +277,6 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 	case cmdutil.SerializationFormatShell:
 		fmt.Fprintln(f, "set -e -x")
 		for _, roleName := range roleNames {
-			fmt.Fprintln(f, strings.Join([]string{
-				fmt.Sprintf("substrate create-role -role %q", roleName),
-				collated[roleName].Selection.String(),
-				collated[roleName].ManagedAssumeRolePolicy.String(),
-				collated[roleName].ManagedPolicyAttachments.String(),
-			}, " "))
 			fmt.Fprintln(f, strings.Join(
 				append(
 					append(
