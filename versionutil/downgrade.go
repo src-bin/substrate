@@ -7,6 +7,7 @@ import (
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -61,11 +62,16 @@ func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 	}
 	switch Compare(taggedVersion, version.Version) {
 	case Less:
-		ui.Printf(
-			"upgrading the minimum required Substrate version for your organization from %v to %v",
-			taggedVersion,
-			version.Version,
-		)
+		if subcommand := contextutil.ValueString(
+			ctx,
+			contextutil.Subcommand,
+		); strings.HasPrefix(subcommand, "bootstrap-") || subcommand == "create-account" || subcommand == "create-admin-account" {
+			ui.Printf(
+				"upgrading the minimum required Substrate version for your organization from %v to %v",
+				taggedVersion,
+				version.Version,
+			)
+		}
 	case Greater:
 		ui.Printf(
 			"your organization requires at least Substrate %v; exiting because this is Substrate %v",
