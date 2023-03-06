@@ -56,6 +56,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[0][4] = "E-mail"
 	specialAccountsCells[0][5] = "Version"
 
+	ui.Must(cfg.ClearCachedAccounts())
 	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
 	if err != nil {
 		return err
