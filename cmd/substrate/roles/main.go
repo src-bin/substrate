@@ -48,7 +48,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		roleNames []string
 		tree      = make(map[string][]treeNode)
 	)
-	for _, account := range allAccounts {
+	for _, account := range allAccounts { // TODO do this loop concurrently to speed this program way up
 
 		// We can't assume an Administrator-like role in the audit account and
 		// we wouldn't find anything useful there if we did so don't bother.
