@@ -18,6 +18,97 @@ import (
 	"github.com/src-bin/substrate/roles"
 )
 
+func TestEC2(t *testing.T) {
+	const roleName = "TestEC2"
+	defer cmdutil.RestoreArgs()
+	ctx := stdoutContext(t, "TestEC2-*.stdout")
+	pathname := contextutil.ValueString(ctx, contextutil.RedirectStdoutTo)
+	defer os.Remove(pathname)
+	cfg := testawscfg.Test1(roles.Administrator)
+
+	testRole(t, ctx, cfg, roleName, testNotExists)
+
+	cmdutil.OverrideArgs(
+		"-role", roleName,
+		"-special", naming.Deploy,
+		"-humans", // TODO what's a better test, with this or without it?
+		"-aws-service", "ec2.amazonaws.com",
+	)
+	createrole.Main(ctx, cfg)
+
+	cmdutil.OverrideArgs("-format", "json")
+	Main(ctx, cfg)
+
+	actual, err := fileutil.ReadFile(pathname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []byte(`[
+	{
+		"RoleName": "TestEC2",
+		"AccountSelection": {
+			"AllDomains": false,
+			"Domains": null,
+			"AllEnvironments": false,
+			"Environments": null,
+			"AllQualities": false,
+			"Qualities": null,
+			"Admin": true,
+			"Management": false,
+			"Specials": [
+				"deploy"
+			],
+			"Numbers": null
+		},
+		"AssumeRolePolicy": {
+			"Humans": true,
+			"AWSServices": [
+				"ec2.amazonaws.com"
+			],
+			"GitHubActions": null,
+			"Filenames": null
+		},
+		"PolicyAttachments": {
+			"Administrator": false,
+			"ReadOnly": false,
+			"ARNs": null,
+			"Filenames": null
+		},
+		"RoleARNs": [
+			"arn:aws:iam::716893237583:role/TestEC2",
+			"arn:aws:iam::903998760555:role/TestEC2"
+		]
+	}
+]
+`)
+	if !bytes.Equal(actual, expected) {
+		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+	}
+
+	if err := os.Truncate(pathname, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	cmdutil.OverrideArgs("-format", "shell")
+	Main(ctx, cfg)
+
+	actual, err = fileutil.ReadFile(pathname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected = []byte(`set -e -x
+substrate create-role -role "TestEC2" -admin -special "deploy" -humans -aws-service "ec2.amazonaws.com"
+`)
+	if !bytes.Equal(actual, expected) {
+		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+	}
+
+	cmdutil.OverrideArgs("-delete", "-role", roleName)
+	deleterole.Main(ctx, cfg)
+
+	testRole(t, ctx, cfg, roleName, testNotExists)
+}
+
 func TestEverything(t *testing.T) {
 	const roleName = "TestEverything"
 	defer cmdutil.RestoreArgs()
