@@ -21,8 +21,7 @@ import (
 func TestEC2(t *testing.T) {
 	const roleName = "TestEC2"
 	defer cmdutil.RestoreArgs()
-	ctx := stdoutContext(t, "TestEC2-*.stdout")
-	pathname := contextutil.ValueString(ctx, contextutil.RedirectStdoutTo)
+	ctx, pathname := stdoutContext(t, "TestEC2-*.stdout")
 	defer os.Remove(pathname)
 	cfg := testawscfg.Test1(roles.Administrator)
 
@@ -112,8 +111,7 @@ substrate create-role -role "TestEC2" -admin -special "deploy" -humans -aws-serv
 func TestEverything(t *testing.T) {
 	const roleName = "TestEverything"
 	defer cmdutil.RestoreArgs()
-	ctx := stdoutContext(t, "TestEverything-*.stdout")
-	pathname := contextutil.ValueString(ctx, contextutil.RedirectStdoutTo)
+	ctx, pathname := stdoutContext(t, "TestEverything-*.stdout")
 	defer os.Remove(pathname)
 	cfg := testawscfg.Test1(roles.Administrator)
 
@@ -242,8 +240,7 @@ substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -enviro
 func TestZero(t *testing.T) {
 	const roleName = "TestZero"
 	defer cmdutil.RestoreArgs()
-	ctx := stdoutContext(t, "TestZero-*.stdout")
-	pathname := contextutil.ValueString(ctx, contextutil.RedirectStdoutTo)
+	ctx, pathname := stdoutContext(t, "TestZero-*.stdout")
 	defer os.Remove(pathname)
 	cfg := testawscfg.Test1(roles.Administrator)
 
@@ -325,21 +322,20 @@ substrate create-role -role "TestZero" -special "deploy"
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
 
-func stdoutContext(t *testing.T, pattern string) context.Context {
+func stdoutContext(t *testing.T, pattern string) (context.Context, string) {
 	t.Helper()
 	f, err := os.CreateTemp("", pattern)
 	if err != nil {
 		t.Fatal(err)
-		return context.Background()
+		return context.Background(), ""
 	}
 	pathname := f.Name()
 	if err := f.Close(); err != nil {
 		t.Fatal(err)
-		return context.Background()
 	}
 	return context.WithValue(
 		context.Background(),
 		contextutil.RedirectStdoutTo,
 		pathname,
-	)
+	), pathname
 }
