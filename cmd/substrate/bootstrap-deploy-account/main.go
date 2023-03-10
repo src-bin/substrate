@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"path/filepath"
 	"time"
 
@@ -20,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	ui.InteractivityFlags()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/src-bin/substrate/awscfg"
@@ -15,7 +16,7 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {

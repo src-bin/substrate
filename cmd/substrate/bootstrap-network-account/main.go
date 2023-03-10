@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ const (
 	NATGatewaysFilename = "substrate.nat-gateways"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")

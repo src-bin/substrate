@@ -33,10 +33,10 @@ func TestEC2(t *testing.T) {
 		"-humans", // TODO what's a better test, with this or without it?
 		"-aws-service", "ec2.amazonaws.com",
 	)
-	createrole.Main(ctx, cfg)
+	createrole.Main(ctx, cfg, os.Stdout)
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg)
+	Main(ctx, cfg, os.Stdout)
 
 	actual, err := fileutil.ReadFile(pathname)
 	if err != nil {
@@ -89,7 +89,7 @@ func TestEC2(t *testing.T) {
 	}
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg)
+	Main(ctx, cfg, os.Stdout)
 
 	actual, err = fileutil.ReadFile(pathname)
 	if err != nil {
@@ -103,7 +103,7 @@ substrate create-role -role "TestEC2" -admin -special "deploy" -humans -aws-serv
 	}
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg)
+	deleterole.Main(ctx, cfg, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
@@ -135,7 +135,7 @@ func TestEverything(t *testing.T) {
 		"-policy-arn", "arn:aws:iam::aws:policy/job-function/Billing",
 		"-policy", "policies/TestEverything.policy.json",
 	)
-	createrole.Main(ctx, cfg)
+	createrole.Main(ctx, cfg, os.Stdout)
 
 	testRole(t, ctx, awscfg.Must(cfg.AssumeServiceRole(
 		ctx,
@@ -145,7 +145,7 @@ func TestEverything(t *testing.T) {
 	)), roleName, testNotExists) // because no -domain "baz"
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg)
+	Main(ctx, cfg, os.Stdout)
 
 	actual, err := fileutil.ReadFile(pathname)
 	if err != nil {
@@ -218,7 +218,7 @@ func TestEverything(t *testing.T) {
 	}
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg)
+	Main(ctx, cfg, os.Stdout)
 
 	actual, err = fileutil.ReadFile(pathname)
 	if err != nil {
@@ -232,7 +232,7 @@ substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -enviro
 	}
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg)
+	deleterole.Main(ctx, cfg, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
@@ -250,10 +250,10 @@ func TestZero(t *testing.T) {
 		"-role", roleName,
 		"-special", naming.Deploy,
 	)
-	createrole.Main(ctx, cfg)
+	createrole.Main(ctx, cfg, os.Stdout)
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg)
+	Main(ctx, cfg, os.Stdout)
 
 	actual, err := fileutil.ReadFile(pathname)
 	if err != nil {
@@ -303,7 +303,7 @@ func TestZero(t *testing.T) {
 	}
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg)
+	Main(ctx, cfg, os.Stdout)
 
 	actual, err = fileutil.ReadFile(pathname)
 	if err != nil {
@@ -317,7 +317,7 @@ substrate create-role -role "TestZero" -special "deploy"
 	}
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg)
+	deleterole.Main(ctx, cfg, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }

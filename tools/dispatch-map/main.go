@@ -141,7 +141,7 @@ func main() {
 		if dirnameNoDashes == *pkg {
 			fmt.Fprintf(
 				b,
-				"\t%q: func(context.Context, *awscfg.Config) {},\n",
+				"\t%q: func(context.Context, *awscfg.Config, io.Writer) {},\n",
 				subcommand,
 			)
 		} else {

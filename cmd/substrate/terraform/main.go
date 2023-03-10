@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"os/exec"
@@ -16,7 +17,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	no := flag.Bool("no", false, `answer "no" when offered an upgrade; exits 1 if there was an upgrade available`)
 	yes := flag.Bool("yes", false, `answer "yes" when offered an upgrade to accept it without confirmation`)
 	flag.Usage = func() {

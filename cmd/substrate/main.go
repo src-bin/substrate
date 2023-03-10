@@ -100,7 +100,7 @@ func main() {
 	)
 	cfg, err := awscfg.NewConfig(ctx)
 	ui.Must(err)
-	f(ctx, cfg)
+	f(ctx, cfg, os.Stdout)
 
 	// If no one's posted telemetry yet, post it now, and wait for it to finish.
 	cfg.Telemetry().Post(ctx)

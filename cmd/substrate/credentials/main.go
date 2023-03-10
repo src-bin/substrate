@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -22,7 +23,7 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExport)
 	noOpen := flag.Bool("no-open", false, "do not try to open your web browser (so that you can copy the URL and open it yourself)")
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")

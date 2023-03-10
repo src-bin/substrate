@@ -3,6 +3,7 @@ package deletestaticaccesskeys
 import (
 	"context"
 	"flag"
+	"io"
 	"log"
 	"strings"
 	"time"
@@ -19,7 +20,7 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	flag.Usage = func() {
 		ui.Print("Usage: substrate delete-static-access-keys")
 		flag.PrintDefaults()

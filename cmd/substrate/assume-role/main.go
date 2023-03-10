@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -20,7 +21,7 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	admin := flag.Bool("admin", false, `shorthand for -domain "admin" -environment "admin"`)
 	domain := cmdutil.DomainFlag("domain of an AWS account in which to assume a role")
 	environment := cmdutil.EnvironmentFlag("environment of an AWS account in which to assume a role")

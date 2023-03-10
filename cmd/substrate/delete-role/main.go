@@ -3,6 +3,7 @@ package deleterole
 import (
 	"context"
 	"flag"
+	"io"
 	"time"
 
 	"github.com/src-bin/substrate/awscfg"
@@ -15,7 +16,7 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	force := flag.Bool("delete", false, "delete the role from all accounts without confirmation")
 	roleName := flag.String("role", "", "name of the IAM role to delete")
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")

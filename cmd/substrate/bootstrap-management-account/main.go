@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -36,7 +37,7 @@ const (
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.InteractivityFlags()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate bootstrap-management-account")

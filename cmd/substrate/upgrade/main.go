@@ -22,7 +22,7 @@ import (
 
 var Domain = "src-bin.com" // change to "src-bin.org" to test in staging or control it in the Makefile if you want to get fancy
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	no := flag.Bool("no", false, `answer "no" when offered an upgrade; exits 1 if there was an upgrade available`)
 	yes := flag.Bool("yes", false, `answer "yes" when offered an upgrade to accept it without confirmation`)
 	flag.Usage = func() {

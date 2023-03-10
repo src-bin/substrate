@@ -3,6 +3,7 @@ package createrole
 import (
 	"context"
 	"flag"
+	"io"
 	"strings"
 	"time"
 
@@ -23,7 +24,7 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config) {
+func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	roleName := flag.String("role", "", "name of the IAM role to create")
 	selectionFlags := accounts.NewSelectionFlags(accounts.SelectionFlagsUsage{
 		AllDomains:      "create the role in all domains (potentially constrained by -environment and/or -quality)",
