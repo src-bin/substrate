@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/src-bin/substrate/version"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -142,6 +143,13 @@ func helpful(err error) error {
 	var mrErr *aws.MissingRegionError
 	if errors.As(err, &mrErr) {
 		return errors.New("couldn't find your default AWS region which most likely means this program's been invoked from outside your Substrate repository without SUBSTRATE_ROOT in the environment; change your working directory to your Substrate repository or set SUBSTRATE_ROOT in your environment to the absolute path to your Substrate repository")
+	}
+
+	// If the AWS SDK reports a signing error the most likely explanation is
+	// that there aren't any AWS credentials in the environment.
+	var sErr *v4.SigningError
+	if errors.As(err, &sErr) {
+		return fmt.Errorf("%w\ncouldn't find AWS credentials in the environment; you can most likely fix this by running `eval $(substrate credentials)`", err)
 	}
 
 	return err
