@@ -11,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/table"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 )
@@ -32,14 +33,14 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	}
 	defer f.Close()
 
-	adminAccountsCells := ui.MakeTableCells(6, 1)
+	adminAccountsCells := table.MakeCells(6, 1)
 	adminAccountsCells[0][0] = "Quality"
 	adminAccountsCells[0][1] = "Account Number"
 	adminAccountsCells[0][2] = "Role Name"
 	adminAccountsCells[0][3] = "Role ARN"
 	adminAccountsCells[0][4] = "E-mail"
 	adminAccountsCells[0][5] = "Version"
-	serviceAccountsCells := ui.MakeTableCells(8, 1)
+	serviceAccountsCells := table.MakeCells(8, 1)
 	serviceAccountsCells[0][0] = "Domain"
 	serviceAccountsCells[0][1] = "Environment"
 	serviceAccountsCells[0][2] = "Quality"
@@ -48,7 +49,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	serviceAccountsCells[0][5] = "Role ARN"
 	serviceAccountsCells[0][6] = "E-mail"
 	serviceAccountsCells[0][7] = "Version"
-	specialAccountsCells := ui.MakeTableCells(6, 6)
+	specialAccountsCells := table.MakeCells(6, 6)
 	specialAccountsCells[0][0] = "Account Name"
 	specialAccountsCells[0][1] = "Account Number"
 	specialAccountsCells[0][2] = "Role Name"
@@ -122,17 +123,17 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	fmt.Fprint(f, "your Organization.  Here are the account numbers and roles you'll need for the\n")
 	fmt.Fprint(f, "special accounts that Substrate manages:\n")
 	fmt.Fprint(f, "\n")
-	ui.Ftable(f, specialAccountsCells)
+	table.Ftable(f, specialAccountsCells)
 
 	fmt.Fprint(f, "\n")
 	fmt.Fprint(f, "And here are the account numbers and roles for your service accounts:\n")
 	fmt.Fprint(f, "\n")
-	ui.Ftable(f, serviceAccountsCells)
+	table.Ftable(f, serviceAccountsCells)
 
 	fmt.Fprint(f, "\n")
 	fmt.Fprint(f, "Finally, here are the account numbers and roles for your admin accounts:\n")
 	fmt.Fprint(f, "\n")
-	ui.Ftable(f, adminAccountsCells)
+	table.Ftable(f, adminAccountsCells)
 
 	return nil
 }
