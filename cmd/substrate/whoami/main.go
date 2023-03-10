@@ -8,6 +8,7 @@ import (
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
@@ -69,12 +70,12 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 	case cmdutil.SerializationFormatJSON:
 		if identity.Tags.SubstrateSpecialAccount != "" {
-			ui.PrettyPrintJSON(os.Stdout, map[string]string{
+			jsonutil.PrettyPrint(os.Stdout, map[string]string{
 				"Role":                          identity.ARN,
 				tagging.SubstrateSpecialAccount: identity.Tags.SubstrateSpecialAccount,
 			})
 		} else {
-			ui.PrettyPrintJSON(os.Stdout, map[string]string{
+			jsonutil.PrettyPrint(os.Stdout, map[string]string{
 				tagging.Domain:      identity.Tags.Domain,
 				tagging.Environment: identity.Tags.Environment,
 				tagging.Quality:     identity.Tags.Quality,

@@ -10,6 +10,7 @@ import (
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/tagging"
@@ -138,7 +139,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 
 	switch format.String() {
 	case cmdutil.SerializationFormatJSON:
-		ui.PrettyPrintJSON(os.Stdout, rootModules)
+		jsonutil.PrettyPrint(os.Stdout, rootModules)
 	case cmdutil.SerializationFormatText:
 		for _, rootModule := range rootModules {
 			fmt.Println(rootModule)

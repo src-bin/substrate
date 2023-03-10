@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/ui"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -58,7 +59,7 @@ func PrintCredentialsExportWithHistory(creds aws.Credentials) {
 }
 
 func PrintCredentialsJSON(creds aws.Credentials) {
-	ui.PrettyPrintJSON(os.Stdout, struct {
+	jsonutil.PrettyPrint(os.Stdout, struct {
 		AccessKeyId     string // must be "Id" not "ID" for AWS SDK credential_process
 		SecretAccessKey string
 		SessionToken    string

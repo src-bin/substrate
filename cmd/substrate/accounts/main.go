@@ -53,9 +53,9 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		// Maybe only print one account.
 		prettyPrintJSON := func(account *awsorgs.Account) {
 			if *onlyTags {
-				ui.PrettyPrintJSON(os.Stdout, account.Tags)
+				jsonutil.PrettyPrint(os.Stdout, account.Tags)
 			} else {
-				ui.PrettyPrintJSON(os.Stdout, account)
+				jsonutil.PrettyPrint(os.Stdout, account)
 			}
 		}
 		if *number == aws.ToString(managementAccount.Id) {
@@ -85,7 +85,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 		}
 
 		// We're still here so print them all.
-		ui.PrettyPrintJSON(os.Stdout, append(append([]*awsorgs.Account{
+		jsonutil.PrettyPrint(os.Stdout, append(append([]*awsorgs.Account{
 			managementAccount,
 			auditAccount,
 			networkAccount,

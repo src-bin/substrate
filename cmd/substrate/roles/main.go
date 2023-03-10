@@ -17,6 +17,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
@@ -272,7 +273,7 @@ func Main(ctx context.Context, cfg *awscfg.Config) {
 				doc[i].RoleARNs[j] = tn.Role.ARN
 			}
 		}
-		ui.PrettyPrintJSON(f, doc)
+		jsonutil.PrettyPrint(f, doc)
 
 	case cmdutil.SerializationFormatShell:
 		fmt.Fprintln(f, "set -e -x")
