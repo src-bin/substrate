@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
@@ -249,11 +247,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 	}
 
-	f := os.Stdout
-	if pathname := contextutil.ValueString(ctx, contextutil.RedirectStdoutTo); pathname != "" {
-		f, err = os.Create(pathname)
-		ui.Must(err)
-	}
 	switch format.String() {
 
 	case cmdutil.SerializationFormatJSON:
@@ -274,12 +267,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				doc[i].RoleARNs[j] = tn.Role.ARN
 			}
 		}
-		jsonutil.PrettyPrint(f, doc)
+		jsonutil.PrettyPrint(w, doc)
 
 	case cmdutil.SerializationFormatShell:
-		fmt.Fprintln(f, "set -e -x")
+		fmt.Fprintln(w, "set -e -x")
 		for _, roleName := range roleNames {
-			fmt.Fprintln(f, strings.Join(
+			fmt.Fprintln(w, strings.Join(
 				append(
 					append(
 						append(

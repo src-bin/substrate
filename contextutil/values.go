@@ -6,8 +6,6 @@ const (
 	Command    = "Command"
 	Subcommand = "Subcommand"
 	Username   = "Username"
-
-	RedirectStdoutTo = "RedirectStdoutTo"
 )
 
 func WithValues(ctx context.Context, command, subcommand, username string) context.Context {

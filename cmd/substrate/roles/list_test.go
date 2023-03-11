@@ -1,9 +1,9 @@
 package roles
 
 import (
-	"bytes"
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,8 +12,6 @@ import (
 	createrole "github.com/src-bin/substrate/cmd/substrate/create-role"
 	deleterole "github.com/src-bin/substrate/cmd/substrate/delete-role"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/contextutil"
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 )
@@ -21,9 +19,9 @@ import (
 func TestEC2(t *testing.T) {
 	const roleName = "TestEC2"
 	defer cmdutil.RestoreArgs()
-	ctx, pathname := stdoutContext(t, "TestEC2-*.stdout")
-	defer os.Remove(pathname)
+	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
+	stdout := &strings.Builder{}
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
@@ -36,13 +34,10 @@ func TestEC2(t *testing.T) {
 	createrole.Main(ctx, cfg, os.Stdout)
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg, os.Stdout)
+	Main(ctx, cfg, stdout)
 
-	actual, err := fileutil.ReadFile(pathname)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected := []byte(`[
+	actual := stdout.String()
+	expected := `[
 	{
 		"RoleName": "TestEC2",
 		"AccountSelection": {
@@ -79,26 +74,21 @@ func TestEC2(t *testing.T) {
 		]
 	}
 ]
-`)
-	if !bytes.Equal(actual, expected) {
+`
+	if actual != expected {
 		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
-	if err := os.Truncate(pathname, 0); err != nil {
-		t.Fatal(err)
-	}
+	stdout.Reset()
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg, os.Stdout)
+	Main(ctx, cfg, stdout)
 
-	actual, err = fileutil.ReadFile(pathname)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected = []byte(`set -e -x
+	actual = stdout.String()
+	expected = `set -e -x
 substrate create-role -role "TestEC2" -admin -special "deploy" -humans -aws-service "ec2.amazonaws.com"
-`)
-	if !bytes.Equal(actual, expected) {
+`
+	if actual != expected {
 		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
@@ -111,9 +101,9 @@ substrate create-role -role "TestEC2" -admin -special "deploy" -humans -aws-serv
 func TestEverything(t *testing.T) {
 	const roleName = "TestEverything"
 	defer cmdutil.RestoreArgs()
-	ctx, pathname := stdoutContext(t, "TestEverything-*.stdout")
-	defer os.Remove(pathname)
+	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
+	stdout := &strings.Builder{}
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
@@ -145,13 +135,10 @@ func TestEverything(t *testing.T) {
 	)), roleName, testNotExists) // because no -domain "baz"
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg, os.Stdout)
+	Main(ctx, cfg, stdout)
 
-	actual, err := fileutil.ReadFile(pathname)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected := []byte(`[
+	actual := stdout.String()
+	expected := `[
 	{
 		"RoleName": "TestEverything",
 		"AccountSelection": {
@@ -208,26 +195,21 @@ func TestEverything(t *testing.T) {
 		]
 	}
 ]
-`)
-	if !bytes.Equal(actual, expected) {
+`
+	if actual != expected {
 		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
-	if err := os.Truncate(pathname, 0); err != nil {
-		t.Fatal(err)
-	}
+	stdout.Reset()
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg, os.Stdout)
+	Main(ctx, cfg, stdout)
 
-	actual, err = fileutil.ReadFile(pathname)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected = []byte(`set -e -x
+	actual = stdout.String()
+	expected = `set -e -x
 substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -environment "staging" -all-qualities -admin -management -special "deploy" -special "network" -humans -aws-service "ecs.amazonaws.com" -aws-service "lambda.amazonaws.com" -github-actions "src-bin/src-bin" -github-actions "src-bin/substrate" -assume-role-policy "policies/TestEverything.assume-role-policy.json" -administrator -policy-arn "arn:aws:iam::aws:policy/job-function/Billing" -policy "policies/TestEverything.policy.json"
-`)
-	if !bytes.Equal(actual, expected) {
+`
+	if actual != expected {
 		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
@@ -240,9 +222,9 @@ substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -enviro
 func TestZero(t *testing.T) {
 	const roleName = "TestZero"
 	defer cmdutil.RestoreArgs()
-	ctx, pathname := stdoutContext(t, "TestZero-*.stdout")
-	defer os.Remove(pathname)
+	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
+	stdout := &strings.Builder{}
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
@@ -253,13 +235,10 @@ func TestZero(t *testing.T) {
 	createrole.Main(ctx, cfg, os.Stdout)
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg, os.Stdout)
+	Main(ctx, cfg, stdout)
 
-	actual, err := fileutil.ReadFile(pathname)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected := []byte(`[
+	actual := stdout.String()
+	expected := `[
 	{
 		"RoleName": "TestZero",
 		"AccountSelection": {
@@ -293,26 +272,21 @@ func TestZero(t *testing.T) {
 		]
 	}
 ]
-`)
-	if !bytes.Equal(actual, expected) {
+`
+	if actual != expected {
 		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
-	if err := os.Truncate(pathname, 0); err != nil {
-		t.Fatal(err)
-	}
+	stdout.Reset()
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg, os.Stdout)
+	Main(ctx, cfg, stdout)
 
-	actual, err = fileutil.ReadFile(pathname)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected = []byte(`set -e -x
+	actual = stdout.String()
+	expected = `set -e -x
 substrate create-role -role "TestZero" -special "deploy"
-`)
-	if !bytes.Equal(actual, expected) {
+`
+	if actual != expected {
 		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
@@ -320,22 +294,4 @@ substrate create-role -role "TestZero" -special "deploy"
 	deleterole.Main(ctx, cfg, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
-}
-
-func stdoutContext(t *testing.T, pattern string) (context.Context, string) {
-	t.Helper()
-	f, err := os.CreateTemp("", pattern)
-	if err != nil {
-		t.Fatal(err)
-		return context.Background(), ""
-	}
-	pathname := f.Name()
-	if err := f.Close(); err != nil {
-		t.Fatal(err)
-	}
-	return context.WithValue(
-		context.Background(),
-		contextutil.RedirectStdoutTo,
-		pathname,
-	), pathname
 }
