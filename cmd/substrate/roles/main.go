@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -45,42 +46,51 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	allAccounts, err := cfg.ListAccounts(ctx)
 	ui.Must(err)
 	var (
+		mu        sync.Mutex
 		roleNames []string
 		tree      = make(map[string][]treeNode)
+		wg        sync.WaitGroup
 	)
-	for _, account := range allAccounts { // TODO do this loop concurrently to speed this program way up
+	for _, account := range allAccounts {
+		wg.Add(1)
+		go func(account *awscfg.Account) {
+			defer wg.Done()
 
-		// We can't assume an Administrator-like role in the audit account and
-		// we wouldn't find anything useful there if we did so don't bother.
-		if account.Tags[tagging.SubstrateSpecialAccount] == naming.Audit {
-			continue
-		}
+			// We can't assume an Administrator-like role in the audit account and
+			// we wouldn't find anything useful there if we did so don't bother.
+			if account.Tags[tagging.SubstrateSpecialAccount] == naming.Audit {
+				return
+			}
 
-		accountCfg := awscfg.Must(account.Config(ctx, cfg, account.AdministratorRoleName(), time.Hour))
-		roles, err := awsiam.ListRoles(ctx, accountCfg)
-		ui.Must(err)
-		for _, role := range roles {
-			if role.Tags[tagging.Manager] != tagging.Substrate {
-				continue
-			}
-			if role.Tags[tagging.SubstrateAccountSelectors] == "" {
-				continue
-			}
-			if _, ok := tree[role.Name]; !ok {
-				roleNames = append(roleNames, role.Name)
-			}
-			arns, err := awsiam.ListAttachedRolePolicies(ctx, accountCfg, role.Name)
+			accountCfg := awscfg.Must(account.Config(ctx, cfg, account.AdministratorRoleName(), time.Hour))
+			roles, err := awsiam.ListRoles(ctx, accountCfg)
 			ui.Must(err)
-			tree[role.Name] = append(
-				tree[role.Name],
-				treeNode{
-					Account:    account,
-					PolicyARNs: arns,
-					Role:       role,
-				},
-			)
-		}
+			for _, role := range roles { // TODO could possibly do this loop concurrently, too
+				if role.Tags[tagging.Manager] != tagging.Substrate {
+					continue
+				}
+				if role.Tags[tagging.SubstrateAccountSelectors] == "" {
+					continue
+				}
+				arns, err := awsiam.ListAttachedRolePolicies(ctx, accountCfg, role.Name)
+				ui.Must(err)
+				mu.Lock()
+				if _, ok := tree[role.Name]; !ok {
+					roleNames = append(roleNames, role.Name)
+				}
+				tree[role.Name] = append(
+					tree[role.Name],
+					treeNode{
+						Account:    account,
+						PolicyARNs: arns,
+						Role:       role,
+					},
+				)
+				mu.Unlock()
+			}
+		}(account)
 	}
+	wg.Wait()
 	sort.Strings(roleNames) // so that all output formats are stable
 	for _, treeNodes := range tree {
 		sort.Slice(treeNodes, func(i, j int) bool {
