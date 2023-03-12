@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,7 +17,6 @@ import (
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -96,23 +94,19 @@ func (e *Event) Post(ctx context.Context) error {
 		e.once.Do(func() { close(e.wait) })
 	}()
 
+	// Try to find substrate.telemetry but silently move along without posting
+	// telemetry if we can't find it, can't read it, or (of course) if it tells
+	// us NOT to post telemetry.
 	pathname, err := fileutil.PathnameInParents(Filename)
 	if err != nil {
-		pathname, err = fileutil.PathnameInParents(naming.PrefixFilename) // we'll be able to find this one in case substrate.telemetry doesn't exist yet
-		if err != nil {
-			return nil // surpress this error and just don't post telemetry
-		}
-		pathname = filepath.Join(filepath.Dir(pathname), Filename)
+		return nil // don't post telemetry if we can't find the file
 	}
-	ok, err := ui.ConfirmFile(
-		pathname,
-		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://src-bin.com/substrate/manual/telemetry/>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
-	)
+	yesno, err := fileutil.ReadFile(pathname)
 	if err != nil {
-		return err
+		return nil // don't post telemetry if we can't read the file
 	}
-	if !ok {
-		return nil
+	if strings.ToLower(strings.Trim(string(yesno), "\r\n")) != "yes" {
+		return nil // don't post telemetry without an explicit "yes"
 	}
 
 	b := &bytes.Buffer{}

@@ -24,6 +24,7 @@ import (
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/telemetry"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
@@ -49,7 +50,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	prefix := naming.Prefix()
 	region := regions.Default()
 
-	var err error
+	_, err := ui.ConfirmFile(
+		telemetry.Filename,
+		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://src-bin.com/substrate/manual/telemetry/>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
+	)
+	ui.Must(err)
+
 	if _, err = cfg.GetCallerIdentity(ctx); err != nil {
 		if _, err = cfg.SetRootCredentials(ctx); err != nil {
 			ui.Fatal(err)
