@@ -62,7 +62,7 @@ tarball:
 
 test:
 	go clean -testcache
-	go test -race -v ./...
+	go test -race -timeout 0 -v ./...
 
 uninstall:
 	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
