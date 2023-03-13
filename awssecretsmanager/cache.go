@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 )
 
@@ -15,11 +14,10 @@ func CachedSecret(ctx context.Context, cfg *awscfg.Config, name, stage string) (
 		return v.(string), nil
 	}
 
-	out, err := GetSecretValue(ctx, cfg, name, stage)
+	secret, err := GetSecretValue(ctx, cfg, name, stage)
 	if err != nil {
 		return "", err
 	}
-	secret := aws.ToString(out.SecretString)
 
 	secrets.Store(name, secret)
 	return secret, nil

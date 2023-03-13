@@ -13,9 +13,19 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-const ResourceExistsException = "ResourceExistsException"
+const (
+	AWSCURRENT              = "" // the default when no stage is given is AWSCURRENT
+	ResourceExistsException = "ResourceExistsException"
+)
 
-func CreateSecret(ctx context.Context, cfg *awscfg.Config, name string) (*secretsmanager.CreateSecretOutput, error) {
+type (
+	CreateSecretOutput      = secretsmanager.CreateSecretOutput
+	DescribeSecretOutput    = secretsmanager.DescribeSecretOutput
+	PutResourcePolicyOutput = secretsmanager.PutResourcePolicyOutput
+	PutSecretValueOutput    = secretsmanager.PutSecretValueOutput
+)
+
+func CreateSecret(ctx context.Context, cfg *awscfg.Config, name string) (*CreateSecretOutput, error) {
 	out, err := cfg.SecretsManager().CreateSecret(ctx, &secretsmanager.CreateSecretInput{
 		Name: aws.String(name),
 		Tags: []types.Tag{
@@ -35,7 +45,7 @@ func CreateSecret(ctx context.Context, cfg *awscfg.Config, name string) (*secret
 	return out, nil
 }
 
-func DescribeSecret(ctx context.Context, cfg *awscfg.Config, name string) (*secretsmanager.DescribeSecretOutput, error) {
+func DescribeSecret(ctx context.Context, cfg *awscfg.Config, name string) (*DescribeSecretOutput, error) {
 	out, err := cfg.SecretsManager().DescribeSecret(ctx, &secretsmanager.DescribeSecretInput{
 		SecretId: aws.String(name),
 	})
@@ -51,7 +61,7 @@ func EnsureSecret(
 	name string,
 	doc *policies.Document,
 	stage, value string,
-) (*secretsmanager.PutSecretValueOutput, error) {
+) (*PutSecretValueOutput, error) {
 
 	_, err := CreateSecret(ctx, cfg, name)
 	if awsutil.ErrorCodeIs(err, ResourceExistsException) {
@@ -68,15 +78,16 @@ func EnsureSecret(
 	return PutSecretValue(ctx, cfg, name, stage, value)
 }
 
-func GetSecretValue(ctx context.Context, cfg *awscfg.Config, name, stage string) (*secretsmanager.GetSecretValueOutput, error) {
-	out, err := cfg.SecretsManager().GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
-		SecretId:     aws.String(name),
-		VersionStage: aws.String(stage),
-	})
-	if err != nil {
-		return nil, err
+func GetSecretValue(ctx context.Context, cfg *awscfg.Config, name, stage string) (string, error) {
+	in := &secretsmanager.GetSecretValueInput{SecretId: aws.String(name)}
+	if stage != "" {
+		in.VersionStage = aws.String(stage)
 	}
-	return out, nil
+	out, err := cfg.SecretsManager().GetSecretValue(ctx, in)
+	if err != nil {
+		return "", err
+	}
+	return aws.ToString(out.SecretString), nil
 }
 
 func Policy(principal *policies.Principal) *policies.Document {
@@ -91,7 +102,7 @@ func Policy(principal *policies.Principal) *policies.Document {
 	}
 }
 
-func PutResourcePolicy(ctx context.Context, cfg *awscfg.Config, name string, doc *policies.Document) (*secretsmanager.PutResourcePolicyOutput, error) {
+func PutResourcePolicy(ctx context.Context, cfg *awscfg.Config, name string, doc *policies.Document) (*PutResourcePolicyOutput, error) {
 	docJSON, err := doc.Marshal()
 	if err != nil {
 		return nil, err
@@ -106,11 +117,15 @@ func PutResourcePolicy(ctx context.Context, cfg *awscfg.Config, name string, doc
 	return out, nil
 }
 
-func PutSecretValue(ctx context.Context, cfg *awscfg.Config, name, stage, value string) (*secretsmanager.PutSecretValueOutput, error) {
+func PutSecretValue(ctx context.Context, cfg *awscfg.Config, name, stage, value string) (*PutSecretValueOutput, error) {
+	var stages []string
+	if stage != "" {
+		stages = []string{stage}
+	}
 	out, err := cfg.SecretsManager().PutSecretValue(ctx, &secretsmanager.PutSecretValueInput{
 		SecretId:      aws.String(name),
 		SecretString:  aws.String(value),
-		VersionStages: []string{stage},
+		VersionStages: stages,
 	})
 	if err != nil {
 		return nil, err
