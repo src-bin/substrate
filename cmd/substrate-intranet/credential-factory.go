@@ -233,7 +233,7 @@ func credentialFactoryFetchHandler(
 	if err != nil {
 		return lambdautil.ErrorResponseJSON(http.StatusInternalServerError, err)
 	}
-	log.Printf("exchanged token %s %s for access key ID %s", TagKeyPrefix+token, tagValue, creds.AccessKeyID)
+	log.Printf("exchanged token %s %s for access key %s", TagKeyPrefix+token, tagValue, creds.AccessKeyID)
 
 	body, err := json.MarshalIndent(creds, "", "\t")
 	if err != nil {

@@ -43,14 +43,15 @@ data "aws_iam_policy_document" "intranet" {
       "iam:ListUserTags",
       "iam:TagUser",
       "iam:UntagUser",
+      "secretsmanager:CreateSecret",
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:PutResourcePolicy",
+      "secretsmanager:PutSecretValue",
+      "secretsmanager:TagResource",
+      "sts:AssumeRole",
     ]
     resources = ["*"]
-    sid       = "CredentialFactoryIAM"
-  }
-  statement {
-    actions   = ["sts:AssumeRole"]
-    resources = ["*"]
-    sid       = "CredentialFactorySTS"
+    sid       = "CredentialFactory"
   }
   statement {
     actions   = ["apigateway:GET"]
@@ -72,16 +73,12 @@ data "aws_iam_policy_document" "intranet" {
       "ec2:ImportKeyPair",
       "ec2:RunInstances",
       "ec2:TerminateInstances",
+      "iam:PassRole",
       "organizations:DescribeOrganization",
       "sts:AssumeRole",
     ]
     resources = ["*"]
     sid       = "InstanceFactory"
-  }
-  statement {
-    actions   = ["iam:PassRole"]
-    resources = ["*"]
-    sid       = "InstanceFactoryIAM"
   }
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
