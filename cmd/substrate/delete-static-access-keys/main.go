@@ -39,7 +39,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	cfg.Telemetry().FinalRoleName = roles.OrganizationAdministrator
 
 	ui.Spin("deleting all access keys for the OrganizationAdministrator user")
-	if err := awsiam.DeleteAllAccessKeys(ctx, cfg, users.OrganizationAdministrator); err != nil {
+	if err := awsiam.DeleteAllAccessKeys(ctx, cfg, users.OrganizationAdministrator, 0); err != nil {
 		log.Fatal(err)
 	}
 	ui.Stop("done")

@@ -74,14 +74,17 @@ func DeleteAllAccessKeys(
 	ctx context.Context,
 	client *iam.Client,
 	username string,
+	age time.Duration,
 ) error {
 	meta, err := ListAccessKeys(ctx, client, username)
 	if err != nil {
 		return err
 	}
 	for _, m := range meta {
-		if err := DeleteAccessKey(ctx, client, username, aws.ToString(m.AccessKeyId)); err != nil {
-			return err
+		if time.Since(aws.ToTime(m.CreateDate)) > age {
+			if err := DeleteAccessKey(ctx, client, username, aws.ToString(m.AccessKeyId)); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

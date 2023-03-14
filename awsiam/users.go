@@ -2,6 +2,7 @@ package awsiam
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/src-bin/substrate/awscfg"
@@ -43,8 +44,9 @@ func DeleteAllAccessKeys(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	username string,
+	age time.Duration,
 ) error {
-	return awsiamusers.DeleteAllAccessKeys(ctx, cfg.IAM(), username)
+	return awsiamusers.DeleteAllAccessKeys(ctx, cfg.IAM(), username, age)
 }
 
 func EnsureUser(

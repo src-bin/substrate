@@ -136,6 +136,7 @@ func (c *Config) SetRootCredentials(ctx context.Context) (*sts.GetCallerIdentity
 		ctx,
 		client,
 		aws.ToString(user.UserName),
+		0,
 	); err != nil {
 		return nil, err
 	}

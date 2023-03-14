@@ -70,7 +70,12 @@ func AllDayCredentials(
 		accessKey, err = CreateAccessKey(ctx, cfg, users.CredentialFactory)
 		if awsutil.ErrorCodeIs(err, LimitExceeded) {
 			if i == CreateAccessKeyTriesBeforeDeleteAll {
-				if err = DeleteAllAccessKeys(ctx, cfg, users.CredentialFactory); err != nil {
+				if err = DeleteAllAccessKeys(
+					ctx,
+					cfg,
+					users.CredentialFactory,
+					time.Minute, // don't delete access keys that were just created; they might be cached next time around
+				); err != nil {
 					return
 				}
 			}
