@@ -59,7 +59,7 @@ func AllDayCredentials(
 					users.CredentialFactory,
 					aws.ToString(accessKey.AccessKeyId),
 				); err != nil {
-					log.Print(err)
+					log.Print(err) // not fatal because a concurrent actor may have deleted this one
 				}
 			}
 		}
