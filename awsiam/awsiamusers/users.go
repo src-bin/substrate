@@ -2,6 +2,8 @@ package awsiamusers
 
 import (
 	"context"
+	"log"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -85,6 +87,13 @@ func DeleteAllAccessKeys(
 			if err := DeleteAccessKey(ctx, client, username, aws.ToString(m.AccessKeyId)); err != nil {
 				return err
 			}
+		} else if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" { // if we're reasonably sure we're in a Lambda function
+			log.Printf(
+				"not deleting access key %s because it was created %v, less than %v ago",
+				aws.ToString(m.AccessKeyId),
+				aws.ToTime(m.CreateDate),
+				age,
+			)
 		}
 	}
 	return nil
