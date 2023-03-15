@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	AccessKeyExpiry                     = 7 * 24 * time.Hour
+	AccessKeyExpiry = 7 * 24 * time.Hour
+
 	CreateAccessKeyTriesBeforeDeleteAll = 4 // must be lower than...
 	CreateAccessKeyTriesTotal           = 8 // ...this
 
