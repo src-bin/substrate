@@ -173,7 +173,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			for _, statement := range role.AssumeRolePolicy.Statement {
 
 				// -humans
-				var credentialFactory, ec2, intranet bool
+				var credentialFactory, ec2, intranet bool // must have all three to detect -humans
 				for _, arn := range statement.Principal.AWS {
 					if strings.HasSuffix(arn, fmt.Sprintf(":user/%s", users.CredentialFactory)) {
 						credentialFactory = true
@@ -187,15 +187,20 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 						ec2 = true
 					}
 				}
-				if credentialFactory && ec2 && intranet {
+				if len(statement.Principal.AWS) == 2 && credentialFactory && intranet && len(statement.Principal.Service) == 1 && ec2 {
 					managedAssumeRolePolicy.Humans = true
-				}
+				} else {
 
-				// -aws-service "..."
-				for _, service := range statement.Principal.Service {
-					if naming.Index(managedAssumeRolePolicy.AWSServices, service) < 0 {
-						managedAssumeRolePolicy.AWSServices = append(managedAssumeRolePolicy.AWSServices, service)
+					// -aws-service "..."
+					// This is nested in the else-statement because the
+					// "Service" array is overloaded - used by both -humans
+					// and -aws-service - and we need to tell the difference.
+					for _, service := range statement.Principal.Service {
+						if naming.Index(managedAssumeRolePolicy.AWSServices, service) < 0 {
+							managedAssumeRolePolicy.AWSServices = append(managedAssumeRolePolicy.AWSServices, service)
+						}
 					}
+
 				}
 
 				// -github-actions "..."
