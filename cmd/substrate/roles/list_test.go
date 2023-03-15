@@ -164,7 +164,7 @@ func TestEverything(t *testing.T) {
 		"AssumeRolePolicy": {
 			"Humans": true,
 			"AWSServices": [
-				"ecs.amazonaws.com"
+				"ecs.amazonaws.com",
 				"lambda.amazonaws.com"
 			],
 			"GitHubActions": [
