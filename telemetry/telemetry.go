@@ -40,6 +40,7 @@ type Event struct {
 	InitialRoleName, FinalRoleName   string // "Administrator", "Auditor", or "Other" (avoid disclosing custom role names)
 	IsEC2                            bool
 	Format                           string        `json:",omitempty"` // -format, if applicable
+	mu                               sync.Mutex    `json:"-"`
 	once                             sync.Once     `json:"-"`
 	post                             int32         `json:"-"` // for compare-and-swap
 	wait                             chan struct{} `json:"-"`
@@ -124,22 +125,30 @@ func (e *Event) Post(ctx context.Context) error {
 }
 
 func (e *Event) SetInitialAccountId(accountId string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.InitialAccountId = accountId
 	if e.FinalAccountId == "" {
 		e.FinalAccountId = accountId
 	}
 }
 func (e *Event) SetFinalAccountId(accountId string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.FinalAccountId = accountId
 }
 
 func (e *Event) SetEmailDomainName(email string) {
 	if ss := strings.Split(email, "@"); len(ss) == 2 {
+		e.mu.Lock()
+		defer e.mu.Unlock()
 		e.EmailDomainName = ss[1]
 	}
 }
 
 func (e *Event) SetInitialRoleName(roleArn string) (err error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.InitialRoleName, err = roleNameFromArn(roleArn)
 	if e.FinalRoleName == "" {
 		e.FinalRoleName, err = roleNameFromArn(roleArn)
@@ -148,6 +157,8 @@ func (e *Event) SetInitialRoleName(roleArn string) (err error) {
 }
 
 func (e *Event) SetFinalRoleName(roleArn string) (err error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.FinalRoleName, err = roleNameFromArn(roleArn)
 	return
 }

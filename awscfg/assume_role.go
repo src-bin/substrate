@@ -90,8 +90,8 @@ func (c *Config) AssumeRole(
 ) (*Config, error) {
 	//ui.Printf("assuming %s in %s", roleName, accountId)
 	if roleName != roles.OrganizationReader {
-		c.event.FinalAccountId = accountId
-		c.event.FinalRoleName = roleName
+		c.event.SetFinalAccountId(accountId)
+		c.event.SetFinalRoleName(roleName)
 	}
 
 	// Return early if we're already roleName in accountId. This is critical
