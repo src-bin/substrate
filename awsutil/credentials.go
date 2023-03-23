@@ -33,8 +33,15 @@ func PrintCredentials(format *cmdutil.SerializationFormat, creds aws.Credentials
 
 // CheckForFish finds the name of Substrate's parent process (ppid) and if it's the fish shell, return true.
 func CheckForFish() bool {
-	parentProcess, _ := process.NewProcess(int32(os.Getppid()))
-	parentName, _ := parentProcess.Name()
+	parentProcess, err := process.NewProcess(int32(os.Getppid()))
+	// If we can't find the ppid to figure out what shell we are, just fall back to not Fish.
+	if err != nil {
+		return false
+	}
+	parentName, err := parentProcess.Name()
+	if err != nil {
+		return false
+	}
 
 	if parentName == "fish" {
 		return true
