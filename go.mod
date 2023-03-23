@@ -22,6 +22,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/servicequotas v1.13.21
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.6
 	github.com/aws/smithy-go v1.13.5
+	github.com/shirou/gopsutil/v3 v3.23.2
 	golang.org/x/crypto v0.4.0
 	golang.org/x/mod v0.7.0
 	golang.org/x/tools v0.5.0
@@ -44,7 +45,6 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/shirou/gopsutil/v3 v3.23.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
