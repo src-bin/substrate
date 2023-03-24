@@ -52,7 +52,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	_, err := ui.ConfirmFile(
 		telemetry.Filename,
-		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://src-bin.com/substrate/manual/telemetry/>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
+		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.src-bin.com/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
 	)
 	ui.Must(err)
 

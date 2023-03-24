@@ -139,7 +139,7 @@ func usage(status int) {
 		}
 		previousCommand = command
 	}
-	ui.Print("if you're unsure where to start, visit <https://src-bin.com/substrate/manual/>")
+	ui.Print("if you're unsure where to start, visit <https://docs.src-bin.com/substrate/>")
 
 	os.Exit(status)
 }
