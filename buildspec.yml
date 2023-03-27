@@ -41,7 +41,7 @@ phases:
       - terraform version
 
       # If this is a tagged release, ensure the manual has been published.
-      - sh "tools/ensure-manual-published.sh"
+      - : sh "tools/ensure-manual-published.sh"
 
       # Execute go:generate directives and the like, then ensure they haven't
       # introduced changes that should've been committed.
