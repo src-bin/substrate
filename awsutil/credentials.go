@@ -3,10 +3,10 @@ package awsutil
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/shirou/gopsutil/v3/process"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/ui"
@@ -33,17 +33,13 @@ func PrintCredentials(format *cmdutil.SerializationFormat, creds aws.Credentials
 
 // CheckForFish finds the name of Substrate's parent process (ppid) and if it's the fish shell, return true.
 func CheckForFish() bool {
-	parentProcess, err := process.NewProcess(int32(os.Getppid()))
-	// If we can't find the ppid to figure out what shell we are, just fall back to not Fish.
-	if err != nil {
-		return false
-	}
-	parentName, err := parentProcess.Name()
+	parentName, err := cmdutil.ParentProcessName()
+	// fmt.Fprintf(os.Stderr, "parentName: %s", parentName)
 	if err != nil {
 		return false
 	}
 
-	if parentName == "fish" {
+	if strings.Contains(parentName, "fish") {
 		return true
 	} else {
 		return false
