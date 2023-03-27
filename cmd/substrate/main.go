@@ -42,7 +42,7 @@ func main() {
 
 		// Respond to `substrate -h` but not `substrate-* -h` or
 		// `substrate * -h`, which are handled by main.main or *.Main.
-		case "-h", "-help", "--help, help":
+		case "-h", "-help", "--help":
 			usage(0)
 
 		// Dispatch shell completion from here so we can get in and out before
