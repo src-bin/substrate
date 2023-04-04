@@ -24,6 +24,7 @@ require (
 	github.com/aws/smithy-go v1.13.5
 	golang.org/x/crypto v0.4.0
 	golang.org/x/mod v0.7.0
+	golang.org/x/sys v0.6.0
 	golang.org/x/tools v0.5.0
 )
 
@@ -40,7 +41,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.13.20 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.9 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
+	github.com/stretchr/testify v1.8.2 // indirect
 	golang.org/x/term v0.3.0 // indirect
 )
