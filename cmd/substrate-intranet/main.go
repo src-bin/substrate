@@ -83,7 +83,7 @@ func main() {
 			if k == "" {
 				k = "index"
 			}
-			if f, ok := dispatchMap[k]; ok {
+			if f, ok := dispatchMapMain[k]; ok {
 				return f(ctx, cfg, oc, event)
 			}
 

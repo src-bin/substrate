@@ -19,8 +19,6 @@ import (
 	"golang.org/x/tools/imports"
 )
 
-const Main = "Main"
-
 func init() {
 	log.SetFlags(log.Lshortfile)
 }
@@ -28,6 +26,7 @@ func init() {
 func main() {
 	out := flag.String("o", "dispatch-map.go", "filename where generated Go code will be written (defaults to \"dispatch-map.go\")")
 	pkg := flag.String("package", "main", "package name for the generated Go code (defaults to \"main\")")
+	function := flag.String("function", "Main", "function name to look for in each package (defaults to \"Main\")")
 	flag.Parse()
 	if flag.NArg() < 1 {
 		log.Fatal("too few arguments")
@@ -62,9 +61,9 @@ func main() {
 	pkgPath = filepath.Clean(filepath.Join(filepath.Join(mod.Module.Mod.Path, pkgPath), flag.Arg(0)))
 	//log.Print(pkgPath)
 
-	// Look for packages that export a Main function. Make a note of all its
-	// parameter types. It's presumed they're all the same; the compiler will
-	// catch it if this isn't actually true.
+	// Look for packages that export the function named by the -function
+	// argument. Make a note of all its parameter types. It's presumed they're
+	// all the same; the compiler will catch it if this isn't actually true.
 	entries, err := os.ReadDir(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
@@ -86,7 +85,7 @@ func main() {
 		for _, pkg := range pkgs {
 			for _, file := range pkg.Files {
 				for name, object := range file.Scope.Objects {
-					if name == Main && object.Kind == ast.Fun {
+					if name == *function && object.Kind == ast.Fun {
 						dirnames = append(dirnames, entry.Name())
 						if object.Decl.(*ast.FuncDecl).Type.Params != nil {
 							params = typeListString(object.Decl.(*ast.FuncDecl).Type.Params.List)
@@ -123,11 +122,11 @@ func main() {
 	joinedResults := strings.Join(results, ", ")
 	switch len(results) {
 	case 0:
-		fmt.Fprintf(b, ")\n\nvar dispatchMap = map[string]func(%s){\n", joinedParams)
+		fmt.Fprintf(b, ")\n\nvar dispatchMap%s = map[string]func(%s){\n", *function, joinedParams)
 	case 1:
-		fmt.Fprintf(b, ")\n\nvar dispatchMap = map[string]func(%s) %s {\n", joinedParams, joinedResults)
+		fmt.Fprintf(b, ")\n\nvar dispatchMap%s = map[string]func(%s) %s {\n", *function, joinedParams, joinedResults)
 	default:
-		fmt.Fprintf(b, ")\n\nvar dispatchMap = map[string]func(%s) (%s) {\n", joinedParams, joinedResults)
+		fmt.Fprintf(b, ")\n\nvar dispatchMap%s = map[string]func(%s) (%s) {\n", *function, joinedParams, joinedResults)
 	}
 	for _, dirname := range dirnames {
 
@@ -150,7 +149,7 @@ func main() {
 				"\t%q: %s.%s,\n",
 				subcommand,
 				strings.ReplaceAll(dirname, "-", ""),
-				Main,
+				*function,
 			)
 		}
 	}

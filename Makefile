@@ -20,6 +20,7 @@ all:
 
 clean:
 	find . -name dispatch-map.go -delete
+	find . -name dispatch-map-\*.go -delete
 	find . -name \*.html.go -delete
 	find . -name \*.template.go -delete
 	find . -name \*.tf.go -delete

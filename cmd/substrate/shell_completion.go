@@ -52,7 +52,7 @@ func shellCompletion() {
 	// details of each subcommand's options.
 	if len(compLine) == 2 && compLine[0] == "substrate" {
 		candidates := []string{"--help", "--shell-completion", "--version"}
-		for subcommand, _ := range dispatchMap {
+		for subcommand, _ := range dispatchMapMain {
 			candidates = append(candidates, subcommand)
 		}
 		shellCompletionMatches(candidates, word)

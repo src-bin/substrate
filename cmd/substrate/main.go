@@ -17,7 +17,8 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-//go:generate go run ../../tools/dispatch-map/main.go .
+//go:generate go run ../../tools/dispatch-map/main.go -function Main -o dispatch-map-Main.go .
+//go:generate go run ../../tools/dispatch-map/main.go -function Synopsis -o dispatch-map-Synopsis.go .
 
 func main() {
 
@@ -63,7 +64,7 @@ func main() {
 	// Dispatch to the package named like the subcommand with a Main function
 	// or to the appropriate substrate-* program.
 	subcommand := strings.TrimPrefix(filepath.Base(os.Args[0]), "substrate-")
-	f, ok := dispatchMap[subcommand]
+	f, ok := dispatchMapMain[subcommand]
 	if !ok {
 		ui.Printf("dispatching %s, which is deprecated", os.Args[0])
 		if _, err := exec.LookPath(os.Args[0]); err != nil {
@@ -111,7 +112,7 @@ func main() {
 func usage(status int) {
 	var commands []string
 
-	for subcommand, _ := range dispatchMap {
+	for subcommand, _ := range dispatchMapMain {
 		commands = append(commands, fmt.Sprintf("substrate %s", subcommand))
 	}
 
