@@ -235,3 +235,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	)
 
 }
+
+func Synopsis() {
+	panic("not implemented")
+}
