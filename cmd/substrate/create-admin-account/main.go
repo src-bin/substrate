@@ -446,8 +446,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// Google asks GSuite admins to set custom attributes user by user.  Help
 	// these poor souls out by at least telling them exactly what value to set.
-	if idpName == oauthoidc.Google {
-		ui.Printf("set the custom AWS.RoleName attribute in Google for every user to the name of the IAM role they're authorized to assume")
+	if idpName == oauthoidc.AzureAD || idpName == oauthoidc.Google {
+		ui.Printf("set the custom AWS.RoleName attribute in %s for every user to the name of the IAM role they're authorized to assume", idpName)
 	}
 
 	ui.Print("next, commit the following files to version control:")
