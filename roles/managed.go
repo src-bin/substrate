@@ -109,18 +109,18 @@ type ManagedAssumeRolePolicyFlagsUsage struct {
 }
 
 type ManagedPolicyAttachments struct {
-	Administrator bool
-	ReadOnly      bool
-	ARNs          []string
-	Filenames     []string
+	AdministratorAccess bool
+	ReadOnlyAccess      bool
+	ARNs                []string
+	Filenames           []string
 }
 
 func (a *ManagedPolicyAttachments) Arguments() []string {
 	var ss []string
-	if a.Administrator {
+	if a.AdministratorAccess {
 		ss = append(ss, "-administrator")
 	}
-	if a.ReadOnly {
+	if a.ReadOnlyAccess {
 		ss = append(ss, "-read-only")
 	}
 	for _, arn := range a.ARNs {
@@ -148,18 +148,18 @@ func (err ManagedPolicyAttachmentsError) Error() string {
 }
 
 type ManagedPolicyAttachmentsFlags struct {
-	Administrator *bool
-	ReadOnly      *bool
-	ARNs          *cmdutil.StringSliceFlag
-	Filenames     *cmdutil.StringSliceFlag
+	AdministratorAccess *bool
+	ReadOnlyAccess      *bool
+	ARNs                *cmdutil.StringSliceFlag
+	Filenames           *cmdutil.StringSliceFlag
 }
 
 func NewManagedPolicyAttachmentsFlags(u ManagedPolicyAttachmentsFlagsUsage) *ManagedPolicyAttachmentsFlags {
-	if u.Administrator == "" {
-		panic("ManagedPolicyAttachmentsFlagsUsage.Administrator can't be empty")
+	if u.AdministratorAccess == "" {
+		panic("ManagedPolicyAttachmentsFlagsUsage.AdministratorAccess can't be empty")
 	}
-	if u.ReadOnly == "" {
-		panic("ManagedPolicyAttachmentsFlagsUsage.ReadOnly can't be empty")
+	if u.ReadOnlyAccess == "" {
+		panic("ManagedPolicyAttachmentsFlagsUsage.ReadOnlyAccess can't be empty")
 	}
 	if u.ARNs == "" {
 		panic("ManagedPolicyAttachmentsFlagsUsage.ARNs can't be empty")
@@ -168,10 +168,10 @@ func NewManagedPolicyAttachmentsFlags(u ManagedPolicyAttachmentsFlagsUsage) *Man
 		panic("ManagedPolicyAttachmentsFlagsUsage.Filenames can't be empty")
 	}
 	return &ManagedPolicyAttachmentsFlags{
-		Administrator: flag.Bool("administrator", false, u.Administrator),
-		ReadOnly:      flag.Bool("read-only", false, u.ReadOnly),
-		ARNs:          cmdutil.StringSlice("policy-arn", u.ARNs),
-		Filenames:     cmdutil.StringSlice("policy", u.Filenames),
+		AdministratorAccess: flag.Bool("administrator-access", false, u.AdministratorAccess),
+		ReadOnlyAccess:      flag.Bool("read-only-access", false, u.ReadOnlyAccess),
+		ARNs:                cmdutil.StringSlice("policy-arn", u.ARNs),
+		Filenames:           cmdutil.StringSlice("policy", u.Filenames),
 	}
 }
 
@@ -180,21 +180,21 @@ func (f *ManagedPolicyAttachmentsFlags) ManagedPolicyAttachments() (*ManagedPoli
 		panic("(*ManagedPolicyAttachmentsFlags).ManagedPolicyAttachments called before flag.Parse")
 	}
 
-	if *f.Administrator && *f.ReadOnly {
+	if *f.AdministratorAccess && *f.ReadOnlyAccess {
 		return nil, ManagedPolicyAttachmentsError("can't provide both -administrator and -read-only")
 	}
 
 	return &ManagedPolicyAttachments{
-		Administrator: *f.Administrator,
-		ReadOnly:      *f.ReadOnly,
-		ARNs:          f.ARNs.Slice(),
-		Filenames:     f.Filenames.Slice(),
+		AdministratorAccess: *f.AdministratorAccess,
+		ReadOnlyAccess:      *f.ReadOnlyAccess,
+		ARNs:                f.ARNs.Slice(),
+		Filenames:           f.Filenames.Slice(),
 	}, nil
 }
 
 type ManagedPolicyAttachmentsFlagsUsage struct {
-	Administrator string
-	ReadOnly      string
-	ARNs          string
-	Filenames     string
+	AdministratorAccess string
+	ReadOnlyAccess      string
+	ARNs                string
+	Filenames           string
 }

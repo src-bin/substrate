@@ -45,10 +45,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		Filenames:     "filename containing an assume-role policy to be merged into this role's final assume-role policy (may be repeated)",
 	})
 	managedPolicyAttachmentsFlags := roles.NewManagedPolicyAttachmentsFlags(roles.ManagedPolicyAttachmentsFlagsUsage{
-		Administrator: "attach the AWS-managed AdministratorAccess policy to these roles, allowing total access to all AWS APIs and resources",
-		ReadOnly:      "attach the AWS-managed ReadOnlyAccess policy to these roles, allowing read access to all AWS resources",
-		ARNs:          "attach a specific AWS-managed policy to these roles (may be repeated)",
-		Filenames:     "filename containing a policy to attach to these roles (may be repeated)",
+		AdministratorAccess: "attach the AWS-managed AdministratorAccess policy to these roles, allowing total access to all AWS APIs and resources",
+		ReadOnlyAccess:      "attach the AWS-managed ReadOnlyAccess policy to these roles, allowing read access to all AWS resources",
+		ARNs:                "attach a specific AWS-managed policy to these roles (may be repeated)",
+		Filenames:           "filename containing a policy to attach to these roles (may be repeated)",
 	})
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {
@@ -59,7 +59,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Print("                                   [-admin] [-management] [-special <special> [...]]")
 		ui.Print("                                   [-number <number> [...]]")
 		ui.Print("       [assume-role policy flags]: [-humans] [-aws-service <aws-service-url>] [-github-actions <org/repo>] [-assume-role-policy <filename> [...]]")
-		ui.Print("       [policy attachment flags]:  [-administrator|-read-only] [-policy-arn <arn> [...]] [-policy <filename> [...]]")
+		ui.Print("       [policy attachment flags]:  [-administrator-access|-read-only-access] [-policy-arn <arn> [...]] [-policy <filename> [...]]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -286,7 +286,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 		ui.Stopf("ok")
 
-		if managedPolicyAttachments.Administrator {
+		if managedPolicyAttachments.AdministratorAccess {
 			ui.Spinf("attaching the AdministratorAccess policy to the %s role in %s", *roleName, account)
 			ui.Must(awsiam.AttachRolePolicy(
 				ctx,
@@ -296,7 +296,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			))
 			ui.Stopf("ok")
 		}
-		if managedPolicyAttachments.ReadOnly {
+		if managedPolicyAttachments.ReadOnlyAccess {
 			ui.Spinf("attaching the ReadOnlyAccess policy to the %s role in %s", *roleName, account)
 			ui.Must(awsiam.AttachRolePolicy(
 				ctx,

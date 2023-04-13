@@ -242,9 +242,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			// plus the SubstratePolicyAttachmentFilenames tag, if present.
 			for _, arn := range policyARNs {
 				if arn == "arn:aws:iam::aws:policy/AdministratorAccess" {
-					managedPolicyAttachments.Administrator = true
+					managedPolicyAttachments.AdministratorAccess = true
 				} else if arn == "arn:aws:iam::aws:policy/ReadOnlyAccess" {
-					managedPolicyAttachments.ReadOnly = true
+					managedPolicyAttachments.ReadOnlyAccess = true
 				} else if naming.Index(managedPolicyAttachments.ARNs, arn) < 0 {
 					managedPolicyAttachments.ARNs = append(managedPolicyAttachments.ARNs, arn)
 				}
