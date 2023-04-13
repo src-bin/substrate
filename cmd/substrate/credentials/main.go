@@ -13,7 +13,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
@@ -90,7 +89,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	versionutil.WarnDowngrade(ctx, cfg)
 
 	// Print credentials in whatever format was requested.
-	awsutil.PrintCredentials(format, *creds)
+	cmdutil.PrintCredentials(format, *creds)
 
 }
 

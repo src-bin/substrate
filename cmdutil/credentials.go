@@ -1,4 +1,4 @@
-package awsutil
+package cmdutil
 
 import (
 	"fmt"
@@ -7,24 +7,23 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/ui"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-func PrintCredentials(format *cmdutil.SerializationFormat, creds aws.Credentials) {
+func PrintCredentials(format *SerializationFormat, creds aws.Credentials) {
 	// Check if we're using Fish as our shell. If so, we have to use it's unique and special syntax for variables
 	isFish := CheckForFish()
 
 	switch format.String() {
-	case cmdutil.SerializationFormatEnv:
+	case SerializationFormatEnv:
 		PrintCredentialsEnv(creds, isFish)
-	case cmdutil.SerializationFormatExport:
+	case SerializationFormatExport:
 		PrintCredentialsExport(creds, isFish)
-	case cmdutil.SerializationFormatExportWithHistory:
+	case SerializationFormatExportWithHistory:
 		PrintCredentialsExportWithHistory(creds, isFish)
-	case cmdutil.SerializationFormatJSON:
+	case SerializationFormatJSON:
 		PrintCredentialsJSON(creds)
 	default:
 		ui.Fatalf("-format %q not supported", format)
@@ -33,7 +32,7 @@ func PrintCredentials(format *cmdutil.SerializationFormat, creds aws.Credentials
 
 // CheckForFish finds the name of Substrate's parent process (ppid) and if it's the fish shell, return true.
 func CheckForFish() bool {
-	parentName, err := cmdutil.ParentProcessName()
+	parentName, err := ParentProcessName()
 	// fmt.Fprintf(os.Stderr, "parentName: %s", parentName)
 	if err != nil {
 		return false
