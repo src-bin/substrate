@@ -76,13 +76,14 @@ func init() {
 					blocked = true
 				}
 
+				inst.s = strings.TrimSuffix(inst.s, "\n")
 				switch inst.opcode {
 
 				case opFatal:
 					if spinner != "" && isTerminal {
 						fmt.Fprint(stderr, "\r", s, " ", dots, ".\n")
 					}
-					fmt.Fprintln(stderr, inst.s)
+					fmt.Fprint(stderr, inst.s, "\n")
 					os.Exit(1)
 
 				case opPrint:
@@ -91,14 +92,14 @@ func init() {
 					// demands special consideration.
 					if spinner != "" {
 						if isTerminal {
-							fmt.Fprint(stderr, "\r", s, " ", dots, ".\n")
+							fmt.Fprint(stderr, "\r", indent, s, dots, ".\n")
 						} else {
 							fmt.Fprint(stderr, "\n")
 						}
 						dots, s = "", ""
 					}
 
-					fmt.Fprintln(stderr, indent, inst.s)
+					fmt.Fprint(stderr, indent, inst.s, "\n")
 
 				case opQuiet:
 					stderr, err = os.Open(os.DevNull)
@@ -118,7 +119,7 @@ func init() {
 					if isTerminal {
 						i = len(inst.s) - len(inst.s)%width
 						if i > 0 {
-							fmt.Fprintln(stderr, inst.s[:i])
+							fmt.Fprint(stderr, inst.s[:i], "\n")
 						}
 					}
 					dots, s, spinner = "", fmt.Sprint(inst.s[i:], " "), "-"
@@ -128,11 +129,11 @@ func init() {
 
 					// No carriage returns if standard output is not a terminal.
 					if !isTerminal {
-						fmt.Fprint(stderr, " ", strings.TrimSuffix(inst.s, "\n"), "\n")
+						fmt.Fprint(stderr, " ", inst.s, "\n")
 						break
 					}
 
-					fmt.Fprint(stderr, "\r", indent, s, dots, ". ", strings.TrimSuffix(inst.s, "\n"), "\n")
+					fmt.Fprint(stderr, "\r", indent, s, dots, ". ", inst.s, "\n")
 					if indent == "" {
 						spinner = ""
 					}
