@@ -204,10 +204,10 @@ func shellCompletion() {
 			ui.Must(err)
 			shellCompletionMatches(qualities, word)
 			return
-		case "-aws-service", "-github-actions", "-role":
+		case "-aws-service", "-github-actions", "-number", "-policy-arn", "-role", "-special":
 			shellCompletionMatches([]string{}, word)
 			return
-		case "-assume-role-policy":
+		case "-assume-role-policy", "-policy":
 			// TODO autocomplete filenames
 			shellCompletionMatches([]string{}, word)
 			return
@@ -215,6 +215,10 @@ func shellCompletion() {
 		options = append(
 			options,
 			"-admin",
+			"-administrator-access",
+			"-all-domains",
+			"-all-environments",
+			"-all-qualities",
 			"-assume-role-policy",
 			"-aws-service",
 			"-domain",
@@ -223,8 +227,11 @@ func shellCompletion() {
 			"-humans",
 			"-management",
 			"-number",
+			"-policy",
+			"-policy-arn",
 			"-quality",
 			"-quiet",
+			"-read-only-access",
 			"-role",
 			"-special",
 		)
