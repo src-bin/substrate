@@ -47,7 +47,7 @@ func init() {
 	stderr := os.Stderr
 	go func(ch chan instruction) {
 		blocked := false
-		dots, s, spinner := "", "", ""
+		dots, indent, s, spinner := "", "", "", ""
 		tick := time.Tick(time.Second / hz)
 		ticks := 1
 		for {
@@ -91,19 +91,14 @@ func init() {
 					// demands special consideration.
 					if spinner != "" {
 						if isTerminal {
-							fmt.Fprint(stderr, "\r", s, " ", dots, ". (to be continued)\n")
+							fmt.Fprint(stderr, "\r", s, " ", dots, ".\n")
 						} else {
-							fmt.Fprintln(stderr, " (to be continued)")
+							fmt.Fprint(stderr, "\n")
 						}
-						dots, s = "", "(continuing)"
+						dots, s = "", ""
 					}
 
-					fmt.Fprintln(stderr, inst.s) // TODO split on word boundaries to make long messages easy to read on narrow terminals
-
-					// Per above, indicate that the spinning is resuming.
-					if spinner != "" {
-						fmt.Fprint(stderr, "(continuing)")
-					}
+					fmt.Fprintln(stderr, indent, inst.s)
 
 				case opQuiet:
 					stderr, err = os.Open(os.DevNull)
@@ -112,6 +107,10 @@ func init() {
 					}
 
 				case opSpin:
+					if spinner != "" {
+						fmt.Fprint(stderr, "\r", indent, s, dots, ".\n") // final dot to cover the spinner
+						indent += " "
+					}
 
 					// The last line of output on the terminal can't wrap or
 					// carriage returns will make a mess of things.
@@ -122,8 +121,8 @@ func init() {
 							fmt.Fprintln(stderr, inst.s[:i])
 						}
 					}
-					dots, s, spinner = "", inst.s[i:], "-"
-					fmt.Fprint(stderr, s, " ", dots, spinner)
+					dots, s, spinner = "", fmt.Sprint(inst.s[i:], " "), "-"
+					fmt.Fprint(stderr, indent, s, dots, spinner)
 
 				case opStop:
 
@@ -133,8 +132,11 @@ func init() {
 						break
 					}
 
-					fmt.Fprint(stderr, "\r", s, " ", dots, ". ", strings.TrimSuffix(inst.s, "\n"), "\n")
-					dots, s, spinner = "", "", ""
+					fmt.Fprint(stderr, "\r", indent, s, dots, ". ", strings.TrimSuffix(inst.s, "\n"), "\n")
+					if indent == "" {
+						spinner = ""
+					}
+					dots, indent, s = "", strings.TrimSuffix(indent, " "), ""
 				}
 				inst.ch <- struct{}{}
 
@@ -151,13 +153,13 @@ func init() {
 				if spinner != "" {
 
 					// If the spinner is about to wrap, output a newline and
-					// align it to continue below.
-					if len(fmt.Sprint("\r", s, " ", dots)) > width {
-						fmt.Fprint(stderr, "\r", s, " ", dots, "\n")
-						dots, s = "", strings.Repeat(" ", len(s))
+					// continue below.
+					if len(fmt.Sprint("\r", indent, s, dots)) > width {
+						fmt.Fprint(stderr, "\r", indent, s, dots, "\n")
+						dots, s = "", ""
 					}
 
-					fmt.Fprint(stderr, "\r", s, " ", dots, spinner)
+					fmt.Fprint(stderr, "\r", indent, s, dots, spinner)
 				}
 				switch spinner {
 				case "-":
