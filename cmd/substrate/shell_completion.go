@@ -190,6 +190,13 @@ func shellCompletion() {
 
 	case "create-role":
 		switch previousWord {
+		case "-assume-role-policy", "-policy":
+			// TODO autocomplete filenames
+			shellCompletionMatches([]string{}, word)
+			return
+		case "-aws-service", "-github-actions", "-number", "-policy-arn", "-role":
+			shellCompletionMatches([]string{}, word)
+			return
 		case "-domain":
 			// TODO autocomplete for domains
 			shellCompletionMatches([]string{}, word)
@@ -204,12 +211,8 @@ func shellCompletion() {
 			ui.Must(err)
 			shellCompletionMatches(qualities, word)
 			return
-		case "-aws-service", "-github-actions", "-number", "-policy-arn", "-role", "-special":
-			shellCompletionMatches([]string{}, word)
-			return
-		case "-assume-role-policy", "-policy":
-			// TODO autocomplete filenames
-			shellCompletionMatches([]string{}, word)
+		case "-special":
+			shellCompletionMatches([]string{"audit", "deploy", "network"}, word)
 			return
 		}
 		options = append(
