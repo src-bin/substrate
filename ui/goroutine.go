@@ -92,7 +92,7 @@ func init() {
 					// demands special consideration.
 					if spinner != "" {
 						if isTerminal {
-							fmt.Fprint(stderr, "\r", indent, s, dots, ".\n")
+							fmt.Fprint(stderr, "\r", indent, s, dots, ".\n") // final dot to cover the spinner
 						} else {
 							fmt.Fprint(stderr, "\n")
 						}
@@ -109,7 +109,11 @@ func init() {
 
 				case opSpin:
 					if spinner != "" {
-						fmt.Fprint(stderr, "\r", indent, s, dots, ".\n") // final dot to cover the spinner
+						if isTerminal {
+							fmt.Fprint(stderr, "\r", indent, s, dots, ".\n") // final dot to cover the spinner
+						} else if dots != "" {
+							fmt.Fprint(stderr, "\n")
+						}
 						indent += " "
 					}
 
@@ -121,19 +125,26 @@ func init() {
 						if i > 0 {
 							fmt.Fprint(stderr, inst.s[:i], "\n")
 						}
+						dots, spinner = "", "-"
+					} else {
+						dots, spinner = "..", "." // non-terminals get a static "..."
 					}
-					dots, s, spinner = "", fmt.Sprint(inst.s[i:], " "), "-"
+					s = fmt.Sprint(inst.s[i:], " ")
 					fmt.Fprint(stderr, indent, s, dots, spinner)
 
 				case opStop:
+					if isTerminal {
+						fmt.Fprint(stderr, "\r", indent, s, dots, ". ", inst.s, "\n")
+					} else {
 
-					// No carriage returns if standard output is not a terminal.
-					if !isTerminal {
-						fmt.Fprint(stderr, " ", inst.s, "\n")
-						break
+						// No carriage returns if standard output is not a terminal.
+						if dots == "" {
+							fmt.Fprint(stderr, indent, "... ", inst.s, "\n")
+						} else {
+							fmt.Fprint(stderr, " ", inst.s, "\n")
+						}
+
 					}
-
-					fmt.Fprint(stderr, "\r", indent, s, dots, ". ", inst.s, "\n")
 					if indent == "" {
 						spinner = ""
 					}
