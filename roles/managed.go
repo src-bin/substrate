@@ -118,10 +118,10 @@ type ManagedPolicyAttachments struct {
 func (a *ManagedPolicyAttachments) Arguments() []string {
 	var ss []string
 	if a.AdministratorAccess {
-		ss = append(ss, "-administrator")
+		ss = append(ss, "-administrator-access")
 	}
 	if a.ReadOnlyAccess {
-		ss = append(ss, "-read-only")
+		ss = append(ss, "-read-only-access")
 	}
 	for _, arn := range a.ARNs {
 		ss = append(ss, "-policy-arn", fmt.Sprintf("%q", arn))
