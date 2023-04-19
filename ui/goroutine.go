@@ -110,7 +110,9 @@ func init() {
 				case opSpin:
 					if spinner != "" {
 						if isTerminal {
-							fmt.Fprint(stderr, "\r", indent, s, dots, ".\n") // final dot to cover the spinner
+							if s != "" || dots != "" {
+								fmt.Fprint(stderr, "\r", indent, s, dots, ".\n") // final dot to cover the spinner
+							}
 						} else if dots != "" {
 							fmt.Fprint(stderr, "\n")
 						}
