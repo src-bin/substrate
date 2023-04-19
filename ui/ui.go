@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/version"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -110,6 +111,20 @@ func Spinf(format string, args ...interface{}) {
 func Stop(args ...interface{}) {
 	args = dereference(args)
 	op(opStop, fmt.Sprint(args...))
+}
+
+// StopErr calls Stop with either the error code from the given non-nil error as an argument or
+// with the string "ok" otherwise.
+func StopErr(err error) error {
+	s := "ok"
+	if err != nil {
+		s = awsutil.ErrorCode(err)
+		if s == "" {
+			s = err.Error()
+		}
+	}
+	Stop(s)
+	return err
 }
 
 func Stopf(format string, args ...interface{}) {
