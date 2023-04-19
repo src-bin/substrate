@@ -3,8 +3,6 @@ package oauthoidc
 import (
 	"net/url"
 	"path"
-
-	"github.com/src-bin/substrate/ui"
 )
 
 const (
@@ -32,7 +30,7 @@ func AzureADPathQualifier(tenantId string) PathQualifier {
 		default:
 			panic("unreachable")
 		}
-		ui.Printf("Azure AD URL for %s: %s", p, u) // XXX don't commit
+		//log.Printf("Azure AD URL for %s: %s", p, u)
 		return u
 	}
 }
