@@ -101,6 +101,18 @@ func TestSelectionFlagsToSelection2(t *testing.T) {
 	assertSlice(t, s.Numbers, f.Numbers.Slice())
 }
 
+func TestSelectionHumans(t *testing.T) {
+	ctx := context.Background()
+	cfg := testawscfg.Test1(roles.Administrator)
+	selection := Selection{Humans: true}
+	selected, _, err := selection.Partition(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, len(selected), 1)
+	assert(t, aws.ToString(selected[0].Account.Id), "716893237583")
+}
+
 func TestSelectionZero(t *testing.T) {
 	s := &Selection{}
 	if len(s.Arguments()) != 0 {

@@ -70,9 +70,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if *roleName == "" {
 		ui.Fatal(`-role "..." is required`)
 	}
-	if *managedAssumeRolePolicyFlags.Humans {
-		*selectionFlags.Admin = true
-	}
 	managedAssumeRolePolicy, err := managedAssumeRolePolicyFlags.ManagedAssumeRolePolicy()
 	ui.Must(err)
 	//log.Printf("%+v", managedAssumeRolePolicy)
@@ -81,6 +78,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	//log.Printf("%+v", managedPolicyAttachments)
 	selection, err := selectionFlags.Selection()
 	ui.Must(err)
+	if managedAssumeRolePolicy.Humans {
+		selection.Humans = true
+	}
 	//log.Printf("%+v", selection)
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
@@ -135,25 +135,40 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// If this role's for humans to use via the IdP, create a role by the same
 	// name in admin accounts. This role must exist before we enter the main
 	// role and policy loop because that loop will need to reference these role
-	// ARNs and they must exist at that time. The assume-role policy created
-	// here will be expanded, possibly greatly, below, which is why we use
-	// CreateRole and squash the EntityAlreadyExists error.
+	// ARNs and they must exist at that time. If -admin was given in addition
+	// to -humans, we'll use CreateRole here and suppress EntityAlreadyExists,
+	// knowing that this role will be thoroughly managed later and preventing
+	// a momentary regression in the assume-role policy. If -humans was given
+	// without -admin then this is our only shot at managing this role so we'll
+	// use EnsureRoleWithPolicy.
 	adminPrincipals := &policies.Principal{AWS: []string{}}
-	if managedAssumeRolePolicy.Humans {
+	if selection.Humans {
 		ui.Spinf("finding or creating the %s role in your admin account(s) for humans to assume via your IdP", *roleName)
 		adminAccounts, _, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 		ui.Must(err)
+
 		for _, account := range adminAccounts {
 			accountCfg := awscfg.Must(account.Config(ctx, cfg, roles.Administrator, time.Hour))
-			role, err := awsiam.CreateRole(
-				ctx,
-				accountCfg,
-				*roleName,
-				policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
-			)
+			var role *awsiam.Role
+			if selection.Admin {
+				role, err = awsiam.CreateRole(
+					ctx,
+					accountCfg,
+					*roleName,
+					policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
+				)
+			} else {
+				role, err = awsiam.EnsureRoleWithPolicy(
+					ctx,
+					accountCfg,
+					*roleName,
+					policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
+					minimalPolicy,
+				)
+			}
 			if err == nil {
 				ui.Must(awsiam.TagRole(ctx, cfg, role.Name, tagging.Map{
-					tagging.SubstrateAccountSelectors: "admin",
+					tagging.SubstrateAccountSelectors: "humans",
 				}))
 			} else if awsutil.ErrorCodeIs(err, awsiam.EntityAlreadyExists) {
 				role, err = awsiam.GetRole(ctx, accountCfg, *roleName)

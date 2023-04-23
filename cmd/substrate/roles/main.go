@@ -156,6 +156,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 					}
 				case "admin":
 					selection.Admin = true
+				case "humans":
+					selection.Humans = true
 				case "management":
 					selection.Management = true
 				case "special":

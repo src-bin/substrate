@@ -30,7 +30,8 @@ type Selection struct {
 	AllQualities bool
 	Qualities    []string
 
-	Admin bool
+	Admin  bool
+	Humans bool `json:"-"` // not exposed in arguments; like Admin but without arbitrary policy attachments
 
 	Management bool
 
@@ -69,6 +70,13 @@ func (s *Selection) Arguments() []string {
 	if s.Admin {
 		ss = append(ss, "-admin")
 	}
+	// Don't translate s.Humans into -humans because that argument is handled
+	// in ManagedAssumeRolePolicy. In Selection it's purely behind the scenes.
+	/*
+		if s.Humans {
+			ss = append(ss, "-humans")
+		}
+	*/
 
 	if s.Management {
 		ss = append(ss, "-management")
@@ -152,11 +160,19 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 		}
 	}
 
-	if s.Admin {
+	if s.Admin || s.Humans {
+		var selectors []string
+		if s.Admin && s.Humans {
+			selectors = []string{"admin", "humans"}
+		} else if s.Admin {
+			selectors = []string{"admin"}
+		} else if s.Humans {
+			selectors = []string{"humans"}
+		}
 		for _, account := range adminAccounts {
 			selected = append(selected, AccountWithSelectors{
 				Account:   account,
-				Selectors: []string{"admin"},
+				Selectors: selectors,
 			})
 		}
 	} else {

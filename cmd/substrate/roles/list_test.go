@@ -47,7 +47,7 @@ func TestEC2(t *testing.T) {
 			"Environments": null,
 			"AllQualities": false,
 			"Qualities": null,
-			"Admin": true,
+			"Admin": false,
 			"Management": false,
 			"Specials": [
 				"deploy"
@@ -86,7 +86,7 @@ func TestEC2(t *testing.T) {
 
 	actual = stdout.String()
 	expected = `set -e -x
-substrate create-role -role "TestEC2" -admin -special "deploy" -humans -aws-service "ec2.amazonaws.com"
+substrate create-role -role "TestEC2" -special "deploy" -humans -aws-service "ec2.amazonaws.com"
 `
 	if actual != expected {
 		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
@@ -112,6 +112,7 @@ func TestEverything(t *testing.T) {
 		"-domain", "foo",
 		"-domain", "bar",
 		"-environment", "staging",
+		"-admin",
 		"-management",
 		"-special", "deploy",
 		"-special", "network",
@@ -121,7 +122,7 @@ func TestEverything(t *testing.T) {
 		"-github-actions", "src-bin/src-bin",
 		"-github-actions", "src-bin/substrate",
 		"-assume-role-policy", "policies/TestEverything.assume-role-policy.json",
-		"-administrator",
+		"-administrator-access",
 		"-policy-arn", "arn:aws:iam::aws:policy/job-function/Billing",
 		"-policy", "policies/TestEverything.policy.json",
 	)
