@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/ui"
 )
 
 type InstanceProfile = types.InstanceProfile
@@ -51,16 +52,17 @@ func DeleteInstanceProfile(ctx context.Context, cfg *awscfg.Config, roleName str
 	return
 }
 
-func EnsureInstanceProfile(ctx context.Context, cfg *awscfg.Config, roleName string) (*InstanceProfile, error) {
-	instanceProfile, err := CreateInstanceProfile(ctx, cfg, roleName)
+func EnsureInstanceProfile(ctx context.Context, cfg *awscfg.Config, roleName string) (instProf *InstanceProfile, err error) {
+	ui.Spinf("creating an EC2 instance profile for %s", roleName)
+	instProf, err = CreateInstanceProfile(ctx, cfg, roleName)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
+		ui.Stop("already exists")
 		err = nil
+		return
 	}
 	if awsutil.ErrorCodeIs(err, LimitExceeded) {
 		err = nil // there's an outside chance that masking this masks an instance profile with the wrong role
 	}
-	if err != nil {
-		return nil, err
-	}
-	return instanceProfile, nil
+	ui.StopErr(err)
+	return
 }

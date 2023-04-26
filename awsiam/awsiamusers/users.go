@@ -12,6 +12,7 @@ import (
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -27,6 +28,23 @@ type (
 	Tag               = types.Tag
 	User              = types.User
 )
+
+func AttachUserPolicy(
+	ctx context.Context,
+	client *iam.Client,
+	username, policyARN string,
+) error {
+	ui.Spinf("attaching %s to the %s IAM user", policyARN, username)
+	_, err := client.AttachUserPolicy(ctx, &iam.AttachUserPolicyInput{
+		PolicyArn: aws.String(policyARN),
+		UserName:  aws.String(username),
+	})
+
+	// We would usually want to suppress a policy-is-already-attached error
+	// here but the API doesn't appear to return such an error.
+
+	return ui.StopErr(err)
+}
 
 func CreateAccessKey(
 	ctx context.Context,

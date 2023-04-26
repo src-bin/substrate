@@ -23,11 +23,16 @@ func AttachRolePolicy(
 	cfg *awscfg.Config,
 	roleName, policyARN string,
 ) error {
+	ui.Spinf("attaching %s to the %s IAM role", policyARN, roleName)
 	_, err := cfg.IAM().AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
 		PolicyArn: aws.String(policyARN),
 		RoleName:  aws.String(roleName),
 	})
-	return err
+
+	// We would usually want to suppress a policy-is-already-attached error
+	// here but the API doesn't appear to return such an error.
+
+	return ui.StopErr(err)
 }
 
 func CreateRole(
@@ -152,24 +157,24 @@ func DeleteRoleWithConfirmation(
 	ui.Spinf("deleting role %s in %s", roleName, account)
 	err = DeleteInstanceProfile(ctx, cfg, roleName)
 	if err != nil && !awsutil.ErrorCodeIs(err, NoSuchEntity) {
-		return err
+		return ui.StopErr(err)
 	}
 	err = DeleteRolePolicy(ctx, cfg, roleName)
 	if err != nil && !awsutil.ErrorCodeIs(err, NoSuchEntity) {
-		return err
+		return ui.StopErr(err)
 	}
 	policyARNs, err := ListAttachedRolePolicies(ctx, cfg, roleName)
 	if err != nil {
-		return err
+		return ui.StopErr(err)
 	}
 	for _, policyARN := range policyARNs {
 		if err := DetachRolePolicy(ctx, cfg, roleName, policyARN); err != nil {
-			return err
+			return ui.StopErr(err)
 		}
 	}
 	err = DeleteRole(ctx, cfg, roleName)
 	if err != nil && !awsutil.ErrorCodeIs(err, NoSuchEntity) {
-		return err
+		return ui.StopErr(err)
 	}
 	ui.Stop("ok")
 
@@ -195,6 +200,7 @@ func EnsureRole(
 	assumeRolePolicyDoc *policies.Document,
 	// TODO permissionsBoundaryPolicyARN,
 ) (*Role, error) {
+	ui.Spinf("creating the %s IAM role", roleName)
 	defer time.Sleep(1e9) // avoid Throttling: Rate exceeded
 	client := cfg.IAM()
 
@@ -206,6 +212,8 @@ func EnsureRole(
 		// TODO permissionsBoundaryPolicyARN,
 	)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
+		ui.Stop("already exists")
+		ui.Spinf("updating the %s IAM role", roleName)
 
 		// There was a time when Substrate created roles with the default
 		// 1-hour maximum session duration. Lengthen that to 12 hours.
@@ -213,33 +221,34 @@ func EnsureRole(
 			MaxSessionDuration: aws.Int32(43200),
 			RoleName:           aws.String(roleName),
 		}); err != nil {
-			return nil, err
+			return nil, ui.StopErr(err)
 		}
 
 		role, err = GetRole(ctx, cfg, roleName)
 	}
 	if err != nil {
-		return nil, err
+		return nil, ui.StopErr(err)
 	}
 
 	if _, err := client.TagRole(ctx, &iam.TagRoleInput{
 		RoleName: aws.String(roleName),
 		Tags:     tagsFor(roleName),
 	}); err != nil {
-		return nil, err
+		return nil, ui.StopErr(err)
 	}
 
 	docJSON, err := assumeRolePolicyDoc.Marshal()
 	if err != nil {
-		return nil, err
+		return nil, ui.StopErr(err)
 	}
 	if _, err := cfg.IAM().UpdateAssumeRolePolicy(ctx, &iam.UpdateAssumeRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
 		RoleName:       aws.String(roleName),
 	}); err != nil {
-		return nil, err
+		return nil, ui.StopErr(err)
 	}
 
+	ui.Stop("ok")
 	return role, nil
 }
 
@@ -330,19 +339,30 @@ func ListAttachedRolePolicies(
 }
 
 func ListRoles(ctx context.Context, cfg *awscfg.Config) ([]*Role, error) {
-	out, err := cfg.IAM().ListRoles(ctx, &iam.ListRolesInput{})
-	if err != nil {
-		return nil, err
-	}
-	//log.Printf("%+v", out)
-	roles := make([]*Role, len(out.Roles))
-	for i := 0; i < len(out.Roles); i++ {
-		roles[i], err = roleFromAPI(ctx, cfg, &out.Roles[i])
+	var (
+		roles  []*Role
+		marker *string
+	)
+	for {
+		out, err := cfg.IAM().ListRoles(ctx, &iam.ListRolesInput{
+			Marker: marker,
+		})
 		if err != nil {
 			return nil, err
 		}
+		for i, _ := range out.Roles {
+			role, err := roleFromAPI(ctx, cfg, &out.Roles[i])
+			if err != nil {
+				return nil, err
+			}
+			roles = append(roles, role)
+		}
+		if !out.IsTruncated {
+			break
+		}
+		marker = out.Marker
 	}
-	//log.Printf("%+v", roles)
+	//log.Print(jsonutil.MustString(roles))
 	return roles, nil
 }
 

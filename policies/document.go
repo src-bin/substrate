@@ -69,6 +69,7 @@ type Statement struct {
 	Action    jsonutil.StringSlice
 	Resource  jsonutil.StringSlice `json:",omitempty"` // omitempty for AssumeRolePolicyDocument
 	Condition Condition            `json:",omitempty"`
+	Sid       string               `json:",omitempty"`
 }
 
 type Effect string

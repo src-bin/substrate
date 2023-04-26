@@ -444,6 +444,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// principals that were just created in the initial Terraform run.
 	ui.Must(ensureAdministrator(ctx, cfg, adminCfg, account, createdAccount, saml))
 
+	// Use API Gateway v2, Lambda, etc. to construct the Intranet. This one's
+	// better than the original that was implemented in Terraform because it
+	// ends up being a lot easier for folks to extend.
+	ui.Must(ensureIntranet(ctx, adminCfg, dnsDomainName, clientId, clientSecret, hostname, tenantId))
+
 	// Google asks GSuite admins to set custom attributes user by user.  Help
 	// these poor souls out by at least telling them exactly what value to set.
 	if idpName == oauthoidc.AzureAD || idpName == oauthoidc.Google {

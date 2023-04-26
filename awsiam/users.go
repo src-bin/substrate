@@ -16,6 +16,14 @@ type (
 	User              = types.User
 )
 
+func AttachUserPolicy(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username, policyARN string,
+) error {
+	return awsiamusers.AttachUserPolicy(ctx, cfg.IAM(), username, policyARN)
+}
+
 func CreateAccessKey(
 	ctx context.Context,
 	cfg *awscfg.Config,
