@@ -91,13 +91,21 @@ func loginHandler(
 			Location string
 		}
 		bodyV.IDToken = idToken
+		setCookies := []string{
+			fmt.Sprintf("a=%s; HttpOnly; Max-Age=%d; Secure", doc.AccessToken, maxAge),
+			fmt.Sprintf("id=%s; HttpOnly; Max-Age=%d; Secure", doc.IDToken, maxAge),
+			fmt.Sprintf("csrf=%s; HttpOnly; Max-Age=%d; Secure", randutil.String(), maxAge),
+		}
+		if i := strings.LastIndexByte(idToken.Email, '@'); i != -1 && oc.IsGoogle() {
+			setCookies = append(setCookies, fmt.Sprintf(
+				"hd=%s; HttpOnly; Max-Age=%d; Secure",
+				idToken.Email[i+1:], // just the domain from the email address
+				10*365*86400,        // 10 years-ish
+			))
+		}
 		multiValueHeaders := map[string][]string{
 			"Content-Type": []string{"text/html"},
-			"Set-Cookie": []string{
-				fmt.Sprintf("a=%s; HttpOnly; Max-Age=%d; Secure", doc.AccessToken, maxAge),
-				fmt.Sprintf("id=%s; HttpOnly; Max-Age=%d; Secure", doc.IDToken, maxAge),
-				fmt.Sprintf("csrf=%s; HttpOnly; Max-Age=%d; Secure", randutil.String(), maxAge),
-			},
+			"Set-Cookie":   setCookies,
 		}
 		bodyV.Location = state.Next
 		if bodyV.Location == "" {
@@ -131,6 +139,9 @@ func loginHandler(
 	}
 	if oc.IsGoogle() {
 		scope += " https://www.googleapis.com/auth/admin.directory.user.readonly"
+		if hd := lambdautil.Cookie(event.MultiValueHeaders, "hd"); hd != nil {
+			q.Add("hd", hd.Value)
+		}
 	}
 	q.Add("scope", scope)
 	state = &oauthoidc.State{
