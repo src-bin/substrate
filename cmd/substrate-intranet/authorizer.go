@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
 )
@@ -39,10 +39,7 @@ func authorizer(
 		}
 
 		idToken := &oauthoidc.IDToken{}
-		req := &http.Request{Header: http.Header{
-			"Cookie": event.MultiValueHeaders["cookie"], // beware the case-sensitivity
-		}}
-		for _, cookie := range req.Cookies() {
+		for _, cookie := range lambdautil.Cookies(event.MultiValueHeaders) {
 			switch cookie.Name {
 			case "a":
 				authContext[authorizerutil.AccessToken] = cookie.Value
