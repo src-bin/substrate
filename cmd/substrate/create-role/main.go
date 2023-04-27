@@ -301,43 +301,51 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 		ui.Stopf("ok")
 
-		if managedPolicyAttachments.AdministratorAccess {
-			ui.Spinf("attaching the AdministratorAccess policy to the %s role in %s", *roleName, account)
-			ui.Must(awsiam.AttachRolePolicy(
-				ctx,
-				accountCfg,
-				*roleName,
-				"arn:aws:iam::aws:policy/AdministratorAccess",
-			))
-			ui.Stopf("ok")
-		}
-		if managedPolicyAttachments.ReadOnlyAccess {
-			ui.Spinf("attaching the ReadOnlyAccess policy to the %s role in %s", *roleName, account)
-			ui.Must(awsiam.AttachRolePolicy(
-				ctx,
-				accountCfg,
-				*roleName,
-				"arn:aws:iam::aws:policy/ReadOnlyAccess",
-			))
-			ui.Stopf("ok")
-		}
-		if len(managedPolicyAttachments.ARNs) > 0 {
-			ui.Spinf("attaching AWS-managed policies to the %s role in %s", *roleName, account)
-			for _, arn := range managedPolicyAttachments.ARNs {
-				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, arn))
+		// Attach policies to selected accounts. If this account is an admin
+		// account, only attach policies if -admin was given. If this account
+		// is not an admin account, attach them without further conditions.
+		// This complication is because -humans implies that roles must exist
+		// in admin accounts but not that they should have all the same
+		// permissions in admin accounts that they have elsewhere.
+		if isAdminAccount := account.Tags[tagging.Domain] == naming.Admin; isAdminAccount && selection.Admin || !isAdminAccount {
+			if managedPolicyAttachments.AdministratorAccess {
+				ui.Spinf("attaching the AdministratorAccess policy to the %s role in %s", *roleName, account)
+				ui.Must(awsiam.AttachRolePolicy(
+					ctx,
+					accountCfg,
+					*roleName,
+					"arn:aws:iam::aws:policy/AdministratorAccess",
+				))
+				ui.Stopf("ok")
 			}
-			ui.Stopf("ok")
-		}
-		if len(managedPolicyAttachments.Filenames) > 0 {
-			ui.Spinf("merging custom policies into the %s role in %s", *roleName, account)
-			policy := minimalPolicy
-			for _, filename := range managedPolicyAttachments.Filenames {
-				var filePolicy policies.Document
-				ui.Must(jsonutil.Read(filename, &filePolicy))
-				policy = policies.Merge(policy, &filePolicy)
+			if managedPolicyAttachments.ReadOnlyAccess {
+				ui.Spinf("attaching the ReadOnlyAccess policy to the %s role in %s", *roleName, account)
+				ui.Must(awsiam.AttachRolePolicy(
+					ctx,
+					accountCfg,
+					*roleName,
+					"arn:aws:iam::aws:policy/ReadOnlyAccess",
+				))
+				ui.Stopf("ok")
 			}
-			ui.Must(awsiam.PutRolePolicy(ctx, accountCfg, *roleName, awsiam.SubstrateManaged, policy))
-			ui.Stopf("ok")
+			if len(managedPolicyAttachments.ARNs) > 0 {
+				ui.Spinf("attaching AWS-managed policies to the %s role in %s", *roleName, account)
+				for _, arn := range managedPolicyAttachments.ARNs {
+					ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, arn))
+				}
+				ui.Stopf("ok")
+			}
+			if len(managedPolicyAttachments.Filenames) > 0 {
+				ui.Spinf("merging custom policies into the %s role in %s", *roleName, account)
+				policy := minimalPolicy
+				for _, filename := range managedPolicyAttachments.Filenames {
+					var filePolicy policies.Document
+					ui.Must(jsonutil.Read(filename, &filePolicy))
+					policy = policies.Merge(policy, &filePolicy)
+				}
+				ui.Must(awsiam.PutRolePolicy(ctx, accountCfg, *roleName, awsiam.SubstrateManaged, policy))
+				ui.Stopf("ok")
+			}
 		}
 
 	}
