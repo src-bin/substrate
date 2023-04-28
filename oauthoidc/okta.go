@@ -45,9 +45,8 @@ func (t *OktaAccessToken) Verify(c *Client) error {
 	return nil
 }
 
-func OktaPathQualifier(hostname, authServerId string) PathQualifier {
+func OktaPathQualifier(hostname string) PathQualifier {
 	// TODO dynamically construct this function based on <https://${yourOktaDomain}/.well-known/openid-configuration>
-	// or <https://${yourOktaDomain}/oauth2/${authServerId}/.well-known/openid-configuration>
 	// per <https://developer.okta.com/docs/reference/api/oidc/>
 	return func(p UnqualifiedPath) *url.URL {
 		u := &url.URL{
@@ -55,9 +54,9 @@ func OktaPathQualifier(hostname, authServerId string) PathQualifier {
 			Host:   hostname,
 		}
 		if p == Issuer {
-			u.Path = path.Join("/oauth2", authServerId)
+			u.Path = ""
 		} else {
-			u.Path = path.Join("/oauth2", authServerId, "v1", string(p))
+			u.Path = path.Join("/oauth2", "v1", string(p))
 		}
 		return u
 	}

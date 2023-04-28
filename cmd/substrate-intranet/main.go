@@ -51,7 +51,7 @@ func main() {
 	case oauthoidc.Google:
 		pathQualifier = oauthoidc.GooglePathQualifier()
 	case oauthoidc.Okta:
-		pathQualifier = oauthoidc.OktaPathQualifier(os.Getenv(oauthoidc.OktaHostname), "default")
+		pathQualifier = oauthoidc.OktaPathQualifier(os.Getenv(oauthoidc.OktaHostname))
 	}
 	oc, err := oauthoidc.NewClient(
 		ctx,

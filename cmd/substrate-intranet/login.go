@@ -143,6 +143,9 @@ func loginHandler(
 			q.Add("hd", hd.Value)
 		}
 	}
+	if oc.IsOkta() {
+		scope += " okta.users.read.self"
+	}
 	q.Add("scope", scope)
 	state = &oauthoidc.State{
 		Next:  event.QueryStringParameters["next"],
