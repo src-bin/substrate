@@ -35,6 +35,12 @@ func GooglePathQualifier() PathQualifier {
 				Host:   "oauth2.googleapis.com",
 				Path:   "/token",
 			}
+		case User:
+			return &url.URL{
+				Scheme: "https",
+				Host:   "admin.googleapis.com",
+				Path:   "/admin/directory/v1/users", // append a '/' and an email address
+			}
 		}
 		panic("unreachable")
 	}
@@ -51,11 +57,9 @@ func roleNameFromGoogleIdP(c *Client, user string) (string, error) {
 		PrimaryEmail string `json:"primaryEmail"`
 		// lots of other fields that aren't relevant
 	}
-	_, _, err := c.GetURL(&url.URL{
-		Scheme: "https",
-		Host:   "admin.googleapis.com",
-		Path:   path.Join("/admin/directory/v1/users", user),
-	}, url.Values{
+	u := c.pathQualifier(User)
+	u.Path = path.Join(u.Path, user)
+	_, _, err := c.GetURL(u, url.Values{
 		"projection": {"full"},
 		"viewType":   {"domain_public"}, // doesn't appear to be necessary but I'm scared to remove it because other folks' Google could be different
 	}, &body)

@@ -231,6 +231,7 @@ const (
 	Issuer    UnqualifiedPath = "issuer"
 	Keys      UnqualifiedPath = "keys"
 	Token     UnqualifiedPath = "token"
+	User      UnqualifiedPath = "user" // not exactly ".well-known" but we need it from all providers
 )
 
 func unmarshalJSON(

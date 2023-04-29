@@ -53,10 +53,15 @@ func OktaPathQualifier(hostname string) PathQualifier {
 			Scheme: "https",
 			Host:   hostname,
 		}
-		if p == Issuer {
-			u.Path = ""
-		} else {
+		switch p {
+		case Authorize, Keys, Token:
 			u.Path = path.Join("/oauth2", "v1", string(p))
+		case Issuer:
+			u.Path = ""
+		case User:
+			u.Path = "/api/v1/users/me"
+		default:
+			panic("unreachable")
 		}
 		return u
 	}

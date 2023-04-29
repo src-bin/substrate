@@ -27,6 +27,9 @@ func AzureADPathQualifier(tenantId string) PathQualifier {
 			u.Path = path.Join(u.Path, "discovery/v2.0/keys")
 		case Token:
 			u.Path = path.Join(u.Path, "oauth2/v2.0/token")
+		case User:
+			u.Host = "graph.microsoft.com"
+			u.Path = "/beta/me"
 		default:
 			panic("unreachable")
 		}
