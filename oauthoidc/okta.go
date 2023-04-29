@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/url"
 	"path"
-
-	"github.com/src-bin/substrate/roles"
 )
 
 const (
@@ -68,5 +66,19 @@ func OktaPathQualifier(hostname string) PathQualifier {
 }
 
 func roleNameFromOktaIdP(c *Client, user string) (string, error) {
-	return roles.Administrator, nil // TODO fetch from Okta or the ID token
+	var body struct {
+		Profile struct {
+			RoleName string `json:"AWS_RoleName"`
+		} `json:"profile"`
+		// lots of other fields that aren't relevant
+	}
+	_, _, err := c.Get(User, url.Values{}, &body)
+	if err != nil {
+		return "", err
+	}
+	//log.Printf("%+v", body)
+	if body.Profile.RoleName != "" {
+		return body.Profile.RoleName, nil
+	}
+	return "", UndefinedRoleError(user)
 }
