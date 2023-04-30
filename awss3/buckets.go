@@ -15,10 +15,11 @@ import (
 )
 
 const (
-	AllAccessDisabled       = "AllAccessDisabled"
-	BucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
-	Enabled                 = "Enabled"
-	NotSignedUp             = "NotSignedUp"
+	AccessControlListNotSupported = "AccessControlListNotSupported"
+	AllAccessDisabled             = "AllAccessDisabled"
+	BucketAlreadyOwnedByYou       = "BucketAlreadyOwnedByYou"
+	Enabled                       = "Enabled"
+	NotSignedUp                   = "NotSignedUp"
 )
 
 func EnsureBucket(
@@ -55,6 +56,10 @@ func EnsureBucket(
 			ACL:    types.BucketCannedACLPrivate, // the default but let's be explicit
 			Bucket: aws.String(name),
 		})
+		if awsutil.ErrorCodeIs(err, AccessControlListNotSupported) {
+			err = nil
+			break
+		}
 		if !awsutil.ErrorCodeIs(err, AllAccessDisabled) {
 			break
 		}
