@@ -90,6 +90,10 @@ func (e Effect) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("%#v", e)), nil
 }
 
+func (e Effect) String() string {
+	return string(e)
+}
+
 type Principal struct {
 	AWS       jsonutil.StringSlice `json:",omitempty"`
 	Federated jsonutil.StringSlice `json:",omitempty"`

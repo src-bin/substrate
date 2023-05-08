@@ -76,7 +76,7 @@ func authorizer(
 			PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
 				Statement: []events.IAMPolicyStatement{{
 					Action:   []string{"execute-api:Invoke"},
-					Effect:   string(effect),
+					Effect:   effect.String(),
 					Resource: []string{event.MethodArn},
 				}},
 				Version: "2012-10-17",

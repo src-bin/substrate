@@ -110,7 +110,7 @@ func (c *Client) IsOkta() bool { return c.provider == Okta }
 // memoizing the response for the rest of this process's lifetime.
 // Google's Cache-Control header suggests they rotate keys every few hours;
 // Okta's suggests they rotate keys about every two months. This client is
-// 's expected to run in Lambda so it seems safe to not invalidate.
+// expected to run in Lambda so it seems safe to not invalidate.
 func (c *Client) Keys() ([]*Key, error) {
 	if c.memoizedKeys != nil {
 		return c.memoizedKeys, nil
