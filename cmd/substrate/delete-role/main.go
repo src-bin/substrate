@@ -9,6 +9,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
@@ -38,11 +39,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	allAccounts, err := awsorgs.ListAccounts(ctx, cfg)
 	ui.Must(err)
+	var found bool
 	for _, account := range allAccounts {
 		if account.Tags[tagging.SubstrateSpecialAccount] == naming.Audit {
 			continue
 		}
-		ui.Must(awsiam.DeleteRoleWithConfirmation(
+		err := awsiam.DeleteRoleWithConfirmation(
 			ctx,
 			awscfg.Must(account.Config(
 				ctx,
@@ -52,6 +54,18 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			)),
 			*roleName,
 			*force,
-		))
+		)
+		if err == nil {
+			found = true
+		} else if !awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+			ui.Fatal(err)
+		}
 	}
+
+	// Print a warning if we did not delete _any_ roles as this might mean
+	// the user misspelled the role's name.
+	if !found {
+		ui.Printf("did not find any roles named %q", roleName)
+	}
+
 }

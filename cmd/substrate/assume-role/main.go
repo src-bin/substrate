@@ -86,7 +86,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// TODO THE REASON THIS DOESN'T WORK is that it bundles a janky same-account-only AssumeRole; we need to pass it accountId, too, and have it replace the call below
 	/*
 		ui.Spin("minting temporary credentials that last 12 hours")
-		creds, err := awsiam.AllDayCredentials(ctx, cfg, currentRoleName)
+		creds, err := awsiam.AllDayCredentials(ctx, cfg, aws.ToString(callerIdentity.Account), currentRoleName)
 		if err != nil {
 			ui.Fatal(err)
 		}

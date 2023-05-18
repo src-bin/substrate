@@ -27,11 +27,7 @@ const (
 	CredentialFactoryAccessKey = "CredentialFactoryAccessKey"
 )
 
-func AllDayCredentials(
-	ctx context.Context,
-	cfg *awscfg.Config,
-	roleName string,
-) (creds aws.Credentials, err error) {
+func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Config, err error) {
 	var accessKey *types.AccessKey
 	for i := 0; i < CreateAccessKeyTriesTotal; i++ {
 		var secret string
@@ -111,28 +107,39 @@ func AllDayCredentials(
 	// Make a copy of the AWS SDK config that we're going to use to bounce
 	// through user/CredentialFactory in order to get 12-hour credentials so
 	// that we don't ruin cfg for whatever else we might want to do with it.
-	cfg12h := cfg.Copy()
+	cfg12h = cfg.Copy()
 
-	callerIdentity, err := cfg12h.SetCredentials(ctx, aws.Credentials{
+	_, err = cfg12h.SetCredentials(ctx, aws.Credentials{
 		AccessKeyID:     aws.ToString(accessKey.AccessKeyId),
 		SecretAccessKey: aws.ToString(accessKey.SecretAccessKey),
 	})
 	if err != nil {
 		ui.PrintWithCaller(err)
+		cfg12h = nil
+	}
+
+	return
+}
+
+func AllDayCredentials(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	accountId, roleName string,
+) (creds aws.Credentials, err error) {
+	var cfg12h *awscfg.Config
+
+	if cfg12h, err = AllDayConfig(ctx, cfg); err != nil {
 		return
 	}
-	//log.Print(jsonutil.MustOneLineString(callerIdentity))
-	cfg12h, err = cfg12h.AssumeRole(
+
+	if cfg12h, err = cfg12h.AssumeRole(
 		ctx,
-		aws.ToString(callerIdentity.Account), // TODO this AssumeRole and, in particular, this hardcoded accountId, make it hard to reuse AllDayCredentials in other contexts; consider removing this AssumeRole and having AllDayCredentials return cfg12h for callers to then use to call AssumeRole themselves; this will make it useful for `substrate assume-role -console`, /accounts, etc. just as much as /credential-factory
+		accountId,
 		roleName,
 		12*time.Hour,
-	)
-	if err != nil {
-		ui.PrintWithCaller(err)
+	); err != nil {
 		return
 	}
-	//log.Print(jsonutil.MustOneLineString(cfg12h.MustGetCallerIdentity(ctx)))
 
 	return cfg12h.Retrieve(ctx)
 }

@@ -115,9 +115,7 @@ func DeleteRoleWithConfirmation(
 	// If there's no role to delete, don't bother confirming and don't
 	// bother printing any progress indication.
 	role, err := GetRole(ctx, cfg, roleName)
-	if awsutil.ErrorCodeIs(err, NoSuchEntity) {
-		return nil
-	} else if err != nil {
+	if err != nil {
 		return err
 	}
 

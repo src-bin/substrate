@@ -80,10 +80,14 @@ func credentialFactoryHandler(
 	oc *oauthoidc.Client,
 	event *events.APIGatewayProxyRequest,
 ) (*events.APIGatewayProxyResponse, error) {
-
+	accountId, err := cfg.AccountId(ctx)
+	if err != nil {
+		return lambdautil.ErrorResponse(err)
+	}
 	creds, err := awsiam.AllDayCredentials(
 		ctx,
 		cfg,
+		accountId,
 		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 	)
 	if err != nil {
@@ -218,6 +222,10 @@ func credentialFactoryFetchHandler(
 	}
 	//log.Printf("deleted tag key %s with value %s", TagKeyPrefix+token, tagValue)
 
+	accountId, err := cfg.AccountId(ctx)
+	if err != nil {
+		return lambdautil.ErrorResponse(err)
+	}
 	creds, err := awsiam.AllDayCredentials(
 
 		// Since this API is unauthenticated, at least in the typical way, we
@@ -226,6 +234,7 @@ func credentialFactoryFetchHandler(
 		context.WithValue(ctx, "Username", tagValue.PrincipalId),
 
 		cfg,
+		accountId,
 		tagValue.RoleName,
 	)
 	if err != nil {
