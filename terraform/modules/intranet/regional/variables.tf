@@ -20,6 +20,10 @@ variable "okta_hostname" {
   type    = string
 }
 
+variable "prefix" {
+  type = string
+}
+
 variable "selected_regions" {
   type = list(string)
 }

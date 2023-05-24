@@ -358,6 +358,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			"dns_domain_name":                    terraform.Q(dnsDomainName),
 			"oauth_oidc_client_id":               terraform.Q(clientId),
 			"oauth_oidc_client_secret_timestamp": terraform.Q(clientSecretTimestamp),
+			"prefix":                             terraform.Q(naming.Prefix()),
 			"selected_regions":                   terraform.QSlice(regions.Selected()),
 			"stage_name":                         terraform.Q(*quality),
 		}

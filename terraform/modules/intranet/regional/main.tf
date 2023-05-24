@@ -43,6 +43,7 @@ module "intranet-apigateway-authorizer" {
     "OAUTH_OIDC_CLIENT_SECRET_TIMESTAMP" = var.oauth_oidc_client_secret_timestamp
     "OKTA_HOSTNAME"                      = var.okta_hostname
     "SELECTED_REGIONS"                   = join(",", var.selected_regions)
+    "SUBSTRATE_PREFIX"                   = var.prefix
   }
   filename         = local.filename
   name             = "IntranetAPIGatewayAuthorizer"
@@ -59,6 +60,7 @@ module "intranet" {
     "OAUTH_OIDC_CLIENT_SECRET_TIMESTAMP" = var.oauth_oidc_client_secret_timestamp
     "OKTA_HOSTNAME"                      = var.okta_hostname
     "SELECTED_REGIONS"                   = join(",", var.selected_regions)
+    "SUBSTRATE_PREFIX"                   = var.prefix
   }
   filename         = local.filename
   name             = "Intranet"
@@ -222,6 +224,17 @@ resource "aws_api_gateway_integration" "GET-js-accounts" {
   uri                     = module.intranet.invoke_arn
 }
 
+resource "aws_api_gateway_integration" "GET-substrate" {
+  credentials             = data.aws_iam_role.apigateway.arn
+  http_method             = aws_api_gateway_method.GET-substrate.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.substrate.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.intranet.invoke_arn
+}
+
 resource "aws_api_gateway_integration" "POST-instance-factory" {
   credentials             = data.aws_iam_role.apigateway.arn
   http_method             = aws_api_gateway_method.POST-instance-factory.http_method
@@ -306,6 +319,14 @@ resource "aws_api_gateway_method" "GET-js-accounts" {
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
 }
 
+resource "aws_api_gateway_method" "GET-substrate" {
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
+  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.substrate.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
 resource "aws_api_gateway_method" "POST-instance-factory" {
   authorization = "CUSTOM"
   authorizer_id = aws_api_gateway_authorizer.substrate.id
@@ -371,6 +392,12 @@ resource "aws_api_gateway_resource" "js" {
 resource "aws_api_gateway_resource" "js-accounts" {
   parent_id   = aws_api_gateway_resource.js.id
   path_part   = "accounts.js"
+  rest_api_id = aws_api_gateway_rest_api.intranet.id
+}
+
+resource "aws_api_gateway_resource" "substrate" {
+  parent_id   = aws_api_gateway_rest_api.intranet.root_resource_id
+  path_part   = "substrate"
   rest_api_id = aws_api_gateway_rest_api.intranet.id
 }
 

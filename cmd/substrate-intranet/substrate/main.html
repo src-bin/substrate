@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Substrate</title>
+<body>
+{{template "nav"}}
+<h1>Substrate</h1>
+{{- if .UpgradeVersion}}
+<p>You're running Substrate {{.Version}} which is out of date. Substrate {{.UpgradeVersion}} is the next version.</p>
+<p>Run <code>substrate upgrade</code> or download the appropriate tarball to upgrade locally, then run <code>substrate create-admin-account</code> to upgrade your Intranet.</p>
+{{- else}}
+<p>You're running Substrate {{.Version}}, which is the latest version.</p>
+{{- end}}
+<p>Download Substrate:</p>
+<ul>
+{{- range .DownloadURLs}}
+    <li><a href="{{.}}">{{.}}</a></li>
+{{- end}}
+</ul>
+</body>
+</html>
