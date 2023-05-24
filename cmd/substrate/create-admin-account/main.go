@@ -448,7 +448,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// Use API Gateway v2, Lambda, etc. to construct the Intranet. This one's
 	// better than the original that was implemented in Terraform because it
 	// ends up being a lot easier for folks to extend.
-	ui.Must(ensureIntranet(ctx, adminCfg, dnsDomainName, clientId, clientSecret, hostname, tenantId))
+	//ui.Must(ensureIntranet(ctx, adminCfg, dnsDomainName, clientId, clientSecret, hostname, tenantId))
 
 	// Google asks GSuite admins to set custom attributes user by user.  Help
 	// these poor souls out by at least telling them exactly what value to set.
