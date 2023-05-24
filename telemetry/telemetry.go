@@ -95,19 +95,21 @@ func (e *Event) Post(ctx context.Context) error {
 		e.once.Do(func() { close(e.wait) })
 	}()
 
-	// Try to find substrate.telemetry but silently move along without posting
-	// telemetry if we can't find it, can't read it, or (of course) if it tells
-	// us NOT to post telemetry.
-	pathname, err := fileutil.PathnameInParents(Filename)
-	if err != nil {
-		return nil // don't post telemetry if we can't find the file
-	}
-	yesno, err := fileutil.ReadFile(pathname)
-	if err != nil {
-		return nil // don't post telemetry if we can't read the file
-	}
-	if strings.ToLower(strings.Trim(string(yesno), "\r\n")) != "yes" {
-		return nil // don't post telemetry without an explicit "yes"
+	// If this is not a trial build, try to find substrate.telemetry but
+	// silently move along without posting telemetry if we can't find it,
+	// can't read it, or (of course) if it tells us NOT to post telemetry.
+	if !version.IsTrial() {
+		pathname, err := fileutil.PathnameInParents(Filename)
+		if err != nil {
+			return nil // don't post telemetry if we can't find the file
+		}
+		yesno, err := fileutil.ReadFile(pathname)
+		if err != nil {
+			return nil // don't post telemetry if we can't read the file
+		}
+		if strings.ToLower(strings.Trim(string(yesno), "\r\n")) != "yes" {
+			return nil // don't post telemetry without an explicit "yes"
+		}
 	}
 
 	b := &bytes.Buffer{}

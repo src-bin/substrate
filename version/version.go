@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+const TrialCommit = "trial" // sentinel value for Commit
+
 func Flag() {
 	if !flag.Parsed() {
 		panic("version.Flag must be called after flag.Parse")
@@ -14,6 +16,10 @@ func Flag() {
 		Print()
 		os.Exit(0)
 	}
+}
+
+func IsTrial() bool {
+	return Commit == TrialCommit
 }
 
 func Print() {

@@ -50,14 +50,18 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	prefix := naming.Prefix()
 	region := regions.Default()
 
-	_, err := ui.ConfirmFile(
-		telemetry.Filename,
-		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.src-bin.com/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
-	)
-	ui.Must(err)
+	if version.IsTrial() {
+		ui.Print("since this is a trial version of Substrate, it will post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.src-bin.com/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used")
+	} else {
+		_, err := ui.ConfirmFile(
+			telemetry.Filename,
+			"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.src-bin.com/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
+		)
+		ui.Must(err)
+	}
 
-	if _, err = cfg.GetCallerIdentity(ctx); err != nil {
-		if _, err = cfg.SetRootCredentials(ctx); err != nil {
+	if _, err := cfg.GetCallerIdentity(ctx); err != nil {
+		if _, err := cfg.SetRootCredentials(ctx); err != nil {
 			ui.Fatal(err)
 		}
 	}
