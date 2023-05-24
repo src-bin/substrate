@@ -5,22 +5,17 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
-	"strings"
 
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
-	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
+	"github.com/src-bin/substrate/versionutil"
 )
-
-var Domain = "src-bin.com" // change to "src-bin.org" to test in staging or control it in the Makefile if you want to get fancy
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	no := flag.Bool("no", false, `answer "no" when offered an upgrade; exits 1 if there was an upgrade available`)
@@ -35,43 +30,23 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// about to print the prefix make more sense. Then print the URL we'll
 	// fetch to see if there's an upgrade available.
 	version.Print()
-	fromVersion := fmt.Sprintf("%s-%s", version.Version, version.Commit)
-	u := &url.URL{
-		Scheme: "https",
-		Host:   Domain,
-		Path: fmt.Sprintf(
-			"/substrate/upgrade/%s/%s",
-			fromVersion,
-			naming.Prefix(),
-		),
-	}
-	ui.Printf("checking <%s> to see if there's a Substrate upgrade available", u.String())
+	ui.Printf(
+		"checking <%s> to see if there's a Substrate upgrade available",
+		versionutil.UpgradeURL(),
+	)
 
 	// Fetch the upgrade URL to see if there's an upgrade available from this
 	// version for this customer. Exit 0 if there's not.
-	resp, err := http.Get(u.String())
+	v, ok, err := versionutil.CheckForUpgrade()
 	ui.Must(err)
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if !ok {
 		ui.Print("there's no Substrate upgrade available yet")
 		return
 	}
-	body, err := io.ReadAll(resp.Body)
-	ui.Must(err)
-	toVersion := strings.TrimSpace(string(body))
 
 	// Construct the download URL.
-	u = &url.URL{
-		Scheme: "https",
-		Host:   Domain,
-		Path: fmt.Sprintf(
-			"/substrate-%s-%s-%s.tar.gz",
-			toVersion,
-			runtime.GOOS,
-			runtime.GOARCH,
-		),
-	}
-	ui.Printf("there's a Substrate upgrade available at <%s>", u.String())
+	u := versionutil.DownloadURL(v, runtime.GOOS, runtime.GOARCH)
+	ui.Printf("there's a Substrate upgrade available at <%s>", u)
 
 	// Exit 1 when there's an upgrade available and either the -no option was
 	// given or the user answers "no" to the prompt.
@@ -80,7 +55,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		os.Exit(1)
 	}
 	if !*yes {
-		if ok, err := ui.Confirmf("upgrade to Substrate %s? (yes/no)", toVersion); err != nil {
+		if ok, err := ui.Confirmf("upgrade to Substrate %s? (yes/no)", v); err != nil {
 			ui.Fatal(err)
 		} else if !ok {
 			ui.Print("not upgrading Substrate") // not ui.Fatal to suppress the stack trace
@@ -97,9 +72,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Spinf("downloading <%s>", u.String())
 	pathname, err := fileutil.Download(u, fmt.Sprintf(
 		"substrate-%s-%s-%s-*.tar.gz",
-		toVersion,
-		runtime.GOOS,
-		runtime.GOARCH,
+		v, runtime.GOOS, runtime.GOARCH,
 	))
 	ui.Must(err)
 	defer os.Remove(pathname)
@@ -116,9 +89,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		"-x",
 		fmt.Sprintf(
 			"substrate-%s-%s-%s/bin/substrate",
-			toVersion,
-			runtime.GOOS,
-			runtime.GOARCH,
+			v, runtime.GOOS, runtime.GOARCH,
 		),
 	)
 	cmd.Stdin = os.Stdin
@@ -127,5 +98,5 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(cmd.Run())
 	ui.Stop("ok")
 
-	ui.Printf("upgraded Substrate to %s", toVersion)
+	ui.Printf("upgraded Substrate to %s", v)
 }
