@@ -139,7 +139,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				case "all-domains":
 					selection.AllDomains = true
 				case "domain":
-					selection.Domains = append(selection.Domains, account.Tags[tagging.Domain])
+					domain := account.Tags[tagging.Domain]
+					if naming.Index(selection.Domains, domain) < 0 {
+						selection.Domains = append(selection.Domains, domain)
+					}
 				case "all-environments":
 					selection.AllEnvironments = true
 				case "environment":
@@ -161,9 +164,15 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				case "management":
 					selection.Management = true
 				case "special":
-					selection.Specials = append(selection.Specials, account.Tags[tagging.SubstrateSpecialAccount])
+					special := account.Tags[tagging.SubstrateSpecialAccount]
+					if naming.Index(selection.Specials, special) < 0 {
+						selection.Specials = append(selection.Specials, special)
+					}
 				case "number":
-					selection.Numbers = append(selection.Numbers, aws.ToString(account.Id))
+					number := aws.ToString(account.Id)
+					if naming.Index(selection.Numbers, number) < 0 {
+						selection.Numbers = append(selection.Numbers, number)
+					}
 				default:
 					ui.Printf("unknown account selector %q", selector)
 				}
