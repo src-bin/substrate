@@ -100,7 +100,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if len(unselected) > 0 {
 		ui.Printf("finding Substrate-managed %s roles that should now be deleted according to these account selection flags", *roleName)
 		for _, account := range unselected {
-			ui.Must(awsiam.DeleteRoleWithConfirmation(
+			if err := awsiam.DeleteRoleWithConfirmation(
 				ctx,
 				awscfg.Must(account.Config(
 					ctx,
@@ -110,7 +110,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				)),
 				*roleName,
 				false, // always confirm these probably surprising deletes
-			))
+			); err != nil && !awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+				ui.Fatal(err)
+			}
 		}
 	}
 

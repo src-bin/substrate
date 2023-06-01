@@ -44,7 +44,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		if account.Tags[tagging.SubstrateSpecialAccount] == naming.Audit {
 			continue
 		}
-		err := awsiam.DeleteRoleWithConfirmation(
+		if err := awsiam.DeleteRoleWithConfirmation(
 			ctx,
 			awscfg.Must(account.Config(
 				ctx,
@@ -54,8 +54,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			)),
 			*roleName,
 			*force,
-		)
-		if err == nil {
+		); err == nil {
 			found = true
 		} else if !awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
 			ui.Fatal(err)
