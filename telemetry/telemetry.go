@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,6 +32,36 @@ const Filename = "substrate.telemetry"
 // The actual value is set at build time.
 var Endpoint = ""
 
+// Enabled returns true if telemetry is enabled and false otherwise. It might
+// be enabled because this is a trial build, in which telemetry can't be
+// turned off. Under normal/paid builds, we check an environment variable and
+// file, requiring that it be affirmatively enabled.
+func Enabled() bool {
+	if version.IsTrial() {
+		return true
+	}
+
+	if yesno := os.Getenv("SUBSTRATE_TELEMETRY"); yesno == "yes" {
+		return true
+	} else if yesno == "no" {
+		return false
+	}
+
+	pathname, err := fileutil.PathnameInParents(Filename)
+	if err != nil {
+		return false // don't post telemetry if we can't find the file
+	}
+	yesno, err := fileutil.ReadFile(pathname)
+	if err != nil {
+		return false // don't post telemetry if we can't read the file
+	}
+	if strings.ToLower(strings.Trim(string(yesno), "\r\n")) != "yes" {
+		return false // don't post telemetry without an explicit "yes"
+	}
+
+	return true
+}
+
 type Event struct {
 	Command, Subcommand              string // e.g. "substrate" and "assume-role" or "substrate-intranet" and "InstanceFactory"
 	Version                          string
@@ -44,6 +75,10 @@ type Event struct {
 	once                             sync.Once     `json:"-"`
 	post                             int32         `json:"-"` // for compare-and-swap
 	wait                             chan struct{} `json:"-"`
+}
+
+func NewEmptyEvent() *Event {
+	return &Event{wait: make(chan struct{})}
 }
 
 func NewEvent(ctx context.Context) (*Event, error) {
@@ -75,7 +110,7 @@ func NewEvent(ctx context.Context) (*Event, error) {
 }
 
 func (e *Event) Post(ctx context.Context) error {
-	if e == nil || Endpoint == "" {
+	if e == nil || endpoint(ctx) == "" {
 		return nil
 	}
 
@@ -95,21 +130,15 @@ func (e *Event) Post(ctx context.Context) error {
 		e.once.Do(func() { close(e.wait) })
 	}()
 
-	// If this is not a trial build, try to find substrate.telemetry but
-	// silently move along without posting telemetry if we can't find it,
-	// can't read it, or (of course) if it tells us NOT to post telemetry.
-	if !version.IsTrial() {
-		pathname, err := fileutil.PathnameInParents(Filename)
-		if err != nil {
-			return nil // don't post telemetry if we can't find the file
-		}
-		yesno, err := fileutil.ReadFile(pathname)
-		if err != nil {
-			return nil // don't post telemetry if we can't read the file
-		}
-		if strings.ToLower(strings.Trim(string(yesno), "\r\n")) != "yes" {
-			return nil // don't post telemetry without an explicit "yes"
-		}
+	if !Enabled() {
+		return nil
+	}
+
+	if e.Command == "" {
+		e.Command = contextutil.ValueString(ctx, contextutil.Command)
+	}
+	if e.Subcommand == "" {
+		e.Subcommand = contextutil.ValueString(ctx, contextutil.Subcommand)
 	}
 
 	b := &bytes.Buffer{}
@@ -117,7 +146,7 @@ func (e *Event) Post(ctx context.Context) error {
 		return err
 	}
 	ctx, _ = context.WithTimeout(ctx, time.Second)
-	req, err := http.NewRequestWithContext(ctx, "POST", Endpoint, b)
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint(ctx), b)
 	if err != nil {
 		return err
 	}
@@ -166,7 +195,7 @@ func (e *Event) SetFinalRoleName(roleArn string) (err error) {
 }
 
 func (e *Event) Wait(ctx context.Context) error {
-	if e == nil || Endpoint == "" {
+	if e == nil || endpoint(ctx) == "" {
 		return nil
 	}
 
@@ -176,6 +205,16 @@ func (e *Event) Wait(ctx context.Context) error {
 	case <-e.wait:
 	}
 	return nil
+}
+
+func endpoint(ctx context.Context) string {
+	endpoint := Endpoint
+	/*
+		if contextutil.IsIntranet(ctx) {
+			endpoint = fmt.Sprintf("https://%s/audit", intranetDNSDomainName) // TODO
+		}
+	*/
+	return endpoint
 }
 
 func prefix() string {

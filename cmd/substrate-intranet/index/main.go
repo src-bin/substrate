@@ -22,6 +22,7 @@ import (
 // index. There are also patterns that are made unlisted below.
 var unlistedPaths = []string{
 	"/",
+	"/audit", // TODO make it skip paths that don't respond to GET requests instead of having to enumerate this
 	"/credential-factory/authorize",
 	"/credential-factory/fetch",
 	"/favicon.ico",

@@ -86,19 +86,7 @@ func main() {
 	ui.Must(cmdutil.Chdir())
 	u, err := user.Current()
 	ui.Must(err)
-	ctx := context.WithValue(
-		context.WithValue(
-			context.WithValue(
-				context.Background(),
-				contextutil.Command,
-				"substrate",
-			),
-			contextutil.Subcommand,
-			subcommand,
-		),
-		contextutil.Username,
-		u.Username,
-	)
+	ctx := contextutil.WithValues(context.Background(), "substrate", subcommand, u.Username)
 	cfg, err := awscfg.NewConfig(ctx)
 	ui.Must(err)
 	f(ctx, cfg, os.Stdout)

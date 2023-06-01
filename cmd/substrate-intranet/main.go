@@ -36,7 +36,7 @@ func main() {
 	)
 	functionName := os.Getenv(varName)
 
-	ctx := contextutil.WithValues(context.Background(), "substrate-intranet", "init", "")
+	ctx := contextutil.WithValues(context.Background(), "substrate-intranet", "", "")
 
 	cfg, err := awscfg.NewConfig(ctx)
 	if err != nil {
@@ -76,7 +76,12 @@ func main() {
 				fmt.Sprint(event.RequestContext.Authorizer[authorizerutil.PrincipalId]),
 			)
 
-			defer func() { go cfg.Telemetry().Post(ctx) }()
+			// Send telemetry to Source & Binary (if enabled) for every
+			// endpoint except /audit since part of its function is to
+			// forward events to Source & Binary (if enabled).
+			if event.Path != "/audit" {
+				defer func() { go cfg.Telemetry().Post(ctx) }()
+			}
 
 			// New-style dispatch to handlers in their own packages.
 			k := strings.SplitN(event.Path, "/", 3)[1]

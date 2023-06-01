@@ -31,3 +31,7 @@ variable "selected_regions" {
 variable "stage_name" {
   type = string
 }
+
+variable "telemetry" {
+  type = bool
+}

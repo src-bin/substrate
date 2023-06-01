@@ -92,6 +92,10 @@ func (q quotedString) Value() string {
 
 type unquotedString string
 
+func Bool(v bool) Value { return unquotedString(fmt.Sprintf("%t", v)) }
+func False() Value      { return Bool(false) }
+func True() Value       { return Bool(true) }
+
 func U(args ...interface{}) Value {
 	return unquotedString(fmt.Sprint(rawValues(args...)...))
 }

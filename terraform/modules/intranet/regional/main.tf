@@ -44,6 +44,7 @@ module "intranet-apigateway-authorizer" {
     "OKTA_HOSTNAME"                      = var.okta_hostname
     "SELECTED_REGIONS"                   = join(",", var.selected_regions)
     "SUBSTRATE_PREFIX"                   = var.prefix
+    "SUBSTRATE_TELEMETRY"                = var.telemetry ? "yes" : "no"
   }
   filename         = local.filename
   name             = "IntranetAPIGatewayAuthorizer"
@@ -61,6 +62,7 @@ module "intranet" {
     "OKTA_HOSTNAME"                      = var.okta_hostname
     "SELECTED_REGIONS"                   = join(",", var.selected_regions)
     "SUBSTRATE_PREFIX"                   = var.prefix
+    "SUBSTRATE_TELEMETRY"                = var.telemetry ? "yes" : "no"
   }
   filename         = local.filename
   name             = "Intranet"
@@ -235,6 +237,17 @@ resource "aws_api_gateway_integration" "GET-substrate" {
   uri                     = module.intranet.invoke_arn
 }
 
+resource "aws_api_gateway_integration" "POST-audit" {
+  credentials             = data.aws_iam_role.apigateway.arn
+  http_method             = aws_api_gateway_method.POST-audit.http_method
+  integration_http_method = "POST"
+  passthrough_behavior    = "NEVER"
+  resource_id             = aws_api_gateway_resource.audit.id
+  rest_api_id             = aws_api_gateway_rest_api.intranet.id
+  type                    = "AWS_PROXY"
+  uri                     = module.intranet.invoke_arn
+}
+
 resource "aws_api_gateway_integration" "POST-instance-factory" {
   credentials             = data.aws_iam_role.apigateway.arn
   http_method             = aws_api_gateway_method.POST-instance-factory.http_method
@@ -327,6 +340,14 @@ resource "aws_api_gateway_method" "GET-substrate" {
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
 }
 
+resource "aws_api_gateway_method" "POST-audit" {
+  authorization = "NONE"
+  authorizer_id = aws_api_gateway_authorizer.substrate.id
+  http_method   = "POST"
+  resource_id   = aws_api_gateway_resource.audit.id
+  rest_api_id   = aws_api_gateway_rest_api.intranet.id
+}
+
 resource "aws_api_gateway_method" "POST-instance-factory" {
   authorization = "CUSTOM"
   authorizer_id = aws_api_gateway_authorizer.substrate.id
@@ -351,6 +372,12 @@ resource "aws_api_gateway_method_settings" "intranet" {
     metrics_enabled = false
   }
   stage_name = aws_api_gateway_deployment.intranet.stage_name
+}
+
+resource "aws_api_gateway_resource" "audit" {
+  parent_id   = aws_api_gateway_rest_api.intranet.root_resource_id
+  path_part   = "audit"
+  rest_api_id = aws_api_gateway_rest_api.intranet.id
 }
 
 resource "aws_api_gateway_resource" "accounts" {
