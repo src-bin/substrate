@@ -13,6 +13,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscfg/testawscfg"
 	createrole "github.com/src-bin/substrate/cmd/substrate/create-role"
+	deleterole "github.com/src-bin/substrate/cmd/substrate/delete-role"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/roles"
 )
@@ -67,8 +68,8 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 		t.Fatal(duration)
 	}
 
-	//cmdutil.OverrideArgs("-delete", "-role", roleName)
-	//deleterole.Main(ctx, cfg, os.Stdout)
+	cmdutil.OverrideArgs("-delete", "-role", roleName)
+	deleterole.Main(ctx, cfg, os.Stdout)
 }
 
 func TestAccountsConsoleDenied(t *testing.T) {
