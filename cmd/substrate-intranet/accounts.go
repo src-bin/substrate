@@ -84,8 +84,9 @@ func accountsHandler(
 		return &events.APIGatewayProxyResponse{
 			Body: fmt.Sprintf("redirecting to %s", consoleSigninURL),
 			Headers: map[string]string{
-				"Content-Type": "text/plain",
-				"Location":     consoleSigninURL,
+				"Content-Type":                   "text/plain",
+				"Location":                       consoleSigninURL,
+				"X-Substrate-Credentials-Expire": creds.Expires.Format(time.RFC3339),
 			},
 			StatusCode: http.StatusFound,
 		}, nil
