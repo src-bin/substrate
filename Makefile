@@ -3,7 +3,7 @@
 VERSION ?= $(shell git describe --exact-match --tags HEAD 2>/dev/null || date +%Y.%m.%d.%H.%M.%S)
 
 # All release tarballs are annotated with a short commit SHA and a dirty bit for the work tree.
-COMMIT := $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
+COMMIT ?= $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
 
 ifndef CODEBUILD_BUILD_ID
 ENDPOINT := https://src-bin.org/telemetry/
@@ -48,10 +48,14 @@ ifndef CODEBUILD_BUILD_ID
 	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
 	@false
 endif
-	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION)
-	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
 	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
+	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION) COMMIT=trial
+	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION)
+	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION) COMMIT=trial
 	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
+	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION) COMMIT=trial
+	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
+	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION) COMMIT=trial
 	echo $(VERSION) >substrate.version
 
 tarball:
