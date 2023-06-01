@@ -26,6 +26,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	flag.Parse()
 
+	if version.IsTrial() {
+		ui.Print("trial versions of Substrate can't be upgraded; contact <sales@src-bin.com> to purchase a license")
+		return
+	}
+
 	// Print the current version for context and to make the fact that we're
 	// about to print the prefix make more sense. Then print the URL we'll
 	// fetch to see if there's an upgrade available.
