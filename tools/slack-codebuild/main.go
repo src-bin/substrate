@@ -114,58 +114,54 @@ func main() {
 		log.Fatal(err)
 	}
 	commit := strings.Trim(string(out), "\r\n")
-	var filenames []string
+	var filenames, trialFilenames []string
 	for _, goOS := range []string{"darwin", "linux"} {
 		for _, goArch := range []string{"amd64", "arm64"} {
-			filenames = append(
-				filenames,
-				fmt.Sprintf(
-					"substrate-%s-%s-%s-%s.tar.gz",
-					version, commit, goOS, goArch,
-				),
-				fmt.Sprintf(
-					"substrate-%s-%s-%s-%s.tar.gz",
-					version, "trial", goOS, goArch,
-				),
-			)
+			filenames = append(filenames, fmt.Sprintf(
+				"substrate-%s-%s-%s-%s.tar.gz",
+				version, commit, goOS, goArch,
+			))
+			trialFilenames = append(trialFilenames, fmt.Sprintf(
+				"substrate-%s-%s-%s-%s.tar.gz",
+				version, "trial", goOS, goArch,
+			))
 		}
 	}
-	var tmpl *template.Template
+	var text string
 	if taggedRelease {
-		tmpl, err = template.New("release").Parse(
-			"Substrate {{.Version}} is out!\n" +
-				"\n" +
-				"Full release notes: https://docs.src-bin.com/substrate/releases#{{.Version}}\n" +
-				"\n" +
-				"Get it by running `substrate upgrade` or downloading the appropriate release tarball:\n" +
-				"{{range .Filenames -}}\n" +
-				"https://src-bin.com/{{.}}\n" +
+		text, err = parseAndExecuteTemplate(
+			"Substrate {{.Version}} is out!\n"+
+				"\n"+
+				"Full release notes: https://docs.src-bin.com/substrate/releases#{{.Version}}\n"+
+				"\n"+
+				"Get it by running `substrate upgrade` or downloading the appropriate release tarball:\n"+
+				"{{range .Filenames -}}\n"+
+				"https://src-bin.com/{{.}}\n"+
 				"{{end -}}\n",
+			struct {
+				Filenames []string
+				Version   string
+			}{filenames, version},
 		)
 	} else {
-		tmpl, err = template.New("release").Parse(
-			"Substrate {{.Version}} (an untagged release) built successfully\n" +
-				"\n" +
-				"Downloads:\n" +
-				"{{range .Filenames -}}\n" +
-				"https://src-bin.com/{{.}}\n" +
-				"{{end -}}\n" +
-				"\n" +
+		text, err = parseAndExecuteTemplate(
+			"Substrate {{.Version}} (an untagged release) built successfully\n"+
+				"\n"+
+				"Downloads:\n"+
+				"{{range .Filenames -}}\n"+
+				"https://src-bin.com/{{.}}\n"+
+				"{{end -}}\n"+
+				"\n"+
 				"These tarballs will be deleted on the next `make -C release clean`\n",
+			struct {
+				Filenames []string
+				Version   string
+			}{filenames, version},
 		)
 	}
 	if err != nil {
 		log.Fatal(err)
 	}
-	var b strings.Builder
-	err = tmpl.Execute(&b, struct {
-		Filenames []string
-		Version   string
-	}{filenames, version})
-	if err != nil {
-		log.Fatal(err)
-	}
-	text := b.String()
 	if !taggedRelease {
 		text += fmt.Sprintf(
 			"\n"+
@@ -175,6 +171,20 @@ func main() {
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
 			buildURL,
 		)
+	}
+	slack(text)
+	text, err = parseAndExecuteTemplate(
+		"Trial Substrate {{.Version}}:\n"+
+			"{{range .TrialFilenames -}}\n"+
+			"https://src-bin.com/{{.}}\n"+
+			"{{end -}}\n",
+		struct {
+			TrialFilenames []string
+			Version        string
+		}{trialFilenames, version},
+	)
+	if err != nil {
+		log.Fatal(err)
 	}
 	slack(text)
 
@@ -199,6 +209,18 @@ func main() {
 		slack(fmt.Sprintf("Pin the new version of Substrate for *%s*", customer))
 	}
 
+}
+
+func parseAndExecuteTemplate(t string, i interface{}) (string, error) {
+	tmpl, err := template.New("tmpl").Parse(t)
+	if err != nil {
+		return "", err
+	}
+	var b strings.Builder
+	if err := tmpl.Execute(&b, i); err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }
 
 func slack(text string) {
