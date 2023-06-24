@@ -48,6 +48,10 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 
 	cmdutil.OverrideArgs("-role", roleName, "-humans", "-special", accounts.Deploy, "-administrator-access")
 	createrole.Main(ctx, cfg, os.Stdout)
+	defer func() {
+		cmdutil.OverrideArgs("-delete", "-role", roleName)
+		deleterole.Main(ctx, cfg, os.Stdout)
+	}()
 
 	resp, err := accountsHandler(ctx, cfg, nil /* oc */, apiGatewayProxyRequest(
 		roleName, // start as TestDeveloper in the admin account
@@ -67,9 +71,6 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 	if duration := expiry.Sub(time.Now()); duration < 59*time.Minute /* 11*time.Hour */ {
 		t.Fatal(duration)
 	}
-
-	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, os.Stdout)
 }
 
 func TestAccountsConsoleDenied(t *testing.T) {
