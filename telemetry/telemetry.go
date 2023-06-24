@@ -3,6 +3,7 @@ package telemetry
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -66,7 +67,7 @@ type Event struct {
 	Command, Subcommand              string // e.g. "substrate" and "assume-role" or "substrate-intranet" and "InstanceFactory"
 	Version                          string
 	InitialAccountId, FinalAccountId string // avoid disclosing domain, environment, and quality
-	EmailDomainName                  string // avoid PII in local portion
+	EmailDomainName, EmailSHA256     string // avoid PII in local portion
 	Prefix                           string
 	InitialRoleName, FinalRoleName   string // "Administrator", "Auditor", or "Other" (avoid disclosing custom role names)
 	IsEC2                            bool
@@ -175,6 +176,10 @@ func (e *Event) SetEmailDomainName(email string) {
 		defer e.mu.Unlock()
 		e.EmailDomainName = ss[1]
 	}
+}
+
+func (e *Event) SetEmailSHA256(email string) {
+	e.EmailSHA256 = fmt.Sprintf("%x", sha256.Sum256([]byte(email)))
 }
 
 func (e *Event) SetInitialRoleName(roleArn string) (err error) {

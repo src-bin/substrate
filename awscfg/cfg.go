@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -64,6 +65,9 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 		callerIdentity, err := c.STS().GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 		if err != nil {
 			return err
+		}
+		if ss := strings.Split(aws.ToString(callerIdentity.UserId), ":"); len(ss) > 1 { // e.g. "AROASTEM43Z77S3GZP5PP:rcrowley@src-bin.com"
+			c.event.SetEmailSHA256(ss[1])
 		}
 		c.event.SetInitialAccountId(aws.ToString(callerIdentity.Account))
 		if err := c.event.SetInitialRoleName(aws.ToString(callerIdentity.Arn)); err != nil {
