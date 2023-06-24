@@ -11,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/naming"
+	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -31,6 +32,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	if *roleName == "" {
 		ui.Fatal(`-role "..." is required`)
+	}
+	if *roleName == roles.Administrator || *roleName == roles.Auditor {
+		ui.Fatalf("cannot delete %q with `substrate delete-role`", *roleName)
 	}
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier

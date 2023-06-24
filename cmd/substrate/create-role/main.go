@@ -70,6 +70,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if *roleName == "" {
 		ui.Fatal(`-role "..." is required`)
 	}
+	if *roleName == roles.Administrator || *roleName == roles.Auditor {
+		ui.Fatalf("cannot manage %q with `substrate create-role`", *roleName)
+	}
 	managedAssumeRolePolicy, err := managedAssumeRolePolicyFlags.ManagedAssumeRolePolicy()
 	ui.Must(err)
 	//log.Printf("%+v", managedAssumeRolePolicy)
