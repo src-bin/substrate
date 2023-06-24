@@ -61,12 +61,12 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 			return err
 		}
 		c.event.SetEmailDomainName(aws.ToString(describeOrganization.Organization.MasterAccountEmail))
-		getCallerIdentity, err := c.STS().GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+		callerIdentity, err := c.STS().GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 		if err != nil {
 			return err
 		}
-		c.event.SetInitialAccountId(aws.ToString(getCallerIdentity.Account))
-		if err := c.event.SetInitialRoleName(aws.ToString(getCallerIdentity.Arn)); err != nil {
+		c.event.SetInitialAccountId(aws.ToString(callerIdentity.Account))
+		if err := c.event.SetInitialRoleName(aws.ToString(callerIdentity.Arn)); err != nil {
 			return err
 		}
 		//log.Printf("%+v", c.event)
