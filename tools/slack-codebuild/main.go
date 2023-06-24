@@ -50,8 +50,8 @@ func codebuildLog(ctx context.Context) string {
 		if i < codebuildLogMaxLen { // a prefix of the log contains a failure
 			return s[:codebuildLogMaxLen]
 		}
-		if len(s) >= i+codebuildLogMaxLen/2 { // a middle chunk contains a failure
-			return s[i-codebuildLogMaxLen/2 : i+codebuildLogMaxLen/2]
+		if len(s) >= i+codebuildLogMaxLen/4 { // a middle chunk contains a failure
+			return s[i-3*codebuildLogMaxLen/4 : i+codebuildLogMaxLen/4]
 		}
 	}
 	return s[len(s)-codebuildLogMaxLen:] // the end either contains a failure or is otherwise most likely to be interesting
