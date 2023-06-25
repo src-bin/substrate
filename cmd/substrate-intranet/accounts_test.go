@@ -52,6 +52,7 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 		cmdutil.OverrideArgs("-delete", "-role", roleName)
 		deleterole.Main(ctx, cfg, os.Stdout)
 	}()
+	time.Sleep(time.Second) // give AWS IAM time to sort itself out
 
 	resp, err := accountsHandler(ctx, cfg, nil /* oc */, apiGatewayProxyRequest(
 		roleName, // start as TestDeveloper in the admin account
