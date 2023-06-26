@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -12,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/ui"
 )
 
 func authorizer(
@@ -47,7 +47,7 @@ func authorizer(
 				_, err := oauthoidc.ParseAndVerifyJWT(cookie.Value, oc, idToken)
 				if err != nil {
 					authContext[authorizerutil.Error] = err
-					log.Print(err)
+					ui.PrintWithCaller(err)
 					idToken = &oauthoidc.IDToken{} // revert to zero-value and thus to denying access
 					continue
 				}
@@ -67,7 +67,7 @@ func authorizer(
 				effect = policies.Allow
 			} else {
 				authContext[authorizerutil.Error] = err
-				log.Print(err)
+				ui.PrintWithCaller(err)
 			}
 		}
 

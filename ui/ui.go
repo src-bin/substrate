@@ -75,6 +75,10 @@ func Printf(format string, args ...interface{}) {
 	op(opPrint, fmt.Sprintf(format, args...))
 }
 
+func PrintfWithCaller(format string, args ...interface{}) {
+	Printf(fmt.Sprint(withCaller(format)...), args...)
+}
+
 func Prompt(args ...interface{}) (string, error) {
 	op(opBlock, "")
 	defer op(opUnblock, "")

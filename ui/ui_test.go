@@ -1,6 +1,9 @@
 package ui
 
-import "time"
+import (
+	"testing"
+	"time"
+)
 
 func ExampleUI() {
 	Print("hi")
@@ -9,4 +12,8 @@ func ExampleUI() {
 	Print("mooooooo")
 	time.Sleep(5e9)
 	Stop("bye")
+}
+
+func TestPrintfWithCaller(t *testing.T) {
+	PrintfWithCaller("this is a visual test which is bad but is better than no test")
 }

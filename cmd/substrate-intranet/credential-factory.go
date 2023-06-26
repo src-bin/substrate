@@ -18,6 +18,7 @@ import (
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 )
 
@@ -145,7 +146,7 @@ func credentialFactoryAuthorizeHandler(
 	); err != nil {
 		return nil, err
 	}
-	log.Printf("authorized a token exchange for %s", event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string))
+	ui.PrintfWithCaller("authorized a token exchange for %s", event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string))
 
 	// Garbage collect expired tags asynchronously if we're not very close to
 	// the limit. Even though we're sending this into a goroutine, start it
@@ -240,7 +241,7 @@ func credentialFactoryFetchHandler(
 	if err != nil {
 		return lambdautil.ErrorResponseJSON(http.StatusInternalServerError, err)
 	}
-	log.Printf("exchanged token %s %s for access key %s", TagKeyPrefix+token, tagValue, creds.AccessKeyID)
+	ui.PrintfWithCaller("exchanged token %s %s for access key %s", TagKeyPrefix+token, tagValue, creds.AccessKeyID)
 
 	body, err := json.MarshalIndent(creds, "", "\t")
 	if err != nil {
