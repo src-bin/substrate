@@ -34,7 +34,14 @@ func accountsHandler(
 	roleName := event.QueryStringParameters["role"]
 	if accountId != "" && roleName != "" {
 
-		// TODO start from awsiam.AllDayCredentials, which we'll be able to get from here, before assuming the user's assigned role
+		/*
+			var cfg12h *awscfg.Config
+			if cfg12h, err = awsiam.AllDayConfig(ctx, cfg); err != nil {
+				return lambdautil.ErrorResponse(err)
+			}
+		*/
+
+		// XXX uh oh, we can't naively do this because first we have to assume our role here and then we have to assume the requested role
 
 		// We have to start from the user's configured starting point so that
 		// all questions of authorization are deferred to AWS.
