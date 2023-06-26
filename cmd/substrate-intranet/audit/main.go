@@ -7,9 +7,11 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/telemetry"
+	"github.com/src-bin/substrate/ui"
 )
 
 func Main(
@@ -28,6 +30,7 @@ func Main(
 	if err := json.Unmarshal([]byte(body), e); err != nil {
 		return nil, err
 	}
+	ui.PrintfWithCaller("relaying telemetry %s", jsonutil.MustOneLineString(e))
 	if err := e.Post(ctx); err != nil {
 		return nil, err
 	}
