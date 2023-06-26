@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -213,13 +214,17 @@ func (e *Event) Wait(ctx context.Context) error {
 }
 
 func endpoint(ctx context.Context) string {
-	endpoint := Endpoint
-	/*
-		if contextutil.IsIntranet(ctx) {
-			endpoint = fmt.Sprintf("https://%s/audit", intranetDNSDomainName) // TODO
+	if !contextutil.IsIntranet(ctx) { // outside the Intranet
+		if host, err := naming.IntranetDNSDomainName(); err == nil { // and knowing the Intranet's hostname
+			u := &url.URL{
+				Scheme: "https",
+				Host:   host,
+				Path:   "/audit",
+			}
+			return u.String()
 		}
-	*/
-	return endpoint
+	}
+	return Endpoint // in the Intranet or before it exists, submit telemetry directly
 }
 
 func prefix() string {
