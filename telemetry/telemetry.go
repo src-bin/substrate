@@ -180,6 +180,8 @@ func (e *Event) SetEmailDomainName(email string) {
 }
 
 func (e *Event) SetEmailSHA256(email string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.EmailSHA256 = fmt.Sprintf("%x", sha256.Sum256([]byte(email)))
 }
 
