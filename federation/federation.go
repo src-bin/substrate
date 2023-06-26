@@ -68,7 +68,7 @@ func ConsoleSigninURL(
 	if event != nil {
 		issuer = fmt.Sprintf("https://%s/accounts", event.RequestContext.DomainName)
 	} else if intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename); err == nil {
-		issuer = fmt.Sprintf("https://%s/accounts", intranetDNSDomainName)
+		issuer = fmt.Sprintf("https://%s/accounts", fileutil.Tidy(intranetDNSDomainName))
 	}
 	u.RawQuery = url.Values{
 		"Action":      []string{"login"},

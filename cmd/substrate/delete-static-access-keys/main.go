@@ -5,13 +5,11 @@ import (
 	"flag"
 	"io"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
@@ -49,13 +47,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		log.Fatal(err)
 	}
 
-	intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename)
-	if err != nil {
-		log.Fatal(err)
-	}
 	ui.Printf(
 		"from now on, use `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys",
-		strings.Trim(string(intranetDNSDomainName), "\r\n"),
+		naming.IntranetDNSDomainName(),
 	)
 
 }

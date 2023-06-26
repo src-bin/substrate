@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/randutil"
 	"github.com/src-bin/substrate/ui"
@@ -39,17 +38,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// Generate the token we'll exchange for AWS credentials.
 	token := randutil.String()
 
-	pathname, err := fileutil.PathnameInParents(naming.IntranetDNSDomainNameFilename)
-	if err != nil {
-		ui.Fatalf("substrate.* not found in this or any parent directory; change to your Substrate repository or set SUBSTRATE_ROOT to its path in your environment (%v)", err)
-	}
-	intranetDNSDomainName, err := fileutil.ReadFile(pathname)
-	if err != nil {
-		ui.Fatal(err)
-	}
 	u := &url.URL{
 		Scheme:   "https",
-		Host:     fileutil.Tidy(intranetDNSDomainName),
+		Host:     naming.IntranetDNSDomainName(),
 		Path:     "/credential-factory/authorize",
 		RawQuery: url.Values{"token": []string{token}}.Encode(),
 	}
