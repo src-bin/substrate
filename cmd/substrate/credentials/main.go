@@ -40,7 +40,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	u := &url.URL{
 		Scheme:   "https",
-		Host:     naming.IntranetDNSDomainName(),
+		Host:     naming.MustIntranetDNSDomainName(),
 		Path:     "/credential-factory/authorize",
 		RawQuery: url.Values{"token": []string{token}}.Encode(),
 	}

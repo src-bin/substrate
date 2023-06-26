@@ -49,7 +49,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	ui.Printf(
 		"from now on, use `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys",
-		naming.IntranetDNSDomainName(),
+		naming.MustIntranetDNSDomainName(),
 	)
 
 }

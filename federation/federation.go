@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 )
@@ -67,8 +66,8 @@ func ConsoleSigninURL(
 	issuer := "https://src-bin.com/substrate/"
 	if event != nil {
 		issuer = fmt.Sprintf("https://%s/accounts", event.RequestContext.DomainName)
-	} else if intranetDNSDomainName, err := fileutil.ReadFile(naming.IntranetDNSDomainNameFilename); err == nil {
-		issuer = fmt.Sprintf("https://%s/accounts", fileutil.Tidy(intranetDNSDomainName))
+	} else if intranetDNSDomainName, err := naming.IntranetDNSDomainName(); err == nil {
+		issuer = fmt.Sprintf("https://%s/accounts", intranetDNSDomainName)
 	}
 	u.RawQuery = url.Values{
 		"Action":      []string{"login"},
