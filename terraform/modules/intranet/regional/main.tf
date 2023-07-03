@@ -342,7 +342,6 @@ resource "aws_api_gateway_method" "GET-substrate" {
 
 resource "aws_api_gateway_method" "POST-audit" {
   authorization = "NONE"
-  authorizer_id = aws_api_gateway_authorizer.substrate.id
   http_method   = "POST"
   resource_id   = aws_api_gateway_resource.audit.id
   rest_api_id   = aws_api_gateway_rest_api.intranet.id
