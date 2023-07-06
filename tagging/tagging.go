@@ -3,9 +3,11 @@ package tagging
 // Keys.
 const (
 	Connectivity = "Connectivity" // only used by subnets
-	Domain       = "Domain"
-	Environment  = "Environment"
-	Quality      = "Quality"
+
+	// TODO Customer = "Customer"
+	Domain      = "Domain"
+	Environment = "Environment"
+	Quality     = "Quality"
 
 	Manager = "Manager"
 
@@ -14,8 +16,10 @@ const (
 	SubstrateAccountSelectors          = "SubstrateAccountSelectors"
 	SubstrateAssumeRolePolicyFilenames = "SubstrateAssumeRolePolicyFilenames"
 	SubstratePolicyAttachmentFilenames = "SubstratePolicyAttachmentFilenames"
-	SubstrateSpecialAccount            = "SubstrateSpecialAccount"
-	SubstrateVersion                   = "SubstrateVersion"
+
+	SubstrateSpecialAccount = "SubstrateSpecialAccount"
+
+	SubstrateVersion = "SubstrateVersion"
 )
 
 // Values.
