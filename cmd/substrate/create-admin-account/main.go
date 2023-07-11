@@ -84,6 +84,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		time.Hour,
 	))
 	versionutil.PreventDowngrade(ctx, cfg)
+	versionutil.PreventSetupViolation(ctx, cfg)
 
 	// Ensure the account exists.
 	ui.Spin("finding the admin account")

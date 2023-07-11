@@ -71,6 +71,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		time.Hour,
 	)).Regional(region)
 	versionutil.PreventDowngrade(ctx, cfg)
+	versionutil.PreventSetupViolation(ctx, cfg)
 
 	// Ensure this account is (in) an organization.
 	ui.Spin("finding or creating your organization")

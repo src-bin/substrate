@@ -168,7 +168,7 @@ func (c *Config) Regional(region string) *Config {
 	return c2
 }
 
-func (c *Config) Tags(ctx context.Context) (map[string]string, error) {
+func (c *Config) Tags(ctx context.Context) (tagging.Map, error) {
 	callerIdentity, err := c.GetCallerIdentity(ctx)
 	if err != nil {
 		return nil, err

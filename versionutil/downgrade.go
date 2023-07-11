@@ -55,6 +55,7 @@ func (cmp Comparison) String() string {
 	panic(cmp)
 }
 
+// PreventDowngrade prevents explicit version number downgrades.
 func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 	taggedVersion, ok := TaggedVersion(ctx, cfg)
 	if !ok {

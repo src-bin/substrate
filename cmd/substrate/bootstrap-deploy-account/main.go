@@ -45,6 +45,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		time.Hour,
 	))
 	versionutil.PreventDowngrade(ctx, cfg)
+	versionutil.PreventSetupViolation(ctx, cfg)
 
 	accountId := aws.ToString(cfg.MustGetCallerIdentity(ctx).Account)
 	org, err := cfg.DescribeOrganization(ctx)

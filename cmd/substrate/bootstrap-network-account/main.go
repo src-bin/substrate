@@ -48,6 +48,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 	}
 	versionutil.PreventDowngrade(ctx, cfg)
+	versionutil.PreventSetupViolation(ctx, cfg)
 
 	// Assume a role in the network account but keep the orginal config around
 	// so we can get into the deploy account later.

@@ -17,7 +17,8 @@ const (
 	SubstrateAssumeRolePolicyFilenames = "SubstrateAssumeRolePolicyFilenames"
 	SubstratePolicyAttachmentFilenames = "SubstratePolicyAttachmentFilenames"
 
-	SubstrateSpecialAccount = "SubstrateSpecialAccount"
+	SubstrateSpecialAccount = "SubstrateSpecialAccount" // deprecated
+	SubstrateType           = "SubstrateType"
 
 	SubstrateVersion = "SubstrateVersion"
 )
