@@ -10,12 +10,13 @@ import (
 const (
 	Administrator                 = "Administrator"
 	Auditor                       = "Auditor"
-	DeployAdministrator           = "DeployAdministrator"
-	Intranet                      = "Intranet"
-	NetworkAdministrator          = "NetworkAdministrator"
+	DeployAdministrator           = "DeployAdministrator"  // legacy
+	Intranet                      = "Intranet"             // legacy
+	NetworkAdministrator          = "NetworkAdministrator" // legacy
 	OrganizationAccountAccessRole = "OrganizationAccountAccessRole"
-	OrganizationAdministrator     = "OrganizationAdministrator"
-	OrganizationReader            = "OrganizationReader"
+	OrganizationAdministrator     = "OrganizationAdministrator" // legacy
+	OrganizationReader            = "OrganizationReader"        // legacy
+	Substrate                     = "Substrate"
 	TerraformStateManager         = "TerraformStateManager"
 )
 
@@ -44,11 +45,11 @@ func Name(roleARN string) (string, error) {
 		return strings.TrimPrefix(parsed.Resource, "role/"), nil
 	}
 
-	// There's an OrganizationAdministrator IAM user to go along with the IAM
-	// role to facilitate bootstrapping.
+	// There are OrganizationAdministrator and Substrate IAM users to go along
+	// with the IAM role to facilitate bootstrapping and 12-hour sessions.
 	if strings.HasPrefix(parsed.Resource, "user/") {
 		name := strings.TrimPrefix(parsed.Resource, "user/")
-		if name == OrganizationAdministrator {
+		if name == OrganizationAdministrator || name == Substrate {
 			return name, nil
 		}
 	}

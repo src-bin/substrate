@@ -288,6 +288,8 @@ func shellCompletion() {
 		}
 		options = append(options, "-format", "-quiet")
 
+	case "setup":
+
 	case "terraform", "upgrade":
 		options = append(options, "-no", "-yes")
 

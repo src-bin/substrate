@@ -67,7 +67,9 @@ func (c *Config) SetRootCredentials(ctx context.Context) (*sts.GetCallerIdentity
 	if ui.Interactivity() == ui.NonInteractive {
 		ui.Fatal("we need AWS credentials but aren't allowed to ask for any; re-run this command with -fully-interactive")
 	}
-	ui.Print("unable to find any AWS credentials; please provide an access key ID and secret access key from either the root of your AWS management account or the OrganizationAdministrator user in that same account")
+	ui.Print("unable to find any AWS credentials")
+	ui.Print("please provide an access key ID and secret access key from either the root of your AWS organization's management account or a user with AdministratorAccess in that same account")
+	ui.Print("if you don't have an AWS organization yet, use the account you want to become your AWS organization's management account")
 	var (
 		creds aws.Credentials
 		err   error
@@ -117,7 +119,7 @@ func (c *Config) SetRootCredentials(ctx context.Context) (*sts.GetCallerIdentity
 	user, err := awsiamusers.EnsureUserWithPolicy(
 		ctx,
 		client,
-		users.OrganizationAdministrator,
+		users.Substrate,
 		&policies.Document{
 			Statement: []policies.Statement{
 				policies.Statement{

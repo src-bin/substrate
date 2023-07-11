@@ -3,8 +3,9 @@ package users
 import "fmt"
 
 const (
-	CredentialFactory         = "CredentialFactory"
-	OrganizationAdministrator = "OrganizationAdministrator"
+	CredentialFactory         = "CredentialFactory"         // legacy
+	OrganizationAdministrator = "OrganizationAdministrator" // legacy
+	Substrate                 = "Substrate"
 )
 
 func ARN(accountId, username string) string {

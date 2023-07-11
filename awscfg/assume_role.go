@@ -13,31 +13,23 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/src-bin/substrate/contextutil"
-	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/users"
 )
 
-// AssumeAdminRole assumes the given role in the admin account with the given
-// quality. It should only be called on a *Config with the
-// OrganizationAdministrator role or user in the management account.
-func (c *Config) AssumeAdminRole(
-	ctx context.Context,
-	quality string,
-	roleName string,
-	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
-) (*Config, error) {
-	return c.AssumeServiceRole(ctx, naming.Admin, naming.Admin, quality, roleName, duration)
-}
-
 // AssumeManagementRole assumes the given role in the organization's
 // management account. It can only be called on a *Config with the
-// Administrator role in an admin account or one already in the
-// management account.
+// Administrator role in an admin account, Substrate role or user in the
+// Substrate account, or the OrganizationAdministrator or Substrate role or
+// user already in the management account. The duration parameter is limited
+// to an AWS-enforced maximum of 3600 when the *Config receiving the call has
+// a role instead of a user, which is called role chaining. See
+// <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
+// for more information.
 func (c *Config) AssumeManagementRole(
 	ctx context.Context,
 	roleName string,
-	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
+	duration time.Duration,
 ) (*Config, error) {
 
 	callerIdentity, err := c.GetCallerIdentity(ctx)
@@ -50,21 +42,6 @@ func (c *Config) AssumeManagementRole(
 		return nil, err
 	}
 
-	// Return early if we're the OrganizationAdministrator user, which is
-	// equivalent to the OrganizationAdministrator role in every meaningful
-	// way and is guaranteed to exist early enough to be used even during the
-	// very first run of `substrate bootstrap-management-account`.
-	if roleName == roles.OrganizationAdministrator && a.Resource == path.Join("user", users.OrganizationAdministrator) {
-		return c.Copy(), nil
-	}
-
-	// Similarly return early if we're the OrganizationAdministrator user
-	// or role or indeed the OrganizationReader role and all we're trying
-	// to get to is the OrganzationReader role.
-	if roleName == roles.OrganizationReader && (a.Resource == path.Join("user", users.OrganizationAdministrator) || a.Resource == path.Join("role", users.OrganizationAdministrator)) {
-		return c.Copy(), nil
-	}
-
 	org, err := c.DescribeOrganization(ctx)
 	if err != nil {
 		return nil, err
@@ -75,13 +52,49 @@ func (c *Config) AssumeManagementRole(
 		return nil, err
 	}
 
+	// Return early if we're already in the management account and already have
+	// a sufficiently capable role, even if it's not exactly as requested. If
+	// we're only seeking OrganizationReader, the more capable
+	// OrganizationAdministrator and Substrate roles and users will suffice.
+	// And if we're seeking the OrganizationAdministrator or Substrate roles,
+	// either of those roles or the users by the same names will suffice.
+	if aws.ToString(callerIdentity.Account) == mgmtAccountId {
+		switch roleName {
+		case roles.OrganizationReader:
+			if a.Resource == path.Join("role", roles.OrganizationReader) {
+				return c.Copy(), nil
+			}
+			fallthrough
+		case roles.OrganizationAdministrator, roles.Substrate:
+			switch a.Resource {
+			case path.Join("role", users.OrganizationAdministrator),
+				path.Join("role", users.Substrate),
+				path.Join("user", users.OrganizationAdministrator),
+				path.Join("user", users.Substrate):
+				return c.Copy(), nil
+			}
+		}
+	}
+
+	// As a transitional step, if we're trying to assume the Substrate role
+	// and there's an error, try again with OrganizationAdministrator.
+	if roleName == roles.Substrate {
+		cfg, err := c.AssumeRole(ctx, mgmtAccountId, roleName, duration)
+		if err == nil {
+			return cfg, nil
+		}
+		roleName = roles.OrganizationAdministrator // TODO restrict to more specific error cases
+	}
+
 	return c.AssumeRole(ctx, mgmtAccountId, roleName, duration)
 }
 
 // AssumeRole assumes the given role in the given account and returns a new
 // *Config there. It can be called on any *Config but is most often (and most
-// effectively) called on one with the Administrator role in an admin account
-// or the OrganizationAdministrator role or user in the management account.
+// effectively) called on one with the Administrator role in an admin account,
+// the Substrate role or user in the Substrate account, or the
+// OrganizationAdministrator or Substrate role or user in the management
+// account.
 func (c *Config) AssumeRole(
 	ctx context.Context,
 	accountId string,
@@ -170,8 +183,9 @@ func (c *Config) AssumeRole(
 // AssumeServiceRole assumes the given role in the service account identified
 // by the given domain, environment, and quality. It can be called on any
 // *Config but is most often (and most effectively) called on one with the
-// Administrator role in an admin account or the OrganizationAdministrator
-// role or user in the management account.
+// Administrator role in an admin account, the Substrate role or user in the
+// Substrate account, or the OrganizationAdministrator or Substrate role or
+// user in the management account.
 func (c *Config) AssumeServiceRole(
 	ctx context.Context,
 	domain, environment, quality string,
@@ -191,13 +205,14 @@ func (c *Config) AssumeServiceRole(
 
 // AssumeSpecialRole assumes the given role in the named special account. It
 // can be called on any *Config but is most often (and most effectively)
-// called on one with the Administrator role in an admin account or the
-// OrganizationAdministrator role or user in the management account.
+// called on one with the Administrator role in an admin account, the Substrate
+// role or user in the Substrate account, or the OrganizationAdministrator  or
+// Substrate role or user in the management account.
 func (c *Config) AssumeSpecialRole(
 	ctx context.Context,
 	name string,
 	roleName string,
-	duration time.Duration, // AWS-enforced maximum when crossing accounts per <https://aws.amazon.com/premiumsupport/knowledge-center/iam-role-chaining-limit/>
+	duration time.Duration,
 ) (*Config, error) {
 	account, err := c.FindAccount(ctx, func(a *Account) bool {
 		//log.Print(jsonutil.MustString(a))
