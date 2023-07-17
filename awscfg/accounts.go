@@ -39,17 +39,26 @@ func (a *Account) Config(
 }
 
 func (a *Account) String() string {
+	switch a.Tags[tagging.SubstrateType] {
+	case naming.Management:
+		return fmt.Sprintf("management account number %s", aws.ToString(a.Id))
+	case naming.Substrate:
+		return fmt.Sprintf("Substrate account number %s", aws.ToString(a.Id))
+	}
+
 	if special := a.Tags[tagging.SubstrateSpecialAccount]; special != "" {
 		return fmt.Sprintf("%s account number %s", special, aws.ToString(a.Id))
 	}
+
 	domain := a.Tags[tagging.Domain]
 	environment := a.Tags[tagging.Environment]
 	quality := a.Tags[tagging.Quality]
 	if domain == naming.Admin && quality != "" {
-		return fmt.Sprintf("admin account number %s (Quality: %s)", aws.ToString(a.Id), quality)
+		return fmt.Sprintf("admin (deprecated; run `substrate setup`) account number %s (Quality: %s)", aws.ToString(a.Id), quality)
 	}
 	if domain != "" && environment != "" && quality != "" {
 		return fmt.Sprintf("service account number %s (Domain: %s, Environment: %s, Quality: %s)", aws.ToString(a.Id), domain, environment, quality)
 	}
+
 	return fmt.Sprintf("account number %s", aws.ToString(a.Id))
 }
