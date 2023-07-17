@@ -117,6 +117,15 @@ func (c *Config) FindSpecialAccount(ctx context.Context, name string) (*Account,
 	})
 }
 
+// FindSubstrateAccount returns the *Account for the Substrate account or nil
+// (with a nil error) if the organization has not yet run `substrate setup`.
+// It must be called in the management account.
+func (c *Config) FindSubstrateAccount(ctx context.Context) (*Account, error) {
+	return c.FindAccount(ctx, func(a *Account) bool {
+		return a.Tags[tagging.SubstrateType] == tagging.Substrate
+	})
+}
+
 func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err error) {
 
 	// Return early if we have memoized accounts that are still valid.

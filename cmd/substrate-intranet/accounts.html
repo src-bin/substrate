@@ -48,6 +48,16 @@
     <td>{{.NetworkAccount.Email}}</td>
     <td>{{.NetworkAccount.Tags.SubstrateVersion}}</td>
 </tr>
+{{-if .SubstrateAccount}}
+<tr>
+    <td>{{.SubstrateAccount.Name}}</td>
+    <td>{{.SubstrateAccount.Id}}</td>
+    <td><a class="aws-console" href="accounts?number={{.SubstrateAccount.Id}}&role={{$roleName}}" target="aws-console-{{.SubstrateAccount.Id}}">{{$roleName}}</a></td>
+    <td><a class="aws-console" href="accounts?number={{.SubstrateAccount.Id}}&role=Auditor" target="aws-console-{{.SubstrateAccount.Id}}">Auditor</a></td>
+    <td>{{.SubstrateAccount.Email}}</td>
+    <td>{{.SubstrateAccount.Tags.SubstrateVersion}}</td>
+</tr>
+{{-end}}
 </table>
 <h2>Service accounts</h2>
 <table border="1" cellpadding="2" cellspacing="2">

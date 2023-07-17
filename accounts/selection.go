@@ -30,8 +30,8 @@ type Selection struct {
 	AllQualities bool
 	Qualities    []string
 
-	Admin  bool
-	Humans bool `json:"-"` // not exposed in arguments; like Admin but without arbitrary policy attachments
+	Substrate, Admin bool
+	Humans           bool `json:"-"` // not exposed in arguments; like Admin and Substrate but without arbitrary policy attachments
 
 	Management bool
 
@@ -67,6 +67,9 @@ func (s *Selection) Arguments() []string {
 		}
 	}
 
+	if s.Substrate {
+		ss = append(ss, "-substrate")
+	}
 	if s.Admin {
 		ss = append(ss, "-admin")
 	}
@@ -141,7 +144,7 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 	err error,
 ) {
 	// TODO there's some redundancy in Grouped and Partition which maybe can be rectified later
-	adminAccounts, serviceAccounts, _, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
+	adminAccounts, serviceAccounts, substrateAccount, _, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -160,14 +163,26 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 		}
 	}
 
-	if s.Admin || s.Humans {
+	if s.Substrate || s.Admin || s.Humans {
 		var selectors []string
-		if s.Admin && s.Humans {
+		if s.Substrate && s.Admin && s.Humans {
+			selectors = []string{"substrate", "admin", "humans"}
+		} else if s.Substrate && s.Humans {
+			selectors = []string{"substrate", "humans"}
+		} else if s.Admin && s.Humans {
 			selectors = []string{"admin", "humans"}
+		} else if s.Substrate {
+			selectors = []string{"substrate"}
 		} else if s.Admin {
 			selectors = []string{"admin"}
 		} else if s.Humans {
 			selectors = []string{"humans"}
+		}
+		if substrateAccount != nil {
+			selected = append(selected, AccountWithSelectors{
+				Account:   substrateAccount,
+				Selectors: selectors,
+			})
 		}
 		for _, account := range adminAccounts {
 			selected = append(selected, AccountWithSelectors{
@@ -176,6 +191,9 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 			})
 		}
 	} else {
+		if substrateAccount != nil {
+			unselected = append(unselected, substrateAccount)
+		}
 		unselected = append(unselected, adminAccounts...)
 	}
 
@@ -264,7 +282,7 @@ type SelectionFlags struct {
 	AllQualities *bool
 	Qualities    *cmdutil.StringSliceFlag
 
-	Admin *bool
+	Substrate, Admin *bool
 
 	Management *bool
 
@@ -292,6 +310,9 @@ func NewSelectionFlags(u SelectionFlagsUsage) *SelectionFlags {
 	if u.Qualities == "" {
 		panic("SelectionFlagsUsage.Qualities can't be empty")
 	}
+	if u.Substrate == "" {
+		panic("SelectionFlagsUsage.Substrate can't be empty")
+	}
 	if u.Admin == "" {
 		panic("SelectionFlagsUsage.Admin can't be empty")
 	}
@@ -314,7 +335,8 @@ func NewSelectionFlags(u SelectionFlagsUsage) *SelectionFlags {
 		AllQualities: flag.Bool("all-qualities", false, u.AllQualities),
 		Qualities:    cmdutil.StringSlice("quality", u.Qualities),
 
-		Admin: flag.Bool("admin", false, u.Admin),
+		Substrate: flag.Bool("substrate", false, u.Substrate),
+		Admin:     flag.Bool("admin", false, u.Admin),
 
 		Management: flag.Bool("management", false, u.Management),
 
@@ -353,7 +375,8 @@ func (f *SelectionFlags) Selection() (*Selection, error) {
 		AllQualities: *f.AllQualities,
 		Qualities:    f.Qualities.Slice(),
 
-		Admin: *f.Admin,
+		Substrate: *f.Substrate,
+		Admin:     *f.Admin,
 
 		Management: *f.Management,
 
@@ -364,8 +387,6 @@ func (f *SelectionFlags) Selection() (*Selection, error) {
 }
 
 type SelectionFlagsUsage struct {
-	Admin string
-
 	AllDomains string
 	Domains    string
 
@@ -374,6 +395,8 @@ type SelectionFlagsUsage struct {
 
 	AllQualities string
 	Qualities    string
+
+	Substrate, Admin string
 
 	Management string
 

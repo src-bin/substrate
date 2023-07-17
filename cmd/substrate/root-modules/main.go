@@ -39,7 +39,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	versionutil.WarnDowngrade(ctx, cfg)
 
 	ui.Must(cfg.ClearCachedAccounts())
-	adminAccounts, serviceAccounts, _, _, _, _, err := accounts.Grouped(ctx, cfg)
+	adminAccounts, serviceAccounts, _, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		ui.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		))
 	}
 
-	// Admin accounts.
+	// Admin accounts and the Substrate account that's taking their place.
 	for _, account := range adminAccounts {
 		rootModules = append(rootModules, filepath.Join(
 			terraform.RootModulesDirname,

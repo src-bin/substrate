@@ -54,7 +54,7 @@ func TestSelectionFlagsToSelection1(t *testing.T) {
 		"-special", "deploy", // same for
 		"-special", "network", // these
 	)
-	f := NewSelectionFlags(SelectionFlagsUsage{"-", "-", "-", "-", "-", "-", "-", "-", "-", "-"})
+	f := NewSelectionFlags(SelectionFlagsUsage{"-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"})
 	flag.Parse()
 	s, err := f.Selection()
 	if err != nil {
@@ -105,6 +105,18 @@ func TestSelectionHumans(t *testing.T) {
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
 	selection := Selection{Humans: true}
+	selected, _, err := selection.Partition(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, len(selected), 1)
+	assert(t, aws.ToString(selected[0].Account.Id), "716893237583")
+}
+
+func TestSelectionSubstrate(t *testing.T) {
+	ctx := context.Background()
+	cfg := testawscfg.Test1(roles.Administrator)
+	selection := Selection{Substrate: true}
 	selected, _, err := selection.Partition(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

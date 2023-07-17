@@ -65,7 +65,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[0][5] = "Version"
 
 	ui.Must(cfg.ClearCachedAccounts())
-	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
+	adminAccounts, serviceAccounts, substrateAccount, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -97,6 +97,17 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[5][3] = roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator)
 	specialAccountsCells[5][4] = aws.ToString(networkAccount.Email)
 	specialAccountsCells[5][5] = networkAccount.Tags[tagging.SubstrateVersion]
+
+	if substrateAccount != nil {
+		specialAccountsCells = append(specialAccountsCells, []string{
+			Substrate,
+			aws.ToString(substrateAccount.Id),
+			roles.Administrator,
+			roles.ARN(aws.ToString(substrateAccount.Id), roles.Administrator),
+			aws.ToString(substrateAccount.Email),
+			substrateAccount.Tags[tagging.SubstrateVersion],
+		})
+	}
 
 	for _, account := range adminAccounts {
 		adminAccountsCells = append(adminAccountsCells, []string{
@@ -146,8 +157,13 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 }
 
 func Grouped(ctx context.Context, cfg *awscfg.Config) (
-	adminAccounts, serviceAccounts []*awsorgs.Account,
-	auditAccount, deployAccount, managementAccount, networkAccount *awsorgs.Account,
+	adminAccounts []*awsorgs.Account, // legacy
+	serviceAccounts []*awsorgs.Account,
+	substrateAccount *awsorgs.Account,
+	auditAccount *awsorgs.Account,
+	deployAccount *awsorgs.Account, // legacy
+	managementAccount *awsorgs.Account,
+	networkAccount *awsorgs.Account, // legacy
 	err error,
 ) {
 	var allAccounts []*awsorgs.Account
@@ -157,6 +173,10 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 	}
 
 	for _, account := range allAccounts {
+		if account.Tags[tagging.SubstrateType] == tagging.Substrate {
+			substrateAccount = account
+			continue // if it's the Substrate account, it's no longer an admin account
+		}
 		if account.Tags[tagging.SubstrateSpecialAccount] != "" {
 			switch account.Tags[tagging.SubstrateSpecialAccount] {
 			case Audit:
@@ -219,6 +239,9 @@ func Sort(slice []*awsorgs.Account) {
 		}
 		if slice[i].Tags[tagging.Quality] != slice[j].Tags[tagging.Quality] {
 			return naming.Index(qualities, slice[i].Tags[tagging.Quality]) < naming.Index(qualities, slice[j].Tags[tagging.Quality])
+		}
+		if slice[i].Tags[tagging.SubstrateType] != slice[j].Tags[tagging.SubstrateType] {
+			return slice[i].Tags[tagging.SubstrateType] < slice[j].Tags[tagging.SubstrateType]
 		}
 		if slice[i].Tags[tagging.SubstrateSpecialAccount] != slice[j].Tags[tagging.SubstrateSpecialAccount] {
 			return slice[i].Tags[tagging.SubstrateSpecialAccount] < slice[j].Tags[tagging.SubstrateSpecialAccount]

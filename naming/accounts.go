@@ -6,4 +6,5 @@ const (
 	Deploy     = "deploy"
 	Management = "management"
 	Network    = "network"
+	Substrate  = "Substrate"
 )

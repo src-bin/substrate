@@ -102,17 +102,19 @@ func accountsHandler(
 	if cfg, err = cfg.OrganizationReader(ctx); err != nil {
 		return lambdautil.ErrorResponse(err)
 	}
-	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
+	adminAccounts, serviceAccounts, substrateAccount, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		return lambdautil.ErrorResponse(err)
 	}
 
 	body, err := lambdautil.RenderHTML(accountsTemplate(), struct {
 		AdminAccounts, ServiceAccounts                                 []*awsorgs.Account
+		SubstrateAccount                                               *awsorgs.Account
 		AuditAccount, DeployAccount, ManagementAccount, NetworkAccount *awsorgs.Account
 		RoleName                                                       string
 	}{
 		adminAccounts, serviceAccounts,
+		substrateAccount,
 		auditAccount, deployAccount, managementAccount, networkAccount,
 		event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
 	})

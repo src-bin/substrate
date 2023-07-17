@@ -45,7 +45,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if *number == "" {
 		ui.Must(cfg.ClearCachedAccounts())
 	}
-	adminAccounts, serviceAccounts, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
+	adminAccounts, serviceAccounts, substrateAccount, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	ui.Must(err)
 	switch format.String() {
 
@@ -71,6 +71,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		} else if *number == aws.ToString(deployAccount.Id) {
 			prettyPrintJSON(deployAccount)
 			return
+		} else if *number == aws.ToString(substrateAccount.Id) {
+			prettyPrintJSON(substrateAccount)
+			return
 		}
 		for _, account := range adminAccounts {
 			if *number == aws.ToString(account.Id) {
@@ -91,6 +94,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			auditAccount,
 			networkAccount,
 			deployAccount,
+			substrateAccount,
 		}, adminAccounts...), serviceAccounts...))
 
 	case cmdutil.SerializationFormatShell:
@@ -102,16 +106,20 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			noApplyFlag = " -no-apply" // leading space to format pleasingly both ways
 		}
 		fmt.Println("set -e -x")
-		fmt.Println("substrate bootstrap-management-account")
-		fmt.Printf("substrate bootstrap-network-account%s%s\n", autoApproveFlag, noApplyFlag)
-		fmt.Printf("substrate bootstrap-deploy-account%s%s\n", autoApproveFlag, noApplyFlag)
-		for _, account := range adminAccounts {
-			fmt.Printf(
-				"substrate create-admin-account%s%s -quality %q\n",
-				autoApproveFlag,
-				noApplyFlag,
-				account.Tags[tagging.Quality],
-			)
+		if substrateAccount != nil {
+			fmt.Printf("substrate setup%s%s\n", autoApproveFlag, noApplyFlag)
+		} else {
+			fmt.Println("substrate bootstrap-management-account")
+			fmt.Printf("substrate bootstrap-network-account%s%s\n", autoApproveFlag, noApplyFlag)
+			fmt.Printf("substrate bootstrap-deploy-account%s%s\n", autoApproveFlag, noApplyFlag)
+			for _, account := range adminAccounts {
+				fmt.Printf(
+					"substrate create-admin-account%s%s -quality %q\n",
+					autoApproveFlag,
+					noApplyFlag,
+					account.Tags[tagging.Quality],
+				)
+			}
 		}
 		for _, account := range serviceAccounts {
 			if _, ok := account.Tags[tagging.Domain]; !ok {

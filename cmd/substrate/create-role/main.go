@@ -148,11 +148,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// use EnsureRoleWithPolicy.
 	adminPrincipals := &policies.Principal{AWS: []string{}}
 	if selection.Humans {
-		ui.Spinf("finding or creating the %s role in your admin account(s) for humans to assume via your IdP", *roleName)
-		adminAccounts, _, _, _, _, _, err := accounts.Grouped(ctx, cfg)
+		ui.Spinf("finding or creating the %s role in your Substrate and admin account(s) for humans to assume via your IdP", *roleName)
+		adminAccounts, _, substrateAccount, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 		ui.Must(err)
 
-		for _, account := range adminAccounts {
+		for _, account := range append(adminAccounts, substrateAccount) {
 			accountCfg := awscfg.Must(account.Config(ctx, cfg, roles.Administrator, time.Hour))
 			var role *awsiam.Role
 			if selection.Admin {
@@ -208,10 +208,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				policies.AssumeRolePolicyDocument(adminPrincipals),
 			)
 
-			// Further, if this account is, in fact, an admin account, allow
-			// the Intranet's principals to assume the role, too, so the
-			// Credential Factory will work and create an EC2 instance profile
-			// so the Instance Factory can use the role.
+			// Further, if this account is, in fact, an admin account or the
+			// Substrate account, allow the Intranet's and the Substrate user's
+			// principals to assume the role, too, so the Credential Factory
+			// will work and create an EC2 instance profile so the Instance
+			// Factory can use the role.
 			if account.Tags[tagging.Domain] == naming.Admin {
 				assumeRolePolicy = policies.Merge(
 					assumeRolePolicy,
