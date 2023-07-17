@@ -241,6 +241,7 @@ func shellCompletion() {
 			"-read-only-access",
 			"-role",
 			"-special",
+			"-substrate",
 		)
 
 	case "create-terraform-module":

@@ -32,7 +32,7 @@ var printedCustomizeAdministrator, printedCustomizeAuditor bool
 // returning policies for Administrator, Auditor, and other uses. It must
 // be called from the management account.
 func CannedAssumeRolePolicyDocuments(ctx context.Context, cfg *awscfg.Config, bootstrapping bool) (
-	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document }, // TODO different names without "Principals"?
+	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Document },
 	err error,
 ) {
 	cp, err := CannedPrincipals(ctx, cfg, bootstrapping)
@@ -86,10 +86,16 @@ func CannedPrincipals(ctx context.Context, cfg *awscfg.Config, bootstrapping boo
 	canned struct{ AdminRolePrincipals, AuditorRolePrincipals, OrgAccountPrincipals *policies.Principal },
 	err error,
 ) {
-	var adminAccounts, allAccounts []*awsorgs.Account
+	var (
+		adminAccounts, allAccounts []*awsorgs.Account
+		substrateAccount           *awsorgs.Account
+	)
 	if adminAccounts, err = cfg.FindAccounts(ctx, func(a *awscfg.Account) bool {
 		return a.Tags[tagging.Domain] == naming.Admin
 	}); err != nil {
+		return
+	}
+	if substrateAccount, err = cfg.FindSubstrateAccount(ctx); err != nil {
 		return
 	}
 	if allAccounts, err = cfg.ListAccounts(ctx); err != nil {
@@ -101,41 +107,49 @@ func CannedPrincipals(ctx context.Context, cfg *awscfg.Config, bootstrapping boo
 		return
 	}
 
-	if bootstrapping {
-		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)+2)}     // +2 for the management account and its IAM user
-		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)} // *2 for Administrator AND Auditor; +2 for the management account and its IAM user
-		for i, account := range adminAccounts {
-			canned.AdminRolePrincipals.AWS[i] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*2] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*2+1] = roles.ARN(aws.ToString(account.Id), roles.Auditor)
-		}
-	} else {
-		canned.AdminRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*2+2)}   // *2 for Administrator AND Intranet; +2 for the management account and its IAM user
-		canned.AuditorRolePrincipals = &policies.Principal{AWS: make([]string, len(adminAccounts)*3+2)} // *3 for Administrator AND Auditor AND Intranet; +2 for the management account and its IAM user
-		for i, account := range adminAccounts {
-			canned.AdminRolePrincipals.AWS[i*2] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
-			canned.AdminRolePrincipals.AWS[i*2+1] = roles.ARN(aws.ToString(account.Id), roles.Intranet)
-			canned.AuditorRolePrincipals.AWS[i*3] = roles.ARN(aws.ToString(account.Id), roles.Administrator)
-			canned.AuditorRolePrincipals.AWS[i*3+1] = roles.ARN(aws.ToString(account.Id), roles.Auditor)
-			canned.AuditorRolePrincipals.AWS[i*3+2] = roles.ARN(aws.ToString(account.Id), roles.Intranet)
+	canned.AdminRolePrincipals = &policies.Principal{AWS: []string{
+		roles.ARN(aws.ToString(org.MasterAccountId), roles.OrganizationAdministrator),
+		users.ARN(aws.ToString(org.MasterAccountId), users.OrganizationAdministrator),
+	}}
+	canned.AuditorRolePrincipals = &policies.Principal{AWS: []string{
+		roles.ARN(aws.ToString(org.MasterAccountId), roles.OrganizationAdministrator),
+		users.ARN(aws.ToString(org.MasterAccountId), users.OrganizationAdministrator),
+	}}
+	for _, account := range adminAccounts {
+		canned.AdminRolePrincipals.AWS = append(
+			canned.AdminRolePrincipals.AWS,
+			roles.ARN(aws.ToString(account.Id), roles.Administrator),
+		)
+		canned.AuditorRolePrincipals.AWS = append(
+			canned.AuditorRolePrincipals.AWS,
+			roles.ARN(aws.ToString(account.Id), roles.Administrator),
+			roles.ARN(aws.ToString(account.Id), roles.Auditor),
+		)
+	}
+	if !bootstrapping {
+		for _, account := range adminAccounts {
+			canned.AdminRolePrincipals.AWS = append(
+				canned.AdminRolePrincipals.AWS,
+				roles.ARN(aws.ToString(account.Id), roles.Intranet),
+			)
+			canned.AuditorRolePrincipals.AWS = append(
+				canned.AuditorRolePrincipals.AWS,
+				roles.ARN(aws.ToString(account.Id), roles.Intranet),
+			)
 		}
 	}
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-2] = roles.ARN(
-		aws.ToString(org.MasterAccountId),
-		roles.OrganizationAdministrator,
-	)
-	canned.AdminRolePrincipals.AWS[len(canned.AdminRolePrincipals.AWS)-1] = users.ARN(
-		aws.ToString(org.MasterAccountId),
-		users.OrganizationAdministrator,
-	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-2] = roles.ARN(
-		aws.ToString(org.MasterAccountId),
-		roles.OrganizationAdministrator,
-	)
-	canned.AuditorRolePrincipals.AWS[len(canned.AuditorRolePrincipals.AWS)-1] = users.ARN(
-		aws.ToString(org.MasterAccountId),
-		users.OrganizationAdministrator,
-	)
+	if substrateAccount != nil {
+		canned.AdminRolePrincipals.AWS = append(
+			canned.AdminRolePrincipals.AWS,
+			roles.ARN(aws.ToString(substrateAccount.Id), roles.Substrate),
+			users.ARN(aws.ToString(substrateAccount.Id), users.Substrate),
+		)
+		canned.AuditorRolePrincipals.AWS = append(
+			canned.AuditorRolePrincipals.AWS,
+			roles.ARN(aws.ToString(substrateAccount.Id), roles.Substrate),
+			users.ARN(aws.ToString(substrateAccount.Id), users.Substrate),
+		)
+	}
 	sort.Strings(canned.AdminRolePrincipals.AWS)   // to avoid spurious policy diffs
 	sort.Strings(canned.AuditorRolePrincipals.AWS) // to avoid spurious policy diffs
 

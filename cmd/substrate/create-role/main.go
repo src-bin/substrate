@@ -33,13 +33,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		Environments:    "only create this role in AWS accounts in this environment (may be repeated)",
 		AllQualities:    "create the role in all qualities (potentially constrained by -domain and/or -environment)",
 		Qualities:       "only create this role in AWS accounts of this quality (may be repeated)",
+		Substrate:       "create this role in the organization's Substrate account",
 		Admin:           "create this role in the organization's admin account(s) (potentially constrained by -quality)",
 		Management:      "create this role in the organization's management AWS account",
 		Specials:        `create this role in a special AWS account (may be repeated; "deploy" and/or "network")`,
 		Numbers:         "create this role in a specific AWS account, by 12-digit account number (may be repeated)",
 	})
 	managedAssumeRolePolicyFlags := roles.NewManagedAssumeRolePolicyFlags(roles.ManagedAssumeRolePolicyFlagsUsage{
-		Humans:        "allow humans with this role set in your IdP to assume this role via the Credential Factory (implies -admin)",
+		Humans:        "allow humans with this role set in your IdP to assume this role via the Credential Factory (implies -substrate)",
 		AWSServices:   `allow an AWS service (by URL; e.g. "ec2.amazonaws.com") to assume role (may be repeated)`,
 		GitHubActions: `allow GitHub Actions to assume this role in the context of the given GitHub organization and repository (separated by a literal '/'; may be repeated)`,
 		Filenames:     "filename containing an assume-role policy to be merged into this role's final assume-role policy (may be repeated)",
@@ -56,7 +57,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Print("       [account selection flags]:  [-all-domains|-domain <domain> [...]]")
 		ui.Print("                                   [-all-environments|-environment <environment> [...]]")
 		ui.Print("                                   [-all-qualities|-quality <quality> [...]]")
-		ui.Print("                                   [-admin] [-management] [-special <special> [...]]")
+		ui.Print("                                   [-management] [-special <special> [...]] [-substrate]")
 		ui.Print("                                   [-number <number> [...]]")
 		ui.Print("       [assume-role policy flags]: [-humans] [-aws-service <aws-service-url>] [-github-actions <org/repo>] [-assume-role-policy <filename> [...]]")
 		ui.Print("       [policy attachment flags]:  [-administrator-access|-read-only-access] [-policy-arn <arn> [...]] [-policy <filename> [...]]")
@@ -137,6 +138,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	canned, err := admin.CannedPrincipals(ctx, cfg, false)
 	ui.Must(err)
 
+	// And during the transition from (theoretically multiple) admin accounts
+	// to exactly one Substrate account, we need to know about those beyond
+	// the `if selection.Humans` block below here.
+	adminAccounts, _, substrateAccount, _, _, _, _, err := accounts.Grouped(ctx, cfg)
+	ui.Must(err)
+
 	// If this role's for humans to use via the IdP, create a role by the same
 	// name in admin accounts. This role must exist before we enter the main
 	// role and policy loop because that loop will need to reference these role
@@ -149,10 +156,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	adminPrincipals := &policies.Principal{AWS: []string{}}
 	if selection.Humans {
 		ui.Spinf("finding or creating the %s role in your Substrate and admin account(s) for humans to assume via your IdP", *roleName)
-		adminAccounts, _, substrateAccount, _, _, _, _, err := accounts.Grouped(ctx, cfg)
-		ui.Must(err)
 
 		for _, account := range append(adminAccounts, substrateAccount) {
+			if account == nil { // substrateAccount will be nil until they've run `substrate setup`
+				continue
+			}
 			accountCfg := awscfg.Must(account.Config(ctx, cfg, roles.Administrator, time.Hour))
 			var role *awsiam.Role
 			if selection.Admin {
@@ -213,17 +221,24 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			// principals to assume the role, too, so the Credential Factory
 			// will work and create an EC2 instance profile so the Instance
 			// Factory can use the role.
-			if account.Tags[tagging.Domain] == naming.Admin {
+			if account.Tags[tagging.Domain] == naming.Admin || account.Tags[tagging.SubstrateType] == tagging.Substrate {
 				assumeRolePolicy = policies.Merge(
 					assumeRolePolicy,
-					policies.AssumeRolePolicyDocument(&policies.Principal{
-						AWS: []string{
-							roles.ARN(aws.ToString(account.Id), roles.Intranet),
-							users.ARN(aws.ToString(account.Id), users.CredentialFactory),
-						},
-						Service: []string{"ec2.amazonaws.com"},
-					}),
+					policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
+						roles.ARN(aws.ToString(account.Id), roles.Intranet),
+						users.ARN(aws.ToString(account.Id), users.CredentialFactory),
+					}}),
+					policies.AssumeRolePolicyDocument(&policies.Principal{Service: []string{"ec2.amazonaws.com"}}),
 				)
+				if substrateAccount != nil {
+					assumeRolePolicy = policies.Merge(
+						assumeRolePolicy,
+						policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
+							roles.ARN(aws.ToString(account.Id), roles.Substrate),
+							users.ARN(aws.ToString(account.Id), users.Substrate),
+						}}),
+					)
+				}
 				_, err = awsiam.EnsureInstanceProfile(ctx, cfg, *roleName)
 				ui.Must(err)
 			}
