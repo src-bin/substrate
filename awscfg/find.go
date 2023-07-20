@@ -100,6 +100,18 @@ func (c *Config) FindAdminAccount(ctx context.Context, quality string) (*Account
 	return c.FindServiceAccount(ctx, naming.Admin, naming.Admin, quality)
 }
 
+// FindAdminAccounts returns an *Account for every admin account. This will,
+// in practice, never return more than one account, but it does so without
+// the caller having to know the quality ahead of time. Thankfully, it's also
+// deprecated the moment it's introduced since admin accounts are going away
+// in favor of the singular and simplified Substrate account. This must be
+// called in the management account.
+func (c *Config) FindAdminAccounts(ctx context.Context) ([]*Account, error) {
+	return c.FindAccounts(ctx, func(a *Account) bool {
+		return a.Tags[tagging.Domain] == naming.Admin
+	})
+}
+
 // FindServiceAccount returns the *Account for the admin account with the
 // given domain, environment, and quality. It must be called in the
 // management account.
