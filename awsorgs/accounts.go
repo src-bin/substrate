@@ -90,12 +90,16 @@ func EnsureSpecialAccount(
 	cfg *awscfg.Config,
 	name string,
 ) (*Account, error) {
-	return ensureAccount(ctx, cfg, name, tagging.Map{
-		tagging.Manager:                 tagging.Substrate,
-		tagging.Name:                    name,
-		tagging.SubstrateSpecialAccount: name,
-		tagging.SubstrateVersion:        version.Version,
-	}, time.Time{})
+	tags := tagging.Map{
+		tagging.Manager:          tagging.Substrate,
+		tagging.Name:             name,
+		tagging.SubstrateType:    name, // this may not be completely correct but works for "Substrate" and "audit", at least
+		tagging.SubstrateVersion: version.Version,
+	}
+	if name != tagging.Substrate {
+		tags[tagging.SubstrateSpecialAccount] = name
+	}
+	return ensureAccount(ctx, cfg, name, tags, time.Time{})
 }
 
 func ListAccounts(ctx context.Context, cfg *awscfg.Config) ([]*Account, error) {
