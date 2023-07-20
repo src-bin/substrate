@@ -122,22 +122,25 @@ func EnsureUser(
 	client *iam.Client,
 	username string,
 ) (*User, error) {
-
+	ui.Spinf("creating the %s IAM user", username)
 	user, err := CreateUser(ctx, client, username)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
+		ui.Stop("already exists")
+		ui.Spinf("updating the %s IAM user", username)
 		user, err = GetUser(ctx, client, username)
 	}
 	if err != nil {
-		return nil, err
+		return nil, ui.StopErr(err)
 	}
 
 	if _, err := client.TagUser(ctx, &iam.TagUserInput{
 		Tags:     tagsFor(username),
 		UserName: aws.String(username),
 	}); err != nil {
-		return nil, err
+		return nil, ui.StopErr(err)
 	}
 
+	ui.Stop("ok")
 	return user, nil
 }
 
