@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/users"
 )
@@ -223,6 +224,27 @@ func (c *Config) AssumeSpecialRole(
 	}
 	if account == nil {
 		return nil, NewAccountNotFound(name)
+	}
+	//log.Print(jsonutil.MustString(account))
+	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName, duration)
+}
+
+// AssumeSubstrateRole assumes the given role in the Substrate account. It
+// can be called on any *Config but is most often (and most effectively)
+// called from Administrator or Substrate in the Substrate account or
+// OrganizationAdministrator or Substrate in the management account. It's
+// for times when you want to be sure you're in the Substrate account.
+func (c *Config) AssumeSubstrateRole(
+	ctx context.Context,
+	roleName string,
+	duration time.Duration,
+) (*Config, error) {
+	account, err := c.FindSubstrateAccount(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if account == nil {
+		return nil, NewAccountNotFound(naming.Substrate)
 	}
 	//log.Print(jsonutil.MustString(account))
 	return c.AssumeRole(ctx, aws.ToString(account.Id), roleName, duration)
