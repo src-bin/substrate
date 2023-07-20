@@ -148,10 +148,12 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	fmt.Fprint(f, "\n")
 	table.Ftable(f, serviceAccountsCells)
 
-	fmt.Fprint(f, "\n")
-	fmt.Fprint(f, "Finally, here are the account numbers and roles for your admin accounts:\n")
-	fmt.Fprint(f, "\n")
-	table.Ftable(f, adminAccountsCells)
+	if len(adminAccounts) > 0 {
+		fmt.Fprint(f, "\n")
+		fmt.Fprint(f, "Finally, here are the account numbers and roles for your admin accounts:\n")
+		fmt.Fprint(f, "\n")
+		table.Ftable(f, adminAccountsCells)
+	}
 
 	return nil
 }
