@@ -34,7 +34,7 @@ func (c *Config) ClearCachedAccounts() error {
 }
 
 // FindAccount returns the first *Account for which the given acceptance test
-// function returns true. It must be called in the management account.
+// function returns true. This may be called from any account.
 func (c *Config) FindAccount(
 	ctx context.Context,
 	f func(*Account) bool,
@@ -53,9 +53,9 @@ func (c *Config) FindAccount(
 }
 
 // FindAccounts returns all []*Account for which the given acceptance test
-// function returns true. It must be called in the management account. We
-// expect to find an account that matches so if we don't we remove the cache
-// file and try once more
+// function returns true. This may be called from any account. We expect to
+// find an account that matches so if we don't we remove the cache file and
+// try once more.
 func (c *Config) FindAccounts(
 	ctx context.Context,
 	f func(*Account) bool,
@@ -95,7 +95,7 @@ func (c *Config) FindAccounts(
 }
 
 // FindAdminAccount returns the *Account for the admin account with the given
-// quality. It must be called in the management account.
+// quality. This may be called from any account.
 func (c *Config) FindAdminAccount(ctx context.Context, quality string) (*Account, error) {
 	return c.FindServiceAccount(ctx, naming.Admin, naming.Admin, quality)
 }
@@ -104,8 +104,8 @@ func (c *Config) FindAdminAccount(ctx context.Context, quality string) (*Account
 // in practice, never return more than one account, but it does so without
 // the caller having to know the quality ahead of time. Thankfully, it's also
 // deprecated the moment it's introduced since admin accounts are going away
-// in favor of the singular and simplified Substrate account. This must be
-// called in the management account.
+// in favor of the singular and simplified Substrate account. This may be
+// called from any account.
 func (c *Config) FindAdminAccounts(ctx context.Context) ([]*Account, error) {
 	return c.FindAccounts(ctx, func(a *Account) bool {
 		return a.Tags[tagging.Domain] == naming.Admin
@@ -113,8 +113,7 @@ func (c *Config) FindAdminAccounts(ctx context.Context) ([]*Account, error) {
 }
 
 // FindServiceAccount returns the *Account for the admin account with the
-// given domain, environment, and quality. It must be called in the
-// management account.
+// given domain, environment, and quality. This may be called from any account.
 func (c *Config) FindServiceAccount(ctx context.Context, domain, environment, quality string) (*Account, error) {
 	return c.FindAccount(ctx, func(a *Account) bool {
 		return a.Tags[tagging.Domain] == domain && a.Tags[tagging.Environment] == environment && a.Tags[tagging.Quality] == quality
@@ -122,7 +121,7 @@ func (c *Config) FindServiceAccount(ctx context.Context, domain, environment, qu
 }
 
 // FindSpecialAccount returns the *Account for the admin account with the given
-// name. It must be called in the management account.
+// name. This may be called from any account.
 func (c *Config) FindSpecialAccount(ctx context.Context, name string) (*Account, error) {
 	return c.FindAccount(ctx, func(a *Account) bool {
 		return a.Tags[tagging.Name] == name || a.Tags[tagging.SubstrateSpecialAccount] == name // either tag works; we set both // FIXME maybe just look at SubstrateSpecialAccount now that we're adopting accounts and tolerating Name being potentially overloaded
@@ -131,13 +130,16 @@ func (c *Config) FindSpecialAccount(ctx context.Context, name string) (*Account,
 
 // FindSubstrateAccount returns the *Account for the Substrate account or nil
 // (with a nil error) if the organization has not yet run `substrate setup`.
-// It must be called in the management account.
+// This may be called from any account.
 func (c *Config) FindSubstrateAccount(ctx context.Context) (*Account, error) {
 	return c.FindAccount(ctx, func(a *Account) bool {
 		return a.Tags[tagging.SubstrateType] == tagging.Substrate
 	})
 }
 
+// ListAccounts returns all the accounts in the organization in a single slice.
+// For a higher-level interface, see accounts.Grouped. This may be called from
+// any account.
 func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err error) {
 
 	// Return early if we have memoized accounts that are still valid.
