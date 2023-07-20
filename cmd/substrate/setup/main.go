@@ -27,9 +27,12 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
+	// XXX autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
+	// XXX ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore service quotas appearing to be exhausted and continue anyway")
+	// XXX noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	ui.InteractivityFlags()
 	flag.Usage = func() {
-		ui.Print("Usage: substrate setup")
+		ui.Print("Usage: substrate setup [-auto-approve] [-ignore-service-quotas] [-no-apply]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -221,13 +224,30 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// TODO create Administrator and Auditor roles in the Substrate account and every service account
 
 	// TODO run the legacy deploy account's Terraform code, if the account exists
+	deploy(ctx, mgmtCfg)
 
 	// TODO run the legacy network account's Terraform code, if the account exists
+	network(ctx, mgmtCfg)
 
 	// TODO configure the Intranet
+	dnsDomainName := intranet(ctx, substrateCfg)
 
 	// TODO configure IAM Identity Center (later)
 
-	// TODO instructions on using the Credential Factory, Intranet, etc.
-
+	ui.Print("")
+	ui.Print("setup complete!")
+	ui.Print("next, let's get all the files Substrate has generated committed to version control")
+	ui.Print("")
+	ui.Print("ignore the following pattern in version control (i.e. add it to .gitignore):")
+	ui.Print("")
+	ui.Print(".substrate.*")
+	ui.Print("")
+	ui.Print("commit the following files and directories to version control:")
+	ui.Print("")
+	ui.Print("modules/")
+	ui.Print("root-modules/")
+	ui.Print("substrate.*")
+	ui.Print("")
+	ui.Print("then, run `substrate create-account` as you see fit to create the service accounts you need")
+	ui.Printf("you should also start using `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
 }
