@@ -143,7 +143,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if substrateAccount == nil { // genuinely a new installation
 		ui.Stop("not found")
 		ui.Spin("creating the Substrate account")
-		// TODO create the Substrate account
+		substrateAccount, err = awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Substrate)
+		ui.Must(err)
 	}
 	ui.Must(awsorgs.Tag(ctx, mgmtCfg, aws.ToString(substrateAccount.Id), tagging.Map{
 		tagging.Manager:          tagging.Substrate,
