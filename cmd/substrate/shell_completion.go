@@ -291,6 +291,8 @@ func shellCompletion() {
 
 	case "setup":
 
+	case "setup-cloudtrail":
+
 	case "terraform", "upgrade":
 		options = append(options, "-no", "-yes")
 
