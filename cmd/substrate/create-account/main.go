@@ -125,6 +125,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	admin.EnsureAdminRolesAndPolicies(ctx, cfg, createdAccount)
 
+	_, err = terraform.EnsureStateManager(ctx, awscfg.Must(cfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour)))
+	ui.Must(err)
+
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between all of a domain's accounts.
 	ui.Must(terraform.Scaffold(*domain, true))

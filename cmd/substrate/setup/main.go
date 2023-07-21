@@ -68,6 +68,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	region := regions.Default()
 	mgmtCfg = mgmtCfg.Regional(region)
+	regions.Select()
 
 	_ = prefix
 
@@ -166,8 +167,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	))
 	ui.Stopf("found %s", substrateAccount)
 
-	ui.Spin("finding or creating the Substrate IAM user and roles")
-
 	// Find or create the Substrate role in the Substrate account. This is what
 	// the Intranet will eventually use.
 	substrateRole, err := awsiam.EnsureRole(
@@ -219,9 +218,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	))
 	//log.Print(jsonutil.MustString(mgmtRole))
 
-	ui.Stop("ok")
-
-	// TODO create the TerraformStateManager role in the Substrate account
+	// Ensure every account can run Terraform with remote state centralized
+	// in the Substrate account. This is better than storing state in each
+	// account because it minimizes the number of non-Terraform-managed
+	// resources in all those other Terraform-using accounts.
+	_, err = terraform.EnsureStateManager(ctx, substrateCfg)
+	ui.Must(err)
 
 	// TODO ??? create legacy {Organization,Deploy,Network}Administrator and OrganizationReader roles ???
 
