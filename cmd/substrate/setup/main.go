@@ -20,16 +20,20 @@ import (
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/telemetry"
+	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
 
+var (
+	autoApprove         = flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
+	ignoreServiceQuotas = flag.Bool("ignore-service-quotas", false, "ignore service quotas appearing to be exhausted and continue anyway")
+	noApply             = flag.Bool("no-apply", false, "do not apply Terraform changes")
+)
+
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	// XXX autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
-	// XXX ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore service quotas appearing to be exhausted and continue anyway")
-	// XXX noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	ui.InteractivityFlags()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate setup [-auto-approve] [-ignore-service-quotas] [-no-apply]")
