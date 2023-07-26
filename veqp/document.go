@@ -8,7 +8,6 @@ import (
 
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
-	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -117,7 +116,7 @@ func (d *Document) validateEnvironmentQualityPair(
 	eqp EnvironmentQualityPair,
 	environments, qualities []string,
 ) error {
-	validEnvironment := eqp.Environment == naming.Admin
+	validEnvironment := false
 	for _, environment := range environments {
 		if eqp.Environment == environment {
 			validEnvironment = true
