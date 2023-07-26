@@ -25,6 +25,7 @@ func Environments() ([]string, error) {
 			return environments, nil
 		}
 	}
+	//log.Printf(`adding "admin" to the list of environments %+v to return %+v`, environments, append([]string{Admin}, environments...))
 	return append([]string{Admin}, environments...), nil
 
 }
