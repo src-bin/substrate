@@ -337,6 +337,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// TODO configure IAM Identity Center (later)
 
+	// Render a "cheat sheet" of sorts that has all the account numbers, role
+	// names, and role ARNs that folks might need to get the job done.
+	ui.Must(accounts.CheatSheet(ctx, mgmtCfg))
+
+	if *noApply {
+		ui.Print("-no-apply given so not invoking `terraform apply`")
+	}
+
 	ui.Print("")
 	ui.Print("setup complete!")
 	ui.Print("next, let's get all the files Substrate has generated committed to version control")

@@ -181,7 +181,4 @@ func deploy(ctx context.Context, mgmtCfg *awscfg.Config) {
 		}
 		ui.Must(err)
 	}
-	if *noApply {
-		ui.Print("-no-apply given so not invoking `terraform apply`")
-	}
 }
