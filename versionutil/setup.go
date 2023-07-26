@@ -26,6 +26,7 @@ func PreventSetupViolation(ctx context.Context, cfg *awscfg.Config) {
 	}
 	// ui.Must(err)
 
+	//log.Printf("%+v", tags)
 	if tags[tagging.Name] == tagging.Substrate || tags[tagging.SubstrateType] != "" {
 		ui.Printf(
 			"your organization has upgraded to Substrate %s and `%s %s` is no longer available; run `substrate setup` instead",
