@@ -95,6 +95,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 	}
 	ui.Printf("using environments %s", strings.Join(environments, ", "))
+	environments, err = naming.Environments()
+	ui.Must(err)
 	if !fileutil.Exists(naming.QualitiesFilename) {
 		ui.Must(ioutil.WriteFile(naming.QualitiesFilename, []byte("default\n"), 0666))
 	}
