@@ -25,10 +25,6 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-const (
-	NATGatewaysFilename = "substrate.nat-gateways"
-)
-
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
@@ -158,7 +154,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 
 	natGateways, err := ui.ConfirmFile(
-		NATGatewaysFilename,
+		networks.NATGatewaysFilename,
 		`do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; answering "yes" costs about $100 per month per region per environment/quality pair)`,
 	)
 	if err != nil {

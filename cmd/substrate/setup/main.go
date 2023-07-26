@@ -4,7 +4,9 @@ import (
 	"context"
 	"flag"
 	"io"
+	"io/ioutil"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,9 +14,12 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
+	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -23,17 +28,17 @@ import (
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
+	"github.com/src-bin/substrate/veqp"
 	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
 
-var (
-	autoApprove         = flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
-	ignoreServiceQuotas = flag.Bool("ignore-service-quotas", false, "ignore service quotas appearing to be exhausted and continue anyway")
-	noApply             = flag.Bool("no-apply", false, "do not apply Terraform changes")
-)
+var autoApprove, ignoreServiceQuotas, noApply *bool // shameful package variables to avoid rewriting bootstrap-{deploy,network}-account
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
+	autoApprove = flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
+	ignoreServiceQuotas = flag.Bool("ignore-service-quotas", false, "ignore service quotas appearing to be exhausted and continue anyway")
+	noApply = flag.Bool("no-apply", false, "do not apply Terraform changes")
 	ui.InteractivityFlags()
 	flag.Usage = func() {
 		ui.Print("Usage: substrate setup [-auto-approve] [-ignore-service-quotas] [-no-apply]")
@@ -64,13 +69,100 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
 
-	prefix := naming.Prefix()
+	naming.Prefix()
 
 	region := regions.Default()
 	mgmtCfg = mgmtCfg.Regional(region)
-	regions.Select()
+	_, err := regions.Select()
+	ui.Must(err)
 
-	_ = prefix
+	// Prompt for environments and qualities but make it less intimidating than
+	// it was originally by leaving out the whole "admin" thing and by skipping
+	// qualifies entirely, defaulting to "default", to avoid introducing that
+	// advanced concept right out of the gate.
+	environments, err := ui.EditFile(
+		naming.EnvironmentsFilename,
+		"the following environments are currently valid in your Substrate-managed infrastructure:",
+		`list all your environments, one per line, in order of progression from e.g. "development" through e.g. "production"`,
+	)
+	ui.Must(err)
+	for _, environment := range environments {
+		if strings.ContainsAny(environment, " /") {
+			ui.Fatal("environments cannot contain ' ' or '/'")
+		}
+		if environment == "peering" {
+			ui.Fatal(`"peering" is a reserved environment name`)
+		}
+	}
+	ui.Printf("using environments %s", strings.Join(environments, ", "))
+	if !fileutil.Exists(naming.QualitiesFilename) {
+		ui.Must(ioutil.WriteFile(naming.QualitiesFilename, []byte("default\n"), 0666))
+	}
+	qualities, err := naming.Qualities()
+	ui.Must(err)
+	if len(qualities) == 0 {
+		ui.Fatal("you must name at least one quality")
+	}
+	for _, quality := range qualities {
+		if strings.ContainsAny(quality, " /") {
+			ui.Fatal("qualities cannot contain ' ' or '/'")
+		}
+	}
+	if len(qualities) > 1 {
+		ui.Printf("using qualities %s", strings.Join(qualities, ", "))
+	}
+
+	// Combine all environments and qualities. If there's only one quality then
+	// there's only one possible document; create it non-interactively. If
+	// there's more than one quality, offer every combination that doesn't
+	// appear in substrate.valid-environment-quality-pairs.json. Finally,
+	// validate the document.
+	veqpDoc, err := veqp.ReadDocument()
+	ui.Must(err)
+	if len(qualities) == 1 {
+		for _, environment := range environments {
+			veqpDoc.Ensure(environment, qualities[0])
+		}
+	} else {
+		if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
+			ui.Print("you currently allow the following combinations of environment and quality in your Substrate-managed infrastructure:")
+			for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
+				ui.Printf("\t%-12s %s", eq.Environment, eq.Quality)
+			}
+		}
+		if ui.Interactivity() == ui.FullyInteractive || ui.Interactivity() == ui.MinimallyInteractive && len(veqpDoc.ValidEnvironmentQualityPairs) == 0 {
+			var ok bool
+			if len(veqpDoc.ValidEnvironmentQualityPairs) != 0 {
+				ok, err = ui.Confirm("is this correct? (yes/no)")
+				ui.Must(err)
+			}
+			if !ok {
+				for _, environment := range environments {
+					for _, quality := range qualities {
+						if !veqpDoc.Valid(environment, quality) {
+							ok, err := ui.Confirmf(`do you want to allow %s-quality infrastructure in your %s environment? (yes/no)`, quality, environment)
+							ui.Must(err)
+							if ok {
+								veqpDoc.Ensure(environment, quality)
+							}
+						}
+					}
+				}
+			}
+		} else {
+			ui.Print("if this is not correct, press ^C and re-run this command with -fully-interactive")
+			time.Sleep(5e9) // give them a chance to ^C
+		}
+	}
+	ui.Must(veqpDoc.Validate(environments, qualities))
+	//log.Printf("%+v", veqpDoc)
+
+	// Finally, ask them the expensive question about NAT Gateways.
+	_, err = ui.ConfirmFile(
+		networks.NATGatewaysFilename,
+		`do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; answering "yes" costs about $100 per month per region per environment/quality pair)`,
+	)
+	ui.Must(err)
 
 	// Ensure this account is (in) an organization.
 	ui.Spin("finding or creating your organization")
@@ -223,6 +315,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// account because it minimizes the number of non-Terraform-managed
 	// resources in all those other Terraform-using accounts.
 	_, err = terraform.EnsureStateManager(ctx, substrateCfg)
+	if awsutil.ErrorCodeIs(err, awss3.BucketAlreadyExists) { // take this as a sign that the bucket's in their (legacy) deploy account
+		err = nil
+	}
 	ui.Must(err)
 
 	// TODO ??? create legacy {Organization,Deploy,Network}Administrator and OrganizationReader roles ???

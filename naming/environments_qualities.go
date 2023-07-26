@@ -16,7 +16,17 @@ func Environments() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fileutil.ToLines(b), nil
+	environments := fileutil.ToLines(b)
+
+	// If the file doesn't contain "admin" as one of the environments, add it
+	// to the list anyway because it really is still required.
+	for _, environment := range environments {
+		if environment == Admin {
+			return environments, nil
+		}
+	}
+	return append([]string{Admin}, environments...), nil
+
 }
 
 func Qualities() ([]string, error) {

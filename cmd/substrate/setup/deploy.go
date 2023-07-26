@@ -19,14 +19,21 @@ import (
 
 func deploy(ctx context.Context, mgmtCfg *awscfg.Config) {
 
-	// TODO manage the DeployAdministrator role
-
-	cfg := awscfg.Must(mgmtCfg.AssumeSpecialRole(
+	// Try to assume the DeployAdministrator role in the special deploy account
+	// but give up without a fight if we can't since new installations won't
+	// have this role or even this account and that's just fine.
+	cfg, err := mgmtCfg.AssumeSpecialRole(
 		ctx,
 		accounts.Deploy,
 		roles.DeployAdministrator,
 		time.Hour,
-	))
+	)
+	if err == nil {
+		ui.Print("successfully assumed the DeployAdministrator role; proceeding with Terraform for the deploy account")
+	} else {
+		ui.Print("could not assume the DeployAdministrator role; continuing without the deploy account")
+		return
+	}
 
 	accountId := aws.ToString(cfg.MustGetCallerIdentity(ctx).Account)
 	org, err := cfg.DescribeOrganization(ctx)

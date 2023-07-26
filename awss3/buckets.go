@@ -17,6 +17,7 @@ import (
 const (
 	AccessControlListNotSupported = "AccessControlListNotSupported"
 	AllAccessDisabled             = "AllAccessDisabled"
+	BucketAlreadyExists           = "BucketAlreadyExists"
 	BucketAlreadyOwnedByYou       = "BucketAlreadyOwnedByYou"
 	Enabled                       = "Enabled"
 	NotSignedUp                   = "NotSignedUp"

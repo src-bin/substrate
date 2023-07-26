@@ -36,6 +36,14 @@ const DynamoDBTableName = "terraform-state-locks"
 // - terraform.tf, for configuring DynamoDB/S3-backed Terraform state files.
 // TODO factor all the code generation of providers, the shared-between-accounts module for a domain, etc. into a RootModule type
 func Root(ctx context.Context, cfg *awscfg.Config, dirname, region string) (err error) {
+
+	// Originally, we stored Terraform state from all accounts in the special
+	// deploy account but, in an effort to simplify and streamline Substrate,
+	// new installations won't actually have a special deploy account and
+	// instead will store Terraform state in the Substrate account. In order
+	// to accommodate both, we first check for the existence of a special
+	// deploy account and use it if we can and otherwise fall back to the
+	// Substrate account.
 	cfg, err = cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Deploy,
@@ -43,8 +51,12 @@ func Root(ctx context.Context, cfg *awscfg.Config, dirname, region string) (err 
 		time.Hour,
 	)
 	if err != nil {
+		cfg, err = cfg.AssumeSubstrateRole(ctx, roles.Administrator, time.Hour)
+	}
+	if err != nil {
 		return err
 	}
+
 	if err := os.MkdirAll(dirname, 0777); err != nil {
 		return err
 	}
@@ -108,13 +120,17 @@ func makefile(dirname string) error {
 }
 
 // terraformBackend creates the S3 bucket and DynamoDB table we use to store
-// Terraform state for this root module. The given cfg must be in the special
-// deploy account.
+// Terraform state for this root module. The given cfg must be in the Substrate
+// account or, for older installations, the special deploy account.
 func terraformBackend(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	dirname, region string,
 ) error {
+	callerIdentity, err := cfg.GetCallerIdentity(ctx)
+	if err != nil {
+		return err
+	}
 	f, err := os.Create(filepath.Join(dirname, "terraform.tf"))
 	if err != nil {
 		return err
@@ -131,7 +147,7 @@ func terraformBackend(
 		Key:           filepath.Join(dirname, "terraform.tfstate"),
 		Region:        region,
 		RoleArn: roles.ARN(
-			aws.ToString(cfg.MustGetCallerIdentity(ctx).Account),
+			aws.ToString(callerIdentity.Account),
 			roles.TerraformStateManager,
 		),
 	}
@@ -139,10 +155,6 @@ func terraformBackend(
 	// Ensure the DynamoDB table and S3 bucket exist before configuring
 	// Terraform to use them for remote state.
 	ui.Spin("finding or creating an S3 bucket for storing Terraform state")
-	callerIdentity, err := cfg.GetCallerIdentity(ctx)
-	if err != nil {
-		return err
-	}
 	if err := awss3.EnsureBucket(
 		ctx,
 		cfg.Regional(v.Region),
