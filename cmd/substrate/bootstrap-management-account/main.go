@@ -65,13 +65,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			ui.Fatal(err)
 		}
 	}
+	versionutil.PreventDowngrade(ctx, cfg)
+	versionutil.PreventSetupViolation(ctx, cfg)
+
 	cfg = awscfg.Must(cfg.AssumeManagementRole(
 		ctx,
 		roles.OrganizationAdministrator,
 		time.Hour,
 	)).Regional(region)
-	versionutil.PreventDowngrade(ctx, cfg)
-	versionutil.PreventSetupViolation(ctx, cfg)
 
 	// Ensure this account is (in) an organization.
 	ui.Spin("finding or creating your organization")
