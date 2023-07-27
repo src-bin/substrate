@@ -327,23 +327,19 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		users.ARN(substrateAccountId, users.CredentialFactory),
 		users.ARN(mgmtAccountId, users.OrganizationAdministrator),
 	}})
-	administratorRole, err := awsiam.EnsureRole(
-		ctx,
-		substrateCfg,
-		roles.Administrator,
-		policies.Merge(
-			policies.AssumeRolePolicyDocument(&policies.Principal{
-				AWS: []string{
-					roles.ARN(substrateAccountId, roles.Administrator),
-					substrateRole.ARN,
-					aws.ToString(substrateUser.Arn),
-				},
-				Service: []string{"ec2.amazonaws.com"},
-			}),
-			legacy,
-			&extraAdministrator,
-		),
+	administratorAssumeRolePolicy := policies.Merge(
+		policies.AssumeRolePolicyDocument(&policies.Principal{
+			AWS: []string{
+				roles.ARN(substrateAccountId, roles.Administrator),
+				substrateRole.ARN,
+				aws.ToString(substrateUser.Arn),
+			},
+			Service: []string{"ec2.amazonaws.com"},
+		}),
+		legacy,
+		&extraAdministrator,
 	)
+	administratorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Administrator, administratorAssumeRolePolicy)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, administratorRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(administratorRole))
