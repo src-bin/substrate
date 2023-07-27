@@ -257,12 +257,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		tagging.SubstrateType:    accounts.Substrate,
 		tagging.SubstrateVersion: version.Version,
 	}))
-	substrateCfg := awscfg.Must(mgmtCfg.AssumeRole(
-		ctx,
-		substrateAccountId,
-		roles.OrganizationAccountAccessRole, // TODO try Administrator and Substrate, too, just in case this one's been deleted
-		time.Hour,
-	))
+	substrateCfg, err := mgmtCfg.AssumeRole(ctx, substrateAccountId, roles.Substrate, time.Hour)
+	if err != nil {
+		substrateCfg, err = mgmtCfg.AssumeRole(ctx, substrateAccountId, roles.Administrator, time.Hour)
+	}
+	if err != nil {
+		substrateCfg, err = mgmtCfg.AssumeRole(ctx, substrateAccountId, roles.OrganizationAccountAccessRole, time.Hour)
+	}
+	ui.Must(err)
 	ui.Stopf("found %s", substrateAccount)
 
 	// Find or create the Substrate user in the management account. This may
