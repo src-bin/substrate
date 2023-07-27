@@ -100,7 +100,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 
 	if substrateAccount != nil {
 		specialAccountsCells = append(specialAccountsCells, []string{
-			Substrate,
+			`Substrate (formerly "admin")`,
 			aws.ToString(substrateAccount.Id),
 			roles.Administrator,
 			roles.ARN(aws.ToString(substrateAccount.Id), roles.Administrator),
