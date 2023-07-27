@@ -194,8 +194,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Stopf("organization %s", org.Id)
 	//log.Printf("%+v", org)
 
-	// TODO EnableAllFeatures, which is complicated but necessary in case an
+	// EnableAllFeatures, which is complicated but necessary in case an
 	// organization was created as merely a consolidated billing organization.
+	// This hasn't been a problem in three years so it doesn't seem worth the
+	// effort until we encounter billing-only organizations in the real world
+	// that are trying to adopt Substrate.
 
 	// Ensure this is, indeed, the organization's management account.  This is
 	// almost certainly redundant but I can't be bothered to read the reams
@@ -441,7 +444,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	//log.Print(jsonutil.MustString(substrateRole))
 
-	// Find or create the {Deploy,Network,Organization}Administrator roles.
+	// Find or create the {Deploy,Network,Organization}Administrator roles and
+	// matching Auditor roles in all the special accounts that we can. The only
+	// one that's a guarantee is the management account.
 	if deployCfg, err := mgmtCfg.AssumeSpecialRole(
 		ctx,
 		accounts.Deploy,
@@ -474,6 +479,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			deployRole.Name,
 			policies.AdministratorAccess,
 		))
+		// TODO manage the Auditor role in the legacy deploy account
 	} else {
 		ui.Print("could not assume the DeployAdministrator role; continuing without managing its policies")
 	}
@@ -509,6 +515,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			networkRole.Name,
 			policies.AdministratorAccess,
 		))
+		// TODO manage the Auditor role in the legacy network account
 	} else {
 		ui.Print("could not assume the NetworkAdministrator role; continuing without managing its policies")
 	}
@@ -538,7 +545,37 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		orgAdminRole.Name,
 		policies.AdministratorAccess,
 	))
-	// TODO create OrganizationReader role
+	// TODO manage the Auditor role in the management account
+
+	// Find or create the legacy OrganizationReader role. Unlike the others,
+	// we probably won't keep this one around long-term because it's not useful
+	// as a general-purpose read-only role like Auditor is.
+	_, err = awsiam.EnsureRoleWithPolicy(
+		ctx,
+		mgmtCfg,
+		roles.OrganizationReader,
+		&policies.Document{
+			Statement: []policies.Statement{{
+				Principal: &policies.Principal{AWS: []string{"*"}},
+				Action:    []string{"sts:AssumeRole"},
+				Condition: policies.Condition{"StringEquals": {
+					"aws:PrincipalOrgID": []string{aws.ToString(org.Id)},
+				}},
+			}},
+		},
+		&policies.Document{
+			Statement: []policies.Statement{{
+				Action: []string{
+					"organizations:DescribeAccount",
+					"organizations:DescribeOrganization",
+					"organizations:ListAccounts",
+					"organizations:ListTagsForResource",
+				},
+				Resource: []string{"*"},
+			}},
+		},
+	)
+	ui.Must(err)
 
 	// Ensure every account can run Terraform with remote state centralized
 	// in the Substrate account. This is better than storing state in each
@@ -552,10 +589,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// TODO create Administrator and Auditor roles in every service account
 
-	// TODO run the legacy deploy account's Terraform code, if the account exists
+	// Generate, plan, and apply the legacy deploy account's Terraform code,
+	// if the account exists.
 	deploy(ctx, mgmtCfg)
 
-	// TODO run the legacy network account's Terraform code, if the account exists
+	// Generate, plan, and apply the legacy network account's Terraform code,
+	// if the account exists.
 	network(ctx, mgmtCfg)
 
 	// TODO configure the Intranet
