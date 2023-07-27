@@ -380,6 +380,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		roles.Substrate,
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
 			administratorRole.ARN,
+			roles.ARN(mgmtAccountId, roles.Substrate),
 			substrateRole.ARN,
 			aws.ToString(mgmtUser.Arn),
 			aws.ToString(substrateUser.Arn),
