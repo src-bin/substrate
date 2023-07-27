@@ -450,7 +450,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		networkRole, err := awsiam.EnsureRole(
 			ctx,
 			networkCfg,
-			roles.DeployAdministrator,
+			roles.NetworkAdministrator,
 			policies.Merge(
 				policies.AssumeRolePolicyDocument(&policies.Principal{
 					AWS: []string{
