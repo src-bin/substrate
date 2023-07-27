@@ -512,7 +512,33 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	} else {
 		ui.Print("could not assume the NetworkAdministrator role; continuing without managing its policies")
 	}
-	// TODO create OrganizationAdministrator and OrganizationReader roles
+	orgAdminRole, err := awsiam.EnsureRole(
+		ctx,
+		mgmtCfg,
+		roles.OrganizationAdministrator,
+		policies.Merge(
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				AWS: []string{
+					roles.ARN(substrateAccountId, roles.Administrator),
+					roles.ARN(mgmtAccountId, roles.OrganizationAdministrator),
+					mgmtRole.ARN,
+					substrateRole.ARN,
+					aws.ToString(mgmtUser.Arn),
+					aws.ToString(substrateUser.Arn),
+				},
+			}),
+			legacy,
+			&extraAdministrator,
+		),
+	)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(
+		ctx,
+		mgmtCfg,
+		orgAdminRole.Name,
+		policies.AdministratorAccess,
+	))
+	// TODO create OrganizationReader role
 
 	// Ensure every account can run Terraform with remote state centralized
 	// in the Substrate account. This is better than storing state in each
