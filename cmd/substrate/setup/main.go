@@ -347,71 +347,27 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, administratorRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(administratorRole))
-	auditorRole, err := awsiam.EnsureRole(
-		ctx,
-		substrateCfg,
-		roles.Auditor,
-		policies.Merge(
-			policies.AssumeRolePolicyDocument(&policies.Principal{
-				AWS: []string{
-					roles.ARN(substrateAccountId, roles.Administrator),
-					roles.ARN(substrateAccountId, roles.Auditor),
-					substrateRole.ARN,
-					aws.ToString(substrateUser.Arn),
-				},
-				Service: []string{"ec2.amazonaws.com"},
-			}),
-			legacy,
-			&extraAdministrator,
-			&extraAuditor,
-		),
+	auditorAssumeRolePolicy := policies.Merge(
+		policies.AssumeRolePolicyDocument(&policies.Principal{
+			AWS: []string{
+				roles.ARN(substrateAccountId, roles.Administrator),
+				roles.ARN(substrateAccountId, roles.Auditor),
+				substrateRole.ARN,
+				aws.ToString(substrateUser.Arn),
+			},
+			Service: []string{"ec2.amazonaws.com"},
+		}),
+		legacy,
+		&extraAdministrator,
+		&extraAuditor,
 	)
+	auditorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Auditor, auditorAssumeRolePolicy)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, policies.ReadOnlyAccess))
-	allowAssumeRole, err := awsiam.EnsurePolicy(
-		ctx,
-		substrateCfg,
-		"SubstrateAllowAssumeRole",
-		&policies.Document{
-			Statement: []policies.Statement{{
-				Action:   []string{"sts:AssumeRole"},
-				Effect:   policies.Allow,
-				Resource: []string{"*"},
-			}},
-		},
-	)
+	allowAssumeRole, err := awsiam.EnsurePolicy(ctx, substrateCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
-	denySensitiveReads, err := awsiam.EnsurePolicy(
-		ctx,
-		substrateCfg,
-		"SubstrateDenySensitiveReads",
-		&policies.Document{ // <https://alestic.com/2015/10/aws-iam-readonly-too-permissive/>
-			Statement: []policies.Statement{{
-				Action: []string{
-					"cloudformation:GetTemplate", // note this is in conflict with Vanta's requested permissions
-					"dynamodb:BatchGetItem",
-					"dynamodb:GetItem",
-					"dynamodb:Query",
-					"dynamodb:Scan",
-					"ec2:GetConsoleOutput",
-					"ec2:GetConsoleScreenshot",
-					"ecr:BatchGetImage",
-					"ecr:GetAuthorizationToken",
-					"ecr:GetDownloadUrlForLayer",
-					"kinesis:Get*",
-					"lambda:GetFunction",
-					"logs:GetLogEvents",
-					"s3:GetObject",
-					"s3:GetObjectVersion", // believed to be redundant but best not to chance it
-					"sdb:Select*",
-					"sqs:ReceiveMessage",
-				},
-				Effect:   policies.Deny,
-				Resource: []string{"*"},
-			}},
-		},
-	)
+	denySensitiveReads, err := awsiam.EnsurePolicy(ctx, substrateCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
 	//log.Print(jsonutil.MustString(auditorRole))
@@ -473,13 +429,18 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			),
 		)
 		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(
-			ctx,
-			deployCfg,
-			deployRole.Name,
-			policies.AdministratorAccess,
-		))
-		// TODO manage the Auditor role in the legacy deploy account
+		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, deployRole.Name, policies.AdministratorAccess))
+		//log.Print(jsonutil.MustString(deployRole))
+		auditorRole, err := awsiam.EnsureRole(ctx, deployCfg, roles.Auditor, auditorAssumeRolePolicy)
+		ui.Must(err)
+		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, auditorRole.Name, policies.ReadOnlyAccess))
+		allowAssumeRole, err := awsiam.EnsurePolicy(ctx, deployCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
+		ui.Must(err)
+		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
+		denySensitiveReads, err := awsiam.EnsurePolicy(ctx, deployCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
+		ui.Must(err)
+		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
+		//log.Print(jsonutil.MustString(auditorRole))
 	} else {
 		ui.Print("could not assume the DeployAdministrator role; continuing without managing its policies")
 	}
@@ -515,7 +476,16 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			networkRole.Name,
 			policies.AdministratorAccess,
 		))
-		// TODO manage the Auditor role in the legacy network account
+		auditorRole, err := awsiam.EnsureRole(ctx, networkCfg, roles.Auditor, auditorAssumeRolePolicy)
+		ui.Must(err)
+		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, auditorRole.Name, policies.ReadOnlyAccess))
+		allowAssumeRole, err := awsiam.EnsurePolicy(ctx, networkCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
+		ui.Must(err)
+		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
+		denySensitiveReads, err := awsiam.EnsurePolicy(ctx, networkCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
+		ui.Must(err)
+		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
+		//log.Print(jsonutil.MustString(auditorRole))
 	} else {
 		ui.Print("could not assume the NetworkAdministrator role; continuing without managing its policies")
 	}
@@ -545,7 +515,16 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		orgAdminRole.Name,
 		policies.AdministratorAccess,
 	))
-	// TODO manage the Auditor role in the management account
+	auditorRole, err = awsiam.EnsureRole(ctx, mgmtCfg, roles.Auditor, auditorAssumeRolePolicy)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, auditorRole.Name, policies.ReadOnlyAccess))
+	allowAssumeRole, err = awsiam.EnsurePolicy(ctx, mgmtCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
+	denySensitiveReads, err = awsiam.EnsurePolicy(ctx, mgmtCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
+	//log.Print(jsonutil.MustString(auditorRole))
 
 	// Find or create the legacy OrganizationReader role. Unlike the others,
 	// we probably won't keep this one around long-term because it's not useful
