@@ -8,6 +8,11 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
+const (
+	ExtraAdministratorAssumeRolePolicyFilename = "substrate.Administrator.assume-role-policy.json"
+	ExtraAuditorAssumeRolePolicyFilename       = "substrate.Auditor.assume-role-policy.json"
+)
+
 type Document struct {
 	Version   version
 	Statement []Statement // annoyingly signular because AWS made it singular

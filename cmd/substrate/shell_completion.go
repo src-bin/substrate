@@ -290,6 +290,13 @@ func shellCompletion() {
 		options = append(options, "-format", "-quiet")
 
 	case "setup":
+		options = append(
+			options,
+			"-auto-approve",
+			"-ignore-service-quotas",
+			"-no-apply",
+			"-fully-interactive", "-minimally-interactive", "-non-interactive",
+		)
 
 	case "setup-cloudtrail":
 

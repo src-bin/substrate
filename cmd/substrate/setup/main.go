@@ -2,8 +2,10 @@ package setup
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"strings"
@@ -64,7 +66,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(
 		ctx,
 		roles.Substrate, // triggers affordances for using (deprecated) OrganizationAdministrator role, too
-		time.Hour,       // XXX longer would be better since bootstrapping's expected to take some serious time
+		time.Hour,       // longer would be better since bootstrapping's expected to take some serious time
 	))
 
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
@@ -214,7 +216,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	//log.Printf("%+v", org)
 
 	// Tag the management account in the new style.
-	ui.Must(awsorgs.Tag(ctx, mgmtCfg, mgmtCfg.MustAccountId(ctx), tagging.Map{
+	mgmtAccountId := mgmtCfg.MustAccountId(ctx)
+	ui.Must(awsorgs.Tag(ctx, mgmtCfg, mgmtAccountId, tagging.Map{
 		tagging.Manager:          tagging.Substrate,
 		tagging.SubstrateType:    accounts.Management,
 		tagging.SubstrateVersion: version.Version,
@@ -248,35 +251,40 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		substrateAccount, err = awsorgs.EnsureSpecialAccount(ctx, cfg, accounts.Substrate)
 		ui.Must(err)
 	}
-	ui.Must(awsorgs.Tag(ctx, mgmtCfg, aws.ToString(substrateAccount.Id), tagging.Map{
+	substrateAccountId := aws.ToString(substrateAccount.Id)
+	ui.Must(awsorgs.Tag(ctx, mgmtCfg, substrateAccountId, tagging.Map{
 		tagging.Manager:          tagging.Substrate,
 		tagging.SubstrateType:    accounts.Substrate,
 		tagging.SubstrateVersion: version.Version,
 	}))
 	substrateCfg := awscfg.Must(mgmtCfg.AssumeRole(
 		ctx,
-		aws.ToString(substrateAccount.Id),
+		substrateAccountId,
 		roles.OrganizationAccountAccessRole, // TODO try Administrator and Substrate, too, just in case this one's been deleted
 		time.Hour,
 	))
 	ui.Stopf("found %s", substrateAccount)
 
 	// Find or create the Substrate role in the Substrate account. This is what
-	// the Intranet will eventually use.
+	// the Intranet will use.
+	substrateAssumeRolePolicy := policies.AssumeRolePolicyDocument(&policies.Principal{
+		Service: []string{"lambda.amazonaws.com"},
+	})
+	if mgmtRole, err := awsiam.GetRole(ctx, mgmtCfg, roles.Substrate); err == nil {
+		substrateAssumeRolePolicy.Statement[0].Principal.AWS = []string{mgmtRole.ARN}
+	}
 	substrateRole, err := awsiam.EnsureRole(
 		ctx,
 		substrateCfg,
 		roles.Substrate,
-		policies.AssumeRolePolicyDocument(&policies.Principal{
-			Service: []string{"lambda.amazonaws.com"},
-		}),
+		substrateAssumeRolePolicy,
 	)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(
 		ctx,
 		substrateCfg,
 		substrateRole.Name,
-		"arn:aws:iam::aws:policy/AdministratorAccess",
+		policies.AdministratorAccess,
 	))
 	//log.Print(jsonutil.MustString(substrateRole))
 
@@ -288,9 +296,141 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ctx,
 		substrateCfg,
 		aws.ToString(substrateUser.UserName),
-		"arn:aws:iam::aws:policy/AdministratorAccess",
+		policies.AdministratorAccess,
 	))
 	//log.Print(jsonutil.MustString(substrateUser))
+
+	// Find or create the Administrator and Auditor roles in the Substrate
+	// account. These are the default roles to assign to humans in the IdP.
+	var extraAdministrator, extraAuditor policies.Document
+	if err := jsonutil.Read(
+		policies.ExtraAdministratorAssumeRolePolicyFilename,
+		&extraAdministrator,
+	); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		ui.Fatalf("error processing %s: %v", policies.ExtraAdministratorAssumeRolePolicyFilename, err)
+	}
+	if err := jsonutil.Read(
+		policies.ExtraAuditorAssumeRolePolicyFilename,
+		&extraAuditor,
+	); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		ui.Fatalf("error processing %s: %v", policies.ExtraAuditorAssumeRolePolicyFilename, err)
+	}
+	//log.Printf("%+v", extraAdministrator)
+	//log.Printf("%+v", extraAuditor)
+	legacy := policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
+		roles.ARN(substrateAccountId, roles.Intranet),
+		roles.ARN(mgmtAccountId, roles.OrganizationAdministrator),
+		users.ARN(substrateAccountId, users.CredentialFactory),
+		users.ARN(mgmtAccountId, users.OrganizationAdministrator),
+	}})
+	administratorRole, err := awsiam.EnsureRole(
+		ctx,
+		substrateCfg,
+		roles.Administrator,
+		policies.Merge(
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				AWS: []string{
+					roles.ARN(substrateAccountId, roles.Administrator),
+					substrateRole.ARN,
+					aws.ToString(substrateUser.Arn),
+				},
+				Service: []string{"ec2.amazonaws.com"},
+			}),
+			legacy,
+			&extraAdministrator,
+		),
+	)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(
+		ctx,
+		substrateCfg,
+		administratorRole.Name,
+		policies.AdministratorAccess,
+	))
+	//log.Print(jsonutil.MustString(administratorRole))
+	auditorRole, err := awsiam.EnsureRole(
+		ctx,
+		substrateCfg,
+		roles.Auditor,
+		policies.Merge(
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				AWS: []string{
+					roles.ARN(substrateAccountId, roles.Administrator),
+					roles.ARN(substrateAccountId, roles.Auditor),
+					substrateRole.ARN,
+					aws.ToString(substrateUser.Arn),
+				},
+				Service: []string{"ec2.amazonaws.com"},
+			}),
+			legacy,
+			&extraAdministrator,
+			&extraAuditor,
+		),
+	)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(
+		ctx,
+		substrateCfg,
+		auditorRole.Name,
+		policies.ReadOnlyAccess,
+	))
+	allowAssumeRole, err := awsiam.EnsurePolicy(
+		ctx,
+		substrateCfg,
+		"SubstrateAllowAssumeRole",
+		&policies.Document{
+			Statement: []policies.Statement{{
+				Action:   []string{"sts:AssumeRole"},
+				Effect:   policies.Allow,
+				Resource: []string{"*"},
+			}},
+		},
+	)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(
+		ctx,
+		substrateCfg,
+		auditorRole.Name,
+		aws.ToString(allowAssumeRole.Arn),
+	))
+	denySensitiveReads, err := awsiam.EnsurePolicy(
+		ctx,
+		substrateCfg,
+		"SubstrateDenySensitiveReads",
+		&policies.Document{ // <https://alestic.com/2015/10/aws-iam-readonly-too-permissive/>
+			Statement: []policies.Statement{{
+				Action: []string{
+					"cloudformation:GetTemplate", // TODO this is in conflict with Vanta's requested permissions
+					"dynamodb:BatchGetItem",
+					"dynamodb:GetItem",
+					"dynamodb:Query",
+					"dynamodb:Scan",
+					"ec2:GetConsoleOutput",
+					"ec2:GetConsoleScreenshot",
+					"ecr:BatchGetImage",
+					"ecr:GetAuthorizationToken",
+					"ecr:GetDownloadUrlForLayer",
+					"kinesis:Get*",
+					"lambda:GetFunction",
+					"logs:GetLogEvents",
+					"s3:GetObject",
+					"s3:GetObjectVersion", // believed to be redundant but best not to chance it
+					"sdb:Select*",
+					"sqs:ReceiveMessage",
+				},
+				Effect:   policies.Deny,
+				Resource: []string{"*"},
+			}},
+		},
+	)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(
+		ctx,
+		substrateCfg,
+		auditorRole.Name,
+		aws.ToString(denySensitiveReads.Arn),
+	))
+	//log.Print(jsonutil.MustString(auditorRole))
 
 	// Find or create the Substrate role in the management account. This is
 	// how we'll eventually create accounts, etc.
@@ -299,6 +439,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		mgmtCfg,
 		roles.Substrate,
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
+			administratorRole.ARN,
 			substrateRole.ARN,
 			aws.ToString(substrateUser.Arn),
 		}}),
@@ -308,9 +449,89 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ctx,
 		mgmtCfg,
 		mgmtRole.Name,
-		"arn:aws:iam::aws:policy/AdministratorAccess",
+		policies.AdministratorAccess,
 	))
 	//log.Print(jsonutil.MustString(mgmtRole))
+	substrateAssumeRolePolicy.Statement[0].Principal.AWS = []string{mgmtRole.ARN} // unconditional update to authorize mgmtRole
+	substrateRole, err = awsiam.EnsureRole(
+		ctx,
+		substrateCfg,
+		roles.Substrate,
+		substrateAssumeRolePolicy,
+	)
+	ui.Must(err)
+	//log.Print(jsonutil.MustString(substrateRole))
+
+	// Find or create the {Deploy,Network,Organization}Administrator roles.
+	if deployCfg, err := mgmtCfg.AssumeSpecialRole(
+		ctx,
+		accounts.Deploy,
+		roles.DeployAdministrator,
+		time.Hour,
+	); err == nil {
+		deployRole, err := awsiam.EnsureRole(
+			ctx,
+			deployCfg,
+			roles.DeployAdministrator,
+			policies.Merge(
+				policies.AssumeRolePolicyDocument(&policies.Principal{
+					AWS: []string{
+						roles.ARN(substrateAccountId, roles.Administrator),
+						roles.ARN(deployCfg.MustAccountId(ctx), roles.DeployAdministrator),
+						mgmtRole.ARN,
+						substrateRole.ARN,
+						aws.ToString(substrateUser.Arn),
+					},
+				}),
+				legacy,
+				&extraAdministrator,
+			),
+		)
+		ui.Must(err)
+		ui.Must(awsiam.AttachRolePolicy(
+			ctx,
+			deployCfg,
+			deployRole.Name,
+			policies.AdministratorAccess,
+		))
+	} else {
+		ui.Print("could not assume the DeployAdministrator role; continuing without managing its policies")
+	}
+	if networkCfg, err := mgmtCfg.AssumeSpecialRole(
+		ctx,
+		accounts.Network,
+		roles.NetworkAdministrator,
+		time.Hour,
+	); err == nil {
+		networkRole, err := awsiam.EnsureRole(
+			ctx,
+			networkCfg,
+			roles.DeployAdministrator,
+			policies.Merge(
+				policies.AssumeRolePolicyDocument(&policies.Principal{
+					AWS: []string{
+						roles.ARN(substrateAccountId, roles.Administrator),
+						roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator),
+						mgmtRole.ARN,
+						substrateRole.ARN,
+						aws.ToString(substrateUser.Arn),
+					},
+				}),
+				legacy,
+				&extraAdministrator,
+			),
+		)
+		ui.Must(err)
+		ui.Must(awsiam.AttachRolePolicy(
+			ctx,
+			networkCfg,
+			networkRole.Name,
+			policies.AdministratorAccess,
+		))
+	} else {
+		ui.Print("could not assume the NetworkAdministrator role; continuing without managing its policies")
+	}
+	// TODO create OrganizationAdministrator and OrganizationReader roles
 
 	// Ensure every account can run Terraform with remote state centralized
 	// in the Substrate account. This is better than storing state in each
@@ -322,9 +543,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	ui.Must(err)
 
-	// TODO ??? create legacy {Organization,Deploy,Network}Administrator and OrganizationReader roles ???
-
-	// TODO create Administrator and Auditor roles in the Substrate account and every service account
+	// TODO create Administrator and Auditor roles in every service account
 
 	// TODO run the legacy deploy account's Terraform code, if the account exists
 	deploy(ctx, mgmtCfg)
