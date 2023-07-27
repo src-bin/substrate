@@ -56,7 +56,7 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	serviceAccountsCells[0][5] = "Role ARN"
 	serviceAccountsCells[0][6] = "E-mail"
 	serviceAccountsCells[0][7] = "Version"
-	specialAccountsCells := table.MakeCells(6, 6)
+	specialAccountsCells := table.MakeCells(6, 5)
 	specialAccountsCells[0][0] = "Account Name"
 	specialAccountsCells[0][1] = "Account Number"
 	specialAccountsCells[0][2] = "Role Name"
@@ -70,20 +70,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 		return err
 	}
 
-	specialAccountsCells[3][0] = Audit
-	specialAccountsCells[3][1] = aws.ToString(auditAccount.Id)
-	specialAccountsCells[3][2] = roles.Auditor
-	specialAccountsCells[3][3] = roles.ARN(aws.ToString(auditAccount.Id), roles.Auditor)
-	specialAccountsCells[3][4] = aws.ToString(auditAccount.Email)
-	specialAccountsCells[3][5] = auditAccount.Tags[tagging.SubstrateVersion]
-
-	specialAccountsCells[4][0] = Deploy
-	specialAccountsCells[4][1] = aws.ToString(deployAccount.Id)
-	specialAccountsCells[4][2] = roles.DeployAdministrator
-	specialAccountsCells[4][3] = roles.ARN(aws.ToString(deployAccount.Id), roles.DeployAdministrator)
-	specialAccountsCells[4][4] = aws.ToString(deployAccount.Email)
-	specialAccountsCells[4][5] = deployAccount.Tags[tagging.SubstrateVersion]
-
 	specialAccountsCells[1][0] = Management
 	specialAccountsCells[1][1] = aws.ToString(managementAccount.Id)
 	specialAccountsCells[1][2] = roles.OrganizationAdministrator
@@ -91,12 +77,26 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[1][4] = aws.ToString(managementAccount.Email)
 	specialAccountsCells[1][5] = managementAccount.Tags[tagging.SubstrateVersion]
 
-	specialAccountsCells[5][0] = Network
-	specialAccountsCells[5][1] = aws.ToString(networkAccount.Id)
-	specialAccountsCells[5][2] = roles.NetworkAdministrator
-	specialAccountsCells[5][3] = roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator)
-	specialAccountsCells[5][4] = aws.ToString(networkAccount.Email)
-	specialAccountsCells[5][5] = networkAccount.Tags[tagging.SubstrateVersion]
+	specialAccountsCells[2][0] = Audit
+	specialAccountsCells[2][1] = aws.ToString(auditAccount.Id)
+	specialAccountsCells[2][2] = roles.Auditor
+	specialAccountsCells[2][3] = roles.ARN(aws.ToString(auditAccount.Id), roles.Auditor)
+	specialAccountsCells[2][4] = aws.ToString(auditAccount.Email)
+	specialAccountsCells[2][5] = auditAccount.Tags[tagging.SubstrateVersion]
+
+	specialAccountsCells[3][0] = Deploy
+	specialAccountsCells[3][1] = aws.ToString(deployAccount.Id)
+	specialAccountsCells[3][2] = roles.DeployAdministrator
+	specialAccountsCells[3][3] = roles.ARN(aws.ToString(deployAccount.Id), roles.DeployAdministrator)
+	specialAccountsCells[3][4] = aws.ToString(deployAccount.Email)
+	specialAccountsCells[3][5] = deployAccount.Tags[tagging.SubstrateVersion]
+
+	specialAccountsCells[4][0] = Network
+	specialAccountsCells[4][1] = aws.ToString(networkAccount.Id)
+	specialAccountsCells[4][2] = roles.NetworkAdministrator
+	specialAccountsCells[4][3] = roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator)
+	specialAccountsCells[4][4] = aws.ToString(networkAccount.Email)
+	specialAccountsCells[4][5] = networkAccount.Tags[tagging.SubstrateVersion]
 
 	if substrateAccount != nil {
 		specialAccountsCells = append(specialAccountsCells, []string{
