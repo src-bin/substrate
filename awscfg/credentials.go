@@ -116,20 +116,11 @@ func (c *Config) SetRootCredentials(ctx context.Context) (*sts.GetCallerIdentity
 
 	client := c.IAM()
 
-	user, err := awsiamusers.EnsureUserWithPolicy(
-		ctx,
-		client,
-		users.Substrate,
-		&policies.Document{
-			Statement: []policies.Statement{
-				policies.Statement{
-					Action:   []string{"*"},
-					Resource: []string{"*"},
-				},
-			},
-		},
-	)
+	user, err := awsiamusers.EnsureUser(ctx, client, users.Substrate)
 	if err != nil {
+		return nil, err
+	}
+	if err := awsiamusers.AttachUserPolicy(ctx, client, aws.ToString(user.UserName), policies.AdministratorAccess); err != nil {
 		return nil, err
 	}
 	//log.Printf("%+v", user)

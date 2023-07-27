@@ -265,13 +265,27 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	))
 	ui.Stopf("found %s", substrateAccount)
 
+	// Find or create the Substrate user in the management account. This may
+	// have been created during the root credentials dance but we have to be
+	// sure because we're about to reference this user in some IAM policies.
+	mgmtUser, err := awsiam.EnsureUser(ctx, mgmtCfg, users.Substrate)
+	ui.Must(err)
+	ui.Must(awsiam.AttachUserPolicy(ctx, mgmtCfg, aws.ToString(mgmtUser.UserName), policies.AdministratorAccess))
+	//log.Printf("%+v", mgmtUser)
+
 	// Find or create the Substrate role in the Substrate account. This is what
-	// the Intranet will use.
+	// the Intranet will use. We'll try to allow the Substrate role in the
+	// management account to assume this role but if it doesn't exist yet we'll
+	// try again later.
 	substrateAssumeRolePolicy := policies.AssumeRolePolicyDocument(&policies.Principal{
+		AWS:     []string{aws.ToString(mgmtUser.Arn)},
 		Service: []string{"lambda.amazonaws.com"},
 	})
 	if mgmtRole, err := awsiam.GetRole(ctx, mgmtCfg, roles.Substrate); err == nil {
-		substrateAssumeRolePolicy.Statement[0].Principal.AWS = []string{mgmtRole.ARN}
+		substrateAssumeRolePolicy = policies.AssumeRolePolicyDocument(&policies.Principal{
+			AWS:     []string{mgmtRole.ARN, aws.ToString(mgmtUser.Arn)},
+			Service: []string{"lambda.amazonaws.com"},
+		})
 	}
 	substrateRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Substrate, substrateAssumeRolePolicy)
 	ui.Must(err)
@@ -406,18 +420,21 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
 			administratorRole.ARN,
 			substrateRole.ARN,
+			aws.ToString(mgmtUser.Arn),
 			aws.ToString(substrateUser.Arn),
 		}}),
 	)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, mgmtRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(mgmtRole))
-	substrateAssumeRolePolicy.Statement[0].Principal.AWS = []string{mgmtRole.ARN} // unconditional update to authorize mgmtRole
 	substrateRole, err = awsiam.EnsureRole(
 		ctx,
 		substrateCfg,
 		roles.Substrate,
-		substrateAssumeRolePolicy,
+		policies.AssumeRolePolicyDocument(&policies.Principal{
+			AWS:     []string{mgmtRole.ARN, aws.ToString(mgmtUser.Arn)},
+			Service: []string{"lambda.amazonaws.com"},
+		}),
 	)
 	ui.Must(err)
 	//log.Print(jsonutil.MustString(substrateRole))
@@ -440,6 +457,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 						roles.ARN(deployCfg.MustAccountId(ctx), roles.DeployAdministrator),
 						mgmtRole.ARN,
 						substrateRole.ARN,
+						aws.ToString(mgmtUser.Arn),
 						aws.ToString(substrateUser.Arn),
 					},
 				}),
@@ -474,6 +492,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 						roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator),
 						mgmtRole.ARN,
 						substrateRole.ARN,
+						aws.ToString(mgmtUser.Arn),
 						aws.ToString(substrateUser.Arn),
 					},
 				}),
