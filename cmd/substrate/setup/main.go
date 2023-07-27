@@ -22,6 +22,7 @@ import (
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/networks"
+	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -573,8 +574,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// if the account exists.
 	network(ctx, mgmtCfg)
 
-	// TODO configure the Intranet
-	dnsDomainName := intranet(ctx, substrateCfg)
+	// Configure the Intranet in the Substrate account.
+	dnsDomainName, idpName := intranet(ctx, mgmtCfg)
 
 	// TODO configure IAM Identity Center (later)
 
@@ -600,6 +601,21 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Print("root-modules/")
 	ui.Print("substrate.*")
 	ui.Print("")
-	ui.Print("then, run `substrate create-account` as you see fit to create the service accounts you need")
-	ui.Printf("you should also start using `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
+	ui.Print("next steps:")
+	ui.Print("- run `substrate create-account` to create service accounts to host your infrastructure")
+	ui.Printf("- use `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
+	switch idpName {
+	case oauthoidc.AzureAD:
+		ui.Print("- onboard your coworkers by setting the AWS.RoleName custom security attribute in Azure AD")
+		ui.Print("  (see <https://docs.src-bin.com/substrate/bootstrapping/integrating-your-identity-provider/azure-ad> for details)")
+	case oauthoidc.Google:
+		ui.Print("- onboard your coworkers by setting the AWS.RoleName custom attribute in Google Workspace")
+		ui.Print("  (see <https://docs.src-bin.com/substrate/bootstrapping/integrating-your-identity-provider/google> for details)")
+	case oauthoidc.Okta:
+		ui.Print("- onboard your coworkers by setting the AWS_RoleName profile attribute in Okta")
+		ui.Print("  (see <https://docs.src-bin.com/substrate/bootstrapping/integrating-your-identity-provider/okta> for details)")
+	}
+	ui.Print("- refer to the Substrate documentation at <https://docs.src-bin.com/substrate/>")
+	ui.Print("- email <help@src-bin.com> or mention us in Slack for support")
+
 }
