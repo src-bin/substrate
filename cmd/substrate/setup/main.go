@@ -273,31 +273,16 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if mgmtRole, err := awsiam.GetRole(ctx, mgmtCfg, roles.Substrate); err == nil {
 		substrateAssumeRolePolicy.Statement[0].Principal.AWS = []string{mgmtRole.ARN}
 	}
-	substrateRole, err := awsiam.EnsureRole(
-		ctx,
-		substrateCfg,
-		roles.Substrate,
-		substrateAssumeRolePolicy,
-	)
+	substrateRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Substrate, substrateAssumeRolePolicy)
 	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(
-		ctx,
-		substrateCfg,
-		substrateRole.Name,
-		policies.AdministratorAccess,
-	))
+	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, substrateRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(substrateRole))
 
 	// Find or create the Substrate user in the Substrate account. This is how
 	// we'll mint 12-hour sessions all over the organization.
 	substrateUser, err := awsiam.EnsureUser(ctx, substrateCfg, users.Substrate)
 	ui.Must(err)
-	ui.Must(awsiam.AttachUserPolicy(
-		ctx,
-		substrateCfg,
-		aws.ToString(substrateUser.UserName),
-		policies.AdministratorAccess,
-	))
+	ui.Must(awsiam.AttachUserPolicy(ctx, substrateCfg, aws.ToString(substrateUser.UserName), policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(substrateUser))
 
 	// Find or create the Administrator and Auditor roles in the Substrate
@@ -341,12 +326,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		),
 	)
 	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(
-		ctx,
-		substrateCfg,
-		administratorRole.Name,
-		policies.AdministratorAccess,
-	))
+	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, administratorRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(administratorRole))
 	auditorRole, err := awsiam.EnsureRole(
 		ctx,
@@ -368,12 +348,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		),
 	)
 	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(
-		ctx,
-		substrateCfg,
-		auditorRole.Name,
-		policies.ReadOnlyAccess,
-	))
+	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, policies.ReadOnlyAccess))
 	allowAssumeRole, err := awsiam.EnsurePolicy(
 		ctx,
 		substrateCfg,
@@ -387,12 +362,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		},
 	)
 	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(
-		ctx,
-		substrateCfg,
-		auditorRole.Name,
-		aws.ToString(allowAssumeRole.Arn),
-	))
+	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
 	denySensitiveReads, err := awsiam.EnsurePolicy(
 		ctx,
 		substrateCfg,
@@ -400,7 +370,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		&policies.Document{ // <https://alestic.com/2015/10/aws-iam-readonly-too-permissive/>
 			Statement: []policies.Statement{{
 				Action: []string{
-					"cloudformation:GetTemplate", // TODO this is in conflict with Vanta's requested permissions
+					"cloudformation:GetTemplate", // note this is in conflict with Vanta's requested permissions
 					"dynamodb:BatchGetItem",
 					"dynamodb:GetItem",
 					"dynamodb:Query",
@@ -424,12 +394,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		},
 	)
 	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(
-		ctx,
-		substrateCfg,
-		auditorRole.Name,
-		aws.ToString(denySensitiveReads.Arn),
-	))
+	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
 	//log.Print(jsonutil.MustString(auditorRole))
 
 	// Find or create the Substrate role in the management account. This is
@@ -445,12 +410,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}}),
 	)
 	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(
-		ctx,
-		mgmtCfg,
-		mgmtRole.Name,
-		policies.AdministratorAccess,
-	))
+	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, mgmtRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(mgmtRole))
 	substrateAssumeRolePolicy.Statement[0].Principal.AWS = []string{mgmtRole.ARN} // unconditional update to authorize mgmtRole
 	substrateRole, err = awsiam.EnsureRole(
