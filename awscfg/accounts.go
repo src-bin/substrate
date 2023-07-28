@@ -54,7 +54,7 @@ func (a *Account) String() string {
 	environment := a.Tags[tagging.Environment]
 	quality := a.Tags[tagging.Quality]
 	if domain == naming.Admin && quality != "" {
-		return fmt.Sprintf("admin (deprecated; run `substrate setup`) account number %s (Quality: %s)", aws.ToString(a.Id), quality)
+		return fmt.Sprintf("admin account number %s (Quality: %s)", aws.ToString(a.Id), quality)
 	}
 	if domain != "" && environment != "" && quality != "" {
 		return fmt.Sprintf("service account number %s (Domain: %s, Environment: %s, Quality: %s)", aws.ToString(a.Id), domain, environment, quality)
