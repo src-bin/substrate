@@ -15,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
 )
 
@@ -84,6 +85,7 @@ func (c *Config) AssumeManagementRole(
 		if err == nil {
 			return cfg, nil
 		}
+		ui.Print("falling back from the Substrate role to the OrganizationAdministrator role")
 		roleName = roles.OrganizationAdministrator // TODO restrict to more specific error cases
 	}
 
