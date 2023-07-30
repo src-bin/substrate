@@ -269,39 +269,66 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	ui.Stopf("found %s", substrateAccount)
 
-	// Find or create the Substrate user in the management account. This may
-	// have been created during the root credentials dance but we have to be
-	// sure because we're about to reference this user in some IAM policies.
+	// Find or create the Substrate user in the management and Substrate
+	// accounts. We need them both to exist early because we're about to
+	// reference them both in some IAM policies.
+	//
+	// The one in the management account is there to accommodate switching from
+	// root credentials to IAM credentials so that we can assume roles.
+	//
+	// The one in the Substrate account is how we'll mint 12-hour sessions all
+	// over the organization.
+	ui.Spin("finding or creating IAM users for bootstrapping and minting 12-hour credentials")
 	mgmtUser, err := awsiam.EnsureUser(ctx, mgmtCfg, users.Substrate)
 	ui.Must(err)
 	ui.Must(awsiam.AttachUserPolicy(ctx, mgmtCfg, aws.ToString(mgmtUser.UserName), policies.AdministratorAccess))
-	//log.Printf("%+v", mgmtUser)
+	//log.Print(jsonutil.MustString(mgmtUser))
+	substrateUser, err := awsiam.EnsureUser(ctx, substrateCfg, users.Substrate)
+	ui.Must(err)
+	ui.Must(awsiam.AttachUserPolicy(ctx, substrateCfg, aws.ToString(substrateUser.UserName), policies.AdministratorAccess))
+	//log.Print(jsonutil.MustString(substrateUser))
+	ui.Stop("ok")
+
+	// Find or create the Substrate role in the management account, possibly
+	// without some of the principals that need to be able to assume this
+	// role. It will be recreated later with all the princpals once they've
+	// definitely been created.
+	mgmtPrincipals := []string{
+		roles.ARN(mgmtAccountId, roles.Substrate), // allow this role to assume itself
+		aws.ToString(mgmtUser.Arn),
+		aws.ToString(substrateUser.Arn),
+	}
+	if administratorRole, err := awsiam.GetRole(ctx, substrateCfg, roles.Administrator); err == nil {
+		mgmtPrincipals = append(mgmtPrincipals, administratorRole.ARN)
+	}
+	if substrateRole, err := awsiam.GetRole(ctx, substrateCfg, roles.Substrate); err == nil {
+		mgmtPrincipals = append(mgmtPrincipals, substrateRole.ARN)
+	}
+	mgmtRole, err := awsiam.EnsureRole(ctx, mgmtCfg, roles.Substrate, policies.AssumeRolePolicyDocument(&policies.Principal{
+		AWS: mgmtPrincipals,
+	}))
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, mgmtRole.Name, policies.AdministratorAccess))
+	//log.Print(jsonutil.MustString(mgmtRole))
 
 	// Find or create the Substrate role in the Substrate account. This is what
 	// the Intranet will use. We'll try to allow the Substrate role in the
 	// management account to assume this role but if it doesn't exist yet we'll
 	// try again later.
+	ui.Spin("configuring IAM in the Substrate account")
 	substrateAssumeRolePolicy := policies.AssumeRolePolicyDocument(&policies.Principal{
-		AWS:     []string{aws.ToString(mgmtUser.Arn)},
+		AWS: []string{
+			mgmtRole.ARN,
+			roles.ARN(substrateAccountId, roles.Substrate), // allow this role to assume itself
+			aws.ToString(mgmtUser.Arn),
+			aws.ToString(substrateUser.Arn),
+		},
 		Service: []string{"lambda.amazonaws.com"},
 	})
-	if mgmtRole, err := awsiam.GetRole(ctx, mgmtCfg, roles.Substrate); err == nil {
-		substrateAssumeRolePolicy = policies.AssumeRolePolicyDocument(&policies.Principal{
-			AWS:     []string{mgmtRole.ARN, aws.ToString(mgmtUser.Arn)},
-			Service: []string{"lambda.amazonaws.com"},
-		})
-	}
 	substrateRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Substrate, substrateAssumeRolePolicy)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, substrateRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(substrateRole))
-
-	// Find or create the Substrate user in the Substrate account. This is how
-	// we'll mint 12-hour sessions all over the organization.
-	substrateUser, err := awsiam.EnsureUser(ctx, substrateCfg, users.Substrate)
-	ui.Must(err)
-	ui.Must(awsiam.AttachUserPolicy(ctx, substrateCfg, aws.ToString(substrateUser.UserName), policies.AdministratorAccess))
-	//log.Print(jsonutil.MustString(substrateUser))
 
 	// Find or create the Administrator and Auditor roles in the Substrate
 	// account. These are the default roles to assign to humans in the IdP.
@@ -312,13 +339,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	administratorAssumeRolePolicy := policies.Merge(
 		policies.AssumeRolePolicyDocument(&policies.Principal{
 			AWS: []string{
-				roles.ARN(substrateAccountId, roles.Administrator),
+				roles.ARN(substrateAccountId, roles.Administrator), // allow this role to assume itself
+				mgmtRole.ARN,
 				substrateRole.ARN,
 				aws.ToString(substrateUser.Arn),
+				aws.ToString(mgmtUser.Arn),
 			},
 			Service: []string{"ec2.amazonaws.com"},
 		}),
-		legacy,
 		extraAdministrator,
 	)
 	administratorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Administrator, administratorAssumeRolePolicy)
@@ -330,12 +358,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			AWS: []string{
 				roles.ARN(substrateAccountId, roles.Administrator),
 				roles.ARN(substrateAccountId, roles.Auditor),
+				mgmtRole.ARN,
 				substrateRole.ARN,
 				aws.ToString(substrateUser.Arn),
 			},
 			Service: []string{"ec2.amazonaws.com"},
 		}),
-		legacy,
 		extraAdministrator,
 		extraAuditor,
 	)
@@ -349,16 +377,19 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
 	//log.Print(jsonutil.MustString(auditorRole))
+	ui.Stop("ok")
 
-	// Find or create the Substrate role in the management account. This is
-	// how we'll eventually create accounts, etc.
-	mgmtRole, err := awsiam.EnsureRole(
+	// Update the Substrate role in the management account. We created it
+	// earlier so we could reference it in IAM policies but it might not be
+	// complete. This is how we'll eventually create accounts, etc.
+	ui.Spin("configuring IAM in the management account")
+	mgmtRole, err = awsiam.EnsureRole(
 		ctx,
 		mgmtCfg,
 		roles.Substrate,
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
 			administratorRole.ARN,
-			roles.ARN(mgmtAccountId, roles.Substrate),
+			roles.ARN(mgmtAccountId, roles.Substrate), // allow this role to assume itself
 			substrateRole.ARN,
 			aws.ToString(mgmtUser.Arn),
 			aws.ToString(substrateUser.Arn),
@@ -371,7 +402,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// Refresh our AWS SDK config for the management account because it might
 	// be using the OrganizationAdministrator role. Now that we've created the
 	// Substrate role in the management account, we can be sure this config
-	// will actually use it.
+	// will actually use it and no longer have to worry about authorizing
+	// OrganizationAdministrator to assume roles.
 	for {
 		mgmtCfg = awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 		//log.Print(jsonutil.MustString(mgmtCfg.MustGetCallerIdentity(ctx)))
@@ -380,25 +412,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 		time.Sleep(1e9) // TODO exponential backoff
 	}
-
-	// Update the Substrate role in the Substrate account just in case we
-	// weren't able to authorize the Substrate role in the management account
-	// when we created it above.
-	substrateRole, err = awsiam.EnsureRole(
-		ctx,
-		substrateCfg,
-		roles.Substrate,
-		policies.AssumeRolePolicyDocument(&policies.Principal{
-			AWS:     []string{mgmtRole.ARN, aws.ToString(mgmtUser.Arn)},
-			Service: []string{"lambda.amazonaws.com"},
-		}),
-	)
-	ui.Must(err)
-	//log.Print(jsonutil.MustString(substrateRole))
+	ui.Stop("ok")
 
 	// Find or create the {Deploy,Network,Organization}Administrator roles and
 	// matching Auditor roles in all the special accounts that we can. The only
 	// one that's a guarantee is the management account.
+	ui.Spin("configuring additional administrative IAM roles")
 	if deployCfg, err := mgmtCfg.AssumeSpecialRole(
 		ctx,
 		accounts.Deploy,
@@ -413,14 +432,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				policies.AssumeRolePolicyDocument(&policies.Principal{
 					AWS: []string{
 						roles.ARN(substrateAccountId, roles.Administrator),
-						roles.ARN(deployCfg.MustAccountId(ctx), roles.DeployAdministrator),
+						roles.ARN(deployCfg.MustAccountId(ctx), roles.DeployAdministrator), // allow this role to assume itself
 						mgmtRole.ARN,
 						substrateRole.ARN,
 						aws.ToString(mgmtUser.Arn),
 						aws.ToString(substrateUser.Arn),
 					},
 				}),
-				legacy,
 				extraAdministrator,
 			),
 		)
@@ -438,7 +456,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
 		//log.Print(jsonutil.MustString(auditorRole))
 	} else {
-		ui.Print("could not assume the DeployAdministrator role; continuing without managing its policies")
+		ui.Print(" could not assume the DeployAdministrator role; continuing without managing its policies")
 	}
 	if networkCfg, err := mgmtCfg.AssumeSpecialRole(
 		ctx,
@@ -454,14 +472,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				policies.AssumeRolePolicyDocument(&policies.Principal{
 					AWS: []string{
 						roles.ARN(substrateAccountId, roles.Administrator),
-						roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator),
+						roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator), // allow this role to assume itself
 						mgmtRole.ARN,
 						substrateRole.ARN,
 						aws.ToString(mgmtUser.Arn),
 						aws.ToString(substrateUser.Arn),
 					},
 				}),
-				legacy,
 				extraAdministrator,
 			),
 		)
@@ -483,7 +500,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
 		//log.Print(jsonutil.MustString(auditorRole))
 	} else {
-		ui.Print("could not assume the NetworkAdministrator role; continuing without managing its policies")
+		ui.Print(" could not assume the NetworkAdministrator role; continuing without managing its policies")
 	}
 	orgAdminRole, err := awsiam.EnsureRole(
 		ctx,
@@ -493,24 +510,18 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				AWS: []string{
 					roles.ARN(substrateAccountId, roles.Administrator),
-					roles.ARN(mgmtAccountId, roles.OrganizationAdministrator),
+					roles.ARN(mgmtAccountId, roles.OrganizationAdministrator), // allow this role to assume itself
 					mgmtRole.ARN,
 					substrateRole.ARN,
 					aws.ToString(mgmtUser.Arn),
 					aws.ToString(substrateUser.Arn),
 				},
 			}),
-			legacy,
 			extraAdministrator,
 		),
 	)
 	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(
-		ctx,
-		mgmtCfg,
-		orgAdminRole.Name,
-		policies.AdministratorAccess,
-	))
+	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, orgAdminRole.Name, policies.AdministratorAccess))
 	auditorRole, err = awsiam.EnsureRole(ctx, mgmtCfg, roles.Auditor, auditorAssumeRolePolicy)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, auditorRole.Name, policies.ReadOnlyAccess))
@@ -521,6 +532,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
 	//log.Print(jsonutil.MustString(auditorRole))
+	ui.Stop("ok")
 
 	// Find or create the legacy OrganizationReader role. Unlike the others,
 	// we probably won't keep this one around long-term because it's not useful
