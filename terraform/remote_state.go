@@ -3,24 +3,28 @@ package terraform
 import (
 	"context"
 	"fmt"
-	"sort"
+	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awss3"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/users"
 )
 
 // EnsureStateManager manages an S3 bucket and IAM role in the Substrate
 // account that every other account in the organization can use to read, write,
 // and lock Terraform state. This must be called in the Substrate account.
 func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, error) {
+	//log.Print(jsonutil.MustString(cfg.MustGetCallerIdentity(ctx)))
 	ui.Spin("finding or creating an S3 bucket and IAM role for Terraform to use to manage remote state")
 
 	// Gather up a list of principals that we expect to run Terraform so we
@@ -36,17 +40,27 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 		} else if account.Tags[tagging.SubstrateSpecialAccount] == accounts.Network {
 			terraformPrincipals = append(terraformPrincipals, roles.ARN(aws.ToString(account.Id), roles.NetworkAdministrator))
 		} else if account.Tags[tagging.SubstrateType] == accounts.Substrate {
-			terraformPrincipals = append(terraformPrincipals, roles.ARN(aws.ToString(account.Id), roles.Administrator))
+			terraformPrincipals = append(
+				terraformPrincipals,
+				roles.ARN(aws.ToString(account.Id), roles.Administrator),
+				roles.ARN(aws.ToString(account.Id), roles.Substrate),
+			)
+		} else if account.Tags[tagging.SubstrateSpecialAccount] == "management" || account.Tags[tagging.SubstrateType] == "management" {
+			terraformPrincipals = append(
+				terraformPrincipals,
+				roles.ARN(aws.ToString(account.Id), roles.Substrate),
+				users.ARN(aws.ToString(account.Id), users.Substrate),
+			)
 		} else if account.Tags[tagging.SubstrateType] == "service" || account.Tags[tagging.Domain] != "" {
 			terraformPrincipals = append(terraformPrincipals, roles.ARN(aws.ToString(account.Id), roles.Administrator))
 		}
 	}
-	sort.Strings(terraformPrincipals) // to avoid spurious policy diffs
-	//log.Printf("%+v", terraformPrincipals)
+	//sort.Strings(terraformPrincipals) // to avoid spurious policy diffs
+	log.Printf("%+v", terraformPrincipals)
 
 	// Create S3 buckets for storing Terraform state in every region we're
 	// using. Gather resource strings for the TerraformStateManager policy
-	// so that policy can be written in a minimalist fashion, too.
+	// so that policy can be written in a least-privilege fashion, too.
 	accountId, err := cfg.AccountId(ctx)
 	if err != nil {
 		return nil, ui.StopErr(err)
@@ -68,7 +82,20 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 			bucketName,
 			region,
 			&policies.Document{Statement: []policies.Statement{statement}},
-		); err != nil {
+		); awsutil.ErrorCodeIs(err, awss3.BucketAlreadyExists) {
+
+			// Take the BucketAlreadyExists error (which is distinct from the
+			// BucketAlreadyOwnedByYou error) as a sign that the bucket's in
+			// the (legacy) deploy account. Switch to that account and do this
+			// over again.
+			ui.Stop("bucket already exists; switching to the deploy account")
+			cfg, err = cfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)
+			if err != nil {
+				return nil, ui.StopErr(err)
+			}
+			return EnsureStateManager(ctx, cfg)
+
+		} else if err != nil {
 			return nil, ui.StopErr(err)
 		}
 		resources = append(resources, statement.Resource...)

@@ -14,7 +14,6 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
-	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
@@ -558,9 +557,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// account because it minimizes the number of non-Terraform-managed
 	// resources in all those other Terraform-using accounts.
 	_, err = terraform.EnsureStateManager(ctx, substrateCfg)
-	if awsutil.ErrorCodeIs(err, awss3.BucketAlreadyExists) { // take this as a sign that the bucket's in their (legacy) deploy account
-		err = nil
-	}
 	ui.Must(err)
 
 	// TODO create Administrator and Auditor roles in every service account
