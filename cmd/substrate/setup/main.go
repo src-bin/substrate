@@ -328,6 +328,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	substrateRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Substrate, substrateAssumeRolePolicy)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, substrateRole.Name, policies.AdministratorAccess))
+	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, substrateRole.Name, policies.AmazonAPIGatewayPushToCloudWatchLogs))
 	//log.Print(jsonutil.MustString(substrateRole))
 
 	// Find or create the Administrator and Auditor roles in the Substrate
