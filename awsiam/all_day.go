@@ -12,6 +12,7 @@ import (
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/jsonutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
@@ -23,8 +24,6 @@ const (
 
 	CreateAccessKeyTriesBeforeDeleteAll = 4 // must be lower than...
 	CreateAccessKeyTriesTotal           = 8 // ...this
-
-	CredentialFactoryAccessKey = "CredentialFactoryAccessKey"
 )
 
 func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Config, err error) {
@@ -39,7 +38,7 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 		if secret, err = awssecretsmanager.GetSecretValue(
 			ctx,
 			cfg,
-			CredentialFactoryAccessKey,
+			naming.Substrate,
 			awssecretsmanager.AWSCURRENT,
 		); err == nil {
 			if err = json.Unmarshal([]byte(secret), &accessKey); err != nil {
@@ -53,7 +52,7 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 				if err = DeleteAccessKey(
 					ctx,
 					cfg,
-					users.CredentialFactory,
+					users.Substrate,
 					aws.ToString(accessKey.AccessKeyId),
 				); err != nil {
 					log.Print(err) // not fatal because a concurrent actor may have deleted this one
@@ -64,13 +63,13 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 		// If we don't, try pretty hard to create one, backing off and trying
 		// to play nice within the two-access-keys-per-user limit and the
 		// potential for competition with others using the Credential Factory.
-		accessKey, err = CreateAccessKey(ctx, cfg, users.CredentialFactory)
+		accessKey, err = CreateAccessKey(ctx, cfg, users.Substrate)
 		if awsutil.ErrorCodeIs(err, LimitExceeded) {
 			if i == CreateAccessKeyTriesBeforeDeleteAll {
 				if err = DeleteAllAccessKeys(
 					ctx,
 					cfg,
-					users.CredentialFactory,
+					users.Substrate,
 					time.Minute, // don't delete access keys that were just created; they might be cached next time around
 				); err != nil {
 					return
@@ -85,7 +84,7 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 			if _, err := awssecretsmanager.EnsureSecret(
 				ctx,
 				cfg,
-				CredentialFactoryAccessKey,
+				naming.Substrate,
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
 					roles.ARN(cfg.MustAccountId(ctx), roles.Intranet),
 				}}),
@@ -105,8 +104,8 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 	}
 
 	// Make a copy of the AWS SDK config that we're going to use to bounce
-	// through user/CredentialFactory in order to get 12-hour credentials so
-	// that we don't ruin cfg for whatever else we might want to do with it.
+	// through user/Substrate in order to get 12-hour credentials so that we
+	// don't ruin cfg for whatever else we might want to do with it.
 	cfg12h = cfg.Copy()
 
 	_, err = cfg12h.SetCredentials(ctx, aws.Credentials{

@@ -115,7 +115,7 @@ func credentialFactoryAuthorizeHandler(
 
 	// Garbage-collect expired tags synchronously, before we try to tag the
 	// user for this run, if we're close to the limit.
-	tags, err := awsiam.ListUserTags(ctx, cfg, users.CredentialFactory)
+	tags, err := awsiam.ListUserTags(ctx, cfg, users.Substrate)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +123,8 @@ func credentialFactoryAuthorizeHandler(
 		gcExpiredTags(ctx, cfg, tags)
 	}
 
-	// Tag the CredentialFactory IAM user using the bearer token as the key and
-	// the session name as the value. We choose to use tags as our database here
+	// Tag the Substrate IAM user using the bearer token as the key and the
+	// session name as the value. We choose to use tags as our database here
 	// because there won't be that many and it's free. We choose to use tags on
 	// an IAM resource because they're global and Substrate's Intranet is
 	// multi-region.
@@ -138,7 +138,7 @@ func credentialFactoryAuthorizeHandler(
 	if err := awsiam.TagUser(
 		ctx,
 		cfg,
-		users.CredentialFactory,
+		users.Substrate,
 		tagging.Map{TagKeyPrefix + token: NewTagValue(
 			event.RequestContext.Authorizer[authorizerutil.PrincipalId].(string),
 			event.RequestContext.Authorizer[authorizerutil.RoleName].(string),
@@ -179,7 +179,7 @@ func credentialFactoryFetchHandler(
 	// Requests to this endpoint are not authenticated or authorized by API
 	// Gateway. Instead, we authorize requests by their presentation of a
 	// valid bearer token. Validity is determined by finding a matching tag
-	// on the CredentialFactory IAM user.
+	// on the Substrate IAM user.
 	token, ok := event.QueryStringParameters["token"]
 	if !ok {
 		return lambdautil.ErrorResponseJSON(
@@ -187,7 +187,7 @@ func credentialFactoryFetchHandler(
 			errors.New("query string parameter token is required"),
 		)
 	}
-	tags, err := awsiam.ListUserTags(ctx, cfg, users.CredentialFactory)
+	tags, err := awsiam.ListUserTags(ctx, cfg, users.Substrate)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func credentialFactoryFetchHandler(
 	if err := awsiam.UntagUser(
 		ctx,
 		cfg,
-		users.CredentialFactory,
+		users.Substrate,
 		[]string{TagKeyPrefix + token},
 	); err != nil {
 		return nil, err
@@ -275,7 +275,7 @@ func gcExpiredTags(ctx context.Context, cfg *awscfg.Config, tags tagging.Map) {
 		}
 	}
 	//log.Print(keys)
-	if err := awsiam.UntagUser(ctx, cfg, users.CredentialFactory, keys); err != nil {
+	if err := awsiam.UntagUser(ctx, cfg, users.Substrate, keys); err != nil {
 		log.Print(err)
 	}
 }

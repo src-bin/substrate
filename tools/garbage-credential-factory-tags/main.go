@@ -1,5 +1,5 @@
 // garbage-credential-factory-tags fills up the 50 available tags on the
-// CredentialFactory user with garbage to exercise the tag garbage collector
+// Substrate IAM user with garbage to exercise the tag garbage collector
 // that runs in the Intranet's /credential-factory/authorize endpoint. Run
 // it like this:
 //
@@ -39,7 +39,7 @@ func main() {
 		if err = awsiam.TagUser(
 			ctx,
 			cfg,
-			users.CredentialFactory,
+			users.Substrate, // "CredentialFactory" in 2023.07 and earlier
 			tagging.Map{TagKeyPrefix + randutil.String(): fmt.Sprintf(
 				TagValueFormat,
 				"example@example.com",
