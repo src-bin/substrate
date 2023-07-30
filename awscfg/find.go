@@ -112,6 +112,14 @@ func (c *Config) FindAdminAccounts(ctx context.Context) ([]*Account, error) {
 	})
 }
 
+// FindManagementAccount returns the *Account for the management account. This
+// may be called from any account.
+func (c *Config) FindManagementAccount(ctx context.Context) (*Account, error) {
+	return c.FindAccount(ctx, func(a *Account) bool {
+		return a.Tags[tagging.SubstrateSpecialAccount] == naming.Management || a.Tags[tagging.SubstrateType] == naming.Management
+	})
+}
+
 // FindServiceAccount returns the *Account for the admin account with the
 // given domain, environment, and quality. This may be called from any account.
 func (c *Config) FindServiceAccount(ctx context.Context, domain, environment, quality string) (*Account, error) {
