@@ -3,7 +3,6 @@ package terraform
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -56,7 +55,7 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 		}
 	}
 	//sort.Strings(terraformPrincipals) // to avoid spurious policy diffs
-	log.Printf("%+v", terraformPrincipals)
+	//log.Printf("%+v", terraformPrincipals)
 
 	// Create S3 buckets for storing Terraform state in every region we're
 	// using. Gather resource strings for the TerraformStateManager policy
