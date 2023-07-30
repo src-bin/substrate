@@ -5,7 +5,7 @@ data "aws_iam_role" "apigateway" {
 }
 
 data "aws_iam_role" "intranet" {
-  name = "Intranet"
+  name = "Substrate" # new role in 2023.08 to simplify and standardize on a far smaller footprint
 }
 
 data "aws_iam_role" "intranet-apigateway-authorizer" {
