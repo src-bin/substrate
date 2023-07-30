@@ -36,11 +36,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	flag.Parse()
 
-	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(
-		ctx,
-		roles.Substrate,
-		time.Hour,
-	))
+	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 
 	prefix := naming.Prefix()
 	region := regions.Default()

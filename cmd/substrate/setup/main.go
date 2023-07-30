@@ -2,10 +2,8 @@ package setup
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"io"
-	"io/fs"
 	"io/ioutil"
 	"log"
 	"strings"
@@ -59,16 +57,17 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Must(err)
 	}
 
+	//log.Print(jsonutil.MustString(cfg.MustGetCallerIdentity(ctx)))
 	if _, err := cfg.GetCallerIdentity(ctx); err != nil {
-		if _, err := cfg.SetRootCredentials(ctx); err != nil {
-			ui.Fatal(err)
-		}
+		_, err := cfg.SetRootCredentials(ctx)
+		ui.Must(err)
 	}
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(
 		ctx,
 		roles.Substrate, // triggers affordances for using (deprecated) OrganizationAdministrator role, too
-		time.Hour,       // longer would be better since bootstrapping's expected to take some serious time
+		time.Hour,
 	))
+	//log.Print(jsonutil.MustString(mgmtCfg.MustGetCallerIdentity(ctx)))
 
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
 
@@ -307,27 +306,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// Find or create the Administrator and Auditor roles in the Substrate
 	// account. These are the default roles to assign to humans in the IdP.
-	var extraAdministrator, extraAuditor policies.Document
-	if err := jsonutil.Read(
-		policies.ExtraAdministratorAssumeRolePolicyFilename,
-		&extraAdministrator,
-	); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		ui.Fatalf("error processing %s: %v", policies.ExtraAdministratorAssumeRolePolicyFilename, err)
-	}
-	if err := jsonutil.Read(
-		policies.ExtraAuditorAssumeRolePolicyFilename,
-		&extraAuditor,
-	); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		ui.Fatalf("error processing %s: %v", policies.ExtraAuditorAssumeRolePolicyFilename, err)
-	}
-	//log.Printf("%+v", extraAdministrator)
-	//log.Printf("%+v", extraAuditor)
-	legacy := policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
-		roles.ARN(substrateAccountId, roles.Intranet),
-		roles.ARN(mgmtAccountId, roles.OrganizationAdministrator),
-		users.ARN(substrateAccountId, users.CredentialFactory),
-		users.ARN(mgmtAccountId, users.OrganizationAdministrator),
-	}})
+	extraAdministrator, err := policies.ExtraAdministratorAssumeRolePolicy()
+	ui.Must(err)
+	extraAuditor, err := policies.ExtraAuditorAssumeRolePolicy()
+	ui.Must(err)
 	administratorAssumeRolePolicy := policies.Merge(
 		policies.AssumeRolePolicyDocument(&policies.Principal{
 			AWS: []string{
@@ -338,7 +320,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			Service: []string{"ec2.amazonaws.com"},
 		}),
 		legacy,
-		&extraAdministrator,
+		extraAdministrator,
 	)
 	administratorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Administrator, administratorAssumeRolePolicy)
 	ui.Must(err)
@@ -355,8 +337,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			Service: []string{"ec2.amazonaws.com"},
 		}),
 		legacy,
-		&extraAdministrator,
-		&extraAuditor,
+		extraAdministrator,
+		extraAuditor,
 	)
 	auditorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Auditor, auditorAssumeRolePolicy)
 	ui.Must(err)
@@ -386,6 +368,23 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, mgmtRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(mgmtRole))
+
+	// Refresh our AWS SDK config for the management account because it might
+	// be using the OrganizationAdministrator role. Now that we've created the
+	// Substrate role in the management account, we can be sure this config
+	// will actually use it.
+	for {
+		mgmtCfg = awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
+		//log.Print(jsonutil.MustString(mgmtCfg.MustGetCallerIdentity(ctx)))
+		if name, _ := roles.Name(aws.ToString(mgmtCfg.MustGetCallerIdentity(ctx).Arn)); name == roles.Substrate {
+			break
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
+
+	// Update the Substrate role in the Substrate account just in case we
+	// weren't able to authorize the Substrate role in the management account
+	// when we created it above.
 	substrateRole, err = awsiam.EnsureRole(
 		ctx,
 		substrateCfg,
@@ -423,7 +422,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 					},
 				}),
 				legacy,
-				&extraAdministrator,
+				extraAdministrator,
 			),
 		)
 		ui.Must(err)
@@ -464,7 +463,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 					},
 				}),
 				legacy,
-				&extraAdministrator,
+				extraAdministrator,
 			),
 		)
 		ui.Must(err)
@@ -503,7 +502,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				},
 			}),
 			legacy,
-			&extraAdministrator,
+			extraAdministrator,
 		),
 	)
 	ui.Must(err)
