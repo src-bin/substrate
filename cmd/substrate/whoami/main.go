@@ -84,7 +84,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			})
 		}
 	case cmdutil.SerializationFormatText:
-		if identity.Tags.SubstrateSpecialAccount != "" {
+		if identity.Tags.SubstrateType == naming.Substrate {
+			ui.Printf(
+				"you're %s in your Substrate account",
+				identity.ARN,
+			)
+		} else if identity.Tags.SubstrateSpecialAccount != "" {
 			ui.Printf(
 				"you're %s in your %s account",
 				identity.ARN,
