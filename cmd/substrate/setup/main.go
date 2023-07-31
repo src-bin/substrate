@@ -419,12 +419,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// matching Auditor roles in all the special accounts that we can. The only
 	// one that's a guarantee is the management account.
 	ui.Spin("configuring additional administrative IAM roles")
-	if deployCfg, err := mgmtCfg.AssumeSpecialRole(
-		ctx,
-		accounts.Deploy,
-		roles.DeployAdministrator,
-		time.Hour,
-	); err == nil {
+	deployCfg, err := mgmtCfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)
+	if err != nil {
+		deployCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.OrganizationAccountAccessRole, time.Hour)
+	}
+	if err == nil {
 		deployRole, err := awsiam.EnsureRole(
 			ctx,
 			deployCfg,
@@ -459,12 +458,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	} else {
 		ui.Print(" could not assume the DeployAdministrator role; continuing without managing its policies")
 	}
-	if networkCfg, err := mgmtCfg.AssumeSpecialRole(
-		ctx,
-		accounts.Network,
-		roles.NetworkAdministrator,
-		time.Hour,
-	); err == nil {
+	networkCfg, err := mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour)
+	if err != nil {
+		networkCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.OrganizationAccountAccessRole, time.Hour)
+	}
+	if err == nil {
 		networkRole, err := awsiam.EnsureRole(
 			ctx,
 			networkCfg,
