@@ -658,7 +658,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	allAccounts, err := awsorgs.ListAccounts(ctx, cfg)
 	ui.Must(err)
 	for _, a := range allAccounts {
-		if a.Tags[tagging.Domain] != "" && a.Tags[tagging.Domain] != naming.Admin || a.Tags[tagging.SubstrateType] == "service" {
+		if a.Tags[tagging.Domain] != "" && a.Tags[tagging.Domain] != naming.Admin || a.Tags[tagging.SubstrateType] == accounts.Service {
+			ui.Must(awsorgs.Tag(ctx, mgmtCfg, aws.ToString(a.Id), tagging.Map{
+				tagging.Manager:          tagging.Substrate,
+				tagging.SubstrateType:    accounts.Service,
+				tagging.SubstrateVersion: version.Version,
+			}))
 		}
 	}
 

@@ -22,6 +22,7 @@ const (
 	Deploy     = naming.Deploy
 	Management = naming.Management
 	Network    = naming.Network
+	Service    = naming.Service
 	Substrate  = naming.Substrate
 
 	CheatSheetFilename = awscfg.AccountsFilename
