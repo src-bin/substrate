@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/oauthoidc"
@@ -47,12 +45,9 @@ const (
 // from `substrate create-admin-account`.
 func intranet(ctx context.Context, mgmtCfg *awscfg.Config) (dnsDomainName string, idpName oauthoidc.Provider) {
 
-	log.Print(jsonutil.MustString(mgmtCfg.MustGetCallerIdentity(ctx)))
 	substrateCfg := awscfg.Must(mgmtCfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))
-	log.Print(jsonutil.MustString(substrateCfg.MustGetCallerIdentity(ctx)))
 	substrateAccountId := substrateCfg.MustAccountId(ctx)
 	substrateAccount := awsorgs.Must(awsorgs.DescribeAccount(ctx, mgmtCfg, substrateAccountId))
-	log.Print(jsonutil.MustString(substrateAccount)) // XXX
 
 	quality := substrateAccount.Tags[tagging.Quality]
 	if quality == "" {
