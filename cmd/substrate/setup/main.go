@@ -14,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/humans"
@@ -32,6 +33,11 @@ import (
 	"github.com/src-bin/substrate/veqp"
 	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
+)
+
+const (
+	EnforceIMDSv2Filename    = "substrate.enforce-imdsv2"
+	ServiceControlPolicyName = "SubstrateServiceControlPolicy"
 )
 
 var autoApprove, ignoreServiceQuotas, noApply *bool // shameful package variables to avoid rewriting bootstrap-{deploy,network}-account
@@ -161,10 +167,39 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(veqpDoc.Validate(environments, qualities))
 	//log.Printf("%+v", veqpDoc)
 
-	// Finally, ask them the expensive question about NAT Gateways.
+	// Ask them the expensive question about NAT Gateways.
 	_, err = ui.ConfirmFile(
 		networks.NATGatewaysFilename,
 		`do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; answering "yes" costs about $100 per month per region per environment/quality pair)`,
+	)
+	ui.Must(err)
+
+	// Maybe ask them about enforcing the use of IMDSv2. However, if their
+	// existing service control policy requires that they use IMDSv2, don't
+	// even offer the opportunity to allow the less secure configuration.
+	// Note well, though, that because of this inference it's not sufficient
+	// to delete the substrate.enforce-imdsv2 file in order to change this
+	// configuration; to do that you also need to delete (or edit) the
+	// service control policy.
+	if !fileutil.Exists(EnforceIMDSv2Filename) {
+		ui.Spin("scoping out your organization's service control policies")
+		policySummaries, err := awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
+		ui.Must(err)
+		for _, policySummary := range policySummaries {
+			if aws.ToString(policySummary.Name) == ServiceControlPolicyName {
+				policy, err := awsorgs.DescribePolicy(ctx, cfg, aws.ToString(policySummary.Id))
+				ui.Must(err)
+				if strings.Contains(aws.ToString(policy.Content), `"ec2:RoleDelivery": "2.0"`) {
+					ui.Must(ioutil.WriteFile(EnforceIMDSv2Filename, []byte("yes\n"), 0666))
+					break
+				}
+			}
+		}
+		ui.Stop("ok")
+	}
+	enforceIMDSv2, err := ui.ConfirmFile(
+		EnforceIMDSv2Filename,
+		`do you want to enforce the use of the EC2 IMDSv2 organization-wide? (yes/no; answering "yes" improves security posture but may break legacy EC2 workloads)`,
 	)
 	ui.Must(err)
 
@@ -191,14 +226,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	}
 	ui.Must(err)
-	ui.Stopf("organization %s", org.Id)
+	root, err := awsorgs.DescribeRoot(ctx, mgmtCfg)
+	ui.Must(err)
+	ui.Stopf("organization %s, root %s", org.Id, root.Id)
 	//log.Printf("%+v", org)
-
-	// EnableAllFeatures, which is complicated but necessary in case an
-	// organization was created as merely a consolidated billing organization.
-	// This hasn't been a problem in three years so it doesn't seem worth the
-	// effort until we encounter billing-only organizations in the real world
-	// that are trying to adopt Substrate.
+	//log.Printf("%+v", root)
 
 	// Ensure this is, indeed, the organization's management account.  This is
 	// almost certainly redundant but I can't be bothered to read the reams
@@ -226,7 +258,83 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		tagging.SubstrateVersion: version.Version,
 	}))
 
-	// TODO Service Control Policy (or perhaps punt to a whole new `substrate create-scp|scps` family of commands; also tagging policies)
+	// EnableAllFeatures, which is complicated but necessary in case an
+	// organization was created as merely a consolidated billing organization.
+	// This hasn't been a problem in three years so it doesn't seem worth the
+	// effort until we encounter billing-only organizations in the real world
+	// that are trying to adopt Substrate.
+
+	// Ensure service control policies are enabled and that Substrate's is
+	// attached and up-to-date. This is pretty basic and may eventually be
+	// expanded into `substrate create-scp|scps` commands; there's also an
+	// opportunity in managing tagging policies that requires more research.
+	ui.Spin("configuring your organization's service control policy")
+	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.SERVICE_CONTROL_POLICY))
+	statements := []policies.Statement{
+
+		// Allow everything not explicitly denied. Bring it on.
+		policies.Statement{
+			Action:   []string{"*"},
+			Resource: []string{"*"},
+		},
+
+		// It's catastrophically expensive to create a second trail so let's
+		// not let anyone do it. Also don't let them delete the one existing
+		// trail. It's really too bad this doesn't bind the managemente
+		// account in the slightest since that's perhaps the most likely place
+		// someone will try to create another trail.
+		policies.Statement{
+			Action: []string{
+				"cloudtrail:CreateTrail",
+				"cloudtrail:DeleteTrail",
+			},
+			Effect:   policies.Deny,
+			Resource: []string{"*"},
+		},
+	}
+	if enforceIMDSv2 {
+		statements = append(
+			statements,
+
+			// Enforce exclusive IMDSv2 use at ec2:RunInstances.
+			policies.Statement{
+				Action: []string{"ec2:RunInstances"},
+				Condition: policies.Condition{
+					"StringNotEquals": {
+						"ec2:MetadataHttpTokens": []string{"required"},
+					},
+				},
+				Effect:   policies.Deny,
+				Resource: []string{"arn:aws:ec2:*:*:instance/*"},
+			},
+
+			// Also enforce exclusive IMDSv2 use by voiding credentials from IMDSv1.
+			policies.Statement{
+				Action: []string{"*"},
+				Condition: policies.Condition{
+					"NumericLessThan": {
+						"ec2:RoleDelivery": []string{"2.0"},
+					},
+				},
+				Effect:   policies.Deny,
+				Resource: []string{"*"},
+			},
+		)
+	}
+	ui.Must(awsorgs.EnsurePolicy(
+		ctx,
+		mgmtCfg,
+		root,
+		ServiceControlPolicyName,
+		awsorgs.SERVICE_CONTROL_POLICY,
+		&policies.Document{Statement: statements},
+	))
+	ui.Stop("ok")
+
+	// Enable resource sharing throughout the organization.
+	ui.Spin("enabling resource sharing throughout your organization")
+	ui.Must(awsram.EnableSharingWithAwsOrganization(ctx, mgmtCfg))
+	ui.Stop("ok")
 
 	// Find or create the Substrate account, upgrading an admin account if
 	// that's all we can find. Tag it in the new style to close off the era of
@@ -546,7 +654,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	_, err = terraform.EnsureStateManager(ctx, substrateCfg)
 	ui.Must(err)
 
-	// TODO create Administrator and Auditor roles in every service account
+	// Find or create Administrator and Auditor roles in every service account.
+	allAccounts, err := awsorgs.ListAccounts(ctx, cfg)
+	ui.Must(err)
+	for _, a := range allAccounts {
+		if a.Tags[tagging.Domain] != "" && a.Tags[tagging.Domain] != naming.Admin || a.Tags[tagging.SubstrateType] == "service" {
+		}
+	}
 
 	// Generate, plan, and apply the legacy deploy account's Terraform code,
 	// if the account exists.
