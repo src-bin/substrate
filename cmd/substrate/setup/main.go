@@ -16,6 +16,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/humans"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/networks"
@@ -333,41 +334,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// Find or create the Administrator and Auditor roles in the Substrate
 	// account. These are the default roles to assign to humans in the IdP.
-	extraAdministrator, err := policies.ExtraAdministratorAssumeRolePolicy()
+	administratorAssumeRolePolicy, err := humans.AdministratorAssumeRolePolicy(ctx, mgmtCfg)
 	ui.Must(err)
-	extraAuditor, err := policies.ExtraAuditorAssumeRolePolicy()
-	ui.Must(err)
-	administratorAssumeRolePolicy := policies.Merge(
-		policies.AssumeRolePolicyDocument(&policies.Principal{
-			AWS: []string{
-				roles.ARN(substrateAccountId, roles.Administrator), // allow this role to assume itself
-				mgmtRole.ARN,
-				substrateRole.ARN,
-				aws.ToString(substrateUser.Arn),
-				aws.ToString(mgmtUser.Arn),
-			},
-			Service: []string{"ec2.amazonaws.com"},
-		}),
-		extraAdministrator,
-	)
 	administratorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Administrator, administratorAssumeRolePolicy)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, administratorRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(administratorRole))
-	auditorAssumeRolePolicy := policies.Merge(
-		policies.AssumeRolePolicyDocument(&policies.Principal{
-			AWS: []string{
-				roles.ARN(substrateAccountId, roles.Administrator),
-				roles.ARN(substrateAccountId, roles.Auditor),
-				mgmtRole.ARN,
-				substrateRole.ARN,
-				aws.ToString(substrateUser.Arn),
-			},
-			Service: []string{"ec2.amazonaws.com"},
-		}),
-		extraAdministrator,
-		extraAuditor,
-	)
+	auditorAssumeRolePolicy, err := humans.AuditorAssumeRolePolicy(ctx, mgmtCfg)
+	ui.Must(err)
 	auditorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Auditor, auditorAssumeRolePolicy)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, policies.ReadOnlyAccess))
@@ -419,6 +393,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// matching Auditor roles in all the special accounts that we can. The only
 	// one that's a guarantee is the management account.
 	ui.Spin("configuring additional administrative IAM roles")
+	extraAdministrator, err := policies.ExtraAdministratorAssumeRolePolicy()
+	ui.Must(err)
 	deployCfg, err := mgmtCfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)
 	if err != nil {
 		deployCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.OrganizationAccountAccessRole, time.Hour)
