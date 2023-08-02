@@ -13,6 +13,7 @@ type Identity struct {
 	Tags      struct {
 		Domain, Environment, Quality string
 		SubstrateSpecialAccount      string
+		SubstrateType                string
 	}
 }
 
@@ -48,11 +49,13 @@ func (c *Config) Identity(ctx context.Context) (*Identity, error) {
 		Tags: struct {
 			Domain, Environment, Quality string
 			SubstrateSpecialAccount      string
+			SubstrateType                string
 		}{
 			Domain:                  tags[tagging.Domain],
 			Environment:             tags[tagging.Environment],
 			Quality:                 tags[tagging.Quality],
 			SubstrateSpecialAccount: tags[tagging.SubstrateSpecialAccount],
+			SubstrateType:           tags[tagging.SubstrateType],
 		},
 	}, nil
 }

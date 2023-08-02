@@ -59,6 +59,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			ui.Must(awsorgs.Tag(ctx, mgmtCfg, auditAccountId, tagging.Map{
 				// not tagging.Manager: tagging.Substrate because that's kind of a lie in this case
 				tagging.SubstrateSpecialAccount: accounts.Audit,
+				tagging.SubstrateType:           accounts.Audit,
 			})) // this also ensures the account is in the organization
 		} else {
 			ui.Spin("creating the audit account")
