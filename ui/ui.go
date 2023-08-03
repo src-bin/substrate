@@ -61,6 +61,10 @@ func Must(err error) {
 	}
 }
 
+func Must2(_ any, err error) {
+	Must(err)
+}
+
 func Print(args ...interface{}) {
 	args = dereference(args)
 	op(opPrint, fmt.Sprint(args...))

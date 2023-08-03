@@ -442,24 +442,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// Find or create the Administrator and Auditor roles in the Substrate
 	// account. These are the default roles to assign to humans in the IdP.
-	administratorAssumeRolePolicy, err := humans.AdministratorAssumeRolePolicy(ctx, mgmtCfg)
+	administratorRole, err := humans.EnsureAdministratorRole(ctx, mgmtCfg, substrateCfg)
 	ui.Must(err)
-	administratorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Administrator, administratorAssumeRolePolicy)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, administratorRole.Name, policies.AdministratorAccess))
-	//log.Print(jsonutil.MustString(administratorRole))
-	auditorAssumeRolePolicy, err := humans.AuditorAssumeRolePolicy(ctx, mgmtCfg)
-	ui.Must(err)
-	auditorRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Auditor, auditorAssumeRolePolicy)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, policies.ReadOnlyAccess))
-	allowAssumeRole, err := awsiam.EnsurePolicy(ctx, substrateCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
-	denySensitiveReads, err := awsiam.EnsurePolicy(ctx, substrateCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
-	//log.Print(jsonutil.MustString(auditorRole))
+	ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, substrateCfg))
 	ui.Stop("ok")
 
 	// Update the Substrate role in the management account. We created it
@@ -529,16 +514,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Must(err)
 		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, deployRole.Name, policies.AdministratorAccess))
 		//log.Print(jsonutil.MustString(deployRole))
-		auditorRole, err := awsiam.EnsureRole(ctx, deployCfg, roles.Auditor, auditorAssumeRolePolicy)
-		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, auditorRole.Name, policies.ReadOnlyAccess))
-		allowAssumeRole, err := awsiam.EnsurePolicy(ctx, deployCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
-		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
-		denySensitiveReads, err := awsiam.EnsurePolicy(ctx, deployCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
-		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(ctx, deployCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
-		//log.Print(jsonutil.MustString(auditorRole))
+		ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, deployCfg))
 	} else {
 		ui.Print(" could not assume the DeployAdministrator role; continuing without managing its policies")
 	}
@@ -566,22 +542,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			),
 		)
 		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(
-			ctx,
-			networkCfg,
-			networkRole.Name,
-			policies.AdministratorAccess,
-		))
-		auditorRole, err := awsiam.EnsureRole(ctx, networkCfg, roles.Auditor, auditorAssumeRolePolicy)
-		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, auditorRole.Name, policies.ReadOnlyAccess))
-		allowAssumeRole, err := awsiam.EnsurePolicy(ctx, networkCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
-		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
-		denySensitiveReads, err := awsiam.EnsurePolicy(ctx, networkCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
-		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
-		//log.Print(jsonutil.MustString(auditorRole))
+		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, networkRole.Name, policies.AdministratorAccess))
+		ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, networkCfg))
 	} else {
 		ui.Print(" could not assume the NetworkAdministrator role; continuing without managing its policies")
 	}
@@ -605,16 +567,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, orgAdminRole.Name, policies.AdministratorAccess))
-	auditorRole, err = awsiam.EnsureRole(ctx, mgmtCfg, roles.Auditor, auditorAssumeRolePolicy)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, auditorRole.Name, policies.ReadOnlyAccess))
-	allowAssumeRole, err = awsiam.EnsurePolicy(ctx, mgmtCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
-	denySensitiveReads, err = awsiam.EnsurePolicy(ctx, mgmtCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, mgmtCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
-	//log.Print(jsonutil.MustString(auditorRole))
+	ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, mgmtCfg))
 	ui.Stop("ok")
 
 	// Find or create the legacy OrganizationReader role. Unlike the others,
@@ -671,25 +624,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				cfg, err = a.Config(ctx, mgmtCfg, roles.OrganizationAccountAccessRole, time.Hour)
 			}
 			ui.Must(err)
-
-			administratorAssumeRolePolicy, err := humans.AdministratorAssumeRolePolicy(ctx, mgmtCfg)
-			ui.Must(err)
-			administratorRole, err := awsiam.EnsureRole(ctx, cfg, roles.Administrator, administratorAssumeRolePolicy)
-			ui.Must(err)
-			ui.Must(awsiam.AttachRolePolicy(ctx, cfg, administratorRole.Name, policies.AdministratorAccess))
-			//log.Print(jsonutil.MustString(administratorRole))
-			auditorAssumeRolePolicy, err := humans.AuditorAssumeRolePolicy(ctx, mgmtCfg)
-			ui.Must(err)
-			auditorRole, err := awsiam.EnsureRole(ctx, cfg, roles.Auditor, auditorAssumeRolePolicy)
-			ui.Must(err)
-			ui.Must(awsiam.AttachRolePolicy(ctx, cfg, auditorRole.Name, policies.ReadOnlyAccess))
-			allowAssumeRole, err := awsiam.EnsurePolicy(ctx, cfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
-			ui.Must(err)
-			ui.Must(awsiam.AttachRolePolicy(ctx, cfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
-			denySensitiveReads, err := awsiam.EnsurePolicy(ctx, cfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
-			ui.Must(err)
-			ui.Must(awsiam.AttachRolePolicy(ctx, cfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
-			//log.Print(jsonutil.MustString(auditorRole))
+			ui.Must2(humans.EnsureAdministratorRole(ctx, mgmtCfg, cfg))
+			ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, cfg))
 		}
 	}
 	ui.Stop("ok")
