@@ -655,17 +655,44 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 
 	// Find or create Administrator and Auditor roles in every service account.
+	ui.Spin("configuring Administrator and Auditor IAM roles in every service account")
 	allAccounts, err := awsorgs.ListAccounts(ctx, cfg)
 	ui.Must(err)
 	for _, a := range allAccounts {
 		if a.Tags[tagging.Domain] != "" && a.Tags[tagging.Domain] != naming.Admin || a.Tags[tagging.SubstrateType] == accounts.Service {
+			//log.Print(jsonutil.MustString(a))
 			ui.Must(awsorgs.Tag(ctx, mgmtCfg, aws.ToString(a.Id), tagging.Map{
 				tagging.Manager:          tagging.Substrate,
 				tagging.SubstrateType:    accounts.Service,
 				tagging.SubstrateVersion: version.Version,
 			}))
+			cfg, err := a.Config(ctx, mgmtCfg, roles.Administrator, time.Hour)
+			if err != nil {
+				cfg, err = a.Config(ctx, mgmtCfg, roles.OrganizationAccountAccessRole, time.Hour)
+			}
+			ui.Must(err)
+
+			administratorAssumeRolePolicy, err := humans.AdministratorAssumeRolePolicy(ctx, mgmtCfg)
+			ui.Must(err)
+			administratorRole, err := awsiam.EnsureRole(ctx, cfg, roles.Administrator, administratorAssumeRolePolicy)
+			ui.Must(err)
+			ui.Must(awsiam.AttachRolePolicy(ctx, cfg, administratorRole.Name, policies.AdministratorAccess))
+			//log.Print(jsonutil.MustString(administratorRole))
+			auditorAssumeRolePolicy, err := humans.AuditorAssumeRolePolicy(ctx, mgmtCfg)
+			ui.Must(err)
+			auditorRole, err := awsiam.EnsureRole(ctx, cfg, roles.Auditor, auditorAssumeRolePolicy)
+			ui.Must(err)
+			ui.Must(awsiam.AttachRolePolicy(ctx, cfg, auditorRole.Name, policies.ReadOnlyAccess))
+			allowAssumeRole, err := awsiam.EnsurePolicy(ctx, cfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
+			ui.Must(err)
+			ui.Must(awsiam.AttachRolePolicy(ctx, cfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
+			denySensitiveReads, err := awsiam.EnsurePolicy(ctx, cfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
+			ui.Must(err)
+			ui.Must(awsiam.AttachRolePolicy(ctx, cfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
+			//log.Print(jsonutil.MustString(auditorRole))
 		}
 	}
+	ui.Stop("ok")
 
 	// Generate, plan, and apply the legacy deploy account's Terraform code,
 	// if the account exists.
