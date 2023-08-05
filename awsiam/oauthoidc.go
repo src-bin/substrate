@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	GitHubActionsOAuthOIDCThumbprint = "6938fd4d98bab03faadb97b34396831e3780aea1"
+	GitHubActionsOAuthOIDCThumbprint = "ffffffffffffffffffffffffffffffffffffffff" // <https://github.com/aws-actions/configure-aws-credentials/issues/357>
 	GitHubActionsOAuthOIDCURL        = "https://token.actions.githubusercontent.com"
 )
 
