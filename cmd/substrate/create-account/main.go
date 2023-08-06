@@ -10,10 +10,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
-	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/humans"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -62,18 +63,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Fatalf(`-environment %q -quality %q is not a valid environment and quality pair in your organization`, *environment, *quality)
 	}
 
-	cfg = awscfg.Must(cfg.AssumeManagementRole(
-		ctx,
-		roles.OrganizationAdministrator,
-		time.Hour,
-	))
-	versionutil.PreventDowngrade(ctx, cfg)
+	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
+	versionutil.PreventDowngrade(ctx, mgmtCfg)
 
 	ui.Spin("finding the account")
 	var account *awsorgs.Account
-	createdAccount := false
 	if *number == "" {
-		account, err = cfg.FindServiceAccount(ctx, *domain, *environment, *quality)
+		account, err = mgmtCfg.FindServiceAccount(ctx, *domain, *environment, *quality)
 		ui.Must(err)
 		if account == nil {
 			ui.Stop("not found")
@@ -91,21 +87,20 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			}
 			account, err = awsorgs.EnsureAccount(
 				ctx,
-				cfg,
+				mgmtCfg,
 				*domain,
 				*environment,
 				*quality,
 				deadline,
 			)
-			createdAccount = true
 		}
 	} else {
-		account, err = awsorgs.DescribeAccount(ctx, cfg, *number)
+		account, err = awsorgs.DescribeAccount(ctx, mgmtCfg, *number)
 	}
 	ui.Must(err)
 	ui.Must(awsorgs.Tag(
 		ctx,
-		cfg,
+		mgmtCfg,
 		aws.ToString(account.Id),
 		tagging.Map{
 			tagging.Domain:      *domain,
@@ -116,17 +111,43 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			tagging.SubstrateVersion: version.Version,
 		},
 	))
-	ui.Must(accounts.CheatSheet(ctx, awscfg.Must(cfg.OrganizationReader(ctx))))
+	ui.Must(accounts.CheatSheet(ctx, awscfg.Must(mgmtCfg.OrganizationReader(ctx))))
 	ui.Stopf("account %s", account.Id)
 	//log.Printf("%+v", account)
 
-	cfg.Telemetry().FinalAccountId = aws.ToString(account.Id)
-	cfg.Telemetry().FinalRoleName = roles.Administrator
+	mgmtCfg.Telemetry().FinalAccountId = aws.ToString(account.Id)
+	mgmtCfg.Telemetry().FinalRoleName = roles.Administrator
 
-	admin.EnsureAdminRolesAndPolicies(ctx, cfg, createdAccount)
-
-	_, err = terraform.EnsureStateManager(ctx, awscfg.Must(cfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour)))
+	ui.Spin("configuring IAM")
+	accountCfg, err := account.Config(ctx, mgmtCfg, roles.Administrator, time.Hour)
+	if err != nil {
+		accountCfg, err = account.Config(ctx, mgmtCfg, roles.OrganizationAccountAccessRole, time.Hour)
+	}
 	ui.Must(err)
+	ui.Must2(humans.EnsureAdministratorRole(ctx, mgmtCfg, accountCfg))
+	ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, accountCfg))
+
+	// TODO if the legacy network account exists, ensure there's a network for this service account there
+	// TODO if not, create (with confirmation) a network account for this environment and quality, peer it, and pass it into the Terraform
+	// TODO (later) move the network sharing from Terraform to here
+
+	ui.Must2(terraform.EnsureStateManager(ctx, awscfg.Must(mgmtCfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))))
+
+	// Create CloudWatch's cross-account sharing role in this account.
+	//
+	// This probably shouldn't be a core part of Substrate but it has been
+	// for longer than Substrate had custom role management and would be
+	// a bit troublesome to remove now.
+	const cloudwatchRoleName = "CloudWatch-CrossAccountSharingRole"
+	orgAssumeRolePolicy, err := awsorgs.OrgAssumeRolePolicy(ctx, cfg)
+	ui.Must(err)
+	cloudwatchRole, err := awsiam.EnsureRole(ctx, accountCfg, cloudwatchRoleName, orgAssumeRolePolicy)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(ctx, cfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"))
+	ui.Must(awsiam.AttachRolePolicy(ctx, cfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/AWSXrayReadOnlyAccess"))
+	ui.Must(awsiam.AttachRolePolicy(ctx, cfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"))
+	ui.Must(awsiam.AttachRolePolicy(ctx, cfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/CloudWatchAutomaticDashboardsAccess"))
+	ui.Stop("ok")
 
 	// Leave the user a place to put their own Terraform code that can be
 	// shared between all of a domain's accounts.
@@ -161,7 +182,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		))
 		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-		ui.Must(terraform.Root(ctx, cfg, dirname, region))
+		ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region))
 
 		ui.Must(terraform.Fmt(dirname))
 
@@ -198,7 +219,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			region,
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
-		networkAccount, err := cfg.FindSpecialAccount(ctx, accounts.Network)
+		networkAccount, err := mgmtCfg.FindSpecialAccount(ctx, accounts.Network)
 		ui.Must(err)
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
@@ -206,7 +227,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		))
 		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 
-		ui.Must(terraform.Root(ctx, cfg, dirname, region))
+		ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region))
 
 		ui.Must(terraform.Fmt(dirname))
 
