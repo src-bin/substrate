@@ -135,11 +135,7 @@ func TestManagement(t *testing.T) {
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
-	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(
-		ctx,
-		roles.OrganizationAdministrator,
-		time.Hour,
-	))
+	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	_, serviceAccounts, _, deployAccount, _, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

@@ -26,11 +26,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	flag.Parse()
 	version.Flag()
 
-	cfg = awscfg.Must(cfg.AssumeManagementRole(
-		ctx,
-		roles.OrganizationAdministrator,
-		time.Hour,
-	))
+	cfg = awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	versionutil.PreventDowngrade(ctx, cfg)
 
 	cfg.Telemetry().FinalAccountId = aws.ToString(cfg.MustGetCallerIdentity(ctx).Account)
