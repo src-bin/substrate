@@ -153,6 +153,26 @@ func ListPolicies(
 	return
 }
 
+// OrgAssumeRolePolicy returns an assume-role policy that will allow any
+// principal in this organization to assume a role, which is useful for
+// roles that don't necessarily know the account numbers and/or role names
+// that are authorized to assume them.
+func OrgAssumeRolePolicy(ctx context.Context, cfg *awscfg.Config) (*policies.Document, error) {
+	org, err := cfg.DescribeOrganization(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &policies.Document{
+		Statement: []policies.Statement{{
+			Principal: &policies.Principal{AWS: []string{"*"}},
+			Action:    []string{"sts:AssumeRole"},
+			Condition: policies.Condition{"StringEquals": {
+				"aws:PrincipalOrgID": []string{aws.ToString(org.Id)},
+			}},
+		}},
+	}, nil
+}
+
 func attachPolicy(
 	ctx context.Context,
 	cfg *awscfg.Config,

@@ -226,6 +226,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	}
 	ui.Must(err)
+	orgAssumeRolePolicy, err := awsorgs.OrgAssumeRolePolicy(ctx, mgmtCfg)
+	ui.Must(err)
 	root, err := awsorgs.DescribeRoot(ctx, mgmtCfg)
 	ui.Must(err)
 	ui.Stopf("organization %s, root %s", org.Id, root.Id)
@@ -577,15 +579,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ctx,
 		mgmtCfg,
 		roles.OrganizationReader,
-		&policies.Document{
-			Statement: []policies.Statement{{
-				Principal: &policies.Principal{AWS: []string{"*"}},
-				Action:    []string{"sts:AssumeRole"},
-				Condition: policies.Condition{"StringEquals": {
-					"aws:PrincipalOrgID": []string{aws.ToString(org.Id)},
-				}},
-			}},
-		},
+		orgAssumeRolePolicy,
 		&policies.Document{
 			Statement: []policies.Statement{{
 				Action: []string{
