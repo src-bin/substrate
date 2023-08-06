@@ -41,7 +41,9 @@ func AssumeRolePolicyDocument(principal *Principal) *Document {
 func Merge(docs ...*Document) *Document {
 	doc := &Document{}
 	for i := 0; i < len(docs); i++ {
-		doc.Statement = append(doc.Statement, docs[i].Statement...)
+		if docs[i] != nil { // be defensive
+			doc.Statement = append(doc.Statement, docs[i].Statement...)
+		}
 	}
 	return doc
 }
