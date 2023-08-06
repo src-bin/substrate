@@ -45,7 +45,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	var found bool
 	for _, account := range allAccounts {
-		if account.Tags[tagging.SubstrateSpecialAccount] == naming.Audit {
+		if account.Tags[tagging.SubstrateSpecialAccount] == naming.Audit || account.Tags[tagging.SubstrateType] == naming.Audit {
 			continue
 		}
 		if err := awsiam.DeleteRoleWithConfirmation(
