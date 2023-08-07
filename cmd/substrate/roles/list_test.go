@@ -112,7 +112,7 @@ func TestEverything(t *testing.T) {
 		"-domain", "foo",
 		"-domain", "bar",
 		"-environment", "staging",
-		"-admin",
+		"-substrate",
 		"-management",
 		"-special", "deploy",
 		"-special", "network",
@@ -154,7 +154,8 @@ func TestEverything(t *testing.T) {
 			],
 			"AllQualities": true,
 			"Qualities": null,
-			"Admin": true,
+			"Substrate": true,
+			"Admin": false,
 			"Management": true,
 			"Specials": [
 				"deploy",
@@ -232,6 +233,7 @@ func TestZero(t *testing.T) {
 	cmdutil.OverrideArgs(
 		"-role", roleName,
 		"-special", naming.Deploy,
+		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
 	createrole.Main(ctx, cfg, os.Stdout)
 
