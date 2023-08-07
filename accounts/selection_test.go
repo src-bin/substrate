@@ -81,6 +81,7 @@ func TestSelectionFlagsToSelection2(t *testing.T) {
 		AllQualities:    aws.Bool(false),
 		Qualities:       &cmdutil.StringSliceFlag{"default"},
 		Admin:           aws.Bool(true),
+		Substrate:       aws.Bool(true),
 		Management:      aws.Bool(false),
 		Specials:        &cmdutil.StringSliceFlag{},
 		Numbers:         &cmdutil.StringSliceFlag{"123456789012"},
@@ -96,6 +97,7 @@ func TestSelectionFlagsToSelection2(t *testing.T) {
 	assert(t, s.AllQualities, *f.AllQualities)
 	assertSlice(t, s.Qualities, f.Qualities.Slice())
 	assert(t, s.Admin, *f.Admin)
+	assert(t, s.Substrate, *f.Substrate)
 	assert(t, s.Management, *f.Management)
 	assertSlice(t, s.Specials, f.Specials.Slice())
 	assertSlice(t, s.Numbers, f.Numbers.Slice())
