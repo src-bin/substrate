@@ -47,6 +47,7 @@ func TestEC2(t *testing.T) {
 			"Environments": null,
 			"AllQualities": false,
 			"Qualities": null,
+			"Substrate": false,
 			"Admin": false,
 			"Management": false,
 			"Specials": [
@@ -209,7 +210,7 @@ func TestEverything(t *testing.T) {
 
 	actual = stdout.String()
 	expected = `set -e -x
-substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -environment "staging" -all-qualities -admin -management -special "deploy" -special "network" -humans -aws-service "ecs.amazonaws.com" -aws-service "lambda.amazonaws.com" -github-actions "src-bin/src-bin" -github-actions "src-bin/substrate" -assume-role-policy "policies/TestEverything.assume-role-policy.json" -administrator-access -policy-arn "arn:aws:iam::aws:policy/job-function/Billing" -policy "policies/TestEverything.policy.json"
+substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -environment "staging" -all-qualities -substrate -management -special "deploy" -special "network" -humans -aws-service "ecs.amazonaws.com" -aws-service "lambda.amazonaws.com" -github-actions "src-bin/src-bin" -github-actions "src-bin/substrate" -assume-role-policy "policies/TestEverything.assume-role-policy.json" -administrator-access -policy-arn "arn:aws:iam::aws:policy/job-function/Billing" -policy "policies/TestEverything.policy.json"
 `
 	if actual != expected {
 		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
@@ -251,6 +252,7 @@ func TestZero(t *testing.T) {
 			"Environments": null,
 			"AllQualities": false,
 			"Qualities": null,
+			"Substrate": false,
 			"Admin": false,
 			"Management": false,
 			"Specials": [
@@ -260,7 +262,9 @@ func TestZero(t *testing.T) {
 		},
 		"AssumeRolePolicy": {
 			"Humans": false,
-			"AWSServices": null,
+			"AWSServices": [
+				"sts.amazonaws.com"
+			],
 			"GitHubActions": null,
 			"Filenames": null
 		},
@@ -287,7 +291,7 @@ func TestZero(t *testing.T) {
 
 	actual = stdout.String()
 	expected = `set -e -x
-substrate create-role -role "TestZero" -special "deploy"
+substrate create-role -role "TestZero" -special "deploy" -aws-service "sts.amazonaws.com"
 `
 	if actual != expected {
 		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
