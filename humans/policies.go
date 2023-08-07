@@ -92,6 +92,20 @@ func IntranetAssumeRolePolicy(ctx context.Context, cfg *awscfg.Config) (*policie
 	}
 
 	return policies.Merge(
+
+		// Administrator, which is a bit of a stretch into overprivilege, but
+		// is damn useful to folks debugging IAM issues.
+		//
+		// Note, too, that the Substrate test suite takes advantage of this
+		// inclusion by the src-bin organization assuming the Administrator
+		// role in various test accounts and then creating and assuming
+		// roles from there.
+		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
+			roles.ARN(aws.ToString(substrateAccount.Id), roles.Administrator),
+		}}),
+
+		// The Substrate user and role are what the Intranet actually uses
+		// to move around the organization and mint 12-hour AWS credentials.
 		policies.AssumeRolePolicyDocument(&policies.Principal{
 			AWS: []string{
 				roles.ARN(aws.ToString(substrateAccount.Id), roles.Substrate),

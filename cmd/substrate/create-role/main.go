@@ -197,13 +197,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		selectors := as.Selectors
 		ui.Printf("constructing an assume-role policy for the %s role in %s", *roleName, account)
 
-		// Start the assume-role policy for the role in this account with the
-		// standard Substrate-managed principals from the Substrate account.
-		// This may in some sense appear to be overprivileging the
-		// (human-oriented) Administrator role, in particular, but in practice
-		// this makes debugging easier and doesn't confer any extra access but
-		// merely removes a step from using it.
-
 		// Begin with an empty (technically nil) assume-role policy.
 		var assumeRolePolicy *policies.Document
 
