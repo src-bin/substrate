@@ -43,6 +43,7 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 				terraformPrincipals,
 				roles.ARN(aws.ToString(account.Id), roles.Administrator),
 				roles.ARN(aws.ToString(account.Id), roles.Substrate),
+				users.ARN(aws.ToString(account.Id), users.Substrate),
 			)
 		} else if account.Tags[tagging.SubstrateSpecialAccount] == "management" || account.Tags[tagging.SubstrateType] == "management" {
 			terraformPrincipals = append(
