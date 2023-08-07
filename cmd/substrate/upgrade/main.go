@@ -17,6 +17,10 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
+// A handy and hacky way to test upgrades for trial versions now that we
+// support those.
+//func init() { version.Commit = "trial" }
+
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	no := flag.Bool("no", false, `answer "no" when offered an upgrade; exits 1 if there was an upgrade available`)
 	yes := flag.Bool("yes", false, `answer "yes" when offered an upgrade to accept it without confirmation`)
@@ -25,11 +29,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-
-	if version.IsTrial() {
-		ui.Print("trial versions of Substrate can't be upgraded; contact <sales@src-bin.com> to purchase a license")
-		return
-	}
 
 	// Print the current version for context and to make the fact that we're
 	// about to print the prefix make more sense. Then print the URL we'll
