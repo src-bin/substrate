@@ -36,7 +36,7 @@ func TestAccountsConsole12hAdministrator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if duration := expiry.Sub(time.Now()); duration < 59*time.Minute /* 11*time.Hour */ {
+	if duration := expiry.Sub(time.Now()); duration < 11*time.Hour {
 		t.Fatal(duration)
 	}
 }
@@ -69,7 +69,7 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if duration := expiry.Sub(time.Now()); duration < 59*time.Minute /* 11*time.Hour */ {
+	if duration := expiry.Sub(time.Now()); duration < 11*time.Hour {
 		t.Fatal(duration)
 	}
 }
