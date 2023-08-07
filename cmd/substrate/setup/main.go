@@ -5,7 +5,6 @@ import (
 	"flag"
 	"io"
 	"io/ioutil"
-	"log"
 	"strings"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/humans"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/oauthoidc"
@@ -350,7 +348,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Spin("finding an admin account to upgrade")
 		adminAccounts, err := mgmtCfg.FindAdminAccounts(ctx)
 		ui.Must(err)
-		log.Print(jsonutil.MustString(adminAccounts))
+		//log.Print(jsonutil.MustString(adminAccounts))
 		if i := len(adminAccounts); i > 1 {
 			ui.Fatal("found more than one (deprecated) admin account")
 		} else if i == 0 {

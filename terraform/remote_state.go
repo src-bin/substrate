@@ -120,6 +120,7 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 			},
 		},
 	)
+	//log.Print(jsonutil.MustString(policies.AssumeRolePolicyDocument(&policies.Principal{AWS: terraformPrincipals})))
 	role, err := awsiam.EnsureRole(
 		ctx,
 		cfg,
