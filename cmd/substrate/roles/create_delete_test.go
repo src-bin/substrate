@@ -37,6 +37,7 @@ func TestFooBarBaz(t *testing.T) {
 		"-all-domains",
 		"-all-environments",
 		// "-all-qualities", // test that we can omit this with only one quality as we have in test1
+		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
 	createrole.Main(ctx, cfg, os.Stdout)
 
@@ -114,7 +115,11 @@ func TestManagement(t *testing.T) {
 
 	testRole(t, ctx, mgmtCfg, roleName, testNotExists)
 
-	cmdutil.OverrideArgs("-role", roleName, "-management")
+	cmdutil.OverrideArgs(
+		"-role", roleName,
+		"-management",
+		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
+	)
 	createrole.Main(ctx, cfg, os.Stdout)
 
 	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because no -domain, -environment, or -quality
@@ -160,6 +165,7 @@ func TestSpecial(t *testing.T) {
 		"-role", roleName,
 		"-special", naming.Deploy,
 		"-special", naming.Network,
+		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
 	createrole.Main(ctx, cfg, os.Stdout)
 
