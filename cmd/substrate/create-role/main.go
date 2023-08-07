@@ -7,19 +7,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
-	"github.com/src-bin/substrate/admin"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/humans"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
-	"github.com/src-bin/substrate/users"
 	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
@@ -132,28 +130,25 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}},
 	}
 
-	// We'll also need the canned principals we use in the various
-	// Administrator roles, too, so that they can have an on-ramp into the web
-	// of roles we're creating here, too.
-	canned, err := admin.CannedPrincipals(ctx, cfg, false)
-	ui.Must(err)
-
 	// And during the transition from (theoretically multiple) admin accounts
 	// to exactly one Substrate account, we need to know about those beyond
 	// the `if selection.Humans` block below here.
 	adminAccounts, _, substrateAccount, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 	ui.Must(err)
 
+	intranetAssumeRolePolicy, err := humans.IntranetAssumeRolePolicy(ctx, cfg)
+	ui.Must(err)
+
 	// If this role's for humans to use via the IdP, create a role by the same
-	// name in admin accounts. This role must exist before we enter the main
-	// role and policy loop because that loop will need to reference these role
-	// ARNs and they must exist at that time. If -admin was given in addition
-	// to -humans, we'll use CreateRole here and suppress EntityAlreadyExists,
-	// knowing that this role will be thoroughly managed later and preventing
-	// a momentary regression in the assume-role policy. If -humans was given
-	// without -admin then this is our only shot at managing this role so we'll
-	// use EnsureRoleWithPolicy.
-	adminPrincipals := &policies.Principal{AWS: []string{}}
+	// name in the Substrate account. This role must exist before we enter the
+	// main role and policy loop because that loop will need to reference these
+	// role ARNs and they must exist at that time. If -admin was given in
+	// addition to -humans, we'll use CreateRole here and suppress
+	// EntityAlreadyExists, knowing that this role will be thoroughly managed
+	// later and preventing a momentary regression in the assume-role policy.
+	// If -humans was given without -substrate then this is our only shot at
+	// managing this role so we'll use EnsureRoleWithPolicy.
+	adminPrincipals := &policies.Principal{AWS: []string{}} // TODO turn into a singular substratePrincipal when removing admin accounts
 	if selection.Humans {
 		ui.Spinf("finding or creating the %s role in your Substrate and admin account(s) for humans to assume via your IdP", *roleName)
 
@@ -163,19 +158,19 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			}
 			accountCfg := awscfg.Must(account.Config(ctx, cfg, roles.Administrator, time.Hour))
 			var role *awsiam.Role
-			if selection.Admin {
+			if selection.Admin || selection.Substrate {
 				role, err = awsiam.CreateRole(
 					ctx,
 					accountCfg,
 					*roleName,
-					policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
+					intranetAssumeRolePolicy,
 				)
 			} else {
 				role, err = awsiam.EnsureRoleWithPolicy(
 					ctx,
 					accountCfg,
 					*roleName,
-					policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals),
+					intranetAssumeRolePolicy,
 					minimalPolicy,
 				)
 			}
@@ -203,50 +198,38 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Printf("constructing an assume-role policy for the %s role in %s", *roleName, account)
 
 		// Start the assume-role policy for the role in this account with the
-		// standard Substrate-managed principals like Administrator and
-		// OrganizationAdministrator.
-		assumeRolePolicy := policies.AssumeRolePolicyDocument(canned.AdminRolePrincipals) // Administrator can do anything, after all
+		// standard Substrate-managed principals from the Substrate account.
+		// This may in some sense appear to be overprivileging the
+		// (human-oriented) Administrator role, in particular, but in practice
+		// this makes debugging easier and doesn't confer any extra access but
+		// merely removes a step from using it.
 
-		// If -humans was given, allow the pre-created roles in the admin
-		// account(s) to assume this role.
+		// Begin with an empty (technically nil) assume-role policy.
+		var assumeRolePolicy *policies.Document
+
+		// If -humans was given, allow the pre-created roles in the Substrate
+		// account to assume this role. This is much simpler than it used to be
+		// because the Intranet's principals now assume roles directly in other
+		// accounts to allow 12-hour sessions and we're now creating EC2
+		// instance profiles everywhere in anticipation of Instance Factory
+		// being able to launch instances in any account (as oft requested).
 		if managedAssumeRolePolicy.Humans {
-			ui.Printf("allowing humans to assume the %s role in %s via admin accounts and your IdP", *roleName, account)
+			ui.Printf("allowing humans to assume the %s role in %s via your IdP", *roleName, account)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
+				intranetAssumeRolePolicy,
 				policies.AssumeRolePolicyDocument(adminPrincipals),
 			)
-
-			// Further, if this account is, in fact, an admin account or the
-			// Substrate account, allow the Intranet's and the Substrate user's
-			// principals to assume the role, too, so the Credential Factory
-			// will work and create an EC2 instance profile so the Instance
-			// Factory can use the role.
-			if account.Tags[tagging.Domain] == naming.Admin || account.Tags[tagging.SubstrateType] == tagging.Substrate {
-				assumeRolePolicy = policies.Merge(
-					assumeRolePolicy,
-					policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
-						roles.ARN(aws.ToString(account.Id), roles.Intranet),
-						users.ARN(aws.ToString(account.Id), users.CredentialFactory),
-					}}),
-					policies.AssumeRolePolicyDocument(&policies.Principal{Service: []string{"ec2.amazonaws.com"}}),
-				)
-				if substrateAccount != nil {
-					assumeRolePolicy = policies.Merge(
-						assumeRolePolicy,
-						policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
-							roles.ARN(aws.ToString(account.Id), roles.Substrate),
-							users.ARN(aws.ToString(account.Id), users.Substrate),
-						}}),
-					)
-				}
-				_, err = awsiam.EnsureInstanceProfile(ctx, cfg, *roleName)
-				ui.Must(err)
-			}
-
+			ui.Must2(awsiam.EnsureInstanceProfile(ctx, cfg, *roleName))
 		}
 
 		if len(managedAssumeRolePolicy.AWSServices) > 0 {
-			ui.Printf("allowing %s to assume the %s role in %s", strings.Join(managedAssumeRolePolicy.AWSServices, ", "), *roleName, account)
+			ui.Printf(
+				"allowing %s to assume the %s role in %s",
+				strings.Join(managedAssumeRolePolicy.AWSServices, ", "),
+				*roleName,
+				account,
+			)
 			assumeRolePolicy = policies.Merge(
 				assumeRolePolicy,
 				policies.AssumeRolePolicyDocument(&policies.Principal{
@@ -295,6 +278,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			assumeRolePolicy = policies.Merge(assumeRolePolicy, &filePolicy)
 		}
 
+		if assumeRolePolicy == nil {
+			ui.Fatal("at least one assume-role policy flag is required")
+		}
 		ui.Spinf("finding or creating the %s role in %s", *roleName, account)
 		role, err := awsiam.EnsureRoleWithPolicy(
 			ctx,
@@ -323,30 +309,21 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Stopf("ok")
 
 		// Attach policies to selected accounts. If this account is an admin
-		// account, only attach policies if -admin was given. If this account
-		// is not an admin account, attach them without further conditions.
+		// account or the Substrate account, only attach policies if -admin
+		// or -substrate was given. If this account is not an admin account or
+		// the Substrate account, attach them without further conditions.
 		// This complication is because -humans implies that roles must exist
-		// in admin accounts but not that they should have all the same
-		// permissions in admin accounts that they have elsewhere.
-		if isAdminAccount := account.Tags[tagging.Domain] == naming.Admin; isAdminAccount && selection.Admin || !isAdminAccount {
+		// in admin/Substrate accounts but not that they should have all the
+		// same permissions in those accounts that they have elsewhere.
+		if is := account.Tags[tagging.Domain] == naming.Admin || account.Tags[tagging.SubstrateType] == naming.Substrate; is && (selection.Admin || selection.Substrate) || !is {
 			if managedPolicyAttachments.AdministratorAccess {
 				ui.Spinf("attaching the AdministratorAccess policy to the %s role in %s", *roleName, account)
-				ui.Must(awsiam.AttachRolePolicy(
-					ctx,
-					accountCfg,
-					*roleName,
-					"arn:aws:iam::aws:policy/AdministratorAccess",
-				))
+				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, policies.AdministratorAccess))
 				ui.Stopf("ok")
 			}
 			if managedPolicyAttachments.ReadOnlyAccess {
 				ui.Spinf("attaching the ReadOnlyAccess policy to the %s role in %s", *roleName, account)
-				ui.Must(awsiam.AttachRolePolicy(
-					ctx,
-					accountCfg,
-					*roleName,
-					"arn:aws:iam::aws:policy/ReadOnlyAccess",
-				))
+				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, policies.ReadOnlyAccess))
 				ui.Stopf("ok")
 			}
 			if len(managedPolicyAttachments.ARNs) > 0 {

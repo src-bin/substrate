@@ -103,6 +103,15 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	u, err := url.Parse(awsiam.GitHubActionsOAuthOIDCURL)
 	ui.Must(err)
 
+	// Get the Substrate account number for when we need it later to detect
+	// -humans from the statements in an assume-role policy.
+	substrateAccount, err := cfg.FindSubstrateAccount(ctx)
+	ui.Must(err)
+	var substrateAccountId string
+	if substrateAccount != nil { // might be nil prior to running `substrate setup`
+		substrateAccountId = aws.ToString(substrateAccount.Id)
+	}
+
 	// Collate the Substrate-managed roles from all the AWS accounts into
 	// compact singular definitions of what they are.
 	collated := make(map[string]struct {
@@ -158,7 +167,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 						selection.Qualities = append(selection.Qualities, quality)
 					}
 				case "admin":
-					selection.Admin = true
+					if substrateAccount == nil {
+						selection.Admin = true // before `substrate setup`, -substrate won't select anything
+					} else {
+						selection.Substrate = true // after `substrate setup`, -admin won't select anything
+					}
+				case "substrate": // not "Substrate" because it's referencing the -substrate flag
+					selection.Substrate = true
 				case "humans":
 					selection.Humans = true
 				case "management":
@@ -184,13 +199,27 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			for _, statement := range role.AssumeRolePolicy.Statement {
 
 				// -humans
-				var credentialFactory, ec2, intranet bool // must have all three to detect -humans
+				var (
+					credentialFactory, intranet  bool // must have both of these...
+					substrateRole, substrateUser bool // ...or both of these...
+					ec2                          bool // ...and this to be detected as -humans
+				)
 				for _, arn := range statement.Principal.AWS {
+
+					// From before 2023.08 but need to hang around potentially
+					// forever so we can detect -humans even on very old roles.
 					if strings.HasSuffix(arn, fmt.Sprintf(":user/%s", users.CredentialFactory)) {
 						credentialFactory = true
 					}
 					if strings.HasSuffix(arn, fmt.Sprintf(":role/%s", roles.Intranet)) {
 						intranet = true
+					}
+
+					if arn == roles.ARN(substrateAccountId, roles.Substrate) {
+						substrateRole = true
+					}
+					if arn == users.ARN(substrateAccountId, users.Substrate) {
+						substrateUser = true
 					}
 				}
 				for _, service := range statement.Principal.Service {
@@ -199,6 +228,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 					}
 				}
 				if len(statement.Principal.AWS) == 2 && credentialFactory && intranet && len(statement.Principal.Service) == 1 && ec2 {
+					managedAssumeRolePolicy.Humans = true
+				} else if len(statement.Principal.AWS) == 2 && substrateRole && substrateUser && len(statement.Principal.Service) == 1 && ec2 {
 					managedAssumeRolePolicy.Humans = true
 				} else {
 
