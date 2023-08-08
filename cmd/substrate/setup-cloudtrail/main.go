@@ -75,6 +75,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		roles.OrganizationAccountAccessRole,
 		time.Hour,
 	))
+	ui.Must(accounts.CheatSheet(ctx, mgmtCfg))
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
 
