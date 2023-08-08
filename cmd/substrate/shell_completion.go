@@ -109,7 +109,6 @@ func shellCompletion() {
 		}
 		options = append(
 			options,
-			"-admin",
 			"-console",
 			"-domain",
 			"-environment",
@@ -221,7 +220,6 @@ func shellCompletion() {
 		}
 		options = append(
 			options,
-			"-admin",
 			"-administrator-access",
 			"-all-domains",
 			"-all-environments",

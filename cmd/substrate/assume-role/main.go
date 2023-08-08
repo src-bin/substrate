@@ -21,12 +21,13 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	admin := flag.Bool("admin", false, `shorthand for -domain "admin" -environment "admin"`)
+	admin := flag.Bool("admin", false, `(deprecated) shorthand for -domain "admin" -environment "admin"`)
 	domain := cmdutil.DomainFlag("domain of an AWS account in which to assume a role")
 	environment := cmdutil.EnvironmentFlag("environment of an AWS account in which to assume a role")
 	quality := cmdutil.QualityFlag("quality of an AWS account in which to assume a role")
 	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy" or "network")`)
-	management := flag.Bool("management", false, "assume a role in the organization's management AWS account")
+	substrate := flag.Bool("substrate", false, "assume a role in the AWS organization's Substrate account")
+	management := flag.Bool("management", false, "assume a role in the AWS organization's management account")
 	master := flag.Bool("master", false, "deprecated name for -management")
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
 	roleName := flag.String("role", "", "name of the IAM role to assume")
@@ -47,11 +48,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if *admin {
 		*domain, *environment = "admin", "admin"
 	}
-	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*management && *number == "" {
-		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -admin -quality "..." or -special "..." or -management or -number "..." is required`)
+	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*substrate && !*management && *number == "" {
+		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -admin -quality "..." or -special "..." or -substrate or -management or -number "..." is required`)
 	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *special != "" {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -special "..."`)
+	}
+	if (*domain != "" || *environment != "" /* || *quality != "" */) && *substrate {
+		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -substrate`)
 	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *management {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -management`)
@@ -59,11 +63,20 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *number != "" {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -number "..."`)
 	}
+	if *special != "" && *substrate {
+		ui.Fatal(`can't mix -special "..." with -substrate`)
+	}
 	if *special != "" && *management {
 		ui.Fatal(`can't mix -special "..." with -management`)
 	}
 	if *special != "" && *number != "" {
 		ui.Fatal(`can't mix -special "..." with -number "..."`)
+	}
+	if *substrate && *management {
+		ui.Fatal(`can't mix -substrate with -management`)
+	}
+	if *substrate && *number != "" {
+		ui.Fatal(`can't mix -substrate with -number "..."`)
 	}
 	if *management && *number != "" {
 		ui.Fatal(`can't mix -management with -number "..."`)
@@ -103,6 +116,15 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			ui.Fatal(`-role "..." is required with -number "..."`)
 		}
 		cfg, err = cfg.AssumeRole(ctx, *number, *roleName, duration)
+	} else if *substrate {
+		if *roleName == "" {
+			if currentRoleName == roles.OrganizationAdministrator {
+				roleName = aws.String(roles.Administrator)
+			} else {
+				roleName = aws.String(currentRoleName)
+			}
+		}
+		cfg, err = cfg.AssumeSubstrateRole(ctx, *roleName, duration)
 	} else if *management {
 		if *roleName == "" {
 			if currentRoleName == roles.Auditor {
