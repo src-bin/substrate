@@ -13,6 +13,7 @@ import (
 
 func Apply(dirname string, autoApprove bool) error {
 	ui.Printf("applying Terraform changes in %s", dirname)
+	//log.Print(execdlp(dirname, "aws", "sts", "get-caller-identity"))
 	if autoApprove {
 		return execdlp(dirname, "terraform", "apply", "-auto-approve")
 	}
@@ -39,6 +40,7 @@ func Init(dirname string) error {
 
 func Plan(dirname string) error {
 	ui.Printf("planning Terraform changes in %s", dirname)
+	//log.Print(execdlp(dirname, "aws", "sts", "get-caller-identity"))
 	err := execdlp(dirname, "terraform", "plan")
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
