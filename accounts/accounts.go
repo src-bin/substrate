@@ -176,11 +176,18 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 	}
 
 	for _, account := range allAccounts {
-		if account.Tags[tagging.SubstrateType] == tagging.Substrate {
-			substrateAccount = account
-			continue // if it's the Substrate account, it's no longer an admin account
-		}
-		if account.Tags[tagging.SubstrateSpecialAccount] != "" {
+		if account.Tags[tagging.SubstrateType] != "" {
+			switch account.Tags[tagging.SubstrateType] {
+			case Audit:
+				auditAccount = account
+			case Management:
+				managementAccount = account
+			case Network:
+				networkAccount = account
+			case Substrate:
+				substrateAccount = account
+			}
+		} else if account.Tags[tagging.SubstrateSpecialAccount] != "" {
 			switch account.Tags[tagging.SubstrateSpecialAccount] {
 			case Audit:
 				auditAccount = account
