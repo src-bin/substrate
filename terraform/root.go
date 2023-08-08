@@ -44,14 +44,14 @@ func Root(ctx context.Context, cfg *awscfg.Config, dirname, region string) (err 
 	// to accommodate both, we first check for the existence of a special
 	// deploy account and use it if we can and otherwise fall back to the
 	// Substrate account.
-	cfg, err = cfg.AssumeSpecialRole(
+	stateCfg, err := cfg.AssumeSpecialRole(
 		ctx,
 		accounts.Deploy,
 		roles.DeployAdministrator,
 		time.Hour,
 	)
 	if err != nil {
-		cfg, err = cfg.AssumeSubstrateRole(ctx, roles.Administrator, time.Hour)
+		stateCfg, err = cfg.AssumeSubstrateRole(ctx, roles.Administrator, time.Hour)
 	}
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func Root(ctx context.Context, cfg *awscfg.Config, dirname, region string) (err 
 	if err := makefile(dirname); err != nil {
 		return err
 	}
-	if err := terraformBackend(ctx, cfg, dirname, region); err != nil {
+	if err := terraformBackend(ctx, stateCfg, dirname, region); err != nil {
 		return err
 	}
 	if err := versions(dirname, nil, true); err != nil {
