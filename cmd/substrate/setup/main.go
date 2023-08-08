@@ -62,7 +62,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 
 	//log.Print(jsonutil.MustString(cfg.MustGetCallerIdentity(ctx)))
-	region := regions.Default()
+	regions.Default()
 	if _, err := cfg.GetCallerIdentity(ctx); err != nil {
 		_, err := cfg.SetRootCredentials(ctx)
 		ui.Must(err)
