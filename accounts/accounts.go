@@ -79,11 +79,13 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[1][5] = managementAccount.Tags[tagging.SubstrateVersion]
 
 	specialAccountsCells[2][0] = Audit
-	specialAccountsCells[2][1] = aws.ToString(auditAccount.Id)
-	specialAccountsCells[2][2] = roles.Auditor
-	specialAccountsCells[2][3] = roles.ARN(aws.ToString(auditAccount.Id), roles.Auditor)
-	specialAccountsCells[2][4] = aws.ToString(auditAccount.Email)
-	specialAccountsCells[2][5] = auditAccount.Tags[tagging.SubstrateVersion]
+	if auditAccount != nil {
+		specialAccountsCells[2][1] = aws.ToString(auditAccount.Id)
+		specialAccountsCells[2][2] = roles.Auditor
+		specialAccountsCells[2][3] = roles.ARN(aws.ToString(auditAccount.Id), roles.Auditor)
+		specialAccountsCells[2][4] = aws.ToString(auditAccount.Email)
+		specialAccountsCells[2][5] = auditAccount.Tags[tagging.SubstrateVersion]
+	}
 
 	specialAccountsCells[3][0] = Deploy
 	specialAccountsCells[3][1] = aws.ToString(deployAccount.Id)
