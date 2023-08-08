@@ -154,6 +154,11 @@ func (c *Config) SetRootCredentials(ctx context.Context) (*sts.GetCallerIdentity
 	// credentials on the command line and exchange them for IAM user
 	// credentials, nothing in any child process is going to work UNLESS we
 	// stuff them into the environment.
+	//
+	// TODO it's probably time for a rethink of when these are set and what
+	// that means for child processes like `terraform plan|apply` that tend
+	// today to end up jumping out of the management account during initial
+	// setup and from then on out of the Substrate account.
 	if err = os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID); err != nil {
 		return nil, err
 	}
