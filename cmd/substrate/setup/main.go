@@ -521,8 +521,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Stop("ok")
 
 	// Find or create the {Deploy,Network,Organization}Administrator roles and
-	// matching Auditor roles in all the special accounts that we can. The only
-	// one that's a guarantee is the management account.
+	// matching Auditor roles. Don't bother creating the deploy account if we
+	// can't find it; we'll use the Substrate account for that. Create the
+	// network account if it doesn't already exist. And, of course, the
+	// management account must already exist because we're in an organization.
 	ui.Spin("configuring additional administrative IAM roles")
 	extraAdministrator, err := policies.ExtraAdministratorAssumeRolePolicy()
 	ui.Must(err)
@@ -556,35 +558,39 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	} else {
 		ui.Print(" could not assume the DeployAdministrator role; continuing without managing its policies")
 	}
+	ui.Spinf("finding or creating the network account")
+	networkAccount, err := awsorgs.EnsureSpecialAccount(ctx, mgmtCfg, accounts.Network)
+	ui.Must(err)
+	ui.Stop(networkAccount)
 	networkCfg, err := mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour)
 	if err != nil {
 		networkCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.OrganizationAccountAccessRole, time.Hour)
 	}
-	if err == nil {
-		networkRole, err := awsiam.EnsureRole(
-			ctx,
-			networkCfg,
-			roles.NetworkAdministrator,
-			policies.Merge(
-				policies.AssumeRolePolicyDocument(&policies.Principal{
-					AWS: []string{
-						roles.ARN(substrateAccountId, roles.Administrator),
-						roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator), // allow this role to assume itself
-						mgmtRole.ARN,
-						substrateRole.ARN,
-						aws.ToString(mgmtUser.Arn),
-						aws.ToString(substrateUser.Arn),
-					},
-				}),
-				extraAdministrator,
-			),
-		)
-		ui.Must(err)
-		ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, networkRole.Name, policies.AdministratorAccess))
-		ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, networkCfg))
-	} else {
-		ui.Print(" could not assume the NetworkAdministrator role; continuing without managing its policies")
+	if err != nil { // if tags are too eventually consistent
+		networkCfg, err = mgmtCfg.AssumeRole(ctx, aws.ToString(networkAccount.Id), roles.OrganizationAccountAccessRole, time.Hour)
 	}
+	ui.Must(err)
+	networkRole, err := awsiam.EnsureRole(
+		ctx,
+		networkCfg,
+		roles.NetworkAdministrator,
+		policies.Merge(
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				AWS: []string{
+					roles.ARN(substrateAccountId, roles.Administrator),
+					roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator), // allow this role to assume itself
+					mgmtRole.ARN,
+					substrateRole.ARN,
+					aws.ToString(mgmtUser.Arn),
+					aws.ToString(substrateUser.Arn),
+				},
+			}),
+			extraAdministrator,
+		),
+	)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, networkRole.Name, policies.AdministratorAccess))
+	ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, networkCfg))
 	orgAdminRole, err := awsiam.EnsureRole(
 		ctx,
 		mgmtCfg,
