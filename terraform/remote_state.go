@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsdynamodb"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awsutil"
@@ -19,12 +21,15 @@ import (
 	"github.com/src-bin/substrate/users"
 )
 
-// EnsureStateManager manages an S3 bucket and IAM role in the Substrate
-// account that every other account in the organization can use to read, write,
-// and lock Terraform state. This must be called in the Substrate account.
+const DynamoDBTableName = "terraform-state-locks"
+
+// EnsureStateManager manages an S3 bucket, a DynamoDB table, and an IAM role
+// in the Substrate account that every other account in the organization can
+// use to read, write, and lock Terraform state. This must be called in the
+// Substrate account.
 func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, error) {
 	//log.Print(jsonutil.MustString(cfg.MustGetCallerIdentity(ctx)))
-	ui.Spin("finding or creating an S3 bucket and IAM role for Terraform to use to manage remote state")
+	ui.Spin("finding or creating an S3 bucket, DynamoDB table, and IAM role for Terraform to use to manage remote state")
 
 	// Gather up a list of principals that we expect to run Terraform so we
 	// can allow them to assume the TerraformStateManager role.
@@ -67,10 +72,16 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 	}
 	var resources []string
 	for _, region := range regions.Selected() {
+
 		bucketName := S3BucketName(region)
 		statement := policies.Statement{
+
+			// We're using policies attached to the TerraformStateManager
+			// role to control access. This bucket policy is the standard
+			// one that allows the owning account to control the bucket.
 			Principal: &policies.Principal{AWS: []string{accountId}},
-			Action:    []string{"s3:*"},
+
+			Action: []string{"s3:*"},
 			Resource: []string{
 				fmt.Sprintf("arn:aws:s3:::%s", bucketName),
 				fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
@@ -99,6 +110,23 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 			return nil, ui.StopErr(err)
 		}
 		resources = append(resources, statement.Resource...)
+
+		if _, err := awsdynamodb.EnsureTable(
+			ctx,
+			cfg.Regional(region),
+			DynamoDBTableName,
+			[]awsdynamodb.AttributeDefinition{{
+				AttributeName: aws.String("LockID"),
+				AttributeType: types.ScalarAttributeTypeS,
+			}},
+			[]awsdynamodb.KeySchemaElement{{
+				AttributeName: aws.String("LockID"),
+				KeyType:       types.KeyTypeHash,
+			}},
+		); err != nil {
+			return nil, ui.StopErr(err)
+		}
+
 	}
 
 	policy, err := awsiam.EnsurePolicy(

@@ -8,23 +8,15 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awsdynamodb"
-	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/naming"
-	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/ui"
 )
 
 //go:generate go run ../tools/template/main.go -name gitignoreTemplate gitignore.template
 //go:generate go run ../tools/template/main.go -name makefileTemplate Makefile.template
 //go:generate go run ../tools/template/main.go -name terraformBackendTemplate terraform.tf
-
-const DynamoDBTableName = "terraform-state-locks"
 
 // Root sets up the given directory as a root Terraform module by creating a
 // few local files and AWS resources.  Set it up to store remote Terraform
@@ -119,15 +111,16 @@ func makefile(dirname string) error {
 	return tmpl.Execute(f, struct{ GOBIN string }{filepath.Dir(pathname)})
 }
 
-// terraformBackend creates the S3 bucket and DynamoDB table we use to store
-// Terraform state for this root module. The given cfg must be in the Substrate
-// account or, for older installations, the special deploy account.
+// terraformBackend references the S3 bucket and DynamoDB table created during
+// setup that we use to store Terraform state for this root module. The given
+// cfg must be in the Substrate account or, for older installations, the
+// special deploy account; this is handled in Root, above.
 func terraformBackend(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	dirname, region string,
 ) error {
-	callerIdentity, err := cfg.GetCallerIdentity(ctx)
+	accountId, err := cfg.AccountId(ctx)
 	if err != nil {
 		return err
 	}
@@ -140,57 +133,12 @@ func terraformBackend(
 	if err != nil {
 		return err
 	}
-
 	v := RemoteStateConfig{
 		Bucket:        S3BucketName(region),
 		DynamoDBTable: DynamoDBTableName,
 		Key:           filepath.Join(dirname, "terraform.tfstate"),
 		Region:        region,
-		RoleArn: roles.ARN(
-			aws.ToString(callerIdentity.Account),
-			roles.TerraformStateManager,
-		),
+		RoleArn:       roles.ARN(accountId, roles.TerraformStateManager),
 	}
-
-	// Ensure the DynamoDB table and S3 bucket exist before configuring
-	// Terraform to use them for remote state.
-	ui.Spin("finding or creating an S3 bucket for storing Terraform state")
-	if err := awss3.EnsureBucket(
-		ctx,
-		cfg.Regional(v.Region),
-		v.Bucket,
-		v.Region,
-		&policies.Document{
-			Statement: []policies.Statement{{
-				Principal: &policies.Principal{AWS: []string{aws.ToString(callerIdentity.Account)}},
-				Action:    []string{"s3:*"},
-				Resource: []string{
-					fmt.Sprintf("arn:aws:s3:::%s", v.Bucket),
-					fmt.Sprintf("arn:aws:s3:::%s/*", v.Bucket),
-				},
-			}},
-		},
-	); err != nil {
-		return err
-	}
-	ui.Stopf("bucket %s", v.Bucket)
-	ui.Spin("finding or creating a DynamoDB table for Terraform state locking")
-	if _, err := awsdynamodb.EnsureTable(
-		ctx,
-		cfg.Regional(v.Region),
-		v.DynamoDBTable,
-		[]awsdynamodb.AttributeDefinition{{
-			AttributeName: aws.String("LockID"),
-			AttributeType: types.ScalarAttributeTypeS,
-		}},
-		[]awsdynamodb.KeySchemaElement{{
-			AttributeName: aws.String("LockID"),
-			KeyType:       types.KeyTypeHash,
-		}},
-	); err != nil {
-		return err
-	}
-	ui.Stopf("table %s", v.DynamoDBTable)
-
 	return tmpl.Execute(f, v)
 }
