@@ -192,6 +192,8 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 				managementAccount = account
 			case Network:
 				networkAccount = account
+			case Service:
+				serviceAccounts = append(serviceAccounts, account)
 			case Substrate:
 				substrateAccount = account
 			}
