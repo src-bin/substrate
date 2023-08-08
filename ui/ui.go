@@ -165,7 +165,7 @@ func helpful(err error) error {
 	// and without SUBSTRATE_ROOT set.
 	var mrErr *aws.MissingRegionError
 	if errors.As(err, &mrErr) {
-		return errors.New("couldn't find your default AWS region which most likely means this program's been invoked from outside your Substrate repository without SUBSTRATE_ROOT in the environment; change your working directory to your Substrate repository or set SUBSTRATE_ROOT in your environment to the absolute path to your Substrate repository")
+		return fmt.Errorf("%w\ncouldn't find your default AWS region which most likely means this program's been invoked from outside your Substrate repository without SUBSTRATE_ROOT in the environment; change your working directory to your Substrate repository or set SUBSTRATE_ROOT in your environment to the absolute path to your Substrate repository", err)
 	}
 
 	// If the AWS SDK reports a signing error the most likely explanation is
