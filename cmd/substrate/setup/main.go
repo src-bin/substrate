@@ -488,6 +488,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 		time.Sleep(1e9) // TODO exponential backoff
 	}
+	for {
+		substrateCfg = awscfg.Must(cfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))
+		//log.Print(jsonutil.MustString(substrateCfg.MustGetCallerIdentity(ctx)))
+		if name, _ := roles.Name(aws.ToString(substrateCfg.MustGetCallerIdentity(ctx).Arn)); name == roles.Substrate {
+			break
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
 
 	// Finish configuring IAM in the management account with CloudWatch's
 	// rather busted role for discovering cross-account logs and metrics.
