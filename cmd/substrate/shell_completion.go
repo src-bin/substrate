@@ -119,29 +119,7 @@ func shellCompletion() {
 			"-quiet",
 			"-role",
 			"-special",
-		)
-
-	case "bootstrap-deploy-account":
-		options = append(
-			options,
-			"-auto-approve",
-			"-no-apply",
-			"-fully-interactive", "-minimally-interactive", "-non-interactive",
-		)
-
-	case "bootstrap-management-account":
-		options = append(
-			options,
-			"-fully-interactive", "-minimally-interactive", "-non-interactive",
-		)
-
-	case "bootstrap-network-account":
-		options = append(
-			options,
-			"-auto-approve",
-			"-ignore-service-quotas",
-			"-no-apply",
-			"-fully-interactive", "-minimally-interactive", "-non-interactive",
+			"-substrate",
 		)
 
 	case "create-account":
@@ -167,24 +145,6 @@ func shellCompletion() {
 			"-create",
 			"-domain",
 			"-environment",
-			"-ignore-service-quotas",
-			"-no-apply",
-			"-quality",
-			"-fully-interactive", "-minimally-interactive", "-non-interactive",
-		)
-
-	case "create-admin-account":
-		switch previousWord {
-		case "-quality":
-			qualities, err := naming.Qualities()
-			ui.Must(err)
-			shellCompletionMatches(qualities, word)
-			return
-		}
-		options = append(
-			options,
-			"-auto-approve",
-			"-create",
 			"-ignore-service-quotas",
 			"-no-apply",
 			"-quality",
