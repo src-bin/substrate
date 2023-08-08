@@ -348,10 +348,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		//log.Print(jsonutil.MustString(adminAccounts))
 		if i := len(adminAccounts); i > 1 {
 			ui.Fatal("found more than one (deprecated) admin account")
-		} else if i == 0 {
-			ui.Fatal("(deprecated) admin account not found")
+		} else if i == 1 {
+			substrateAccount = adminAccounts[0]
 		}
-		substrateAccount = adminAccounts[0]
 	}
 	if substrateAccount == nil { // genuinely a new installation
 		ui.Stop("not found")
