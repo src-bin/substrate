@@ -24,6 +24,7 @@
     <td>{{.ManagementAccount.Email}}</td>
     <td>{{.ManagementAccount.Tags.SubstrateVersion}}</td>
 </tr>
+{{- if .AuditAccount}}
 <tr>
     <td>{{.AuditAccount.Name}}</td>
     <td>{{.AuditAccount.Id}}</td>
@@ -32,6 +33,8 @@
     <td>{{.AuditAccount.Email}}</td>
     <td>{{.AuditAccount.Tags.SubstrateVersion}}</td>
 </tr>
+{{- end}}
+{{- if .DeployAccount}}
 <tr>
     <td>{{.DeployAccount.Name}}</td>
     <td>{{.DeployAccount.Id}}</td>
@@ -40,6 +43,7 @@
     <td>{{.DeployAccount.Email}}</td>
     <td>{{.DeployAccount.Tags.SubstrateVersion}}</td>
 </tr>
+{{- end}}
 <tr>
     <td>{{.NetworkAccount.Name}}</td>
     <td>{{.NetworkAccount.Id}}</td>
