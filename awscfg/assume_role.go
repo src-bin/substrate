@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
@@ -44,12 +45,15 @@ func (c *Config) AssumeManagementRole(
 		return nil, err
 	}
 
-	org, err := c.DescribeOrganization(ctx)
-	if err != nil {
+	var mgmtAccountId string
+	if org, err := c.DescribeOrganization(ctx); err == nil {
+		//log.Print(jsonutil.MustString(org))
+		mgmtAccountId = aws.ToString(org.MasterAccountId)
+	} else if awsutil.ErrorCodeIs(err, AWSOrganizationsNotInUseException) {
+		mgmtAccountId = aws.ToString(callerIdentity.Account)
+	} else {
 		return nil, err
 	}
-	mgmtAccountId := aws.ToString(org.MasterAccountId)
-	//log.Print(jsonutil.MustString(org))
 	if err := EnsureManagementAccountIdMatchesDisk(mgmtAccountId); err != nil {
 		return nil, err
 	}

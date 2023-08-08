@@ -3,6 +3,7 @@ package intranetzip
 import (
 	"context"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -10,12 +11,17 @@ import (
 	"os"
 
 	"github.com/src-bin/substrate/awscfg"
-	createadminaccount "github.com/src-bin/substrate/cmd/substrate/create-admin-account"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/versionutil"
 )
+
+//go:generate make -C ../../.. go-generate-intranet
+//go:generate touch -t 202006100000.00 bootstrap
+//go:generate zip -X substrate-intranet.zip bootstrap
+//go:embed substrate-intranet.zip
+var SubstrateIntranetZip []byte
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	base64sha256 := flag.Bool("base64sha256", false, "print the base-64-encoded, SHA256 sum of the substrate-intranet binary instead of the binary itself (useful for rectifying lambda:UpdateFunctionCode API arguments and Terraform plans)")
@@ -35,7 +41,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// With -base64sha256, print the checksum of the binary we would have
 	// printed without that option.
 	if *base64sha256 {
-		sum := sha256.Sum256(createadminaccount.SubstrateIntranetZip)
+		sum := sha256.Sum256(SubstrateIntranetZip)
 		enc := base64.StdEncoding.EncodeToString(sum[:])
 		switch format.String() {
 		case cmdutil.SerializationFormatJSON:
@@ -56,7 +62,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 
 	// By default write the substrate-intranet binary to standard output.
-	os.Stdout.Write(createadminaccount.SubstrateIntranetZip)
+	os.Stdout.Write(SubstrateIntranetZip)
 
 }
 
