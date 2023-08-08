@@ -169,35 +169,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	)
 	ui.Must(err)
 
-	// Maybe ask them about enforcing the use of IMDSv2. However, if their
-	// existing service control policy requires that they use IMDSv2, don't
-	// even offer the opportunity to allow the less secure configuration.
-	// Note well, though, that because of this inference it's not sufficient
-	// to delete the substrate.enforce-imdsv2 file in order to change this
-	// configuration; to do that you also need to delete (or edit) the
-	// service control policy.
-	if !fileutil.Exists(EnforceIMDSv2Filename) {
-		ui.Spin("scoping out your organization's service control policies")
-		policySummaries, err := awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
-		ui.Must(err)
-		for _, policySummary := range policySummaries {
-			if aws.ToString(policySummary.Name) == ServiceControlPolicyName {
-				policy, err := awsorgs.DescribePolicy(ctx, cfg, aws.ToString(policySummary.Id))
-				ui.Must(err)
-				if strings.Contains(aws.ToString(policy.Content), `"ec2:RoleDelivery": "2.0"`) {
-					ui.Must(ioutil.WriteFile(EnforceIMDSv2Filename, []byte("yes\n"), 0666))
-					break
-				}
-			}
-		}
-		ui.Stop("ok")
-	}
-	enforceIMDSv2, err := ui.ConfirmFile(
-		EnforceIMDSv2Filename,
-		`do you want to enforce the use of the EC2 IMDSv2 organization-wide? (yes/no; answering "yes" improves security posture but may break legacy EC2 workloads)`,
-	)
-	ui.Must(err)
-
 	// Ensure this account is (in) an organization.
 	ui.Spin("finding or creating your organization")
 	org, err := mgmtCfg.DescribeOrganization(ctx)
@@ -261,12 +232,41 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// effort until we encounter billing-only organizations in the real world
 	// that are trying to adopt Substrate.
 
+	// Maybe ask them about enforcing the use of IMDSv2. However, if their
+	// existing service control policy requires that they use IMDSv2, don't
+	// even offer the opportunity to allow the less secure configuration.
+	// Note well, though, that because of this inference it's not sufficient
+	// to delete the substrate.enforce-imdsv2 file in order to change this
+	// configuration; to do that you also need to delete (or edit) the
+	// service control policy.
+	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.SERVICE_CONTROL_POLICY))
+	if !fileutil.Exists(EnforceIMDSv2Filename) {
+		ui.Spin("scoping out your organization's service control policies")
+		policySummaries, err := awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
+		ui.Must(err)
+		for _, policySummary := range policySummaries {
+			if aws.ToString(policySummary.Name) == ServiceControlPolicyName {
+				policy, err := awsorgs.DescribePolicy(ctx, cfg, aws.ToString(policySummary.Id))
+				ui.Must(err)
+				if strings.Contains(aws.ToString(policy.Content), `"ec2:RoleDelivery": "2.0"`) {
+					ui.Must(ioutil.WriteFile(EnforceIMDSv2Filename, []byte("yes\n"), 0666))
+					break
+				}
+			}
+		}
+		ui.Stop("ok")
+	}
+	enforceIMDSv2, err := ui.ConfirmFile(
+		EnforceIMDSv2Filename,
+		`do you want to enforce the use of the EC2 IMDSv2 organization-wide? (yes/no; answering "yes" improves security posture but may break legacy EC2 workloads)`,
+	)
+	ui.Must(err)
+
 	// Ensure service control policies are enabled and that Substrate's is
 	// attached and up-to-date. This is pretty basic and may eventually be
 	// expanded into `substrate create-scp|scps` commands; there's also an
 	// opportunity in managing tagging policies that requires more research.
 	ui.Spin("configuring your organization's service control policy")
-	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.SERVICE_CONTROL_POLICY))
 	statements := []policies.Statement{
 
 		// Allow everything not explicitly denied. Bring it on.
