@@ -11,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
+	setupcloudtrail "github.com/src-bin/substrate/cmd/substrate/setup-cloudtrail"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tagging"
@@ -105,22 +106,17 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		if *noApply {
 			noApplyFlag = " -no-apply" // leading space to format pleasingly both ways
 		}
+
 		fmt.Println("set -e -x")
-		if substrateAccount != nil {
-			fmt.Printf("substrate setup%s%s\n", autoApproveFlag, noApplyFlag)
-		} else {
-			fmt.Println("substrate bootstrap-management-account")
-			fmt.Printf("substrate bootstrap-network-account%s%s\n", autoApproveFlag, noApplyFlag)
-			fmt.Printf("substrate bootstrap-deploy-account%s%s\n", autoApproveFlag, noApplyFlag)
-			for _, account := range adminAccounts {
-				fmt.Printf(
-					"substrate create-admin-account%s%s -quality %q\n",
-					autoApproveFlag,
-					noApplyFlag,
-					account.Tags[tagging.Quality],
-				)
-			}
+
+		fmt.Printf("substrate setup%s%s\n", autoApproveFlag, noApplyFlag)
+
+		if ok, err := ui.ConfirmFile(setupcloudtrail.ManageCloudTrailFilename); err != nil {
+			ui.Fatal(err)
+		} else if ok {
+			fmt.Print("substrate setup-cloudtrail\n")
 		}
+
 		for _, account := range serviceAccounts {
 			if _, ok := account.Tags[tagging.Domain]; !ok {
 				continue
