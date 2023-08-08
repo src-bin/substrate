@@ -21,8 +21,8 @@ clean:
 	find . -name \*.template.go -delete
 	find . -name \*.tf.go -delete
 	find terraform -name \*-global.go -o -name \*-regional.go -delete
-	rm -f cmd/substrate/create-admin-account/bootstrap
-	rm -f cmd/substrate/create-admin-account/substrate-intranet.zip
+	rm -f cmd/substrate/intranet-zip/bootstrap
+	rm -f cmd/substrate/intranet-zip/substrate-intranet.zip
 	rm -f -r substrate-*-*-*
 	rm -f substrate-*-*-*.tar.gz
 	rm -f terraform/peering-connection.go
@@ -33,12 +33,12 @@ deps:
 
 go-generate:
 	go generate ./lambdautil # dependency of several packages with go:generate directives
-	go generate ./cmd/substrate-intranet     # dependency of cmd/substrate/create-admin-account's...
+	go generate ./cmd/substrate-intranet     # dependency of cmd/substrate/intranet-zip's...
 	go generate ./cmd/substrate-intranet/... # ...go:generate directives
 	go generate ./... # the rest of the go:generate directives
 
 go-generate-intranet:
-	env GOARCH=arm64 GOOS=linux go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o cmd/substrate/create-admin-account/bootstrap ./cmd/substrate-intranet
+	env GOARCH=arm64 GOOS=linux go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o cmd/substrate/intranet-zip/bootstrap ./cmd/substrate-intranet
 
 install:
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
