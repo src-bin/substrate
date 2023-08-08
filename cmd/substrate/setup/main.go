@@ -62,6 +62,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 
 	//log.Print(jsonutil.MustString(cfg.MustGetCallerIdentity(ctx)))
+	region := regions.Default()
 	if _, err := cfg.GetCallerIdentity(ctx); err != nil {
 		_, err := cfg.SetRootCredentials(ctx)
 		ui.Must(err)
@@ -76,11 +77,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
 
 	naming.Prefix()
-
-	region := regions.Default()
-	mgmtCfg = mgmtCfg.Regional(region)
-	_, err := regions.Select()
-	ui.Must(err)
+	ui.Must2(regions.Select())
 
 	// Prompt for environments and qualities but make it less intimidating than
 	// it was originally by leaving out the whole "admin" thing and by skipping
