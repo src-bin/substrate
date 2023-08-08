@@ -109,7 +109,7 @@ func Select() ([]string, error) {
 		RegionsFilename,
 		"your Substrate-managed infrastructure is currently configured to use the following AWS regions:",
 		// "remove regions you don't want to use or add regions you wish to expand into, one per line",
-		"add regions you wish to expand into, one per line",
+		"add all the regions you wish to use (including the default region you gave earlier, if you want), one per line",
 	)
 	if err != nil {
 		return nil, err
