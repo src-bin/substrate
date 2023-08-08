@@ -15,17 +15,6 @@ data "aws_iam_policy_document" "apigateway-trust" {
   }
 }
 
-data "aws_iam_policy_document" "credential-factory" {
-  statement {
-    actions   = ["organizations:DescribeOrganization"]
-    resources = ["*"]
-  }
-  statement {
-    actions   = ["sts:AssumeRole"]
-    resources = ["*"]
-  }
-}
-
 data "aws_iam_policy_document" "intranet" {
   statement {
     actions = [
@@ -112,10 +101,6 @@ data "aws_route53_zone" "intranet" {
   private_zone = false
 }
 
-data "aws_iam_user" "credential-factory" {
-  user_name = "CredentialFactory"
-}
-
 module "intranet-apigateway-authorizer" {
   name   = "IntranetAPIGatewayAuthorizer"
   policy = data.aws_iam_policy_document.intranet-apigateway-authorizer.json
@@ -138,11 +123,6 @@ resource "aws_iam_policy" "apigateway" {
   policy = data.aws_iam_policy_document.apigateway.json
 }
 
-resource "aws_iam_policy" "credential-factory" {
-  name   = "CredentialFactory"
-  policy = data.aws_iam_policy_document.credential-factory.json
-}
-
 resource "aws_iam_role" "apigateway" {
   assume_role_policy   = data.aws_iam_policy_document.apigateway-trust.json
   max_session_duration = 43200
@@ -157,9 +137,4 @@ resource "aws_iam_role_policy_attachment" "apigateway" {
 resource "aws_iam_role_policy_attachment" "apigateway-cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
   role       = aws_iam_role.apigateway.name
-}
-
-resource "aws_iam_user_policy_attachment" "credential-factory" {
-  policy_arn = aws_iam_policy.credential-factory.arn
-  user       = data.aws_iam_user.credential-factory.user_name
 }
