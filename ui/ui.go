@@ -190,25 +190,16 @@ func shorten(pathname string) string {
 // from the standard library's log.Logger.Output.
 // <https://cs.opensource.google/go/go/+/refs/tags/go1.18.3:src/log/log.go;l=172>
 func withCaller(args ...interface{}) []interface{} {
-	_, file, line, ok := runtime.Caller(2)
-	if ok {
-		fatal := fmt.Sprintf("%s:%d", shorten(file), line)
-		_, file, line, ok = runtime.Caller(3)
+	var trace []string
+	for i := 2; i <= 4; i++ {
+		_, file, line, ok := runtime.Caller(i)
 		if ok {
-			args = append(args, fmt.Sprintf(
-				" (%s via %s:%d; Substrate version %s)",
-				fatal,
-				shorten(file),
-				line,
-				version.Version,
-			))
-		} else {
-			args = append(args, fmt.Sprintf(
-				" (%s; Substrate version %s)",
-				fatal,
-				version.Version,
-			))
+			trace = append(trace, fmt.Sprintf("%s:%d", shorten(file), line))
 		}
 	}
-	return args
+	return append(args, fmt.Sprintf(
+		" (%s; Substrate version %s)",
+		strings.Join(trace, " via "),
+		version.Version,
+	))
 }
