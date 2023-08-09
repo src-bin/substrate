@@ -76,6 +76,8 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 				}
 			}
 			continue
+		} else if err != nil {
+			return
 		}
 
 		// Cache the access key we found in Secrets Manager for next time.
@@ -91,10 +93,10 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 				awssecretsmanager.AWSCURRENT,
 				secret,
 			); err != nil {
-				log.Print(err)
+				ui.PrintWithCaller(err)
 			}
 		} else {
-			log.Print(err)
+			ui.PrintWithCaller(err)
 		}
 
 		break
