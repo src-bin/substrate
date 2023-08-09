@@ -398,6 +398,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// accounts, possibly without some principals that don't exist yet. Both
 	// of these roles will be recreated later after all the principals have
 	// definitely been created.
+	ui.Spin("pre-creating IAM roles for circular references in assume-role policies")
 	mgmtPrincipals := []string{
 		roles.ARN(mgmtAccountId, roles.Substrate), // allow this role to assume itself
 		aws.ToString(mgmtUser.Arn),
@@ -428,9 +429,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, substrateRole.Name, policies.AdministratorAccess))
 	//log.Print(jsonutil.MustString(substrateRole))
+	ui.Stop("ok")
 
 	// Find or create the Administrator and Auditor roles in the Substrate
 	// account. These are the default roles to assign to humans in the IdP.
+	ui.Spin("finding or creating the Administrator and Auditor roles in the Substrate account")
 	administratorRole, err := humans.EnsureAdministratorRole(ctx, mgmtCfg, substrateCfg)
 	ui.Must(err)
 	ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, substrateCfg))
@@ -478,6 +481,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// Substrate role in the management account, we can be sure this config
 	// will actually use it and no longer have to worry about authorizing
 	// OrganizationAdministrator to assume roles.
+	ui.Spin("refreshing AWS credentials for the management and Substrate accounts")
 	for {
 		mgmtCfg = awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 		//log.Print(jsonutil.MustString(mgmtCfg.MustGetCallerIdentity(ctx)))
@@ -494,6 +498,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 		time.Sleep(1e9) // TODO exponential backoff
 	}
+	ui.Stop("ok")
 
 	// Create CloudWatch's service-linked role in the Substrate account and
 	// its rather busted role in the management account for discovering
@@ -655,6 +660,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	for _, a := range allAccounts {
 		if a.Tags[tagging.Domain] != "" && a.Tags[tagging.Domain] != naming.Admin || a.Tags[tagging.SubstrateType] == accounts.Service {
+			ui.Spin(a)
 			//log.Print(jsonutil.MustString(a))
 			ui.Must(awsorgs.Tag(ctx, mgmtCfg, aws.ToString(a.Id), tagging.Map{
 				tagging.Manager:          tagging.Substrate,
@@ -668,6 +674,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			ui.Must(err)
 			ui.Must2(humans.EnsureAdministratorRole(ctx, mgmtCfg, cfg))
 			ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, cfg))
+			ui.Stop("ok")
 		}
 	}
 	ui.Stop("ok")
@@ -708,6 +715,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Print("substrate.*")
 	ui.Print("")
 	ui.Print("next steps:")
+	ui.Print("- run `substrate setup-cloudtrail` to setup CloudTrail logging to S3 for all accounts in all regions")
 	ui.Print("- run `substrate create-account` to create service accounts to host your infrastructure")
 	ui.Printf("- use `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
 	switch idpName {
