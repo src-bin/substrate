@@ -434,18 +434,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	administratorRole, err := humans.EnsureAdministratorRole(ctx, mgmtCfg, substrateCfg)
 	ui.Must(err)
 	ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, substrateCfg))
-
-	// Create CloudWatch's service-linked role in the Substrate account.
-	//
-	// This probably shouldn't be a core part of Substrate but it has been
-	// for longer than Substrate had custom role management and would be
-	// a bit troublesome to remove now.
-	ui.Must2(awsiam.EnsureServiceLinkedRole(
-		ctx,
-		substrateCfg,
-		"AWSServiceRoleForCloudWatchCrossAccount",
-		"cloudwatch-crossaccount.amazonaws.com",
-	))
 	ui.Stop("ok")
 
 	// Update the Substrate role in the management and Substrate accounts. We
@@ -507,12 +495,20 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		time.Sleep(1e9) // TODO exponential backoff
 	}
 
-	// Finish configuring IAM in the management account with CloudWatch's
-	// rather busted role for discovering cross-account logs and metrics.
+	// Create CloudWatch's service-linked role in the Substrate account and
+	// its rather busted role in the management account for discovering
+	// cross-account logs and metrics.
 	//
 	// This probably shouldn't be a core part of Substrate but it has been
 	// for longer than Substrate had custom role management and would be
 	// a bit troublesome to remove now.
+	ui.Spin("creating service-linked role for CloudWatch")
+	ui.Must2(awsiam.EnsureServiceLinkedRole(
+		ctx,
+		substrateCfg,
+		"AWSServiceRoleForCloudWatchCrossAccount",
+		"cloudwatch-crossaccount.amazonaws.com",
+	))
 	ui.Must2(awsiam.EnsureRoleWithPolicy(
 		ctx,
 		mgmtCfg,
