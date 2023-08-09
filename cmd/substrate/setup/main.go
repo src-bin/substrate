@@ -165,7 +165,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// Ask them the expensive question about NAT Gateways.
 	_, err = ui.ConfirmFile(
 		networks.NATGatewaysFilename,
-		`do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; answering "yes" costs about $100 per month per region per environment/quality pair)`,
+		`do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; answering "yes" costs about $100 per month per region per environment)`,
 	)
 	ui.Must(err)
 
