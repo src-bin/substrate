@@ -188,6 +188,8 @@ func Grouped(ctx context.Context, cfg *awscfg.Config) (
 			switch account.Tags[tagging.SubstrateType] {
 			case Audit:
 				auditAccount = account
+			case Deploy:
+				deployAccount = account
 			case Management:
 				managementAccount = account
 			case Network:
