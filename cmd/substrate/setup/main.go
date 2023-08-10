@@ -483,18 +483,20 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// OrganizationAdministrator to assume roles.
 	ui.Spin("refreshing AWS credentials for the management and Substrate accounts")
 	for {
-		mgmtCfg = awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
-		//log.Print(jsonutil.MustString(mgmtCfg.MustGetCallerIdentity(ctx)))
-		if name, _ := roles.Name(aws.ToString(mgmtCfg.MustGetCallerIdentity(ctx).Arn)); name == roles.Substrate {
-			break
+		if mgmtCfg, err = cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour); err == nil {
+			//log.Print(jsonutil.MustString(mgmtCfg.MustGetCallerIdentity(ctx)))
+			if name, _ := roles.Name(aws.ToString(mgmtCfg.MustGetCallerIdentity(ctx).Arn)); name == roles.Substrate {
+				break
+			}
 		}
 		time.Sleep(1e9) // TODO exponential backoff
 	}
 	for {
-		substrateCfg = awscfg.Must(cfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))
-		//log.Print(jsonutil.MustString(substrateCfg.MustGetCallerIdentity(ctx)))
-		if name, _ := roles.Name(aws.ToString(substrateCfg.MustGetCallerIdentity(ctx).Arn)); name == roles.Substrate {
-			break
+		if substrateCfg, err = cfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour); err == nil {
+			//log.Print(jsonutil.MustString(substrateCfg.MustGetCallerIdentity(ctx)))
+			if name, _ := roles.Name(aws.ToString(substrateCfg.MustGetCallerIdentity(ctx).Arn)); name == roles.Substrate {
+				break
+			}
 		}
 		time.Sleep(1e9) // TODO exponential backoff
 	}
@@ -601,6 +603,17 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, networkRole.Name, policies.AdministratorAccess))
+	ui.Must(err)
+	for {
+		if networkCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour); err == nil {
+			//log.Print(jsonutil.MustString(networkCfg.MustGetCallerIdentity(ctx)))
+			if name, _ := roles.Name(aws.ToString(networkCfg.MustGetCallerIdentity(ctx).Arn)); name == roles.NetworkAdministrator {
+				break
+			}
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
+	ui.Stop("ok")
 	ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, networkCfg))
 	orgAdminRole, err := awsiam.EnsureRole(
 		ctx,
@@ -628,6 +641,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// Find or create the legacy OrganizationReader role. Unlike the others,
 	// we probably won't keep this one around long-term because it's not useful
 	// as a general-purpose read-only role like Auditor is.
+	//
+	// We spin looking for an affirmative sign that we can assume this role
+	// because AWS IAM is eventually consistent, we need to assume this role
+	// immediately after this step, and we've lost this race before.
 	_, err = awsiam.EnsureRoleWithPolicy(
 		ctx,
 		mgmtCfg,
@@ -646,6 +663,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		},
 	)
 	ui.Must(err)
+	ui.Spin("testing the OrganizationReader role (because AWS IAM is eventually consistent)")
+	for {
+		if _, err := substrateCfg.OrganizationReader(ctx); err == nil { // same config as terraform.EnsureStateManager
+			break
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
+	ui.Stop("ok")
 
 	// Ensure every account can run Terraform with remote state centralized
 	// in the Substrate account. This is better than storing state in each
@@ -653,6 +678,19 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// resources in all those other Terraform-using accounts.
 	_, err = terraform.EnsureStateManager(ctx, substrateCfg)
 	ui.Must(err)
+	ui.Spin("testing the TerraformStateManager role (because AWS IAM is eventually consistent)")
+	for {
+		if deployCfg == nil {
+			_, err = networkCfg.AssumeSubstrateRole(ctx, roles.TerraformStateManager, time.Hour)
+		} else {
+			_, err = networkCfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.TerraformStateManager, time.Hour)
+		}
+		if err == nil {
+			break
+		}
+		time.Sleep(1e9) // TODO exponential backoff
+	}
+	ui.Stop("ok")
 
 	// Find or create Administrator and Auditor roles in every service account.
 	ui.Spin("configuring Administrator and Auditor IAM roles in every service account")
