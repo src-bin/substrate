@@ -8,7 +8,7 @@ FROM_VERSION="$V-$C"
 FROM_VERSION_TRIAL="$V-trial"
 
 # Create the base directory which CodeBuild will upload to S3.
-mkdir -p "upgrade/$FROM_VERSION"
+mkdir -p "upgrade/$FROM_VERSION" "upgrade/$FROM_VERSION_TRIAL"
 
 # Get this tagged version and commit, to which customers will be upgraded when
 # they invoke `substrate upgrade`.
