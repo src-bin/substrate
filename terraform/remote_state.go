@@ -142,6 +142,10 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 					},
 				},
 				{
+					Action:   []string{"organizations:DescribeOrganization"}, // for assuming this role; see WaitUntilCredentialsWork
+					Resource: []string{"*"},
+				},
+				{
 					Action:   []string{"s3:DeleteObject", "s3:GetObject", "s3:ListBucket", "s3:PutObject"},
 					Resource: resources,
 				},
