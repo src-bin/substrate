@@ -44,6 +44,7 @@
     <td>{{.DeployAccount.Tags.SubstrateVersion}}</td>
 </tr>
 {{- end}}
+{{- if .NetworkAccount}}
 <tr>
     <td>{{.NetworkAccount.Name}}</td>
     <td>{{.NetworkAccount.Id}}</td>
@@ -52,6 +53,7 @@
     <td>{{.NetworkAccount.Email}}</td>
     <td>{{.NetworkAccount.Tags.SubstrateVersion}}</td>
 </tr>
+{{- end}}
 {{- if .SubstrateAccount}}
 <tr>
     <td>Substrate<small><small>&nbsp;(formerly&nbsp;&ldquo;admin&rdquo;)</small></small></td>
