@@ -20,7 +20,7 @@
     <td>management</td>
     <td>{{.ManagementAccount.Id}}</td>
     <td>{{if eq $roleName "Administrator"}}<a class="aws-console" href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationAdministrator" target="aws-console-{{.ManagementAccount.Id}}">OrganizationAdministrator</a>{{else}}&nbsp;{{end}}</td>
-    <td><a class="aws-console" href="accounts?number={{.ManagementAccount.Id}}&role=OrganizationReader" target="aws-console-{{.ManagementAccount.Id}}">OrganizationReader</a></td>
+    <td><a class="aws-console" href="accounts?number={{.ManagementAccount.Id}}&role=Auditor" target="aws-console-{{.ManagementAccount.Id}}">Auditor</a></td>
     <td>{{.ManagementAccount.Email}}</td>
     <td>{{.ManagementAccount.Tags.SubstrateVersion}}</td>
 </tr>
