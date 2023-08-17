@@ -23,6 +23,7 @@ import (
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/users"
 )
 
 const (
@@ -39,6 +40,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	flag.Parse()
 
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
+	substrateCfg := awscfg.Must(cfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))
 
 	prefix := naming.Prefix()
 	region := regions.Default()
@@ -69,12 +71,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	auditAccount, err = awsorgs.EnsureSpecialAccount(ctx, mgmtCfg, accounts.Audit)
 	ui.Must(err)
-	auditCfg := awscfg.Must(mgmtCfg.AssumeRole(
-		ctx,
-		aws.ToString(auditAccount.Id),
-		roles.OrganizationAccountAccessRole,
-		time.Hour,
-	))
+	auditCfg, err := mgmtCfg.AssumeRole(ctx, aws.ToString(auditAccount.Id), roles.AuditAdministrator, time.Hour)
+	if err != nil {
+		auditCfg, err = mgmtCfg.AssumeRole(ctx, aws.ToString(auditAccount.Id), roles.OrganizationAccountAccessRole, time.Hour)
+	}
+	ui.Must(err)
 	ui.Must(accounts.CheatSheet(ctx, mgmtCfg))
 	ui.Stopf("account %s", auditAccount.Id)
 	//log.Printf("%+v", auditAccount)
@@ -145,6 +146,30 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Must(err)
 		ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 	}
+
+	// Find or create the AuditAdministrator role.
+	extraAdministrator, err := policies.ExtraAdministratorAssumeRolePolicy()
+	ui.Must(err)
+	auditRole, err := awsiam.EnsureRole(
+		ctx,
+		auditCfg,
+		roles.AuditAdministrator,
+		policies.Merge(
+			policies.AssumeRolePolicyDocument(&policies.Principal{
+				AWS: []string{
+					roles.ARN(substrateCfg.MustAccountId(ctx), roles.Administrator),
+					roles.ARN(auditCfg.MustAccountId(ctx), roles.AuditAdministrator), // allow this role to assume itself
+					roles.ARN(mgmtCfg.MustAccountId(ctx), roles.Substrate),
+					roles.ARN(substrateCfg.MustAccountId(ctx), roles.Substrate),
+					users.ARN(mgmtCfg.MustAccountId(ctx), users.Substrate),
+					users.ARN(substrateCfg.MustAccountId(ctx), users.Substrate),
+				},
+			}),
+			extraAdministrator,
+		),
+	)
+	ui.Must(err)
+	ui.Must(awsiam.AttachRolePolicy(ctx, auditCfg, auditRole.Name, policies.AdministratorAccess))
 
 	// Find or create the Auditor role in the audit account. We do this even
 	// if we didn't actually setup CloudTrail because having an audit account

@@ -9,6 +9,7 @@ import (
 
 const (
 	Administrator                 = "Administrator"
+	AuditAdministrator            = "AuditAdministrator"
 	Auditor                       = "Auditor"
 	DeployAdministrator           = "DeployAdministrator"  // legacy
 	Intranet                      = "Intranet"             // legacy

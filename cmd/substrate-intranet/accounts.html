@@ -28,7 +28,7 @@
 <tr>
     <td>{{.AuditAccount.Name}}</td>
     <td>{{.AuditAccount.Id}}</td>
-    <td>&nbsp;</td>
+    <td>{{if eq $roleName "Administrator"}}<a class="aws-console" href="accounts?number={{.AuditAccount.Id}}&role=AuditAdministrator" target="aws-console-{{.AuditAccount.Id}}">AuditAdministrator</a>{{else}}&nbsp;{{end}}</td>
     <td><a class="aws-console" href="accounts?number={{.AuditAccount.Id}}&role=Auditor" target="aws-console-{{.AuditAccount.Id}}">Auditor</a></td>
     <td>{{.AuditAccount.Email}}</td>
     <td>{{.AuditAccount.Tags.SubstrateVersion}}</td>

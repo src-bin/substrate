@@ -603,7 +603,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	)
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, networkCfg, networkRole.Name, policies.AdministratorAccess))
-	ui.Must(err)
 	for {
 		if networkCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour); err == nil {
 			//log.Print(jsonutil.MustString(networkCfg.MustGetCallerIdentity(ctx)))
