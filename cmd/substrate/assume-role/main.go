@@ -31,14 +31,15 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	master := flag.Bool("master", false, "deprecated name for -management")
 	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
 	roleName := flag.String("role", "", "name of the IAM role to assume")
+	roleARN := flag.String("arn", "", "ARN of the IAM role to assume")
 	console := flag.Bool("console", false, "open the AWS Console to assume a role instead of generating an access key")
 	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {
-		ui.Print("Usage: substrate assume-role -management|-special <special> [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -admin [-quality <quality>] [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -domain <domain> -environment <environment> [-quality <quality>] [-role <role>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -number <number> -role <role> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("Usage: substrate assume-role -management|-special <special>|-substrate [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -domain <domain> -environment <environment> [-quality <quality>] [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -number <number> -role <role-name> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+		ui.Print("       substrate assume-role -arn <role-arn> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
 		flag.PrintDefaults()
 		ui.Print("  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment")
 	}
@@ -48,8 +49,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if *admin {
 		*domain, *environment = "admin", "admin"
 	}
-	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*substrate && !*management && *number == "" {
-		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -admin -quality "..." or -special "..." or -substrate or -management or -number "..." is required`)
+	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*substrate && !*management && *number == "" && *roleARN == "" {
+		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -management or -special "..." or -substrate or -number "..." or -arn "..." is required`)
+	}
+	if (*domain != "" || *environment != "" /* || *quality != "" */) && *management {
+		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -management`)
 	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *special != "" {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -special "..."`)
@@ -57,29 +61,38 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *substrate {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -substrate`)
 	}
-	if (*domain != "" || *environment != "" /* || *quality != "" */) && *management {
-		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -management`)
-	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *number != "" {
 		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -number "..."`)
+	}
+	if (*domain != "" || *environment != "" /* || *quality != "" */) && *roleARN != "" {
+		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -arn "..."`)
+	}
+	if *management && *special != "" {
+		ui.Fatal(`can't mix -management with -special "..."`)
+	}
+	if *management && *substrate {
+		ui.Fatal(`can't mix -management with -substrate`)
+	}
+	if *management && *number != "" {
+		ui.Fatal(`can't mix -management with -number "..."`)
+	}
+	if *management && *roleARN != "" {
+		ui.Fatal(`can't mix -management with -arn "..."`)
 	}
 	if *special != "" && *substrate {
 		ui.Fatal(`can't mix -special "..." with -substrate`)
 	}
-	if *special != "" && *management {
-		ui.Fatal(`can't mix -special "..." with -management`)
-	}
 	if *special != "" && *number != "" {
 		ui.Fatal(`can't mix -special "..." with -number "..."`)
 	}
-	if *substrate && *management {
-		ui.Fatal(`can't mix -substrate with -management`)
+	if *special != "" && *roleARN != "" {
+		ui.Fatal(`can't mix -special "..." with -arn "..."`)
 	}
 	if *substrate && *number != "" {
 		ui.Fatal(`can't mix -substrate with -number "..."`)
 	}
-	if *management && *number != "" {
-		ui.Fatal(`can't mix -management with -number "..."`)
+	if *substrate && *roleARN != "" {
+		ui.Fatal(`can't mix -substrate with -arn "..."`)
 	}
 	if *quiet {
 		ui.Quiet()
@@ -111,7 +124,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ci, err := cfg.GetCallerIdentity(ctx)
 	*/
 
-	if *number != "" {
+	if *roleARN != "" {
+		cfg, err = cfg.AssumeRoleARN(ctx, *roleARN, duration)
+	} else if *number != "" {
 		if *roleName == "" {
 			ui.Fatal(`-role "..." is required with -number "..."`)
 		}

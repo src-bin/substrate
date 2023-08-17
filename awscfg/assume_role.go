@@ -187,6 +187,17 @@ func (c *Config) AssumeRole(
 	return cfg, err
 }
 
+func (c *Config) AssumeRoleARN(ctx context.Context, roleARN string, duration time.Duration) (*Config, error) {
+	parsed, err := arn.Parse(roleARN)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(parsed.Resource, "role/") {
+		return nil, roles.ARNError(roleARN)
+	}
+	return c.AssumeRole(ctx, parsed.AccountID, strings.TrimPrefix(parsed.Resource, "role/"), duration)
+}
+
 // AssumeServiceRole assumes the given role in the service account identified
 // by the given domain, environment, and quality. It can be called on any
 // *Config but is most often (and most effectively) called on one with the
