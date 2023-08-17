@@ -19,8 +19,12 @@ type Account struct {
 
 func (a *Account) AdministratorRoleName() string {
 	switch a.Tags[tagging.SubstrateType] {
+	case naming.Deploy:
+		return roles.DeployAdministrator
 	case naming.Management:
 		return roles.OrganizationAdministrator
+	case naming.Network:
+		return roles.NetworkAdministrator
 	case naming.Substrate:
 		return roles.Administrator
 	}
