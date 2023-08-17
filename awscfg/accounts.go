@@ -2,6 +2,7 @@ package awscfg
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -52,6 +53,17 @@ func (a *Account) Config(
 	duration time.Duration,
 ) (*Config, error) {
 	return cfg.AssumeRole(ctx, aws.ToString(a.Id), roleName, duration)
+}
+
+func (a *Account) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Account
+		AdministratorRoleARN, AuditorRoleARN string
+	}{
+		Account:              *a,
+		AdministratorRoleARN: roles.ARN(aws.ToString(a.Id), a.AdministratorRoleName()),
+		AuditorRoleARN:       roles.ARN(aws.ToString(a.Id), roles.Auditor),
+	})
 }
 
 func (a *Account) String() string {
