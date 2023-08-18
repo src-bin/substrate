@@ -43,9 +43,7 @@ const (
 // intranet configures the Intranet in the Substrate account and returns the
 // DNS domain name where it's being served. This is, at present, mostly a crib
 // from `substrate create-admin-account`.
-func intranet(ctx context.Context, mgmtCfg *awscfg.Config) (dnsDomainName string, idpName oauthoidc.Provider) {
-
-	substrateCfg := awscfg.Must(mgmtCfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))
+func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDomainName string, idpName oauthoidc.Provider) {
 	substrateAccountId := substrateCfg.MustAccountId(ctx)
 	substrateAccount := awsorgs.Must(awsorgs.DescribeAccount(ctx, mgmtCfg, substrateAccountId))
 

@@ -2,10 +2,12 @@ package awscfg
 
 import (
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
+	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/ram"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
@@ -17,6 +19,10 @@ import (
 
 func (c *Config) APIGateway() *apigateway.Client {
 	return apigateway.NewFromConfig(c.cfg) // TODO memoize regionally
+}
+
+func (c *Config) APIGatewayV2() *apigatewayv2.Client {
+	return apigatewayv2.NewFromConfig(c.cfg) // TODO memoize regionally
 }
 
 func (c *Config) CloudTrail() *cloudtrail.Client {
@@ -33,6 +39,10 @@ func (c *Config) EC2() *ec2.Client {
 
 func (c *Config) IAM() *iam.Client {
 	return iam.NewFromConfig(c.cfg) // TODO memoize
+}
+
+func (c *Config) Lambda() *lambda.Client {
+	return lambda.NewFromConfig(c.cfg) // TODO memoize regionally
 }
 
 func (c *Config) Organizations() *organizations.Client {
