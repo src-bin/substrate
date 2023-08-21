@@ -2,7 +2,6 @@ package awslambda
 
 import (
 	"context"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -34,7 +33,7 @@ func EnsureFunction(
 	if awsutil.ErrorCodeIs(err, ResourceConflictException) {
 		ui.Stop("already exists")
 		ui.Spinf("updating the %s Lambda function's configuration", name)
-		for range awsutil.JitteredExponentialBackoff(time.Second, 10*time.Second) {
+		for range awsutil.StandardJitteredExponentialBackoff() {
 			functionARN, err = updateFunctionConfiguration(ctx, cfg, name, roleARN, environment)
 			if !awsutil.ErrorCodeIs(err, ResourceConflictException) {
 				break

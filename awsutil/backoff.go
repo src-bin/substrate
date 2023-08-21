@@ -49,3 +49,7 @@ func JitteredExponentialBackoff(init, max time.Duration) <-chan time.Duration {
 	}(ch)
 	return ch
 }
+
+func StandardJitteredExponentialBackoff() <-chan time.Duration {
+	return JitteredExponentialBackoff(time.Second, 10*time.Second)
+}
