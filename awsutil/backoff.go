@@ -1,7 +1,6 @@
 package awsutil
 
 import (
-	"log"
 	"math/rand"
 	"time"
 )
@@ -12,10 +11,11 @@ import (
 //
 // for range JitteredExponentialBackoff(time.Second, 10*time.Second) {
 // }
-func JitteredExponentialBackoff(init, max time.Duration) <-chan bool {
-	ch := make(chan bool)
-	go func(ch chan<- bool) {
-		ch <- true // send immediately to be fast on the happy path
+func JitteredExponentialBackoff(init, max time.Duration) <-chan time.Duration {
+	ch := make(chan time.Duration)
+	go func(ch chan<- time.Duration) {
+		ch <- 0 // send immediately to be fast on the happy path
+		//log.Print("sent without sleeping")
 		d := init
 		for {
 
@@ -28,11 +28,15 @@ func JitteredExponentialBackoff(init, max time.Duration) <-chan bool {
 			// We can safely break to let this goroutine exit and the channel
 			// be garbage-collected.
 			time.Sleep(d + jitter)
+			var closed bool
 			select {
-			case ch <- true:
-				log.Printf("slept %v+%v and sent", d, jitter)
+			case ch <- d + jitter:
+				//log.Printf("slept %v+%v and sent", d, jitter)
 			default:
-				log.Printf("slept %v+%v and broke", d, jitter)
+				closed = true // indirection because break applies to selects, too
+				//log.Printf("slept %v+%v and broke the loop", d, jitter)
+			}
+			if closed {
 				break
 			}
 
@@ -41,6 +45,7 @@ func JitteredExponentialBackoff(init, max time.Duration) <-chan bool {
 				d = max
 			}
 		}
+		//log.Print("goroutine exit")
 	}(ch)
 	return ch
 }
