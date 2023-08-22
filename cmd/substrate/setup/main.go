@@ -15,6 +15,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/humans"
 	"github.com/src-bin/substrate/naming"
@@ -726,16 +727,18 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// Configure the Intranet in the Substrate account.
 	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
-	dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
-	if dnsDomainName2 != "" && dnsDomainName != dnsDomainName2 {
-		ui.Fatalf(
-			"first- and second-generation Intranets should have the same DNS domain name but got %q and %q",
-			dnsDomainName,
-			dnsDomainName2,
-		)
-	}
-	if idpName2 != "" && idpName != idpName2 {
-		ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
+	if features.Enabled("apigatewayv2") {
+		dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
+		if dnsDomainName2 != "" && dnsDomainName != dnsDomainName2 {
+			ui.Fatalf(
+				"first- and second-generation Intranets should have the same DNS domain name but got %q and %q",
+				dnsDomainName,
+				dnsDomainName2,
+			)
+		}
+		if idpName2 != "" && idpName != idpName2 {
+			ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
+		}
 	}
 
 	// TODO configure IAM Identity Center (later)

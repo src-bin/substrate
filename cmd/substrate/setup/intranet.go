@@ -31,13 +31,6 @@ import (
 const (
 	Domain      = "admin"
 	Environment = "admin"
-
-	AzureADTenantFilename = "substrate.azure-ad-tenant"
-	OktaHostnameFilename  = "substrate.okta-hostname"
-	SAMLMetadataFilename  = "substrate.saml-metadata.xml"
-
-	OAuthOIDCClientIdFilename              = "substrate.oauth-oidc-client-id"
-	OAuthOIDCClientSecretTimestampFilename = "substrate.oauth-oidc-client-secret-timestamp"
 )
 
 // intranet configures the Intranet in the Substrate account and returns the
