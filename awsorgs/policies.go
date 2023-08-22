@@ -11,6 +11,8 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/version"
 )
 
 type (
@@ -171,6 +173,21 @@ func OrgAssumeRolePolicy(ctx context.Context, cfg *awscfg.Config) (*policies.Doc
 			}},
 		}},
 	}, nil
+}
+
+func PutResourcePolicy(ctx context.Context, cfg *awscfg.Config, doc *policies.Document) error {
+	docJSON, err := doc.Marshal()
+	if err != nil {
+		return err
+	}
+	_, err = cfg.Organizations().PutResourcePolicy(ctx, &organizations.PutResourcePolicyInput{
+		Content: aws.String(docJSON),
+		Tags: []types.Tag{
+			{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
+			{Key: aws.String(tagging.SubstrateVersion), Value: aws.String(version.Version)},
+		},
+	})
+	return err
 }
 
 func attachPolicy(
