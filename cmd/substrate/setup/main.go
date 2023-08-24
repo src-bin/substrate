@@ -729,27 +729,29 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// APIs but that's not been our experience.
 	//
 	// [1] <https://stackoverflow.com/questions/75676727/aws-delegation-policy-error-this-resource-based-policy-contains-invalid-json>
-	ui.Must(awsorgs.PutResourcePolicy(ctx, mgmtCfg, &policies.Document{
-		Statement: []policies.Statement{{
-			Action: []string{
-				"organizations:Describe*",
-				"organizations:List*",
-			},
+	if features.Enabled("delegated-organization-administration") {
+		ui.Must(awsorgs.PutResourcePolicy(ctx, mgmtCfg, &policies.Document{
+			Statement: []policies.Statement{{
+				Action: []string{
+					"organizations:Describe*",
+					"organizations:List*",
+				},
 
-			// TODO Merge every principal from every statement in the
-			// extraAdministrator policy into this principal so the customer's
-			// principals can do all the delegated organization administration.
-			// Without that, this is not actually stupendously useful to just
-			// let the Substrate principals do things they're already adept at
-			// doing by assuming a role in the management account.
-			Principal: &policies.Principal{AWS: []string{
-				substrateRole.ARN,
-				aws.ToString(substrateUser.Arn),
+				// TODO Merge every principal from every statement in the
+				// extraAdministrator policy into this principal so the customer's
+				// principals can do all the delegated organization administration.
+				// Without that, this is not actually stupendously useful to just
+				// let the Substrate principals do things they're already adept at
+				// doing by assuming a role in the management account.
+				Principal: &policies.Principal{AWS: []string{
+					substrateRole.ARN,
+					aws.ToString(substrateUser.Arn),
+				}},
+
+				Resource: []string{"*"},
 			}},
-
-			Resource: []string{"*"},
-		}},
-	}))
+		}))
+	}
 
 	// Generate, plan, and apply the legacy deploy account's Terraform code,
 	// if the account exists.
