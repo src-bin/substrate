@@ -735,10 +735,18 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				"organizations:Describe*",
 				"organizations:List*",
 			},
+
+			// TODO Merge every principal from every statement in the
+			// extraAdministrator policy into this principal so the customer's
+			// principals can do all the delegated organization administration.
+			// Without that, this is not actually stupendously useful to just
+			// let the Substrate principals do things they're already adept at
+			// doing by assuming a role in the management account.
 			Principal: &policies.Principal{AWS: []string{
 				substrateRole.ARN,
 				aws.ToString(substrateUser.Arn),
 			}},
+
 			Resource: []string{"*"},
 		}},
 	}))
