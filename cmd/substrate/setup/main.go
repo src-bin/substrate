@@ -717,6 +717,32 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	ui.Stop("ok")
 
+	// Delegate organizational administration to the Substrate account. This
+	// isn't strictly necessary for Substrate's operation but it appears that
+	// AWS services are starting to assume this is in place for some of their
+	// own cross-account functionality.
+	//
+	// We want to delegate organizations:* but, despite the UI suggesting that
+	// would work, it doesn't. The list of APIs that the UI offers also doesn't
+	// work. I've pared it back to the read-only APIs and that seems to work.
+	// [1] suggests we should be able to delegate at least some of the write
+	// APIs but that's not been our experience.
+	//
+	// [1] <https://stackoverflow.com/questions/75676727/aws-delegation-policy-error-this-resource-based-policy-contains-invalid-json>
+	ui.Must(awsorgs.PutResourcePolicy(ctx, mgmtCfg, &policies.Document{
+		Statement: []policies.Statement{{
+			Action: []string{
+				"organizations:Describe*",
+				"organizations:List*",
+			},
+			Principal: &policies.Principal{AWS: []string{
+				substrateRole.ARN,
+				aws.ToString(substrateUser.Arn),
+			}},
+			Resource: []string{"*"},
+		}},
+	}))
+
 	// Generate, plan, and apply the legacy deploy account's Terraform code,
 	// if the account exists.
 	deploy(ctx, mgmtCfg)
