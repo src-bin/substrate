@@ -11,8 +11,6 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
-	"github.com/src-bin/substrate/tagging"
-	"github.com/src-bin/substrate/version"
 )
 
 type (
@@ -182,10 +180,20 @@ func PutResourcePolicy(ctx context.Context, cfg *awscfg.Config, doc *policies.Do
 	}
 	_, err = cfg.Organizations().PutResourcePolicy(ctx, &organizations.PutResourcePolicyInput{
 		Content: aws.String(docJSON),
-		Tags: []types.Tag{
-			{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
-			{Key: aws.String(tagging.SubstrateVersion), Value: aws.String(version.Version)},
-		},
+
+		// It would be nice to be able to tag this policy but AWS has other
+		// ideas. It seems to work the first time but explode the second:
+		//
+		//     ConstraintViolationException: Adding tags on updating an
+		//     existing resource-based policy is not supported.
+		//
+		/*
+			Tags: []types.Tag{
+				{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
+				{Key: aws.String(tagging.SubstrateVersion), Value: aws.String(version.Version)},
+			},
+		*/
+
 	})
 	return err
 }
