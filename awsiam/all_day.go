@@ -32,21 +32,30 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 		var secret string
 
 		// Look for a cached access key in Secrets Manager. This will save
-		// about ten seconds, if we find one. If it's too old, though, flip
-		// a weighted coin and maybe delete it, then fall through to creating
-		// a new one.
+		// about ten seconds, if we find one.
 		if secret, err = awssecretsmanager.GetSecretValue(
 			ctx,
 			cfg,
 			naming.Substrate,
 			awssecretsmanager.AWSCURRENT,
 		); err == nil {
+
+			// If we found an access key, deserialize it, make sure it's fresh
+			// (and delete it if it isn't because auditors hate finding old
+			// access keys lying around), and make sure it works.
 			if err = json.Unmarshal([]byte(secret), &accessKey); err != nil {
 				return
 			}
 			if time.Since(aws.ToTime(accessKey.CreateDate)) < AccessKeyExpiry {
-				log.Printf("using cached access key %s", aws.ToString(accessKey.AccessKeyId))
-				break
+
+				// Test the access key and return it if it works.
+				if cfg12h, err = allDayConfig(ctx, cfg, accessKey); err == nil {
+					log.Printf("using cached access key %s", aws.ToString(accessKey.AccessKeyId))
+					return
+				} else {
+					log.Printf("cached access key %s was probably deleted (%s)", aws.ToString(accessKey.AccessKeyId), err)
+				}
+
 			} else {
 				log.Printf("deleting cached and expired access key %s", aws.ToString(accessKey.AccessKeyId))
 				if err = DeleteAccessKey(
@@ -58,11 +67,13 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 					log.Print(err) // not fatal because a concurrent actor may have deleted this one
 				}
 			}
+
 		}
 
-		// If we don't, try pretty hard to create one, backing off and trying
-		// to play nice within the two-access-keys-per-user limit and the
-		// potential for competition with others using the Credential Factory.
+		// If we didn't find an access key in Secrets Manager, try pretty
+		// hard to create one, backing off and trying to play nice within
+		// the two-access-keys-per-user limit and the potential for
+		// competition with others using the Credential Factory.
 		accessKey, err = CreateAccessKey(ctx, cfg, users.Substrate)
 		if awsutil.ErrorCodeIs(err, LimitExceeded) {
 			if i == CreateAccessKeyTriesBeforeDeleteAll {
@@ -80,7 +91,7 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 			return
 		}
 
-		// Cache the access key we found in Secrets Manager for next time.
+		// Cache the access key we just created in Secrets Manager.
 		log.Printf("caching access key %s", aws.ToString(accessKey.AccessKeyId))
 		if secret, err = jsonutil.OneLineString(accessKey); err == nil {
 			if _, err := awssecretsmanager.EnsureSecret(
@@ -99,26 +110,16 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 			ui.PrintWithCaller(err)
 		}
 
-		break
-	}
-	if err != nil {
-		return
-	}
+		// Return the access key if it works. There's a very, very slim
+		// chance it already won't in case of very high concurrency. In
+		// such cases, we expect to go around again and hit in the cache.
+		if cfg12h, err = allDayConfig(ctx, cfg, accessKey); err == nil {
+			return
+		} else {
+			ui.PrintWithCaller(err)
+		}
 
-	// Make a copy of the AWS SDK config that we're going to use to bounce
-	// through user/Substrate in order to get 12-hour credentials so that we
-	// don't ruin cfg for whatever else we might want to do with it.
-	cfg12h = cfg.Copy()
-
-	_, err = cfg12h.SetCredentials(ctx, aws.Credentials{
-		AccessKeyID:     aws.ToString(accessKey.AccessKeyId),
-		SecretAccessKey: aws.ToString(accessKey.SecretAccessKey),
-	})
-	if err != nil {
-		ui.PrintWithCaller(err)
-		cfg12h = nil
 	}
-
 	return
 }
 
@@ -143,4 +144,22 @@ func AllDayCredentials(
 	}
 
 	return cfg12h.Retrieve(ctx)
+}
+
+func allDayConfig(ctx context.Context, cfg *awscfg.Config, accessKey *types.AccessKey) (cfg12h *awscfg.Config, err error) {
+
+	// Make a copy of the AWS SDK config that we're going to use to bounce
+	// through user/Substrate in order to get 12-hour credentials so that we
+	// don't ruin cfg for whatever else we might want to do with it.
+	cfg12h = cfg.Copy()
+
+	_, err = cfg12h.SetCredentials(ctx, aws.Credentials{
+		AccessKeyID:     aws.ToString(accessKey.AccessKeyId),
+		SecretAccessKey: aws.ToString(accessKey.SecretAccessKey),
+	})
+	if err != nil {
+		cfg12h = nil
+	}
+
+	return
 }
