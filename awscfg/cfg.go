@@ -215,9 +215,7 @@ func defaultLoadOptions() []func(*config.LoadOptions) error {
 	// requests to IMDS (169.254.169.254). Those are all crazy high and, more
 	// importantly, ruin some folks' experience on Macs when for some reason
 	// connecting to 169.254.169.254 takes a long, long time (multiple minutes)
-	// to not work. It's possible this new setting is too aggressive but we're
-	// going to see how it feels in the run up to 2023.02 and through that
-	// release before possibly increasing it back towards its original default.
+	// to not work.
 	const defaultRetries = 3
 
 	i, err := strconv.Atoi(os.Getenv("SUBSTRATE_DEBUG_AWS_RETRIES"))
