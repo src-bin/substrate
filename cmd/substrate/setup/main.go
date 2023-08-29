@@ -776,6 +776,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// TODO configure IAM Identity Center (later)
 
+	// Clean up resources that we don't need anymore after the transition to
+	// `substrate setup`, the Substrate user/role, etc.
+	ui.Must(awsiam.DeleteUser(ctx, substrateCfg, users.CredentialFactory))
+	// (There will be more here in the coming months.)
+
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
 	ui.Must(accounts.CheatSheet(ctx, mgmtCfg))
