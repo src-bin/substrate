@@ -57,6 +57,14 @@ func DeleteAllAccessKeys(
 	return awsiamusers.DeleteAllAccessKeys(ctx, cfg.IAM(), username, age)
 }
 
+func DeleteUser(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	username string,
+) error {
+	return awsiamusers.DeleteUser(ctx, cfg.IAM(), username)
+}
+
 func EnsureUser(
 	ctx context.Context,
 	cfg *awscfg.Config,

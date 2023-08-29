@@ -117,6 +117,17 @@ func DeleteAllAccessKeys(
 	return nil
 }
 
+func DeleteUser(
+	ctx context.Context,
+	client *iam.Client,
+	username string,
+) error {
+	_, err := client.DeleteUser(ctx, &iam.DeleteUserInput{
+		UserName: aws.String(username),
+	})
+	return err
+}
+
 func EnsureUser(
 	ctx context.Context,
 	client *iam.Client,
