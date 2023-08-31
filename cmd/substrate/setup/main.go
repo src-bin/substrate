@@ -726,7 +726,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// APIs but that's not been our experience.
 	//
 	// [1] <https://stackoverflow.com/questions/75676727/aws-delegation-policy-error-this-resource-based-policy-contains-invalid-json>
-	if features.Enabled("delegated-organization-administration") {
+	if features.DelegatedOrganizationAdministration.Enabled() {
 		ui.Must(awsorgs.PutResourcePolicy(ctx, mgmtCfg, &policies.Document{
 			Statement: []policies.Statement{{
 				Action: []string{
@@ -760,7 +760,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// Configure the Intranet in the Substrate account.
 	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
-	if features.Enabled("apigatewayv2") {
+	if features.APIGatewayV2.Enabled() {
 		dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
 		if dnsDomainName2 != "" && dnsDomainName != dnsDomainName2 {
 			ui.Fatalf(
