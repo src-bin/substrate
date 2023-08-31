@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	AWSCURRENT              = "" // the default when no stage is given is AWSCURRENT
-	ResourceExistsException = "ResourceExistsException"
+	AWSCURRENT                = "" // the default when no stage is given is AWSCURRENT
+	ResourceExistsException   = "ResourceExistsException"
+	ResourceNotFoundException = "ResourceNotFoundException"
 )
 
 type (
@@ -43,6 +44,14 @@ func CreateSecret(ctx context.Context, cfg *awscfg.Config, name string) (*Create
 		return nil, err
 	}
 	return out, nil
+}
+
+func DeleteSecret(ctx context.Context, cfg *awscfg.Config, name string) error {
+	_, err := cfg.SecretsManager().DeleteSecret(ctx, &secretsmanager.DeleteSecretInput{
+		ForceDeleteWithoutRecovery: aws.Bool(true), // suppresses ResourceNotFoundException
+		SecretId:                   aws.String(name),
+	})
+	return err
 }
 
 func DescribeSecret(ctx context.Context, cfg *awscfg.Config, name string) (*DescribeSecretOutput, error) {

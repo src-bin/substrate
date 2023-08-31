@@ -14,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsram"
+	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/fileutil"
@@ -791,6 +792,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		err = nil
 	}
 	ui.Must(err)
+	for _, region := range regions.Selected() {
+		ui.Must(awssecretsmanager.DeleteSecret(ctx, substrateCfg.Regional(region), "CredentialFactoryAccessKey"))
+	}
 	ui.Stop("ok")
 	// (There will be more here in the coming months.)
 
