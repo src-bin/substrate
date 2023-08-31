@@ -750,6 +750,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}))
 	}
 
+	if *noApply {
+		ui.Print("-no-apply given so not invoking `terraform apply`")
+	}
+
 	// Generate, plan, and apply the legacy deploy account's Terraform code,
 	// if the account exists.
 	deploy(ctx, mgmtCfg)
@@ -784,10 +788,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
 	ui.Must(accounts.CheatSheet(ctx, mgmtCfg))
-
-	if *noApply {
-		ui.Print("-no-apply given so not invoking `terraform apply`")
-	}
 
 	ui.Print("")
 	ui.Print("setup complete!")

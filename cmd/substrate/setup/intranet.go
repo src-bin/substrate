@@ -273,9 +273,6 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		}
 		ui.Must(err)
 	}
-	if *noApply {
-		ui.Print("-no-apply given so not invoking `terraform apply`")
-	}
 
 	// Now, after the (first) Terraform run, we'll be able to set the necessary
 	// policy on the client secret in AWS Secrets Manager.
