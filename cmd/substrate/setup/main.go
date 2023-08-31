@@ -782,7 +782,16 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// Clean up resources that we don't need anymore after the transition to
 	// `substrate setup`, the Substrate user/role, etc.
-	ui.Must(awsiam.DeleteUser(ctx, substrateCfg, users.CredentialFactory))
+	ui.Spin("cleaning up CredentialFactory IAM user that's no longer used")
+	if err = awsiam.DeleteAllAccessKeys(ctx, substrateCfg, users.CredentialFactory, 0); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+		err = nil
+	}
+	ui.Must(err)
+	if err = awsiam.DeleteUser(ctx, substrateCfg, users.CredentialFactory); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
+		err = nil
+	}
+	ui.Must(err)
+	ui.Stop("ok")
 	// (There will be more here in the coming months.)
 
 	// Render a "cheat sheet" of sorts that has all the account numbers, role

@@ -18,6 +18,7 @@ import (
 
 const (
 	EntityAlreadyExists = "EntityAlreadyExists"
+	NoSuchEntity        = "NoSuchEntity"
 
 	SubstrateManaged = "SubstrateManaged"
 )

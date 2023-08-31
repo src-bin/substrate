@@ -1,9 +1,11 @@
 package awsiam
 
+import "github.com/src-bin/substrate/awsiam/awsiamusers"
+
 const (
 	DeleteConflict      = "DeleteConflict"
-	EntityAlreadyExists = "EntityAlreadyExists"
+	EntityAlreadyExists = awsiamusers.EntityAlreadyExists
 	InvalidInput        = "InvalidInput"
 	LimitExceeded       = "LimitExceeded"
-	NoSuchEntity        = "NoSuchEntity"
+	NoSuchEntity        = awsiamusers.NoSuchEntity
 )
