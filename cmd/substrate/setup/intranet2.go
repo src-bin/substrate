@@ -3,7 +3,7 @@ package setup
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -81,7 +81,7 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 	)
 	ui.Must(err)
 	ui.Printf("using OAuth OIDC client ID %s", clientId)
-	b, _ := fileutil.ReadFile(OAuthOIDCClientSecretTimestampFilename)
+	b, _ := os.ReadFile(OAuthOIDCClientSecretTimestampFilename)
 	clientSecretTimestamp := strings.Trim(string(b), "\r\n")
 	if clientSecretTimestamp == "" {
 		clientSecretTimestamp = time.Now().Format(time.RFC3339)
@@ -99,7 +99,7 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 			)
 			ui.Must(err)
 		}
-		ui.Must(ioutil.WriteFile(OAuthOIDCClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666))
+		ui.Must(os.WriteFile(OAuthOIDCClientSecretTimestampFilename, []byte(clientSecretTimestamp+"\n"), 0666))
 		ui.Stop("ok")
 		ui.Printf("wrote %s, which you should commit to version control", OAuthOIDCClientSecretTimestampFilename)
 	}

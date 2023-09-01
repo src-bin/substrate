@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/version"
 )
@@ -29,7 +29,7 @@ type Document struct {
 }
 
 func ReadDocument(filename string, rfc1918 IPv4, subnetMaskLength int) (*Document, error) {
-	b, err := fileutil.ReadFile(filename)
+	b, err := os.ReadFile(filename)
 	if errors.Is(err, fs.ErrNotExist) {
 		b = []byte("{}")
 		err = nil

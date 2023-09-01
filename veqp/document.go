@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/version"
 )
@@ -20,7 +20,7 @@ type Document struct {
 }
 
 func ReadDocument() (*Document, error) {
-	b, err := fileutil.ReadFile(Filename)
+	b, err := os.ReadFile(Filename)
 	if errors.Is(err, fs.ErrNotExist) {
 		b = []byte("{}")
 		err = nil

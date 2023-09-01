@@ -7,7 +7,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -50,7 +49,7 @@ func main() {
 		dirname, basename = filepath.Split(filepath.Clean(dirname))
 		pkgPath = filepath.Join(basename, pkgPath)
 	}
-	data, err := fileutil.ReadFile(pathname)
+	data, err := os.ReadFile(pathname)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -158,7 +157,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ioutil.WriteFile(*out, p, 0666); err != nil {
+	if err := os.WriteFile(*out, p, 0666); err != nil {
 		log.Fatal(err)
 	}
 

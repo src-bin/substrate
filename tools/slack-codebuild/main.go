@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-	"github.com/src-bin/substrate/fileutil"
 )
 
 const codebuildLogMaxLen = 1500 // maximum Slack message length is theoretically 40,000 characters but empirically it seems a lot lower to avoid splitting
@@ -112,7 +111,7 @@ func main() {
 
 	// Send the release announcement to be shared with customers (for tagged
 	// releases) or just noted as a successful build (for untagged releases).
-	content, err := fileutil.ReadFile("substrate.version")
+	content, err := os.ReadFile("substrate.version")
 	if err != nil {
 		log.Fatal(err)
 	}

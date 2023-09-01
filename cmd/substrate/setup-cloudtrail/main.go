@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -93,7 +93,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			// in or would have if they'd been given a choice by the earlier
 			// version of Substrate that bootstrapped their management account.
 			if aws.ToString(trail.Name) == TrailName { // TODO check more conditions? (IsMultiRegionTrail, IsOrganizationTrail, S3BucketName)
-				ui.Must(ioutil.WriteFile(ManageCloudTrailFilename, []byte("yes\n"), 0666))
+				ui.Must(os.WriteFile(ManageCloudTrailFilename, []byte("yes\n"), 0666))
 
 			} else {
 				count++

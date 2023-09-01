@@ -4,13 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"text/template"
-
-	"github.com/src-bin/substrate/fileutil"
 )
 
 var TerraformVersion = "" // replaced at build time with the contents of terraform.version; see Makefile
@@ -24,7 +21,7 @@ const (
 
 func versions(dirname string, configurationAliases []ProviderAlias, versionConstraints bool) error {
 	pathname := filepath.Join(dirname, "versions.tf")
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 
 	if errors.Is(err, fs.ErrNotExist) {
 		f, err := os.Create(pathname)
@@ -90,7 +87,7 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 `, // if later we need to make this reversible, look for the trailing }\n}\n$
 	).ReplaceAllLiteral(b, []byte(replacement))
 
-	if err := ioutil.WriteFile(pathname, b, 0666); err != nil {
+	if err := os.WriteFile(pathname, b, 0666); err != nil {
 		return err
 	}
 	return Fmt(dirname)

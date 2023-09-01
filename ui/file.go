@@ -4,20 +4,20 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/src-bin/substrate/fileutil"
 )
 
-// ConfirmFile wraps Confirm in ReadFile and ioutil.WriteFile to avoid
+// ConfirmFile wraps Confirm in ReadFile and os.WriteFile to avoid
 // interactivity on subsequent invocations. If pathname exists, its contents
 // (chomped) will be taken as the confirmation.  If not, the confirmation given
 // is written to pathname with a trailing newline and a notice is printed
 // instructing the user to commit that file to version control.
 func ConfirmFile(pathname string, args ...interface{}) (bool, error) {
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	yesno := strings.ToLower(strings.Trim(string(b), "\r\n"))
 	if err == nil {
 		if yesno == "yes" {
@@ -36,7 +36,7 @@ func ConfirmFile(pathname string, args ...interface{}) (bool, error) {
 	} else {
 		yesno = "no"
 	}
-	if err := ioutil.WriteFile(pathname, []byte(yesno+"\n"), 0666); err != nil {
+	if err := os.WriteFile(pathname, []byte(yesno+"\n"), 0666); err != nil {
 		return false, err
 	}
 	Printf("%q written to %s, which you should commit to version control", yesno, pathname)
@@ -54,7 +54,7 @@ func ConfirmFile(pathname string, args ...interface{}) (bool, error) {
 // trailing newline).
 func EditFile(pathname, notice, instructions string) ([]string, error) {
 	for {
-		b, err := fileutil.ReadFile(pathname)
+		b, err := os.ReadFile(pathname)
 		if errors.Is(err, fs.ErrNotExist) {
 			b = []byte("")
 			err = nil
@@ -94,20 +94,20 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 	}
 }
 
-// PromptFile wraps Prompt in ReadFile and ioutil.WriteFile to avoid prompting
+// PromptFile wraps Prompt in ReadFile and os.WriteFile to avoid prompting
 // at all on subsequent invocations.  If pathname exists, its contents
 // (chomped) will be taken as the response to the prompt.  If not, the response
 // to the prompt is written to pathname with a trailing newline and a notice is
 // printed instructing the user to commit that file to version control.
 func PromptFile(pathname string, args ...interface{}) (string, error) {
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	s := strings.Trim(string(b), "\r\n")
 	if err != nil {
 		s, err = Prompt(args...)
 		if err != nil {
 			return "", err
 		}
-		if err := ioutil.WriteFile(pathname, []byte(s+"\n"), 0666); err != nil {
+		if err := os.WriteFile(pathname, []byte(s+"\n"), 0666); err != nil {
 			return "", err
 		}
 		Printf("%q written to %s, which you should commit to version control", s, pathname)

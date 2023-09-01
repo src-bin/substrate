@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -100,7 +100,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	environments, err = naming.Environments()
 	ui.Must(err)
 	if !fileutil.Exists(naming.QualitiesFilename) {
-		ui.Must(ioutil.WriteFile(naming.QualitiesFilename, []byte("default\n"), 0666))
+		ui.Must(os.WriteFile(naming.QualitiesFilename, []byte("default\n"), 0666))
 	}
 	qualities, err := naming.Qualities()
 	ui.Must(err)
@@ -248,7 +248,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				policy, err := awsorgs.DescribePolicy(ctx, cfg, aws.ToString(policySummary.Id))
 				ui.Must(err)
 				if strings.Contains(aws.ToString(policy.Content), `"ec2:RoleDelivery": "2.0"`) {
-					ui.Must(ioutil.WriteFile(EnforceIMDSv2Filename, []byte("yes\n"), 0666))
+					ui.Must(os.WriteFile(EnforceIMDSv2Filename, []byte("yes\n"), 0666))
 					break
 				}
 			}

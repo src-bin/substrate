@@ -53,7 +53,7 @@ func Enabled() bool {
 	if err != nil {
 		return false // don't post telemetry if we can't find the file
 	}
-	yesno, err := fileutil.ReadFile(pathname)
+	yesno, err := os.ReadFile(pathname)
 	if err != nil {
 		return false // don't post telemetry if we can't read the file
 	}
@@ -234,7 +234,7 @@ func prefix() string {
 	if err != nil {
 		return ""
 	}
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	if err != nil {
 		return ""
 	}

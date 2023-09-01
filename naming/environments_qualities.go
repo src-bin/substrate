@@ -1,6 +1,10 @@
 package naming
 
-import "github.com/src-bin/substrate/fileutil"
+import (
+	"os"
+
+	"github.com/src-bin/substrate/fileutil"
+)
 
 const (
 	EnvironmentsFilename = "substrate.environments"
@@ -12,7 +16,7 @@ func Environments() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +39,7 @@ func Qualities() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	if err != nil {
 		return nil, err
 	}

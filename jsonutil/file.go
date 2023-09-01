@@ -2,13 +2,11 @@ package jsonutil
 
 import (
 	"encoding/json"
-	"io/ioutil"
-
-	"github.com/src-bin/substrate/fileutil"
+	"os"
 )
 
 func Read(pathname string, document interface{}) error {
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	if err != nil {
 		return err
 	}
@@ -21,5 +19,5 @@ func Write(document interface{}, pathname string) error {
 		return err
 	}
 	b = append(b, '\n') // I wish there was a less wasteful way to do this
-	return ioutil.WriteFile(pathname, b, 0666)
+	return os.WriteFile(pathname, b, 0666)
 }

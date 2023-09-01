@@ -2,7 +2,7 @@ package awscfg
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/src-bin/substrate/fileutil"
 )
@@ -20,7 +20,7 @@ func EnsureManagementAccountIdMatchesDisk(managementAccountId string) error {
 		return nil
 	}
 
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (err ManagementAccountMismatchError) Error() string {
 
 func WriteManagementAccountIdToDisk(managementAccountId string) error {
 	if !fileutil.Exists(ManagementAccountIdFilename) {
-		if err := ioutil.WriteFile(ManagementAccountIdFilename, []byte(fmt.Sprintln(managementAccountId)), 0666); err != nil {
+		if err := os.WriteFile(ManagementAccountIdFilename, []byte(fmt.Sprintln(managementAccountId)), 0666); err != nil {
 			return err
 		}
 	}

@@ -3,7 +3,6 @@ package fileutil
 import (
 	"errors"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -56,19 +55,6 @@ func PathnameInParents(filename string) (string, error) {
 		}
 	}
 	return "", fs.ErrNotExist
-}
-
-// ReadFile is ioutil.WriteFile's brother from another mother.
-func ReadFile(pathname string) ([]byte, error) {
-	f, err := os.Open(pathname)
-	if err != nil {
-		return nil, err
-	}
-	b, err := ioutil.ReadAll(f)
-	if err := f.Close(); err != nil {
-		return nil, err
-	}
-	return b, err
 }
 
 // Remove removes a file via os.Remove and returns every error it can return

@@ -2,6 +2,7 @@ package naming
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
@@ -17,7 +18,7 @@ func IntranetDNSDomainName() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("substrate.* not found in this or any parent directory; change to your Substrate repository or set SUBSTRATE_ROOT to its path in your environment (%v)", err)
 	}
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	if err != nil {
 		return "", err
 	}

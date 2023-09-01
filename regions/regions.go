@@ -1,6 +1,7 @@
 package regions
 
 import (
+	"os"
 	"sort"
 
 	"github.com/src-bin/substrate/fileutil"
@@ -67,7 +68,7 @@ func DefaultNoninteractive() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	b, err := fileutil.ReadFile(pathname)
+	b, err := os.ReadFile(pathname)
 	if err != nil {
 		return "", err
 	}
@@ -95,7 +96,7 @@ func Select() ([]string, error) {
 					regions = append(regions, region)
 				}
 			}
-			if err := ioutil.WriteFile(
+			if err := os.WriteFile(
 				RegionsFilename,
 				fileutil.FromLines(regions),
 				0666,
@@ -119,7 +120,7 @@ func Select() ([]string, error) {
 }
 
 func Selected() []string {
-	b, err := fileutil.ReadFile(RegionsFilename)
+	b, err := os.ReadFile(RegionsFilename)
 	if err != nil {
 		ui.Fatal(err)
 	}
