@@ -11,9 +11,11 @@ import (
 )
 
 const (
+	AWSVersionConstraint         = "~> 4.67"
+	AWSVersionConstraintFilename = "terraform-aws.version"
+
 	RequiredVersionFilename = "terraform.version"
 
-	awsVersionConstraint      = "~> 5.14"
 	externalVersionConstraint = "~> 2.1"
 )
 
@@ -41,7 +43,7 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 			RequiredVersion                                 string
 			VersionConstraints                              bool
 		}{
-			awsVersionConstraint, externalVersionConstraint,
+			AWSVersionConstraint, externalVersionConstraint,
 			configurationAliases,
 			RequiredVersion,
 			versionConstraints,
@@ -61,7 +63,7 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 
 	replacement = "source = \"hashicorp/aws\"\n"
 	if versionConstraints {
-		replacement += fmt.Sprintf("      version = \"%s\"\n", awsVersionConstraint)
+		replacement += fmt.Sprintf("      version = \"%s\"\n", AWSVersionConstraint)
 	}
 	b = regexp.MustCompile(
 		`source\s*=\s*"hashicorp/aws"

@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -751,6 +752,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}))
 	}
 
+	ui.Must(fileutil.WriteFileIfNotExists(terraform.RequiredVersionFilename, []byte(fmt.Sprintln(terraform.RequiredVersion))))
+	ui.Must(fileutil.WriteFileIfNotExists(terraform.AWSVersionConstraintFilename, []byte(fmt.Sprintln(terraform.AWSVersionConstraint))))
 	if *noApply {
 		ui.Print("-no-apply given so not invoking `terraform apply`")
 	}
@@ -815,6 +818,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Print("modules/")
 	ui.Print("root-modules/")
 	ui.Print("substrate.*")
+	ui.Print("terraform.version (new as of Substrate 2023.09)")     // TODO remove the parenthetical in 2023.10
+	ui.Print("terraform-aws.version (new as of Substrate 2023.09)") // TODO remove the parenthetical in 2023.10
 	ui.Print("")
 	ui.Print("next steps:")
 	ui.Print("- run `substrate setup-cloudtrail` to setup CloudTrail logging to S3 for all accounts in all regions")

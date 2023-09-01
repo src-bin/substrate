@@ -76,3 +76,20 @@ func Tidy(b []byte) string {
 func ToLines(b []byte) []string {
 	return strings.Split(Tidy(b), "\n")
 }
+
+func WriteFileIfNotExists(pathname string, b []byte) error {
+	f, err := os.OpenFile(pathname, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0666)
+	if errors.Is(err, fs.ErrExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(b); err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return nil
+}
