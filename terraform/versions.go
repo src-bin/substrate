@@ -8,20 +8,46 @@ import (
 	"path/filepath"
 	"regexp"
 	"text/template"
+
+	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/ui"
 )
 
 const (
-	AWSVersionConstraint         = "~> 4.67"
-	AWSVersionConstraintFilename = "terraform-aws.version"
+	AWSProviderVersionConstraintFilename = "terraform-aws.version-constraint"
+
+	DefaultAWSProviderVersionConstraint = "~> 4.67"
 
 	RequiredVersionFilename = "terraform.version"
 
-	externalVersionConstraint = "~> 2.1"
+	externalProviderVersionConstraint = "~> 2.1"
 )
 
-var RequiredVersion = "" // replaced at build time with the contents of terraform.version; see Makefile
+var DefaultRequiredVersion = "" // replaced at build time with the contents of terraform.version; see Makefile
 
 //go:generate go run ../tools/template/main.go -name versionsTemplate versions.tf.template
+
+func AWSProviderVersionConstraint() string {
+	b, err := os.ReadFile(AWSProviderVersionConstraintFilename)
+	if errors.Is(err, fs.ErrNotExist) {
+		return DefaultAWSProviderVersionConstraint
+	}
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return fileutil.Tidy(b)
+}
+
+func RequiredVersion() string {
+	b, err := os.ReadFile(RequiredVersionFilename)
+	if errors.Is(err, fs.ErrNotExist) {
+		return DefaultRequiredVersion
+	}
+	if err != nil {
+		ui.Fatal(err)
+	}
+	return fileutil.Tidy(b)
+}
 
 func versions(dirname string, configurationAliases []ProviderAlias, versionConstraints bool) error {
 	pathname := filepath.Join(dirname, "versions.tf")
@@ -38,14 +64,16 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 			return err
 		}
 		return tmpl.Execute(f, struct {
-			AWSVersionConstraint, ExternalVersionConstraint string
-			ConfigurationAliases                            []ProviderAlias
-			RequiredVersion                                 string
-			VersionConstraints                              bool
+			AWSProviderVersionConstraint      string
+			ExternalProviderVersionConstraint string
+			ConfigurationAliases              []ProviderAlias
+			RequiredVersion                   string
+			VersionConstraints                bool
 		}{
-			AWSVersionConstraint, externalVersionConstraint,
+			AWSProviderVersionConstraint(),
+			externalProviderVersionConstraint,
 			configurationAliases,
-			RequiredVersion,
+			RequiredVersion(),
 			versionConstraints,
 		})
 	}
@@ -63,7 +91,7 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 
 	replacement = "source = \"hashicorp/aws\"\n"
 	if versionConstraints {
-		replacement += fmt.Sprintf("      version = \"%s\"\n", AWSVersionConstraint)
+		replacement += fmt.Sprintf("      version = \"%s\"\n", AWSProviderVersionConstraint())
 	}
 	b = regexp.MustCompile(
 		`source\s*=\s*"hashicorp/aws"
@@ -74,7 +102,7 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 
 	replacement = "source = \"hashicorp/external\"\n"
 	if versionConstraints {
-		replacement += fmt.Sprintf("      version = \"%s\"\n", externalVersionConstraint)
+		replacement += fmt.Sprintf("      version = \"%s\"\n", externalProviderVersionConstraint)
 	}
 	b = regexp.MustCompile(
 		`source\s*=\s*"hashicorp/external"
@@ -84,7 +112,7 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 
 	replacement = "" // since this doesn't leave anything to anchor us, this is a one-way door (for now)
 	if versionConstraints {
-		replacement += fmt.Sprintf("required_version = \"= %s\"\n", RequiredVersion)
+		replacement += fmt.Sprintf("required_version = \"= %s\"\n", RequiredVersion())
 	}
 	b = regexp.MustCompile(
 		`(  )?required_version\s*=\s*"\s*>?(= )?\d+\.\d+\.\d+"
