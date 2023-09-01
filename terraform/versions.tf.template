@@ -23,6 +23,6 @@ terraform {
     }
   }
 {{- if .VersionConstraints}}
-  required_version = "= {{.TerraformVersion}}"
+  required_version = "= {{.RequiredVersion}}"
 {{- end}}
 }

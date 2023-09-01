@@ -10,12 +10,14 @@ import (
 	"text/template"
 )
 
-var TerraformVersion = "" // replaced at build time with the contents of terraform.version; see Makefile
-
 const (
+	RequiredVersionFilename = "terraform.version"
+
 	awsVersionConstraint      = "~> 5.14"
 	externalVersionConstraint = "~> 2.1"
 )
+
+var RequiredVersion = "" // replaced at build time with the contents of terraform.version; see Makefile
 
 //go:generate go run ../tools/template/main.go -name versionsTemplate versions.tf.template
 
@@ -36,12 +38,12 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 		return tmpl.Execute(f, struct {
 			AWSVersionConstraint, ExternalVersionConstraint string
 			ConfigurationAliases                            []ProviderAlias
-			TerraformVersion                                string
+			RequiredVersion                                 string
 			VersionConstraints                              bool
 		}{
 			awsVersionConstraint, externalVersionConstraint,
 			configurationAliases,
-			TerraformVersion,
+			RequiredVersion,
 			versionConstraints,
 		})
 	}
@@ -80,7 +82,7 @@ func versions(dirname string, configurationAliases []ProviderAlias, versionConst
 
 	replacement = "" // since this doesn't leave anything to anchor us, this is a one-way door (for now)
 	if versionConstraints {
-		replacement += fmt.Sprintf("required_version = \"= %s\"\n", TerraformVersion)
+		replacement += fmt.Sprintf("required_version = \"= %s\"\n", RequiredVersion)
 	}
 	b = regexp.MustCompile(
 		`(  )?required_version\s*=\s*"\s*>?(= )?\d+\.\d+\.\d+"

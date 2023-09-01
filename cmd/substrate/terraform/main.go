@@ -28,15 +28,15 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 
-	ui.Printf("Substrate requires Terraform version %s", terraform.TerraformVersion)
-	v, err := terraform.Version()
+	ui.Printf("Substrate requires Terraform version %s", terraform.RequiredVersion)
+	v, err := terraform.InstalledVersion()
 	if err != nil {
 		ui.Printf(
 			"couldn't determine what version Terraform is installed (%v) so installing version %s",
 			err,
-			terraform.TerraformVersion,
+			terraform.RequiredVersion,
 		)
-	} else if v == terraform.TerraformVersion {
+	} else if v == terraform.RequiredVersion {
 		ui.Printf("Terraform is already at version %s", v)
 		return
 	}
@@ -47,8 +47,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		Host:   "releases.hashicorp.com",
 		Path: fmt.Sprintf(
 			"/terraform/%s/terraform_%s_%s_%s.zip",
-			terraform.TerraformVersion,
-			terraform.TerraformVersion,
+			terraform.RequiredVersion,
+			terraform.RequiredVersion,
 			runtime.GOOS,
 			runtime.GOARCH,
 		),
@@ -66,7 +66,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		os.Exit(1)
 	}
 	if !*yes {
-		if ok, err := ui.Confirmf("upgrade to Terraform %s? (yes/no)", terraform.TerraformVersion); err != nil {
+		if ok, err := ui.Confirmf("upgrade to Terraform %s? (yes/no)", terraform.RequiredVersion); err != nil {
 			ui.Fatal(err)
 		} else if !ok {
 			ui.Print("not upgrading Terraform") // not ui.Fatal to suppress the stack trace
@@ -79,7 +79,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Spinf("downloading <%s>", u.String())
 	pathname, err := fileutil.Download(u, fmt.Sprintf(
 		"terraform-%s-%s-%s-*.zip",
-		terraform.TerraformVersion,
+		terraform.RequiredVersion,
 		runtime.GOOS,
 		runtime.GOARCH,
 	))

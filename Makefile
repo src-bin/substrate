@@ -38,10 +38,10 @@ go-generate:
 	go generate ./... # the rest of the go:generate directives
 
 go-generate-intranet:
-	env GOARCH=arm64 GOOS=linux go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o cmd/substrate/intranet-zip/bootstrap ./cmd/substrate-intranet
+	env GOARCH=arm64 GOOS=linux go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.RequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o cmd/substrate/intranet-zip/bootstrap ./cmd/substrate-intranet
 
 install:
-	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.TerraformVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
+	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.RequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 
 release:
 ifndef CODEBUILD_BUILD_ID

@@ -38,46 +38,7 @@ func Init(dirname string) error {
 	return execdlp(dirname, "terraform", "init", "-reconfigure", "-upgrade")
 }
 
-func Plan(dirname string) error {
-	ui.Printf("planning Terraform changes in %s", dirname)
-	//log.Print(execdlp(dirname, "aws", "sts", "get-caller-identity"))
-	err := execdlp(dirname, "terraform", "plan")
-	exitErr, ok := err.(*exec.ExitError)
-	if !ok {
-		return err
-	}
-	if exitErr.ExitCode() != 0 {
-		return nil // it's OK if a plan fails; that's useful data
-	}
-	return err
-}
-
-func ShortVersion() (string, error) {
-	version, err := Version()
-	if err != nil {
-		return "", err
-	}
-	parts := strings.SplitN(version, ".", 3)
-	return strings.Join(parts[:2], "."), nil
-}
-
-func Upgrade(dirname string) error {
-	shortVersion, err := ShortVersion()
-	if err != nil {
-		return err
-	}
-
-	// Substrate started in the era of Terraform 0.12 and, coincidentally, its
-	// upgrade program is not idempotent. Let's skip that whole sad party.
-	if shortVersion == "0.12" {
-		return nil
-	}
-
-	ui.Printf("upgrading Terraform module in %s to Terraform version %s", dirname, shortVersion)
-	return execdlp(dirname, "terraform", fmt.Sprintf("%supgrade", shortVersion), "-yes")
-}
-
-func Version() (string, error) {
+func InstalledVersion() (string, error) {
 	if memoizedVersion != "" {
 		return memoizedVersion, nil
 	}
@@ -99,14 +60,53 @@ func Version() (string, error) {
 	}
 
 	out := struct {
-		TerraformVersion string `json:"terraform_version"`
+		Version string `json:"terraform_version"`
 	}{}
 	if err := json.Unmarshal(b, &out); err != nil {
 		return "", err
 	}
-	memoizedVersion = out.TerraformVersion
+	memoizedVersion = out.Version
 
 	return memoizedVersion, nil
+}
+
+func Plan(dirname string) error {
+	ui.Printf("planning Terraform changes in %s", dirname)
+	//log.Print(execdlp(dirname, "aws", "sts", "get-caller-identity"))
+	err := execdlp(dirname, "terraform", "plan")
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		return err
+	}
+	if exitErr.ExitCode() != 0 {
+		return nil // it's OK if a plan fails; that's useful data
+	}
+	return err
+}
+
+func ShortInstalledVersion() (string, error) {
+	version, err := InstalledVersion()
+	if err != nil {
+		return "", err
+	}
+	parts := strings.SplitN(version, ".", 3)
+	return strings.Join(parts[:2], "."), nil
+}
+
+func Upgrade(dirname string) error {
+	shortVersion, err := ShortInstalledVersion()
+	if err != nil {
+		return err
+	}
+
+	// Substrate started in the era of Terraform 0.12 and, coincidentally, its
+	// upgrade program is not idempotent. Let's skip that whole sad party.
+	if shortVersion == "0.12" {
+		return nil
+	}
+
+	ui.Printf("upgrading Terraform module in %s to Terraform version %s", dirname, shortVersion)
+	return execdlp(dirname, "terraform", fmt.Sprintf("%supgrade", shortVersion), "-yes")
 }
 
 // execdlp executes progname in dirname (or, implicitly the current working
