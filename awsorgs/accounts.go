@@ -281,6 +281,7 @@ func ensureAccount(
 			return nil, err
 		}
 		if status.FailureReason == types.CreateAccountFailureReasonEmailAlreadyExists {
+			ui.Debug(status)
 			if account, err = cfg.FindAccount(ctx, findAccount); err != nil {
 				return nil, err
 			}

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-const testFeature Feature = "testFeature"
+const testFeature feature = "testFeature"
 
 func TestFeatureEnabled(t *testing.T) {
 	testFeatureEnabled(t, testFeature, "", false)
