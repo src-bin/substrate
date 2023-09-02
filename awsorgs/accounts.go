@@ -284,6 +284,9 @@ func ensureAccount(
 			if account, err = cfg.FindAccount(ctx, findAccount); err != nil {
 				return nil, err
 			}
+			if account == nil {
+				return nil, AccountNotFound(fmt.Sprintf("<%s> is probably taken by a closed account"))
+			}
 			accountId = aws.ToString(account.Id) // found after createAccount failure
 		} else {
 			accountId = aws.ToString(status.AccountId) // newly-created
