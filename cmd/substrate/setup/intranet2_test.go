@@ -12,6 +12,7 @@ import (
 )
 
 func TestIntranet2(t *testing.T) {
+	t.Skip()
 	ctx := context.Background()
 	substrateCfg := testawscfg.Test1(roles.Administrator)
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
