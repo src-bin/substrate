@@ -136,6 +136,9 @@ func (e *Event) Post(ctx context.Context) error {
 		return nil
 	}
 
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	if e.Command == "" {
 		e.Command = contextutil.ValueString(ctx, contextutil.Command)
 	}
