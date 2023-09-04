@@ -72,7 +72,7 @@ func main() {
 
 	// If the build's failing, report it to Slack.
 	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
-		slack(fmt.Sprintf(
+		slack(map[string]string{"text": fmt.Sprintf(
 			"Substrate build has failed!\n"+
 				"\n"+
 				"Source tree: https://github.com/src-bin/substrate/tree/%s\n"+
@@ -83,7 +83,7 @@ func main() {
 			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
 			buildURL,
 			codebuildLog(ctx),
-		))
+		)})
 		return
 	}
 
@@ -95,7 +95,8 @@ func main() {
 		return
 	}
 
-	// But if the build's succeeding and this is the end, announce it.
+	// But if the build's succeeding and this is the end, shout it from the
+	// various rooftops.
 
 	// Figure out if this is a tagged release or not. We can skip a bunch of
 	// Slack messages for untagged releases to be generally less spammy.
@@ -109,18 +110,17 @@ func main() {
 		taggedRelease = false
 	}
 
-	// Send the release announcement to be shared with customers (for tagged
-	// releases) or just noted as a successful build (for untagged releases).
+	// Gather all the raw materials for formatting release announcements.
 	content, err := os.ReadFile("substrate.version")
 	if err != nil {
 		log.Fatal(err)
 	}
-	version := strings.Trim(string(content), "\r\n")
+	version := strings.TrimSpace(string(content))
 	out, err := exec.Command("git", "show", "--format=%h", "--no-patch").Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	commit := strings.Trim(string(out), "\r\n")
+	commit := strings.TrimSpace(string(out))
 	var filenames, trialFilenames []string
 	for _, goOS := range []string{"darwin", "linux"} {
 		for _, goArch := range []string{"amd64", "arm64"} {
@@ -134,9 +134,12 @@ func main() {
 			))
 		}
 	}
+
+	// Construct the main Slack message, which for a tagged release is going
+	// to be sent several times.
 	var text string
 	if taggedRelease {
-		text, err = parseAndExecuteTemplate(
+		text = parseAndExecuteTemplate(
 			"Substrate {{.Version}} is out!\n"+
 				"\n"+
 				"Full release notes: https://docs.src-bin.com/substrate/releases#{{.Version}}\n"+
@@ -151,7 +154,7 @@ func main() {
 			}{filenames, version},
 		)
 	} else {
-		text, err = parseAndExecuteTemplate(
+		text = parseAndExecuteTemplate(
 			"Substrate {{.Version}} (an untagged release) built successfully\n"+
 				"\n"+
 				"Downloads:\n"+
@@ -179,8 +182,11 @@ func main() {
 			buildURL,
 		)
 	}
-	slack(text)
-	text, err = parseAndExecuteTemplate(
+
+	// Announce the release and trial builds, whether tagged or untagged,
+	// in #substrate (or whichever channel is this webhook's default).
+	slack(map[string]string{"text": text})
+	slack(map[string]string{"text": parseAndExecuteTemplate(
 		"Trial Substrate {{.Version}}:\n"+
 			"{{range .TrialFilenames -}}\n"+
 			"https://src-bin.com/{{.}}\n"+
@@ -189,63 +195,48 @@ func main() {
 			TrialFilenames []string
 			Version        string
 		}{trialFilenames, version},
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	slack(text)
+	)})
 
-	// Don't bother sending the release checklist as individual Slack
-	// messages for untagged releases.
-	if !taggedRelease {
-		return
-	}
-
-	// Send the checklist of customers who need the announcement.
-	for _, customer := range split(os.Getenv("CUSTOMERS_ANNOUNCE")) {
-		slack(fmt.Sprintf("Share or copy/paste the release announcement to *%s*", customer))
-	}
-
-	// Send the checklist of customers I'm supposed to upgrade myself.
-	for _, customer := range split(os.Getenv("CUSTOMERS_UPGRADE")) {
-		slack(fmt.Sprintf("Upgrade Substrate for *%s*", customer))
-	}
-
-	// Send the checklist of customers for whom I have other obligations.
-	for _, customer := range split(os.Getenv("CUSTOMERS_PIN")) { // not alphabetical but these happen after upgrades
-		slack(fmt.Sprintf("Pin the new version of Substrate for *%s*", customer))
+	// For tagged releases, announce just the release (not the trials)
+	// directly to customer channels found in the environment.
+	if taggedRelease {
+		for _, channel := range split(os.Getenv("CUSTOMER_CHANNELS")) {
+			slack(map[string]string{"channel": strings.TrimSpace(channel), "text": text})
+		}
 	}
 
 }
 
-func parseAndExecuteTemplate(t string, i interface{}) (string, error) {
+func parseAndExecuteTemplate(t string, i interface{}) string {
 	tmpl, err := template.New("tmpl").Parse(t)
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
 	var b strings.Builder
 	if err := tmpl.Execute(&b, i); err != nil {
-		return "", err
+		log.Fatal(err)
 	}
-	return b.String(), nil
+	return b.String()
 }
 
-func slack(text string) {
-	body, err := json.MarshalIndent(map[string]string{"text": text}, "", "\t")
+func slack(body map[string]string) {
+	b, err := json.MarshalIndent(body, "", "\t")
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("slack webhook\n request body:  %s\n", string(b))
 	if slackWebhookURL := os.Getenv("SLACK_WEBHOOK_URL"); slackWebhookURL != "" {
-		resp, err := http.Post(slackWebhookURL, "application/json", bytes.NewBuffer(body))
+		resp, err := http.Post(slackWebhookURL, "application/json", bytes.NewBuffer(b))
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
+		if b, err = io.ReadAll(resp.Body); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(string(body))
+		fmt.Printf(" response body: %s\n", string(b))
+	} else {
+		fmt.Printf(" not sent because SLACK_WEBHOOK_URL isn't in the environment\n", string(b))
 	}
 }
 
