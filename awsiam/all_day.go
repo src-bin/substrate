@@ -94,7 +94,7 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 				cfg,
 				naming.Substrate,
 				awssecretsmanager.Policy(&policies.Principal{AWS: []string{
-					roles.ARN(cfg.MustAccountId(ctx), roles.Intranet),
+					roles.ARN(cfg.MustAccountId(ctx), roles.Substrate),
 				}}),
 				awssecretsmanager.AWSCURRENT,
 				secret,
