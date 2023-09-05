@@ -22,8 +22,8 @@ import (
 const (
 	AccessKeyExpiry = 7 * 24 * time.Hour
 
-	CreateAccessKeyTriesBeforeDeleteAll = 4 // must be lower than...
-	CreateAccessKeyTriesTotal           = 8 // ...this
+	CreateAccessKeyTriesBeforeDeleteAll = 3 // must be lower than...
+	CreateAccessKeyTriesTotal           = 6 // ...this
 )
 
 func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Config, err error) {
