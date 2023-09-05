@@ -58,12 +58,7 @@ func AllDayConfig(ctx context.Context, cfg *awscfg.Config) (cfg12h *awscfg.Confi
 
 			} else {
 				log.Printf("deleting cached and expired access key %s", aws.ToString(accessKey.AccessKeyId))
-				if err = DeleteAccessKey(
-					ctx,
-					cfg,
-					users.Substrate,
-					aws.ToString(accessKey.AccessKeyId),
-				); err != nil {
+				if err = DeleteAccessKey(ctx, cfg, users.Substrate, aws.ToString(accessKey.AccessKeyId)); err != nil {
 					log.Print(err) // not fatal because a concurrent actor may have deleted this one
 				}
 			}
