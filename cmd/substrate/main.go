@@ -22,10 +22,6 @@ import (
 
 func main() {
 
-	if version.IsTrial() {
-		ui.Print("this is a trial version of Substrate; contact <sales@src-bin.com> for support and the latest version")
-	}
-
 	// If we were invoked directly, expect to find a subcommand in the first
 	// position. Reconfigure the arguments to make it look like we were invoked
 	// via a symbolic link so as to unify dispatch and simply argument parsing
@@ -63,6 +59,10 @@ func main() {
 
 		}
 		os.Args = append([]string{fmt.Sprintf("substrate-%s", os.Args[1])}, os.Args[2:]...)
+	}
+
+	if version.IsTrial() {
+		ui.Print("this is a trial version of Substrate; contact <sales@src-bin.com> for support and the latest version")
 	}
 
 	// Dispatch to the package named like the subcommand with a Main function
