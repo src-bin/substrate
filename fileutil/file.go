@@ -21,7 +21,11 @@ func Edit(pathname string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	//log.Printf("%+v", cmd)
-	return cmd.Run()
+	err := cmd.Run()
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		err = nil // because NeoVim often misbehaves and yet is very popular
+	}
+	return err
 }
 
 func Exists(pathname string) bool {
@@ -36,6 +40,15 @@ func FromLines(ss []string) []byte {
 func IsDir(pathname string) bool {
 	fi, err := os.Stat(pathname)
 	return err == nil && fi.IsDir()
+}
+
+// NotEmpty returns true if the file at pathname exists and has at least one
+// byte in it. This is written in the negative because, if the function were
+// simply Empty(pathname), it would almost always need to be combined with
+// Exists(pathname) and that would mean a superfluous second os.Stat(pathname).
+func NotEmpty(pathname string) bool {
+	fi, err := os.Stat(pathname)
+	return err == nil && fi.Size() > 0
 }
 
 // PathnameInParents searches the current working directory and each of its

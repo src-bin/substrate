@@ -90,6 +90,9 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 		if err := fileutil.Edit(pathname); err != nil {
 			return nil, err
 		}
+		if !fileutil.NotEmpty(pathname) {
+			return nil, fmt.Errorf("nothing written to %s", pathname)
+		}
 		Printf("wrote %s, which you should commit to version control", pathname)
 	}
 }
