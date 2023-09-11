@@ -12,11 +12,13 @@ import (
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/ui"
 )
 
 //go:generate go run ../../tools/dispatch-map/main.go .
+//go:generate go run ../../tools/dispatch-map/main.go -function Main2 -o dispatch-map2.go .
 
 type Handler func(
 	context.Context,
@@ -32,6 +34,7 @@ func main() {
 		IntranetFunctionName                     = "Intranet"
 		IntranetAPIGatewayAuthorizerFunctionName = "IntranetAPIGatewayAuthorizer"
 		IntranetProxyFunctionNamePrefix          = "IntranetProxy-"
+		SubstrateFunctionName                    = "Substrate"
 		varName                                  = "AWS_LAMBDA_FUNCTION_NAME"
 	)
 	functionName := os.Getenv(varName)
@@ -107,6 +110,27 @@ func main() {
 	} else if strings.HasPrefix(functionName, IntranetProxyFunctionNamePrefix) {
 		//pathPart := strings.TrimPrefix(functionName, IntranetProxyFunctionNamePrefix)
 		lambda.Start(proxy)
+
+	} else if functionName == SubstrateFunctionName {
+		lambda.Start(&Mux{
+			Authorizer: authorizer2(cfg, oc),
+			Handler: func(ctx context.Context, event *events.APIGatewayV2HTTPRequest) (*events.APIGatewayV2HTTPResponse, error) {
+
+				k := strings.SplitN(event.RawPath, "/", 3)[1] // safe because there's always at least the leading '/'
+				if k == "" {
+					k = "index"
+				}
+				if f, ok := dispatchMapMain2[k]; ok {
+					return f(ctx, cfg, oc, event)
+				}
+
+				return &events.APIGatewayV2HTTPResponse{
+					Body:       jsonutil.MustString(event) + "\n",
+					Headers:    map[string]string{"Content-Type": "text/plain"},
+					StatusCode: http.StatusNotFound,
+				}, nil
+			},
+		})
 
 	} else {
 		lambda.Start(func(ctx context.Context, event *events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {

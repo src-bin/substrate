@@ -2,11 +2,13 @@ package awslambda
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awscloudwatch"
 	"github.com/src-bin/substrate/awsutil"
 	intranetzip "github.com/src-bin/substrate/cmd/substrate/intranet-zip"
 	"github.com/src-bin/substrate/tagging"
@@ -20,6 +22,21 @@ const (
 	handler = "bootstrap"
 	runtime = types.RuntimeProvidedal2
 )
+
+func AddPermission(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	name, principal, sourceARN string,
+) error {
+	_, err := cfg.Lambda().AddPermission(ctx, &lambda.AddPermissionInput{
+		Action:       aws.String("lambda:InvokeFunction"),
+		FunctionName: aws.String(name),
+		Principal:    aws.String(principal),
+		StatementId:  aws.String(name),
+		SourceArn:    aws.String(sourceARN),
+	})
+	return err
+}
 
 func EnsureFunction(
 	ctx context.Context,
@@ -37,9 +54,6 @@ func EnsureFunction(
 			functionARN, err = updateFunctionConfiguration(ctx, cfg, name, roleARN, environment)
 			if !awsutil.ErrorCodeIs(err, ResourceConflictException) {
 				break
-			} else {
-				ui.Debug(err)
-				// time.Sleep(1e9) // TODO exponential backoff
 			}
 		}
 		ui.StopErr(err)
@@ -49,6 +63,11 @@ func EnsureFunction(
 		ui.Spinf("updating the %s Lambda function's code", name)
 		err = updateFunctionCode(ctx, cfg, name, code)
 	}
+	if err != nil {
+		ui.StopErr(err)
+		return
+	}
+
 	ui.StopErr(err)
 	return
 }
@@ -60,6 +79,11 @@ func createFunction(
 	environment map[string]string,
 	code []byte,
 ) (functionARN string, err error) {
+
+	if err = awscloudwatch.EnsureLogGroup(ctx, cfg, fmt.Sprintf("/aws/lambda/%s", name), 7); err != nil {
+		return
+	}
+
 	var out *lambda.CreateFunctionOutput
 	out, err = cfg.Lambda().CreateFunction(ctx, &lambda.CreateFunctionInput{
 		Architectures: []types.Architecture{types.ArchitectureArm64},
@@ -78,6 +102,7 @@ func createFunction(
 	if err == nil {
 		functionARN = aws.ToString(out.FunctionArn)
 	}
+
 	return
 }
 

@@ -1,6 +1,6 @@
 *~
 dispatch-map.go
-dispatch-map-*.go
+dispatch-map*.go
 *.html.go
 *.js.go
 *.stdin

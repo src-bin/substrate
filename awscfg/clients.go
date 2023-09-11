@@ -4,6 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
@@ -27,6 +28,10 @@ func (c *Config) APIGatewayV2() *apigatewayv2.Client {
 
 func (c *Config) CloudTrail() *cloudtrail.Client {
 	return cloudtrail.NewFromConfig(c.cfg) // TODO memoize regionally
+}
+
+func (c *Config) CloudWatchLogs() *cloudwatchlogs.Client {
+	return cloudwatchlogs.NewFromConfig(c.cfg) // TODO memoize regionally
 }
 
 func (c *Config) DynamoDB() *dynamodb.Client {

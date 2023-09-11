@@ -12,6 +12,7 @@ import (
 	"github.com/src-bin/substrate/awslambda"
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
+	"github.com/src-bin/substrate/awsutil"
 	intranetzip "github.com/src-bin/substrate/cmd/substrate/intranet-zip"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
@@ -127,6 +128,7 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		ui.Printf("using Okta hostname %s", hostname)
 	}
 
+	// Construct the Intranet in every region we're using.
 	var telemetryYesNo string
 	if telemetry.Enabled() {
 		telemetryYesNo = "yes"
@@ -134,7 +136,7 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		telemetryYesNo = "no"
 	}
 	for _, region := range regions.Selected() {
-		ui.Debug(region)
+		ui.Spinf("configuring the Substrate-managed Intranet in %s", region)
 		cfg := substrateCfg.Regional(region)
 
 		functionARN, err := awslambda.EnsureFunction(
@@ -154,11 +156,33 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 			intranetzip.SubstrateIntranetZip,
 		)
 		ui.Must(err)
+		//ui.Debug(functionARN)
 
 		apiId, err := awsapigatewayv2.EnsureAPI(ctx, cfg, naming.Substrate, roleARN, functionARN)
 		ui.Must(err)
-		ui.Debug(apiId)
+		//ui.Debug(apiId)
 
+		_ /* authorizerId */, err = awsapigatewayv2.EnsureAuthorizer(ctx, cfg, apiId, naming.Substrate, roleARN, functionARN)
+		ui.Must(err)
+		//ui.Debug(authorizerId)
+
+		if err = awslambda.AddPermission(
+			ctx,
+			cfg,
+			naming.Substrate,
+			"apigateway.amazonaws.com",
+			fmt.Sprintf(
+				"arn:aws:execute-api:%s:%s:%s/*",
+				region,
+				cfg.MustAccountId(ctx),
+				apiId,
+			),
+		); awsutil.ErrorCodeIs(err, awslambda.ResourceConflictException) {
+			err = nil // this is only safe because we've never changed the arguments to AddPermission
+		}
+		ui.Must(err)
+
+		ui.Stop("ok")
 	}
 	return "", "" // XXX causes tests to fail
 }

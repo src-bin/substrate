@@ -467,7 +467,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			aws.ToString(mgmtUser.Arn),
 			aws.ToString(substrateUser.Arn),
 		},
-		Service: []string{"lambda.amazonaws.com"},
+		Service: []string{"apigateway.amazonaws.com", "lambda.amazonaws.com"},
 	})
 	substrateRole, err = awsiam.EnsureRole(ctx, substrateCfg, roles.Substrate, substrateAssumeRolePolicy)
 	ui.Must(err)
