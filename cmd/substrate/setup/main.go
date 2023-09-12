@@ -64,7 +64,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Must(err)
 	}
 
-	//log.Print(jsonutil.MustString(cfg.MustGetCallerIdentity(ctx)))
+	//ui.Debug(cfg.MustGetCallerIdentity(ctx))
 	regions.Default()
 	ui.Must2(cfg.BootstrapCredentials(ctx)) // get from anywhere to IAM credentials so we can assume roles
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(
@@ -72,7 +72,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		roles.Substrate, // triggers affordances for using (deprecated) OrganizationAdministrator role, too
 		time.Hour,
 	))
-	//log.Print(jsonutil.MustString(mgmtCfg.MustGetCallerIdentity(ctx)))
+	//ui.Debug(mgmtCfg.MustGetCallerIdentity(ctx))
 
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
 
@@ -675,8 +675,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// in the Substrate account. This is better than storing state in each
 	// account because it minimizes the number of non-Terraform-managed
 	// resources in all those other Terraform-using accounts.
-	_, err = terraform.EnsureStateManager(ctx, substrateCfg)
-	ui.Must(err)
+	ui.Must2(terraform.EnsureStateManager(ctx, substrateCfg))
 	ui.Spin("testing the TerraformStateManager role (because AWS IAM is eventually consistent)")
 	for {
 		if deployCfg == nil {
