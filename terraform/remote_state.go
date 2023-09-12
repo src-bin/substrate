@@ -74,6 +74,7 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 	for _, region := range regions.Selected() {
 
 		bucketName := S3BucketName(region)
+		ui.Spinf("creating the %s S3 bucket and %s DynamoDB table in %s", bucketName, DynamoDBTableName, region)
 		statement := policies.Statement{
 
 			// We're using policies attached to the TerraformStateManager
@@ -99,15 +100,16 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 			// BucketAlreadyOwnedByYou error) as a sign that the bucket's in
 			// the (legacy) deploy account. Switch to that account and do this
 			// over again.
-			ui.Stop("bucket already exists; switching to the deploy account")
+			ui.Stop("bucket already exists")
+			ui.Stop("switching to the deploy account")
 			cfg, err = cfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)
 			if err != nil {
-				return nil, ui.StopErr(err)
+				return nil, ui.StopErr(ui.StopErr(err))
 			}
 			return EnsureStateManager(ctx, cfg)
 
 		} else if err != nil {
-			return nil, ui.StopErr(err)
+			return nil, ui.StopErr(ui.StopErr(err))
 		}
 		resources = append(resources, statement.Resource...)
 
@@ -124,9 +126,10 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 				KeyType:       types.KeyTypeHash,
 			}},
 		); err != nil {
-			return nil, ui.StopErr(err)
+			return nil, ui.StopErr(ui.StopErr(err))
 		}
 
+		ui.Stop("ok")
 	}
 
 	policy, err := awsiam.EnsurePolicy(
