@@ -22,7 +22,7 @@ func Edit(pathname string) error {
 	cmd.Stderr = os.Stderr
 	//log.Printf("%+v", cmd)
 	err := cmd.Run()
-	if exitErr, ok := err.(*exec.ExitError); ok {
+	if _, ok := err.(*exec.ExitError); ok {
 		err = nil // because NeoVim often misbehaves and yet is very popular
 	}
 	return err
