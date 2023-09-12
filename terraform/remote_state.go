@@ -70,8 +70,14 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 	if err != nil {
 		return nil, ui.StopErr(err)
 	}
-	var resources []string
+	defaultAndSelectedRegions := []string{regions.Default()}
 	for _, region := range regions.Selected() {
+		if region != regions.Default() {
+			defaultAndSelectedRegions = append(defaultAndSelectedRegions, region)
+		}
+	}
+	var resources []string
+	for _, region := range defaultAndSelectedRegions {
 
 		bucketName := S3BucketName(region)
 		ui.Spinf("creating the %s S3 bucket and %s DynamoDB table in %s", bucketName, DynamoDBTableName, region)
