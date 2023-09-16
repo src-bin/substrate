@@ -92,12 +92,12 @@ func main() {
 				k = "index"
 			}
 			if f, ok := dispatchMapMain[k]; ok {
-				return f(ctx, cfg, oc, event)
+				return f(ctx, cfg, oc.Copy(), event)
 			}
 
 			// Old-style dispatch to handlers still in this package.
 			if h, ok := handlers[event.Path]; ok {
-				return h(ctx, cfg, oc, event)
+				return h(ctx, cfg, oc.Copy(), event)
 			}
 
 			return &events.APIGatewayProxyResponse{
@@ -121,7 +121,7 @@ func main() {
 					k = "index"
 				}
 				if f, ok := dispatchMapMain2[k]; ok {
-					return f(ctx, cfg, oc, event)
+					return f(ctx, cfg, oc.Copy(), event)
 				}
 
 				return &events.APIGatewayV2HTTPResponse{

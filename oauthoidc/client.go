@@ -80,6 +80,19 @@ func NewClient(
 	return c, nil
 }
 
+// Copy returns a, yes, copy of the *Client with all its configuration
+// _except_ the AccessToken, which we don't want to be sharing across
+// multiple requests.
+func (c *Client) Copy() *Client {
+	return &Client{
+		ClientId:      c.ClientId,
+		clientSecret:  c.clientSecret,
+		memoizedKeys:  c.memoizedKeys,
+		pathQualifier: c.pathQualifier,
+		provider:      c.provider,
+	}
+}
+
 // Get requests the given path with the given query string from the client's
 // host and unmarshals the JSON response body into the given interface{}.  It
 // returns the *http.Response, though its Body field is not usable, and an
@@ -165,6 +178,13 @@ func (c *Client) URL(path UnqualifiedPath, query url.Values) *url.URL {
 		u.RawQuery = query.Encode()
 	}
 	return u
+}
+
+// WithAccessToken returns a copy of the *Client with the AccessToken field set.
+func (c *Client) WithAccessToken(accessToken string) *Client {
+	cCopy := c.Copy()
+	cCopy.AccessToken = accessToken
+	return cCopy
 }
 
 func (c *Client) request(method string, u *url.URL) *http.Request {

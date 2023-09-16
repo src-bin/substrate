@@ -60,8 +60,7 @@ func authorizer(
 
 		effect := policies.Deny
 		if idToken.Email != "" {
-			oc.AccessToken = authContext[authorizerutil.AccessToken].(string)
-			roleName, err := oc.RoleNameFromIdP(idToken.Email)
+			roleName, err := oc.WithAccessToken(authContext[authorizerutil.AccessToken].(string)).RoleNameFromIdP(idToken.Email)
 			if err == nil {
 				authContext[authorizerutil.RoleName] = roleName
 				effect = policies.Allow
