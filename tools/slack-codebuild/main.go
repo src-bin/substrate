@@ -226,7 +226,7 @@ func slack(body map[string]string) {
 	}
 	fmt.Printf("slack webhook\n request body:  %s\n", string(b))
 	if slackWebhookURL := os.Getenv("SLACK_WEBHOOK_URL"); slackWebhookURL != "" {
-		resp, err := http.Post(slackWebhookURL, "application/json", bytes.NewBuffer(b))
+		resp, err := http.Post(slackWebhookURL, "application/json; charset=utf-8", bytes.NewBuffer(b))
 		if err != nil {
 			log.Fatal(err)
 		}

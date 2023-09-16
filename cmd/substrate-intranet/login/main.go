@@ -154,7 +154,7 @@ func Main2(
 
 	var bodyV struct{ ErrorDescription, Location string }
 	bodyV.ErrorDescription = event.QueryStringParameters["error_description"]
-	headers := map[string]string{"Content-Type": "text/html"}
+	headers := map[string]string{"Content-Type": "text/html; charset=utf-8"}
 	statusCode := http.StatusOK
 	bodyV.Location = oc.URL(oauthoidc.Authorize, q).String()
 	if bodyV.ErrorDescription == "" {

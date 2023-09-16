@@ -155,7 +155,7 @@ func (e *Event) Post(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	_, err = http.DefaultClient.Do(req)
 	return err
 }

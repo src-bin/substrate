@@ -35,7 +35,7 @@ aws secretsmanager put-secret-value --secret-id "TwitterRefreshToken" --secret-s
 
 curl \
     -H"Authorization: Bearer $(jq -r ".access_token" <"$TMP")" \
-    -H"Content-Type: application/json" \
+    -H"Content-Type: application/json; charset=utf-8" \
     -X"POST" \
     -d '{"text": "Substrate '"$VERSION"' is out! Release notes: https://docs.src-bin.com/substrate/releases#'"$VERSION"'"}' \
     -s \

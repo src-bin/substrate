@@ -83,7 +83,7 @@ func Main(
 
 	return &events.APIGatewayProxyResponse{
 		Body:       body,
-		Headers:    map[string]string{"Content-Type": "text/html"},
+		Headers:    map[string]string{"Content-Type": "text/html; charset=utf-8"},
 		StatusCode: http.StatusOK,
 	}, nil
 }

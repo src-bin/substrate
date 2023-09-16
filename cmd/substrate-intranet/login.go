@@ -104,7 +104,7 @@ func loginHandler(
 			))
 		}
 		multiValueHeaders := map[string][]string{
-			"Content-Type": []string{"text/html"},
+			"Content-Type": []string{"text/html; charset=utf-8"},
 			"Set-Cookie":   setCookies,
 		}
 		bodyV.Location = state.Next
@@ -155,7 +155,7 @@ func loginHandler(
 
 	var bodyV struct{ ErrorDescription, Location string }
 	bodyV.ErrorDescription = event.QueryStringParameters["error_description"]
-	headers := map[string]string{"Content-Type": "text/html"}
+	headers := map[string]string{"Content-Type": "text/html; charset=utf-8"}
 	statusCode := http.StatusOK
 	bodyV.Location = oc.URL(oauthoidc.Authorize, q).String()
 	if bodyV.ErrorDescription == "" {

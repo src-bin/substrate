@@ -101,7 +101,7 @@ func credentialFactoryHandler(
 	}
 	return &events.APIGatewayProxyResponse{
 		Body:       body,
-		Headers:    map[string]string{"Content-Type": "text/html"},
+		Headers:    map[string]string{"Content-Type": "text/html; charset=utf-8"},
 		StatusCode: http.StatusOK,
 	}, nil
 }
@@ -163,7 +163,7 @@ func credentialFactoryAuthorizeHandler(
 	}
 	return &events.APIGatewayProxyResponse{
 		Body:       body,
-		Headers:    map[string]string{"Content-Type": "text/html"},
+		Headers:    map[string]string{"Content-Type": "text/html; charset=utf-8"},
 		StatusCode: http.StatusOK,
 	}, nil
 }
@@ -249,7 +249,7 @@ func credentialFactoryFetchHandler(
 	}
 	return &events.APIGatewayProxyResponse{
 		Body:       string(body),
-		Headers:    map[string]string{"Content-Type": "application/json"},
+		Headers:    map[string]string{"Content-Type": "application/json; charset=utf-8"},
 		StatusCode: http.StatusOK,
 	}, nil
 }
