@@ -29,17 +29,20 @@ func ParseAndVerifyJWT(s string, c *Client, p JWTPayload) (*JWT, error) {
 }
 
 func ParseJWT(s string, p JWTPayload) (*JWT, error) {
-	slice := strings.Split(s, ".")
-
-	jwt := &JWT{}
 	var err error
-	jwt.Header, err = parseJWTHeader(slice[0])
-	if err != nil {
-		return nil, err
+	jwt := &JWT{}
+	slice := strings.Split(s, ".")
+	if len(slice) >= 1 {
+		jwt.Header, err = parseJWTHeader(slice[0])
+		if err != nil {
+			return nil, err
+		}
 	}
-	jwt.Payload, err = parseJWTPayload(slice[1], p)
-	if err != nil {
-		return nil, err
+	if len(slice) >= 2 {
+		jwt.Payload, err = parseJWTPayload(slice[1], p)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if len(slice) != 3 {
 		return nil, MalformedJWTError(fmt.Sprintf(

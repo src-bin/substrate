@@ -3,9 +3,9 @@ package login
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -48,10 +48,14 @@ func Main2(
 	event *events.APIGatewayV2HTTPRequest,
 ) (*events.APIGatewayV2HTTPResponse, error) {
 	redirectURI := &url.URL{
-		Scheme: "https",
-		Host:   event.Headers["host"],
-		Path:   event.RawPath,
+		Path: event.RawPath,
 		// no RawQuery because it's a redirect _URI_ not redirect _URL_
+		Scheme: "https",
+	}
+	if dnsDomainName := os.Getenv("DNS_DOMAIN_NAME"); dnsDomainName != "" {
+		redirectURI.Host = dnsDomainName
+	} else {
+		redirectURI.Host = event.Headers["host"] // will this default confuse debugging?
 	}
 
 	code := event.QueryStringParameters["code"]
@@ -64,7 +68,6 @@ func Main2(
 		v.Add("code", code)
 		v.Add("grant_type", "authorization_code")
 		v.Add("redirect_uri", redirectURI.String())
-		log.Printf("v: %+v", v)
 		doc := &oauthoidc.TokenResponse{}
 		resp, tokenBody, err := oc.Post(oauthoidc.Token, v, doc)
 		if err != nil {
@@ -89,6 +92,7 @@ func Main2(
 		bodyV.IDToken = idToken
 		setCookies := []string{
 			fmt.Sprintf("a=%s; HttpOnly; Max-Age=%d; Secure", doc.AccessToken, maxAge),
+			fmt.Sprintf("exp=%d; HttpOnly; Max-Age=%d; Secure", idToken.Expires, maxAge),
 			fmt.Sprintf("id=%s; HttpOnly; Max-Age=%d; Secure", doc.IDToken, maxAge),
 			fmt.Sprintf("csrf=%s; HttpOnly; Max-Age=%d; Secure", randutil.String(), maxAge),
 		}

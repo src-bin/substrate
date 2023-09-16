@@ -14,21 +14,24 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
+type API struct {
+	Endpoint, Id string
+}
+
 func EnsureAPI(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	name, roleARN, functionARN string,
-) (apiId string, err error) {
-	ui.Spinf("finding or creating the %s HTTP gateway (with API Gateway v2)", name)
+) (*API, error) {
+	ui.Spinf("finding or creating the %s API Gateway v2", name)
 	client := cfg.APIGatewayV2()
 
-	if err = awscloudwatch.EnsureLogGroup(ctx, cfg, fmt.Sprintf("/aws/apigatewayv2/%s", name), 7); err != nil {
-		ui.StopErr(err)
-		return
+	if err := awscloudwatch.EnsureLogGroup(ctx, cfg, fmt.Sprintf("/aws/apigatewayv2/%s", name), 7); err != nil {
+		return nil, ui.StopErr(err)
 	}
 
-	var api *types.Api
-	api, err = getAPIByName(ctx, cfg, name)
+	var api *API
+	existingAPI, err := getAPIByName(ctx, cfg, name)
 	if _, ok := err.(NotFound); ok {
 		var out *apigatewayv2.CreateApiOutput
 		if out, err = client.CreateApi(ctx, &apigatewayv2.CreateApiInput{
@@ -41,31 +44,35 @@ func EnsureAPI(
 			},
 			Target: aws.String(functionARN),
 		}); err == nil {
-			apiId = aws.ToString(out.ApiId)
+			api = &API{
+				Endpoint: aws.ToString(out.ApiEndpoint),
+				Id:       aws.ToString(out.ApiId),
+			}
 		}
 	} else {
 		var out *apigatewayv2.UpdateApiOutput
 		if out, err = client.UpdateApi(ctx, &apigatewayv2.UpdateApiInput{
-			ApiId:          api.ApiId,
+			ApiId:          existingAPI.ApiId,
 			CredentialsArn: aws.String(roleARN),
 			Name:           aws.String(name),
 			Target:         aws.String(functionARN),
 		}); err == nil {
-			apiId = aws.ToString(out.ApiId)
+			api = &API{
+				Endpoint: aws.ToString(out.ApiEndpoint),
+				Id:       aws.ToString(out.ApiId),
+			}
 		}
 	}
 	if err != nil {
-		ui.StopErr(err)
-		return
+		return nil, ui.StopErr(err)
 	}
 
 	var integration *types.Integration
-	if integration, err = getIntegrationByFunctionARN(ctx, cfg, apiId, functionARN); err != nil {
-		ui.StopErr(err)
-		return
+	if integration, err = getIntegrationByFunctionARN(ctx, cfg, api.Id, functionARN); err != nil {
+		return nil, ui.StopErr(err)
 	}
 	if _, err = client.UpdateIntegration(ctx, &apigatewayv2.UpdateIntegrationInput{
-		ApiId:         aws.String(apiId),
+		ApiId:         aws.String(api.Id),
 		IntegrationId: integration.IntegrationId,
 
 		// I wish we could do HSTS and respond 302 Found to redirect to login
@@ -94,8 +101,7 @@ func EnsureAPI(
 		*/
 
 	}); err != nil {
-		ui.StopErr(err)
-		return
+		return nil, ui.StopErr(err)
 	}
 
 	if _, err = client.UpdateStage(ctx, &apigatewayv2.UpdateStageInput{
@@ -108,16 +114,15 @@ func EnsureAPI(
 			)),
 			Format: aws.String(`$context.identity.sourceIp - - [$context.requestTime] "$context.httpMethod $context.routeKey $context.protocol" $context.status $context.responseLength $context.requestId`), // Apache common log format
 		},
-		ApiId:      aws.String(apiId),
+		ApiId:      aws.String(api.Id),
 		AutoDeploy: true,
 		StageName:  aws.String("$default"),
 	}); err != nil {
-		ui.StopErr(err)
-		return
+		return nil, ui.StopErr(err)
 	}
 
-	ui.Stopf("API %s", apiId)
-	return
+	ui.Stopf("API %s", api.Id)
+	return api, nil
 }
 
 func getAPIByName(ctx context.Context, cfg *awscfg.Config, name string) (*types.Api, error) {

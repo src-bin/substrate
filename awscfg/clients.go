@@ -3,6 +3,7 @@ package awscfg
 import (
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -24,6 +25,10 @@ func (c *Config) APIGateway() *apigateway.Client {
 
 func (c *Config) APIGatewayV2() *apigatewayv2.Client {
 	return apigatewayv2.NewFromConfig(c.cfg) // TODO memoize regionally
+}
+
+func (c *Config) CloudFront() *cloudfront.Client {
+	return cloudfront.NewFromConfig(c.cfg) // TODO memoize
 }
 
 func (c *Config) CloudTrail() *cloudtrail.Client {

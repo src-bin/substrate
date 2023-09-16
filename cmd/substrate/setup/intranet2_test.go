@@ -2,6 +2,7 @@ package setup
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,10 +17,16 @@ func TestIntranet2(t *testing.T) {
 	substrateCfg := testawscfg.Test1(roles.Administrator)
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
-	if dnsDomainName2 != "src-bin-test1.net" {
-		t.Fatalf(`%q != "src-bin-test1.net"`, dnsDomainName2)
+	/*
+		if dnsDomainName2 != "src-bin-test1.net" {
+			t.Fatalf(`%q != "src-bin-test1.net"`, dnsDomainName2)
+		}
+	*/
+	if !strings.HasSuffix(dnsDomainName2, ".cloudfront.net") {
+		t.Fatalf(`%q does not end with ".cloudfront.net"`, dnsDomainName2)
 	}
 	if idpName2 != oauthoidc.Okta {
 		t.Fatalf(`%q != %q`, idpName2, oauthoidc.Okta)
 	}
+	t.Log(dnsDomainName2, idpName2)
 }

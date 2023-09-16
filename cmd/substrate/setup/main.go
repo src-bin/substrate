@@ -775,16 +775,23 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
 	if features.APIGatewayV2.Enabled() {
 		dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
-		if dnsDomainName2 != "" && dnsDomainName != dnsDomainName2 {
-			ui.Fatalf(
-				"first- and second-generation Intranets should have the same DNS domain name but got %q and %q",
-				dnsDomainName,
-				dnsDomainName2,
-			)
-		}
-		if idpName2 != "" && idpName != idpName2 {
-			ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
-		}
+		/*
+			if dnsDomainName2 != "" && dnsDomainName != dnsDomainName2 {
+				ui.Fatalf(
+					"first- and second-generation Intranets should have the same DNS domain name but got %q and %q",
+					dnsDomainName,
+					dnsDomainName2,
+				)
+			}
+			if idpName2 != "" && idpName != idpName2 {
+				ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
+			}
+		*/
+		ui.Printf(
+			"because you've opted into the API Gateway v2 preview, you can access your Intranet, still via %s, at <https://%s> now, too",
+			idpName2,
+			dnsDomainName2,
+		)
 	}
 
 	// TODO configure IAM Identity Center (later)

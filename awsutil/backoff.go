@@ -9,7 +9,7 @@ import (
 // implement jittered exponential backoff in a for-loop. Here's how you
 // should use it:
 //
-// for range JitteredExponentialBackoff(time.Second, 10*time.Second) {
+// for range awsutil.JitteredExponentialBackoff(time.Second, 10*time.Second) {
 // }
 func JitteredExponentialBackoff(init, max time.Duration) <-chan time.Duration {
 	ch := make(chan time.Duration)
@@ -50,6 +50,12 @@ func JitteredExponentialBackoff(init, max time.Duration) <-chan time.Duration {
 	return ch
 }
 
+// StandardJitteredExponentialBackoff returns a JitteredExponentialBackoff
+// configured to start at 1 second and backoff to 10 seconds between attempts.
+// Here's how you should use it:
+//
+// for range awsutil.StandardJitteredExponentialBackoff() {
+// }
 func StandardJitteredExponentialBackoff() <-chan time.Duration {
 	return JitteredExponentialBackoff(time.Second, 10*time.Second)
 }

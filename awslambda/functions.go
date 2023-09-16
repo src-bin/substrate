@@ -51,7 +51,7 @@ func EnsureFunction(
 		ui.Stop("already exists")
 		ui.Spinf("updating the %s Lambda function's configuration", name)
 		for range awsutil.StandardJitteredExponentialBackoff() {
-			functionARN, err = updateFunctionConfiguration(ctx, cfg, name, roleARN, environment)
+			functionARN, err = UpdateFunctionConfiguration(ctx, cfg, name, roleARN, environment)
 			if !awsutil.ErrorCodeIs(err, ResourceConflictException) {
 				break
 			}
@@ -61,7 +61,7 @@ func EnsureFunction(
 			return
 		}
 		ui.Spinf("updating the %s Lambda function's code", name)
-		err = updateFunctionCode(ctx, cfg, name, code)
+		err = UpdateFunctionCode(ctx, cfg, name, code)
 	}
 	if err != nil {
 		ui.StopErr(err)
@@ -69,6 +69,46 @@ func EnsureFunction(
 	}
 
 	ui.StopErr(err)
+	return
+}
+
+func UpdateFunctionCode(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	name string,
+	code []byte,
+) error {
+	_, err := cfg.Lambda().UpdateFunctionCode(ctx, &lambda.UpdateFunctionCodeInput{
+		Architectures: []types.Architecture{types.ArchitectureArm64},
+		Publish:       true,
+		ZipFile:       intranetzip.SubstrateIntranetZip,
+		FunctionName:  aws.String(name),
+	})
+	return err
+}
+
+func UpdateFunctionConfiguration(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	name, roleARN string,
+	environment map[string]string,
+) (functionARN string, err error) {
+	for range awsutil.StandardJitteredExponentialBackoff() {
+		var out *lambda.UpdateFunctionConfigurationOutput
+		out, err = cfg.Lambda().UpdateFunctionConfiguration(ctx, &lambda.UpdateFunctionConfigurationInput{
+			Environment:  &types.Environment{Variables: environment},
+			FunctionName: aws.String(name),
+			Handler:      aws.String(handler),
+			Role:         aws.String(roleARN),
+			Runtime:      runtime,
+		})
+		if err == nil {
+			functionARN = aws.ToString(out.FunctionArn)
+			break
+		} else if !awsutil.ErrorCodeIs(err, ResourceConflictException) {
+			break
+		}
+	}
 	return
 }
 
@@ -103,40 +143,5 @@ func createFunction(
 		functionARN = aws.ToString(out.FunctionArn)
 	}
 
-	return
-}
-
-func updateFunctionCode(
-	ctx context.Context,
-	cfg *awscfg.Config,
-	name string,
-	code []byte,
-) error {
-	_, err := cfg.Lambda().UpdateFunctionCode(ctx, &lambda.UpdateFunctionCodeInput{
-		Architectures: []types.Architecture{types.ArchitectureArm64},
-		Publish:       true,
-		ZipFile:       intranetzip.SubstrateIntranetZip,
-		FunctionName:  aws.String(name),
-	})
-	return err
-}
-
-func updateFunctionConfiguration(
-	ctx context.Context,
-	cfg *awscfg.Config,
-	name, roleARN string,
-	environment map[string]string,
-) (functionARN string, err error) {
-	var out *lambda.UpdateFunctionConfigurationOutput
-	out, err = cfg.Lambda().UpdateFunctionConfiguration(ctx, &lambda.UpdateFunctionConfigurationInput{
-		Environment:  &types.Environment{Variables: environment},
-		FunctionName: aws.String(name),
-		Handler:      aws.String(handler),
-		Role:         aws.String(roleARN),
-		Runtime:      runtime,
-	})
-	if err == nil {
-		functionARN = aws.ToString(out.FunctionArn)
-	}
 	return
 }
