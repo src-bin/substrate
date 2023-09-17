@@ -28,7 +28,10 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
+	format := cmdutil.SerializationFormatFlag(
+		cmdutil.SerializationFormatText,
+		`output format - "text" for human-readable plaintext, "json" for and tags, or "shell" for a shell program that will update all your AWS accounts`,
+	)
 	flag.Usage = func() {
 		ui.Print("Usage: substrate accounts [-format <format>]")
 		flag.PrintDefaults()

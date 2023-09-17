@@ -22,7 +22,10 @@ import (
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	autoApprove := flag.Bool("auto-approve", false, `with -format "shell", add the -auto-approve flag to all the generated commands that accept it`)
-	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value
+	format := cmdutil.SerializationFormatFlag(
+		cmdutil.SerializationFormatText,
+		`output format - "text" for human-readable plaintext, "json" for output like the AWS organizations:ListAccounts API augmented with Substrate roles and tags, or "shell" for a shell program that will update all your AWS accounts`,
+	)
 	noApply := flag.Bool("no-apply", false, `with -format "shell", add the -no-apply flag to all the generated commands that accept it`)
 	number := flag.String("number", "", `with -format "json", account number of the single AWS account to output`)
 	onlyTags := flag.Bool("only-tags", false, `with -format "json" and -number "...", output only the tags on the account`)

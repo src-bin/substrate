@@ -22,7 +22,10 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatText) // default to undocumented special value // TODO only support text and JSON
+	format := cmdutil.SerializationFormatFlag(
+		cmdutil.SerializationFormatText,
+		`"text" for plaintext or "json" for a JSON array`,
+	)
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {
 		ui.Print("Usage: substrate root-modules [-format <format>] [-quiet]")

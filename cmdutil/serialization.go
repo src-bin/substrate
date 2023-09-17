@@ -18,13 +18,9 @@ type SerializationFormat struct {
 	format string
 }
 
-func SerializationFormatFlag(format string) *SerializationFormat {
-	f := &SerializationFormat{format}
-	flag.Var(
-		f,
-		"format",
-		`output format - "export" for exported shell environment variables, "env" for .env files, "json" for JSON, "shell" for shell commands, and "text" for human-readable plain text`, // TODO it's an irresponsible simplification to list all of these for every command with a -format option
-	)
+func SerializationFormatFlag(defaultFormat, usage string) *SerializationFormat {
+	f := &SerializationFormat{defaultFormat}
+	flag.Var(f, "format", usage)
 	return f
 }
 
@@ -50,3 +46,5 @@ type SerializationFormatError string
 func (err SerializationFormatError) Error() string {
 	return fmt.Sprintf(`-format %q not supported`, string(err))
 }
+
+const SerializationFormatUsage = `output format - "export" for exported shell environment variables, "env" for .env files, "json" for JSON, "shell" for shell commands, and "text" for human-readable plaintext`

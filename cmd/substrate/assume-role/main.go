@@ -33,7 +33,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	roleName := flag.String("role", "", "name of the IAM role to assume")
 	roleARN := flag.String("arn", "", "ARN of the IAM role to assume")
 	console := flag.Bool("console", false, "open the AWS Console to assume a role instead of generating an access key")
-	format := cmdutil.SerializationFormatFlag(cmdutil.SerializationFormatExportWithHistory) // default to undocumented special value for substrate-assume-role
+	format := cmdutil.SerializationFormatFlag(
+		cmdutil.SerializationFormatExportWithHistory, // default to undocumented special value for substrate-assume-role
+		cmdutil.SerializationFormatUsage,
+	)
 	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
 	flag.Usage = func() {
 		ui.Print("Usage: substrate assume-role -management|-special <special>|-substrate [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
