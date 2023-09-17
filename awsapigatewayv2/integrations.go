@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2/types"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsutil"
 )
 
 func EnsureIntegration(
@@ -28,6 +29,24 @@ func EnsureIntegration(
 	})
 	if err == nil {
 		integrationId = aws.ToString(out.IntegrationId)
+	} else if awsutil.ErrorCodeIs(err, ConflictException) {
+
+		var integration *types.Integration
+		if integration, err = getIntegrationByFunctionARN(ctx, cfg, apiId, functionARN); err != nil {
+			return
+		}
+		integrationId = aws.ToString(integration.IntegrationId)
+
+		_, err = client.UpdateIntegration(ctx, &apigatewayv2.UpdateIntegrationInput{
+			ApiId:                aws.String(apiId),
+			CredentialsArn:       aws.String(roleARN),
+			IntegrationId:        aws.String(integrationId),
+			PayloadFormatVersion: aws.String("2.0"),
+			IntegrationMethod:    aws.String("POST"),
+			IntegrationType:      types.IntegrationTypeAws,
+			IntegrationUri:       aws.String(functionARN),
+		})
+
 	}
 
 	return
