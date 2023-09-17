@@ -33,7 +33,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		`output format - "text" for human-readable plaintext, "json" for and tags, or "shell" for a shell program that will update all your AWS accounts`,
 	)
 	flag.Usage = func() {
-		ui.Print("Usage: substrate accounts [-format <format>]")
+		ui.Print("Usage: substrate roles [-format <format>]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
