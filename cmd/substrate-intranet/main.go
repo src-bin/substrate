@@ -12,7 +12,6 @@ import (
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/contextutil"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/ui"
 )
@@ -125,7 +124,7 @@ func main() {
 				}
 
 				return &events.APIGatewayV2HTTPResponse{
-					Body:       jsonutil.MustString(event) + "\n",
+					Body:       fmt.Sprintf("%s not found\n", event.RawPath),
 					Headers:    map[string]string{"Content-Type": "text/plain"},
 					StatusCode: http.StatusNotFound,
 				}, nil
