@@ -146,7 +146,7 @@ func EnsureDistribution(
 			Id: d.Id,
 		})
 		if err != nil {
-			return nil, err
+			return nil, ui.StopErr(err)
 		}
 		distributionConfig.CallerReference = out.DistributionConfig.CallerReference
 		if _, err := client.UpdateDistribution(ctx, &cloudfront.UpdateDistributionInput{
@@ -154,8 +154,9 @@ func EnsureDistribution(
 			Id:                 d.Id,
 			IfMatch:            out.ETag,
 		}); err != nil {
-			return nil, err
+			return nil, ui.StopErr(err)
 		}
+		ui.Stop("ok")
 		return &Distribution{
 			ARN:        aws.ToString(d.ARN),
 			Comment:    aws.ToString(d.Comment),

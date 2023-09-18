@@ -243,7 +243,7 @@ function handler(event) {
 	)
 	ui.Must(err)
 	ui.Stop("ok")
-	ui.Debug(distribution)
+	//ui.Debug(distribution)
 
 	// Now that we have the CloudFront distribution for sure, reconfigure the
 	// Lambda functions to make sure they know their DNS domain name.
