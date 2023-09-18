@@ -14,6 +14,8 @@ import (
 
 const Default = "$default"
 
+type Route = types.Route
+
 func EnsureRoute(
 	ctx context.Context,
 	cfg *awscfg.Config,
@@ -38,7 +40,7 @@ func EnsureRoute(
 		}
 		_, err := client.CreateRoute(ctx, in)
 		if awsutil.ErrorCodeIs(err, ConflictException) {
-			var route *types.Route
+			var route *Route
 			if route, err = getRouteByKey(ctx, cfg, apiId, routeKey); err != nil {
 				return err
 			}
@@ -60,6 +62,27 @@ func EnsureRoute(
 		}
 	}
 	return nil
+}
+
+func GetRoutes(ctx context.Context, cfg *awscfg.Config, apiId string) (routes []Route, err error) {
+	client := cfg.APIGatewayV2()
+	var nextToken *string
+	for {
+		out, err := client.GetRoutes(ctx, &apigatewayv2.GetRoutesInput{
+			ApiId:     aws.String(apiId),
+			NextToken: nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, route := range out.Items {
+			routes = append(routes, route)
+		}
+		if nextToken = out.NextToken; nextToken == nil {
+			break
+		}
+	}
+	return
 }
 
 func UpdateRoute(
@@ -87,8 +110,8 @@ func UpdateRoute(
 	return err
 }
 
-func getRouteByKey(ctx context.Context, cfg *awscfg.Config, apiId, key string) (*types.Route, error) {
-	routes, err := getRoutes(ctx, cfg, apiId)
+func getRouteByKey(ctx context.Context, cfg *awscfg.Config, apiId, key string) (*Route, error) {
+	routes, err := GetRoutes(ctx, cfg, apiId)
 	if err != nil {
 		return nil, err
 	}
@@ -98,25 +121,4 @@ func getRouteByKey(ctx context.Context, cfg *awscfg.Config, apiId, key string) (
 		}
 	}
 	return nil, NotFound{key, "route"}
-}
-
-func getRoutes(ctx context.Context, cfg *awscfg.Config, apiId string) (routes []types.Route, err error) {
-	client := cfg.APIGatewayV2()
-	var nextToken *string
-	for {
-		out, err := client.GetRoutes(ctx, &apigatewayv2.GetRoutesInput{
-			ApiId:     aws.String(apiId),
-			NextToken: nextToken,
-		})
-		if err != nil {
-			return nil, err
-		}
-		for _, route := range out.Items {
-			routes = append(routes, route)
-		}
-		if nextToken = out.NextToken; nextToken == nil {
-			break
-		}
-	}
-	return
 }
