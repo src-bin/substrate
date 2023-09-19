@@ -9,6 +9,14 @@ import (
 	"github.com/src-bin/substrate/oauthoidc"
 )
 
+func Static(contentType, body string) (*events.APIGatewayV2HTTPResponse, error) {
+	return &events.APIGatewayV2HTTPResponse{
+		Body:       body,
+		Headers:    map[string]string{"Content-Type": contentType},
+		StatusCode: http.StatusOK,
+	}, nil
+}
+
 func StaticHandler(contentType, body string) func(
 	context.Context,
 	*awscfg.Config,
