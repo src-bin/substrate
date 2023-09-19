@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -116,12 +117,19 @@ func main() {
 			Authorizer: authorizer2(cfg, oc),
 			Handler: func(ctx context.Context, event *events.APIGatewayV2HTTPRequest) (*events.APIGatewayV2HTTPResponse, error) {
 
-				k := strings.SplitN(event.RawPath, "/", 3)[1] // safe because there's always at least the leading '/'
-				if k == "" {
-					k = "index"
-				}
-				if f, ok := dispatchMapMain2[k]; ok {
-					return f(ctx, cfg, oc.Copy(), event)
+				if path.Dir(event.RawPath) == "/js" && path.Ext(event.RawPath) == ".js" {
+					k := strings.TrimSuffix(path.Base(event.RawPath), ".js")
+					if f, ok := dispatchMapJavaScript[k]; ok {
+						return f(ctx, cfg, oc.Copy(), event)
+					}
+				} else {
+					k := strings.SplitN(event.RawPath, "/", 3)[1] // safe because there's always at least the leading '/'
+					if k == "" {
+						k = "index"
+					}
+					if f, ok := dispatchMapMain2[k]; ok {
+						return f(ctx, cfg, oc.Copy(), event)
+					}
 				}
 
 				return &events.APIGatewayV2HTTPResponse{
