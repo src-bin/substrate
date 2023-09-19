@@ -17,7 +17,8 @@ import (
 )
 
 //go:generate go run ../../tools/dispatch-map/main.go .
-//go:generate go run ../../tools/dispatch-map/main.go -function Main2 -o dispatch-map2.go .
+//go:generate go run ../../tools/dispatch-map/main.go -function JavaScript -o dispatch-map-js.go .
+//go:generate go run ../../tools/dispatch-map/main.go -function Main2 -o dispatch-map-main.go .
 
 type Handler func(
 	context.Context,

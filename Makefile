@@ -18,6 +18,7 @@ clean:
 	find . -name dispatch-map.go -delete
 	find . -name dispatch-map-\*.go -delete
 	find . -name \*.html.go -delete
+	find . -name \*.js.go -delete
 	find . -name \*.template.go -delete
 	find . -name \*.tf.go -delete
 	find terraform -name \*-global.go -o -name \*-regional.go -delete
