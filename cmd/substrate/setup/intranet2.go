@@ -209,6 +209,8 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		naming.Substrate,
 		[]awscloudfront.EventType{awscloudfront.ViewerRequest, awscloudfront.ViewerResponse},
 		`
+var querystring = require("querystring");
+
 function handler(event) {
 	if (event.context.eventType === "viewer-request") {
 
@@ -223,8 +225,17 @@ function handler(event) {
 		}
 
 		if (!event.request.cookies.a && event.request.uri !== "/login") {
+			var properties = Object.getOwnPropertyNames(event.request.querystring),
+				query = {};
+			for (var i = 0; i < properties.length; ++i) {
+				query[properties[i]] = event.request.querystring[properties[i]].value;
+			}
 			return {
-				headers: {location: {value: "/login?next=" + event.request.uri /* TODO encoded querystring */}},
+				headers: {location: {value: "/login?next=" + encodeURIComponent(
+					event.request.uri + (
+						properties.length === 0 ? "" : "?" + querystring.stringify(query)
+					)
+				)}},
 				statusCode: 302,
 				statusDescription: "Found"
 			};
