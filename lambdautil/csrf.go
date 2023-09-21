@@ -24,6 +24,14 @@ func CSRFCookie(event *events.APIGatewayProxyRequest) string {
 	return ""
 }
 
+func CSRFCookie2(event *events.APIGatewayV2HTTPRequest) string {
+	cookie := Cookie2(event.Cookies, CookieName)
+	if cookie == nil {
+		return ""
+	}
+	return cookie.Value
+}
+
 type CSRFError struct{}
 
 func (CSRFError) Error() string {
@@ -39,5 +47,15 @@ func PreventCSRF(body url.Values, event *events.APIGatewayProxyRequest) error {
 		return nil
 	}
 	return CSRFError{}
+}
 
+func PreventCSRF2(body url.Values, event *events.APIGatewayV2HTTPRequest) error {
+	csrf := CSRFCookie2(event)
+	if csrf == "" {
+		return CSRFError{}
+	}
+	if body.Get(FieldName) == csrf {
+		return nil
+	}
+	return CSRFError{}
 }
