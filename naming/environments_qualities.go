@@ -9,6 +9,8 @@ import (
 const (
 	EnvironmentsFilename = "substrate.environments"
 	QualitiesFilename    = "substrate.qualities"
+
+	Default = "default"
 )
 
 func Environments() ([]string, error) {
