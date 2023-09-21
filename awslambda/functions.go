@@ -21,6 +21,7 @@ const (
 
 	handler = "bootstrap"
 	runtime = types.RuntimeProvidedal2
+	timeout = 29 // seconds
 )
 
 func AddPermission(
@@ -101,6 +102,7 @@ func UpdateFunctionConfiguration(
 			Handler:      aws.String(handler),
 			Role:         aws.String(roleARN),
 			Runtime:      runtime,
+			Timeout:      aws.Int32(timeout),
 		})
 		if err == nil {
 			functionARN = aws.ToString(out.FunctionArn)
@@ -138,6 +140,7 @@ func createFunction(
 			tagging.Manager:          tagging.Substrate,
 			tagging.SubstrateVersion: version.Version,
 		},
+		Timeout: aws.Int32(timeout),
 	})
 	if err == nil {
 		functionARN = aws.ToString(out.FunctionArn)
