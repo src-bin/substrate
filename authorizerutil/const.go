@@ -4,7 +4,7 @@ package authorizerutil
 const (
 	AccessToken = "AccessToken"
 	IDToken     = "IDToken"
-	PrincipalId = "principalId"
+	PrincipalId = "principalId" // lowercase because that's how it was in API Gateway v1
 	RoleName    = "RoleName"
 
 	Error = "Error"

@@ -60,6 +60,7 @@ func authorizer2(
 
 		effect := policies.Deny
 		if idToken.Email != "" {
+			authContext[authorizerutil.PrincipalId] = idToken.Email // would be overkill except see the comment on PrincipalID below
 			roleName, err := oc.WithAccessToken(authContext[authorizerutil.AccessToken].(string)).RoleNameFromIdP(idToken.Email)
 			if err == nil {
 				authContext[authorizerutil.RoleName] = roleName
@@ -80,7 +81,7 @@ func authorizer2(
 				}},
 				Version: "2012-10-17",
 			},
-			PrincipalID: idToken.Email,
+			PrincipalID: idToken.Email, // this is bizarrely not exposed to the Lambda function target so it's useless (but still correct)
 		}, nil
 	}
 }
