@@ -51,7 +51,7 @@ func authorizer2(
 					idToken = &oauthoidc.IDToken{} // revert to zero-value and thus to denying access
 					continue
 				}
-				ctx = context.WithValue(ctx, contextutil.Username, idToken.Email) // not that we need this (yet)
+				ctx = context.WithValue(ctx, contextutil.Username, idToken.Email)
 				if authContext[authorizerutil.IDToken], err = idToken.JSONString(); err != nil {
 					return nil, err
 				}

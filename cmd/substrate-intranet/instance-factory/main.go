@@ -40,7 +40,7 @@ func Main2(
 		publicKeyMaterial, terminateConfirmed string
 	)
 	launched := event.QueryStringParameters["launched"] // TODO don't propagate this into the HTML if the instance it references is in the "running" state
-	principalId := event.RequestContext.Authorizer.Lambda[authorizerutil.PrincipalId].(string)
+	principalId := fmt.Sprint(event.RequestContext.Authorizer.Lambda[authorizerutil.PrincipalId])
 	region := event.QueryStringParameters["region"]
 	//log.Printf("GET region: %+v", region)
 	selectedRegions := strings.Split(os.Getenv("SELECTED_REGIONS"), ",")
