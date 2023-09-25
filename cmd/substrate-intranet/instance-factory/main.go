@@ -333,7 +333,7 @@ func Main2(
 	reservation, err := awsec2.RunInstance(
 		ctx,
 		cfg,
-		event.RequestContext.Authorizer.Lambda[authorizerutil.RoleName].(string),
+		fmt.Sprint(event.RequestContext.Authorizer.Lambda[authorizerutil.RoleName]),
 		imageId,
 		instanceType,
 		aws.ToString(keyPairs[0].KeyName),

@@ -50,7 +50,7 @@ func Main2(
 		if userCfg, err = cfg.AssumeRole(
 			ctx,
 			event.RequestContext.AccountID,
-			event.RequestContext.Authorizer.Lambda[authorizerutil.RoleName].(string),
+			fmt.Sprint(event.RequestContext.Authorizer.Lambda[authorizerutil.RoleName]),
 			time.Hour,
 		); err != nil {
 			return lambdautil.ErrorResponse2(err)
@@ -131,7 +131,7 @@ func Main2(
 		adminAccounts, serviceAccounts,
 		substrateAccount,
 		auditAccount, deployAccount, managementAccount, networkAccount,
-		event.RequestContext.Authorizer.Lambda[authorizerutil.RoleName].(string),
+		fmt.Sprint(event.RequestContext.Authorizer.Lambda[authorizerutil.RoleName]),
 	})
 	if err != nil {
 		return nil, err

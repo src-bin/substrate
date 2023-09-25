@@ -116,12 +116,11 @@ func main() {
 		lambda.Start(&Mux{
 			Authorizer: authorizer2(cfg, oc),
 			Handler: func(ctx context.Context, event *events.APIGatewayV2HTTPRequest) (*events.APIGatewayV2HTTPResponse, error) {
-				ctx = contextutil.WithValues(
-					ctx,
-					"substrate-intranet",
-					event.RawPath,
-					fmt.Sprint(event.RequestContext.Authorizer.Lambda[authorizerutil.PrincipalId]),
-				)
+				var principalId string
+				if event.RequestContext.Authorizer != nil {
+					principalId = fmt.Sprint(event.RequestContext.Authorizer.Lambda[authorizerutil.PrincipalId])
+				}
+				ctx = contextutil.WithValues(ctx, "substrate-intranet", event.RawPath, principalId)
 
 				if path.Dir(event.RawPath) == "/js" && path.Ext(event.RawPath) == ".js" {
 					k := strings.TrimSuffix(path.Base(event.RawPath), ".js")

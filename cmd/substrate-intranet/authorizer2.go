@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -61,7 +62,7 @@ func authorizer2(
 		effect := policies.Deny
 		if idToken.Email != "" {
 			authContext[authorizerutil.PrincipalId] = idToken.Email // would be overkill except see the comment on PrincipalID below
-			roleName, err := oc.WithAccessToken(authContext[authorizerutil.AccessToken].(string)).RoleNameFromIdP(idToken.Email)
+			roleName, err := oc.WithAccessToken(fmt.Sprint(authContext[authorizerutil.AccessToken])).RoleNameFromIdP(idToken.Email)
 			if err == nil {
 				authContext[authorizerutil.RoleName] = roleName
 				effect = policies.Allow
