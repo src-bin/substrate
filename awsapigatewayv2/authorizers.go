@@ -13,6 +13,8 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
+const authorizerTTL = 60 // 0 // the UI shows 300 if this is 0
+
 func EnsureAuthorizer(
 	ctx context.Context,
 	cfg *awscfg.Config,
@@ -26,7 +28,7 @@ func EnsureAuthorizer(
 		cfg.Region(),
 		functionARN,
 	)
-	identitySource := []string{"$request.header.Host"} // a header that's always sent so the authorizer always runs
+	identitySource := []string{"$request.header.Cookie"} // OK to use Cookie headers with CloudFront redirecting requests without cookies
 
 	var out *apigatewayv2.CreateAuthorizerOutput
 	out, err = client.CreateAuthorizer(ctx, &apigatewayv2.CreateAuthorizerInput{
@@ -35,7 +37,7 @@ func EnsureAuthorizer(
 		AuthorizerPayloadFormatVersion: aws.String("2.0"),
 		AuthorizerType:                 types.AuthorizerTypeRequest,
 		AuthorizerUri:                  aws.String(authorizerURI),
-		AuthorizerResultTtlInSeconds:   0, // XXX want 0 but UI reports 300 if this is 0
+		AuthorizerResultTtlInSeconds:   authorizerTTL,
 		IdentitySource:                 identitySource,
 		Name:                           aws.String(naming.Substrate),
 	})
@@ -55,7 +57,7 @@ func EnsureAuthorizer(
 			AuthorizerCredentialsArn:       aws.String(roleARN),
 			AuthorizerId:                   authorizer.AuthorizerId,
 			AuthorizerPayloadFormatVersion: aws.String("2.0"),
-			AuthorizerResultTtlInSeconds:   0, // XXX want 0 but UI reports 300 if this is 0
+			AuthorizerResultTtlInSeconds:   authorizerTTL,
 			AuthorizerType:                 types.AuthorizerTypeRequest,
 			AuthorizerUri:                  aws.String(authorizerURI),
 			IdentitySource:                 identitySource,
