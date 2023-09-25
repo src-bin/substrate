@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/src-bin/substrate/ui"
 )
 
 type Mux struct {
@@ -44,7 +45,7 @@ func (mux *Mux) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 		Version               string                                `json:"version"`
 	}
 	if err := json.Unmarshal(payload, &superevent); err != nil {
-		log.Print(err)
+		ui.PrintWithCaller(err)
 		return nil, err
 	}
 
@@ -85,7 +86,7 @@ func (mux *Mux) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
 		})
 	}
 	if err != nil {
-		log.Print(err)
+		ui.PrintWithCaller(err)
 		return nil, err
 	}
 

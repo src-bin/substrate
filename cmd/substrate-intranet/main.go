@@ -121,6 +121,7 @@ func main() {
 					principalId = fmt.Sprint(event.RequestContext.Authorizer.Lambda[authorizerutil.PrincipalId])
 				}
 				ctx = contextutil.WithValues(ctx, "substrate-intranet", event.RawPath, principalId)
+				ui.Printf("%s %s %s", event.RequestContext.HTTP.Method, event.RawPath, principalId)
 
 				if path.Dir(event.RawPath) == "/js" && path.Ext(event.RawPath) == ".js" {
 					k := strings.TrimSuffix(path.Base(event.RawPath), ".js")

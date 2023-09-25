@@ -54,6 +54,7 @@ func authorizer2(
 				}
 				ctx = context.WithValue(ctx, contextutil.Username, idToken.Email)
 				if authContext[authorizerutil.IDToken], err = idToken.JSONString(); err != nil {
+					ui.PrintWithCaller(err)
 					return nil, err
 				}
 			}
@@ -72,6 +73,7 @@ func authorizer2(
 			}
 		}
 
+		ui.Printf("%s %s %s %s", effect, event.RequestContext.HTTP.Method, event.RawPath, idToken.Email)
 		return &events.APIGatewayV2CustomAuthorizerIAMPolicyResponse{
 			Context: authContext,
 			PolicyDocument: events.APIGatewayCustomAuthorizerPolicy{
