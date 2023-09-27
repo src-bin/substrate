@@ -23,12 +23,15 @@ func EnsureDistribution(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	name string,
+	subjectAlternativeNames []string,
 	functionEvents []EventType,
 	functionCode string,
 	originURL string,
 ) (*Distribution, error) {
 	ui.Spinf("finding or creating the %s CloudFront distribution", name)
 	client := cfg.CloudFront()
+
+	// TODO awsacm.EnsureCertificate if len(subjectAlternativeNames) > 0
 
 	cachePolicy, err := ensureCachePolicy(ctx, cfg, name)
 	if err != nil {
@@ -47,8 +50,8 @@ func EnsureDistribution(
 	}
 	distributionConfig := &types.DistributionConfig{
 		Aliases: &types.Aliases{
-			//Items:    []string{},
-			Quantity: aws.Int32(0),
+			Items:    subjectAlternativeNames,
+			Quantity: aws.Int32(int32(len(subjectAlternativeNames))),
 		},
 		CacheBehaviors: &types.CacheBehaviors{
 			//Items:    []types.CacheBehavior{},
@@ -122,8 +125,9 @@ func EnsureDistribution(
 			},
 		},
 		ViewerCertificate: &types.ViewerCertificate{
-			CloudFrontDefaultCertificate: aws.Bool(true),
+			CloudFrontDefaultCertificate: aws.Bool(len(subjectAlternativeNames) == 0),
 			MinimumProtocolVersion:       types.MinimumProtocolVersionTLSv122021,
+			SSLSupportMethod:             types.SSLSupportMethodSniOnly,
 		},
 		WebACLId: aws.String(""),
 	}
@@ -136,6 +140,7 @@ func EnsureDistribution(
 	distributionConfig.DefaultCacheBehavior.FunctionAssociations.Quantity = aws.Int32(int32(
 		len(distributionConfig.DefaultCacheBehavior.FunctionAssociations.Items),
 	))
+	// TODO distributionConfig.ViewerCertificate.ACMCertificateArn = cert.Arn if len(subjectAlternativeNames) > 0
 
 	// If we can find an existing distribution with the same comment (which is
 	// the closest thing we're going to get to a secondary unique index in
