@@ -117,8 +117,8 @@ func Main2(
 		} else {
 			continue // unlists "$default", which is most of the Substrate-managed Intranet
 		}
-		if path == "/login" {
-			continue // unlists the rest of the Substrate-managed Intranet
+		if path == "/credential-factory/fetch" || path == "/login" {
+			continue // unlists the bits of the Substrate-managed Intranet that don't require auth[nz]
 		}
 		if strings.Contains(path, "{") {
 			continue // unlists parameterized paths we can't meaningfully link to

@@ -70,17 +70,25 @@ func EnsureAuthorizer(
 		return
 	}
 
+	// Use this authorizer for every route except GET /credential-factory/fetch
+	// and {GET,POST} /login. Yes, this is a leak in the abstraction to pretend
+	// this is a generalized AWS API Gateway management client but, hey, it's
+	// not and that doesn't matter to Substrate (yet).
 	var integration *types.Integration
 	if integration, err = getIntegrationByFunctionARN(ctx, cfg, apiId, functionARN); err != nil {
 		ui.StopErr(err)
 		return
 	}
 	target := fmt.Sprintf("integrations/%s", aws.ToString(integration.IntegrationId))
-	if err = EnsureRoute(ctx, cfg, apiId, []string{"GET", "POST"}, "/login", "", target); err != nil { // no authorizer for /login
+	if err = EnsureRoute(ctx, cfg, apiId, []string{"GET"}, "/credential-factory/fetch", "", target); err != nil {
 		ui.StopErr(err)
 		return
 	}
-	err = UpdateRoute(ctx, cfg, apiId, Default, authorizerId, target) // authorizer for every other route
+	if err = EnsureRoute(ctx, cfg, apiId, []string{"GET", "POST"}, "/login", "", target); err != nil {
+		ui.StopErr(err)
+		return
+	}
+	err = UpdateRoute(ctx, cfg, apiId, Default, authorizerId, target)
 	if err != nil {
 		ui.StopErr(err)
 		return

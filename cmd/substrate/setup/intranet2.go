@@ -202,6 +202,14 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 
 	// Now configure CloudFront to handle redirects and front the API Gateways
 	// in all our regions.
+	//
+	// It'd be great if, instead of having to drag the exp cookie around all
+	// over everywhere, if we just had enough CPU or a reasonable enough input
+	// data structure that we could do this:
+	//
+	//   if (Date.now() > JSON.parse(Buffer.from(event.request.cookies.id.value.split(".")[1], "base64url")).exp*1000) {
+	//
+	// That would be less of a hack.
 	ui.Spin("configuring CloudFront for the Substrate-managed Intranet")
 	distribution, err := awscloudfront.EnsureDistribution(
 		ctx,
@@ -215,7 +223,6 @@ function handler(event) {
 	if (event.context.eventType === "viewer-request") {
 
 		try {
-			//if (Date.now() > JSON.parse(Buffer.from(event.request.cookies.id.value.split(".")[1], "base64url")).exp*1000) {
 			if (Date.now() > parseInt(event.request.cookies.exp.value)*1000) {
 				event.request.cookies = {};
 			}
@@ -224,7 +231,7 @@ function handler(event) {
 			event.request.cookies = {};
 		}
 
-		if (!event.request.cookies.a && event.request.uri !== "/login") {
+		if (!event.request.cookies.a && event.request.uri !== "/credential-factory/fetch" && event.request.uri !== "/login") {
 			var properties = Object.getOwnPropertyNames(event.request.querystring),
 				query = {};
 			for (var i = 0; i < properties.length; ++i) {
