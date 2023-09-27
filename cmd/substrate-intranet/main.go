@@ -123,7 +123,9 @@ func main() {
 				ctx = contextutil.WithValues(ctx, "substrate-intranet", event.RawPath, principalId)
 				ui.Printf("%s %s %s", event.RequestContext.HTTP.Method, event.RawPath, principalId)
 
-				if path.Dir(event.RawPath) == "/js" && path.Ext(event.RawPath) == ".js" {
+				if event.RawPath == "/favicon.ico" {
+					return &events.APIGatewayV2HTTPResponse{StatusCode: http.StatusNoContent}, nil
+				} else if path.Dir(event.RawPath) == "/js" && path.Ext(event.RawPath) == ".js" {
 					k := strings.TrimSuffix(path.Base(event.RawPath), ".js")
 					if f, ok := dispatchMapJavaScript[k]; ok {
 						return f(ctx, cfg, oc.Copy(), event)
