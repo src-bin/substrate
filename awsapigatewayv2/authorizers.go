@@ -13,7 +13,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-const authorizerTTL = 60 // 0 // the UI shows 300 if this is 0
+const authorizerTTL = 0 // HERE BE DRAGONS! Don't run any TTL except 0 unless the identity source is truly user-scoped
 
 func EnsureAuthorizer(
 	ctx context.Context,
@@ -28,7 +28,9 @@ func EnsureAuthorizer(
 		cfg.Region(),
 		functionARN,
 	)
-	identitySource := []string{"$request.header.Cookie"} // OK to use Cookie headers with CloudFront redirecting requests without cookies
+	//identitySource := []string{"$request.header.Host"} // HERE BE DRAGONS! Don't run any TTL except 0 with this identity source
+	//identitySource := []string{"$request.header.Cookie"} // it'd be nice if this worked but for some reason it causes lots of 403s
+	identitySource := []string{"$context.requestId"} // make the authorizer run on every request
 
 	var out *apigatewayv2.CreateAuthorizerOutput
 	out, err = client.CreateAuthorizer(ctx, &apigatewayv2.CreateAuthorizerInput{

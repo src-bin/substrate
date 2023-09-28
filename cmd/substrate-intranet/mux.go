@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/src-bin/substrate/ui"
