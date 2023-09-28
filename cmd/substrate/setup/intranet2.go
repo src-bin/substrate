@@ -215,6 +215,7 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		ctx,
 		substrateCfg,
 		naming.Substrate,
+		[]string{}, // TODO []string{fmt.Sprintf("preview.%s", dnsDomainName)}, and then without "preview."
 		[]awscloudfront.EventType{awscloudfront.ViewerRequest, awscloudfront.ViewerResponse},
 		`
 var querystring = require("querystring");
