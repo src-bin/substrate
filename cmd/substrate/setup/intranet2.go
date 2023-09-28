@@ -156,7 +156,7 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 	}
 
 	// Construct the Intranet in every region we're using.
-	var originURL string // TODO tolerate multiple regions
+	var originURLs []string
 	for _, region := range regions.Selected() {
 		ui.Spinf("configuring the Substrate-managed Intranet in %s", region)
 		cfg := substrateCfg.Regional(region)
@@ -175,7 +175,7 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		api, err := awsapigatewayv2.EnsureAPI(ctx, cfg, naming.Substrate, roleARN, functionARN)
 		ui.Must(err)
 		//ui.Debug(api)
-		originURL = api.Endpoint // TODO tolerate multiple regions
+		originURLs = append(originURLs, api.Endpoint)
 
 		_ /* authorizerId */, err = awsapigatewayv2.EnsureAuthorizer(ctx, cfg, api.Id, naming.Substrate, roleARN, functionARN)
 		ui.Must(err)
@@ -258,7 +258,7 @@ function handler(event) {
 	}
 }
 		`,
-		originURL, // TODO tolerate multiple regions
+		originURLs[0], // TODO tolerate multiple regions
 	)
 	ui.Must(err)
 	ui.Stop("ok")
