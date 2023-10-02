@@ -37,6 +37,6 @@ curl \
     -H"Authorization: Bearer $(jq -r ".access_token" <"$TMP")" \
     -H"Content-Type: application/json; charset=utf-8" \
     -X"POST" \
-    -d '{"text": "Substrate '"$VERSION"' is out! Release notes: https://docs.src-bin.com/substrate/releases#'"$VERSION"'"}' \
+    -d '{"text": "Substrate '"$VERSION"' is out! Release notes: https://docs.substrate.tools/substrate/releases#'"$VERSION"'"}' \
     -s \
     "https://api.twitter.com/2/tweets"

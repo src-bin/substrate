@@ -494,7 +494,7 @@ func EnsureAdminRolesAndPolicies(ctx context.Context, cfg *awscfg.Config, doClou
 
 		} else {
 			ui.Printf(
-				"could not assume OrganizationAccountAccessRole or Administrator in account %s; not able to manage the Administrator or Auditor roles there; create Administrator per <https://docs.src-bin.com/substrate/bootstrapping/integrating-your-original-aws-account> to resolve this warning",
+				"could not assume OrganizationAccountAccessRole or Administrator in account %s; not able to manage the Administrator or Auditor roles there; create Administrator per <https://docs.substrate.tools/substrate/bootstrapping/integrating-your-original-aws-account> to resolve this warning",
 				account.Id,
 			)
 		}

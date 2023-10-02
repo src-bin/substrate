@@ -55,11 +55,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	flag.Parse()
 
 	if version.IsTrial() {
-		ui.Print("since this is a trial version of Substrate, it will post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.src-bin.com/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used; paying customers may opt out of this telemetry")
+		ui.Print("since this is a trial version of Substrate, it will post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.substrate.tools/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used; paying customers may opt out of this telemetry")
 	} else {
 		_, err := ui.ConfirmFile(
 			telemetry.Filename,
-			"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.src-bin.com/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
+			"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.substrate.tools/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
 		)
 		ui.Must(err)
 	}
@@ -839,15 +839,15 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	switch idpName {
 	case oauthoidc.AzureAD:
 		ui.Print("- onboard your coworkers by setting the AWS.RoleName custom security attribute in Azure AD")
-		ui.Print("  (see <https://docs.src-bin.com/substrate/bootstrapping/integrating-your-identity-provider/azure-ad> for details)")
+		ui.Print("  (see <https://docs.substrate.tools/substrate/bootstrapping/integrating-your-identity-provider/azure-ad> for details)")
 	case oauthoidc.Google:
 		ui.Print("- onboard your coworkers by setting the AWS.RoleName custom attribute in Google Workspace")
-		ui.Print("  (see <https://docs.src-bin.com/substrate/bootstrapping/integrating-your-identity-provider/google> for details)")
+		ui.Print("  (see <https://docs.substrate.tools/substrate/bootstrapping/integrating-your-identity-provider/google> for details)")
 	case oauthoidc.Okta:
 		ui.Print("- onboard your coworkers by setting the AWS_RoleName profile attribute in Okta")
-		ui.Print("  (see <https://docs.src-bin.com/substrate/bootstrapping/integrating-your-identity-provider/okta> for details)")
+		ui.Print("  (see <https://docs.substrate.tools/substrate/bootstrapping/integrating-your-identity-provider/okta> for details)")
 	}
-	ui.Print("- refer to the Substrate documentation at <https://docs.src-bin.com/substrate/>")
+	ui.Print("- refer to the Substrate documentation at <https://docs.substrate.tools/substrate/>")
 	ui.Print("- email <help@src-bin.com> or mention us in Slack for support")
 
 	if features.APIGatewayV2.Enabled() {

@@ -8,5 +8,5 @@ trap "rm -f \"$TMP\"" EXIT INT QUIT TERM
 git describe --exact-match --tags "HEAD" >"$TMP" || exit 0
 
 # Ensure we've at least pushed release notes covering this tagged release.
-curl -s "https://docs.src-bin.com/substrate/releases" |
+curl -s "https://docs.substrate.tools/substrate/releases" |
 grep -F "$(cat "$TMP")"
