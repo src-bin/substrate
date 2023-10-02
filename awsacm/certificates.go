@@ -82,7 +82,7 @@ func EnsureCertificate(
 
 	// Validate the request in the DNS.
 	ui.Stop("ok")
-	ui.Spinf("validating %s for %s in %s", certARN, dnsDomainName, cfg.Region())
+	ui.Spinf("validating %s", certARN)
 	changes := make([]awsroute53.Change, len(certDetail.DomainValidationOptions))
 	for i, dvo := range certDetail.DomainValidationOptions {
 		changes[i].Action = awsroute53.UPSERT
