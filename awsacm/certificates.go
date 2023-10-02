@@ -38,7 +38,7 @@ func EnsureCertificate(
 	subjectAlternativeNames []string,
 	zoneId string,
 ) (certDetail *CertificateDetail, err error) {
-	ui.Spinf("finding or creating a certificate for %s in %s", dnsDomainName, cfg.Region())
+	ui.Spinf("finding or requesting a certificate for %s in %s", dnsDomainName, cfg.Region())
 	client := cfg.ACM()
 
 	// Find or create the certificate.
@@ -98,6 +98,8 @@ func EnsureCertificate(
 	}
 
 	// Await certificate issuance.
+	ui.Stop("ok")
+	ui.Spinf("waiting for %s to be issued", certARN)
 	for range awsutil.StandardJitteredExponentialBackoff() {
 		if certDetail, err = DescribeCertificate(ctx, cfg, certARN); err != nil {
 			return nil, ui.StopErr(err)
