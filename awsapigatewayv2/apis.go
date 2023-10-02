@@ -10,11 +10,15 @@ import (
 	"github.com/src-bin/substrate/awsacm"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscloudwatch"
+	"github.com/src-bin/substrate/awsroute53"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
+
+const NotFoundException = "NotFoundException"
 
 type API struct {
 	Endpoint, Id string
@@ -159,6 +163,77 @@ func EnsureAPI(
 
 	cert, err := awsacm.EnsureCertificate(ctx, cfg, dnsDomainName, []string{dnsDomainName}, zoneId)
 	if err != nil {
+		return nil, ui.StopErr(err)
+	}
+	//ui.Debug(cert)
+
+	aliasTarget := &awsroute53.AliasTarget{EvaluateTargetHealth: true}
+	if out, err := client.GetDomainName(ctx, &apigatewayv2.GetDomainNameInput{
+		DomainName: aws.String(dnsDomainName),
+	}); awsutil.ErrorCodeIs(err, NotFoundException) {
+		out, err := client.CreateDomainName(ctx, &apigatewayv2.CreateDomainNameInput{
+			DomainName: aws.String(dnsDomainName),
+			DomainNameConfigurations: []types.DomainNameConfiguration{{
+				CertificateArn: cert.CertificateArn,
+				EndpointType:   types.EndpointTypeRegional,
+				SecurityPolicy: types.SecurityPolicyTls12,
+			}},
+			Tags: tagging.Map{
+				tagging.Manager:          tagging.Substrate,
+				tagging.SubstrateVersion: version.Version,
+			},
+		})
+		if err != nil {
+			return nil, ui.StopErr(err)
+		}
+		aliasTarget.DNSName = out.DomainNameConfigurations[0].ApiGatewayDomainName
+		aliasTarget.HostedZoneId = out.DomainNameConfigurations[0].HostedZoneId
+	} else if err != nil {
+		return nil, ui.StopErr(err)
+	} else {
+		aliasTarget.DNSName = out.DomainNameConfigurations[0].ApiGatewayDomainName
+		aliasTarget.HostedZoneId = out.DomainNameConfigurations[0].HostedZoneId
+	}
+	if out, err := client.GetApiMappings(ctx, &apigatewayv2.GetApiMappingsInput{
+		DomainName: aws.String(dnsDomainName),
+	}); err != nil {
+		return nil, ui.StopErr(err)
+	} else if len(out.Items) == 0 { // TODO detect an item that's on the wrong domain to delete and recreate
+		out, err := client.CreateApiMapping(ctx, &apigatewayv2.CreateApiMappingInput{
+			ApiId:      aws.String(api.Id),
+			DomainName: aws.String(dnsDomainName),
+			Stage:      aws.String("$default"),
+		})
+		if err != nil {
+			return nil, ui.StopErr(err)
+		}
+		_ = out // use out.ApiMapping{Id,Key}
+	} else {
+		_ = out // use out.ApiMapping{Id,Key}
+	}
+
+	if err := awsroute53.ChangeResourceRecordSets(ctx, cfg, zoneId, []awsroute53.Change{
+		{
+			Action: awsroute53.UPSERT,
+			ResourceRecordSet: &awsroute53.ResourceRecordSet{
+				AliasTarget:   aliasTarget,
+				Name:          aws.String(dnsDomainName),
+				Region:        awsroute53.ResourceRecordSetRegion(cfg.Region()), // latency-based routing
+				SetIdentifier: aws.String(cfg.Region()),
+				Type:          awsroute53.A,
+			},
+		},
+		{
+			Action: awsroute53.UPSERT,
+			ResourceRecordSet: &awsroute53.ResourceRecordSet{
+				AliasTarget:   aliasTarget,
+				Name:          aws.String(dnsDomainName),
+				Region:        awsroute53.ResourceRecordSetRegion(cfg.Region()), // latency-based routing
+				SetIdentifier: aws.String(cfg.Region()),
+				Type:          awsroute53.AAAA,
+			},
+		},
+	}); err != nil {
 		return nil, ui.StopErr(err)
 	}
 

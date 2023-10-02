@@ -13,14 +13,21 @@ const (
 	CREATE = types.ChangeActionCreate
 	DELETE = types.ChangeActionDelete
 	UPSERT = types.ChangeActionUpsert
+
+	A     = types.RRTypeA
+	AAAA  = types.RRTypeAaaa
+	CNAME = types.RRTypeCname
+	TXT   = types.RRTypeTxt
 )
 
 type (
-	Change            = types.Change
-	ChangeAction      = types.ChangeAction
-	RRType            = types.RRType
-	ResourceRecord    = types.ResourceRecord
-	ResourceRecordSet = types.ResourceRecordSet
+	AliasTarget             = types.AliasTarget
+	Change                  = types.Change
+	ChangeAction            = types.ChangeAction
+	RRType                  = types.RRType
+	ResourceRecord          = types.ResourceRecord
+	ResourceRecordSet       = types.ResourceRecordSet
+	ResourceRecordSetRegion = types.ResourceRecordSetRegion
 )
 
 func ChangeResourceRecordSets(

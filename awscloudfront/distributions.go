@@ -45,6 +45,7 @@ func EnsureDistribution(
 		}
 	}
 	u, err := url.Parse(originURL)
+	//ui.Debug(u)
 	if err != nil {
 		return nil, ui.StopErr(err)
 	}
@@ -141,6 +142,7 @@ func EnsureDistribution(
 		len(distributionConfig.DefaultCacheBehavior.FunctionAssociations.Items),
 	))
 	// TODO distributionConfig.ViewerCertificate.ACMCertificateArn = cert.Arn if len(subjectAlternativeNames) > 0
+	//ui.Debug(distributionConfig)
 
 	// If we can find an existing distribution with the same comment (which is
 	// the closest thing we're going to get to a secondary unique index in

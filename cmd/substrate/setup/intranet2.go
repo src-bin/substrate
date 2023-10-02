@@ -158,7 +158,6 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 	}
 
 	// Construct the Intranet in every region we're using.
-	var originURLs []string
 	for _, region := range regions.Selected() {
 		ui.Spinf("configuring the Substrate-managed Intranet in %s", region)
 		cfg := substrateCfg.Regional(region)
@@ -178,14 +177,13 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 			ctx,
 			cfg,
 			naming.Substrate,
-			fmt.Sprintf("apigatewayv2.%s", dnsDomainName), // I truly want to think of a better name for this internal DNS label
+			fmt.Sprintf("apigatewayv2.%s", dnsDomainName), // internal but safe DNS name (only 403 to 302 translation happens in CloudFront)
 			aws.ToString(zone.Id),
 			roleARN,
 			functionARN,
 		)
 		ui.Must(err)
 		//ui.Debug(api)
-		originURLs = append(originURLs, api.Endpoint)
 
 		_ /* authorizerId */, err = awsapigatewayv2.EnsureAuthorizer(ctx, cfg, api.Id, naming.Substrate, roleARN, functionARN)
 		ui.Must(err)
