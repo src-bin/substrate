@@ -1,6 +1,7 @@
 package awscfg
 
 import (
+	"github.com/aws/aws-sdk-go-v2/service/acm"
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
@@ -18,6 +19,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
+
+func (c *Config) ACM() *acm.Client {
+	return acm.NewFromConfig(c.cfg) // TODO memoize regionally
+}
 
 func (c *Config) APIGateway() *apigateway.Client {
 	return apigateway.NewFromConfig(c.cfg) // TODO memoize regionally

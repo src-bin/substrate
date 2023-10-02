@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awsapigatewayv2"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscloudfront"
@@ -64,8 +65,9 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 	ui.Must(err)
 	ui.Printf("using DNS domain name %s for your organization's Intranet", dnsDomainName)
 	ui.Spinf("waiting for a hosted zone to appear for %s.", dnsDomainName)
+	var zone *awsroute53.HostedZone
 	for {
-		zone, err := awsroute53.FindHostedZone(ctx, substrateCfg, dnsDomainName+".")
+		zone, err = awsroute53.FindHostedZone(ctx, substrateCfg, dnsDomainName+".")
 		if _, ok := err.(awsroute53.HostedZoneNotFoundError); ok {
 			time.Sleep(1e9) // TODO exponential backoff
 			continue
@@ -172,7 +174,15 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		ui.Must(err)
 		//ui.Debug(functionARN)
 
-		api, err := awsapigatewayv2.EnsureAPI(ctx, cfg, naming.Substrate, roleARN, functionARN)
+		api, err := awsapigatewayv2.EnsureAPI(
+			ctx,
+			cfg,
+			naming.Substrate,
+			fmt.Sprintf("apigatewayv2.%s", dnsDomainName), // I truly want to think of a better name for this internal DNS label
+			aws.ToString(zone.Id),
+			roleARN,
+			functionARN,
+		)
 		ui.Must(err)
 		//ui.Debug(api)
 		originURLs = append(originURLs, api.Endpoint)
@@ -258,7 +268,7 @@ function handler(event) {
 	}
 }
 		`,
-		originURLs[0], // TODO tolerate multiple regions
+		fmt.Sprintf("https://apigatewayv2.%s", dnsDomainName),
 	)
 	ui.Must(err)
 	ui.Stop("ok")

@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2"
 	"github.com/aws/aws-sdk-go-v2/service/apigatewayv2/types"
+	"github.com/src-bin/substrate/awsacm"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscloudwatch"
 	"github.com/src-bin/substrate/jsonutil"
@@ -22,7 +23,9 @@ type API struct {
 func EnsureAPI(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	name, roleARN, functionARN string,
+	name string,
+	dnsDomainName, zoneId string,
+	roleARN, functionARN string,
 ) (*API, error) {
 	ui.Spinf("finding or creating the %s API Gateway v2", name)
 	client := cfg.APIGatewayV2()
@@ -68,21 +71,21 @@ func EnsureAPI(
 		return nil, ui.StopErr(err)
 	}
 
-	var integration *types.Integration
-	if integration, err = getIntegrationByFunctionARN(ctx, cfg, api.Id, functionARN); err != nil {
-		return nil, ui.StopErr(err)
-	}
-	if _, err = client.UpdateIntegration(ctx, &apigatewayv2.UpdateIntegrationInput{
-		ApiId:         aws.String(api.Id),
-		IntegrationId: integration.IntegrationId,
+	/*
+		var integration *types.Integration
+		if integration, err = getIntegrationByFunctionARN(ctx, cfg, api.Id, functionARN); err != nil {
+			return nil, ui.StopErr(err)
+		}
+		if _, err = client.UpdateIntegration(ctx, &apigatewayv2.UpdateIntegrationInput{
+			ApiId:         aws.String(api.Id),
+			IntegrationId: integration.IntegrationId,
 
-		// I wish we could do HSTS and respond 302 Found to redirect to login
-		// right here in API Gateway but, of course, they sabotaged themselves
-		// and made this impossible. Being precise, these ResponseParameters
-		// settings _work_ but they aren't consulted at all when an authorizer
-		// is responding and so they have no utility in a browser-based
-		// authentication and authorization flow.
-		/*
+			// I wish we could do HSTS and respond 302 Found to redirect to login
+			// right here in API Gateway but, of course, they sabotaged themselves
+			// and made this impossible. Being precise, these ResponseParameters
+			// settings _work_ but they aren't consulted at all when an authorizer
+			// is responding and so they have no utility in a browser-based
+			// authentication and authorization flow.
 			ResponseParameters: map[string]map[string]string{
 				"200": map[string]string{"append:header.Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"},
 				"302": map[string]string{"append:header.Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"},
@@ -99,11 +102,10 @@ func EnsureAPI(
 				"404": map[string]string{"append:header.Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"},
 				"500": map[string]string{"append:header.Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"},
 			},
-		*/
-
-	}); err != nil {
-		return nil, ui.StopErr(err)
-	}
+		}); err != nil {
+			return nil, ui.StopErr(err)
+		}
+	*/
 
 	if _, err = client.UpdateStage(ctx, &apigatewayv2.UpdateStageInput{
 		AccessLogSettings: &types.AccessLogSettings{
@@ -152,6 +154,11 @@ func EnsureAPI(
 		AutoDeploy: true,
 		StageName:  aws.String("$default"),
 	}); err != nil {
+		return nil, ui.StopErr(err)
+	}
+
+	cert, err := awsacm.EnsureCertificate(ctx, cfg, dnsDomainName, []string{dnsDomainName}, zoneId)
+	if err != nil {
 		return nil, ui.StopErr(err)
 	}
 
