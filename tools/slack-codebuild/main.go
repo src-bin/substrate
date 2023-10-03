@@ -236,7 +236,7 @@ func slack(body map[string]string) {
 		}
 		fmt.Printf(" response body: %s\n", string(b))
 	} else {
-		fmt.Printf(" not sent because SLACK_WEBHOOK_URL isn't in the environment\n", string(b))
+		fmt.Print(" not sent because SLACK_WEBHOOK_URL isn't in the environment\n")
 	}
 }
 
