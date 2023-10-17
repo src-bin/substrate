@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/identitystore"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/ram"
@@ -17,6 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
+	"github.com/aws/aws-sdk-go-v2/service/sso"
+	"github.com/aws/aws-sdk-go-v2/service/ssoadmin"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
@@ -56,6 +59,10 @@ func (c *Config) IAM() *iam.Client {
 	return iam.NewFromConfig(c.cfg) // TODO memoize
 }
 
+func (c *Config) IdentityStore() *identitystore.Client {
+	return identitystore.NewFromConfig(c.cfg) // TODO memoize regionally
+}
+
 func (c *Config) Lambda() *lambda.Client {
 	return lambda.NewFromConfig(c.cfg) // TODO memoize regionally
 }
@@ -74,6 +81,14 @@ func (c *Config) Route53() *route53.Client {
 
 func (c *Config) S3() *s3.Client {
 	return s3.NewFromConfig(c.cfg) // TODO memoize regionally
+}
+
+func (c *Config) SSO() *sso.Client {
+	return sso.NewFromConfig(c.cfg) // TODO memoize regionally
+}
+
+func (c *Config) SSOAdmin() *ssoadmin.Client {
+	return ssoadmin.NewFromConfig(c.cfg) // TODO memoize regionally
 }
 
 func (c *Config) STS() *sts.Client {
