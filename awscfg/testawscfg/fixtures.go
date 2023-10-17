@@ -10,63 +10,77 @@ import (
 )
 
 const (
-	Test1AdminAccountId = "716893237583"
-	Test2AdminAccountId = "944106955638"
-	Test3AdminAccountId = "615242630409"
-	//Test4AdminAccountId = "" // AWS Control Tower test
-	//Test5AdminAccountId = "" // AWS IAM Identity Center test
-	Test6AdminAccountId = "290222018231"
+	Test1SubstrateAccountId = "716893237583"
+	Test2SubstrateAccountId = "944106955638"
+	Test3SubstrateAccountId = "615242630409"
+	Test4SubstrateAccountId = "581144495976" // initially an AWS Control Tower test
+	//Test5SubstrateAccountId = "" // AWS IAM Identity Center test
+	Test6SubstrateAccountId  = "290222018231"
+	Test7SubstrateAccountId  = "119320875853"
+	Test8SubstrateAccountId  = "283931283135"
+	Test9SubstrateAccountId  = "981340593605"
+	Test10SubstrateAccountId = "158812816352"
+	Test11SubstrateAccountId = "904600466829"
 )
 
 // Test1 returns an *awscfg.Config with the given role in the src-bin-test1
-// organization's admin account.
+// organization's Substrate account.
 func Test1(roleName string) *awscfg.Config {
 	substrateRoot("test1")
 	return awscfg.Must(cfg(ctx()).AssumeRole(
 		ctx(),
-		Test1AdminAccountId,
+		Test1SubstrateAccountId,
 		roleName,
 		time.Hour,
 	))
 }
 
-// Test2 returns an *awscfg.Config with the given role in the src-bin-test1
-// organization's admin account.
+// Test2 returns an *awscfg.Config with the given role in the src-bin-test2
+// organization's Substrate account.
 func Test2(roleName string) *awscfg.Config {
 	substrateRoot("test2")
 	return awscfg.Must(cfg(ctx()).AssumeRole(
 		ctx(),
-		Test2AdminAccountId,
+		Test2SubstrateAccountId,
 		roleName,
 		time.Hour,
 	))
 }
 
-// Test3 returns an *awscfg.Config with the given role in the src-bin-test1
-// organization's admin account.
+// Test3 returns an *awscfg.Config with the given role in the src-bin-test3
+// organization's Substrate account.
 func Test3(roleName string) *awscfg.Config {
 	substrateRoot("test3")
 	return awscfg.Must(cfg(ctx()).AssumeRole(
 		ctx(),
-		Test3AdminAccountId,
+		Test3SubstrateAccountId,
 		roleName,
 		time.Hour,
 	))
 }
 
-// Test4 would exist but that organization is an AWS Control Tower test
-// organization and doesn't have Substrate fully bootstrapped.
+// Test4 returns an *awscfg.Config with the given role in the src-bin-test4
+// organization's Substrate account.
+func Test4(roleName string) *awscfg.Config {
+	substrateRoot("test4")
+	return awscfg.Must(cfg(ctx()).AssumeRole(
+		ctx(),
+		Test4SubstrateAccountId,
+		roleName,
+		time.Hour,
+	))
+}
 
 // Test5 would exist but that organization is an AWS IAM Identity Center test
 // organization and doesn't have Substrate fully bootstrapped.
 
-// Test6 returns an *awscfg.Config with the given role in the src-bin-test1
-// organization's admin account.
+// Test6 returns an *awscfg.Config with the given role in the src-bin-test6
+// organization's Substrate account.
 func Test6(roleName string) *awscfg.Config {
 	substrateRoot("test6")
 	return awscfg.Must(cfg(ctx()).AssumeRole(
 		ctx(),
-		Test6AdminAccountId,
+		Test6SubstrateAccountId,
 		roleName,
 		time.Hour,
 	))
