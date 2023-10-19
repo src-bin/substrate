@@ -9,11 +9,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
+	"github.com/src-bin/substrate/awsacm"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
+
+const HostedZoneId = "Z2FDTNDATAQYW2" // CloudFront's zone ID in Route 53 for use when creating ALIAS records
 
 type Distribution struct { // just the fields we want out of types.Distribution and types.DistributionSummary
 	ARN, Comment, DomainName, Id string
@@ -23,15 +27,14 @@ func EnsureDistribution(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	name string,
-	subjectAlternativeNames []string,
+	subjectAlternativeNames []string, // all of these names...
+	zoneId string, // ...must be in this zone
 	functionEvents []EventType,
 	functionCode string,
 	originURL string,
 ) (*Distribution, error) {
 	ui.Spinf("finding or creating the %s CloudFront distribution", name)
 	client := cfg.CloudFront()
-
-	// TODO awsacm.EnsureCertificate if len(subjectAlternativeNames) > 0
 
 	cachePolicy, err := ensureCachePolicy(ctx, cfg, name)
 	if err != nil {
@@ -141,7 +144,19 @@ func EnsureDistribution(
 	distributionConfig.DefaultCacheBehavior.FunctionAssociations.Quantity = aws.Int32(int32(
 		len(distributionConfig.DefaultCacheBehavior.FunctionAssociations.Items),
 	))
-	// TODO distributionConfig.ViewerCertificate.ACMCertificateArn = cert.Arn if len(subjectAlternativeNames) > 0
+	if len(subjectAlternativeNames) > 0 {
+		cert, err := awsacm.EnsureCertificate(
+			ctx,
+			cfg.Regional("us-east-1"),  // certificates from ACM for CloudFront must be in us-east-1
+			subjectAlternativeNames[0], // CN, which doesn't actually matter so the first name's good enough
+			subjectAlternativeNames,
+			zoneId,
+		)
+		if err != nil {
+			return nil, ui.StopErr(err)
+		}
+		distributionConfig.ViewerCertificate.ACMCertificateArn = cert.CertificateArn
+	}
 	//ui.Debug(distributionConfig)
 
 	// If we can find an existing distribution with the same comment (which is
@@ -161,6 +176,9 @@ func EnsureDistribution(
 			Id:                 d.Id,
 			IfMatch:            out.ETag,
 		}); err != nil {
+			return nil, ui.StopErr(err)
+		}
+		if err := changeResourceRecordSets(ctx, cfg, subjectAlternativeNames, zoneId, d.DomainName); err != nil {
 			return nil, ui.StopErr(err)
 		}
 		ui.Stop("ok")
@@ -185,6 +203,16 @@ func EnsureDistribution(
 		return nil, ui.StopErr(err)
 	}
 
+	if err := changeResourceRecordSets(
+		ctx,
+		cfg,
+		subjectAlternativeNames,
+		zoneId,
+		out.Distribution.DomainName,
+	); err != nil {
+		return nil, ui.StopErr(err)
+	}
+
 	ui.Stop("ok")
 	return &Distribution{
 		ARN:        aws.ToString(out.Distribution.ARN),
@@ -205,6 +233,43 @@ func GetDistributionByName(ctx context.Context, cfg *awscfg.Config, name string)
 		DomainName: aws.ToString(d.DomainName),
 		Id:         aws.ToString(d.Id),
 	}, nil
+}
+
+func changeResourceRecordSets(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	subjectAlternativeNames []string,
+	zoneId string,
+	aliasDNSName *string,
+) error {
+	aliasTarget := &awsroute53.AliasTarget{
+		DNSName:              aliasDNSName,
+		EvaluateTargetHealth: true,
+		HostedZoneId:         aws.String(HostedZoneId),
+	}
+	var changes []awsroute53.Change
+	for _, subjectAlternativeName := range subjectAlternativeNames {
+		changes = append(
+			changes,
+			awsroute53.Change{
+				Action: awsroute53.UPSERT,
+				ResourceRecordSet: &awsroute53.ResourceRecordSet{
+					AliasTarget: aliasTarget,
+					Name:        aws.String(subjectAlternativeName),
+					Type:        awsroute53.A,
+				},
+			},
+			awsroute53.Change{
+				Action: awsroute53.UPSERT,
+				ResourceRecordSet: &awsroute53.ResourceRecordSet{
+					AliasTarget: aliasTarget,
+					Name:        aws.String(subjectAlternativeName),
+					Type:        awsroute53.AAAA,
+				},
+			},
+		)
+	}
+	return awsroute53.ChangeResourceRecordSets(ctx, cfg, zoneId, changes)
 }
 
 func getDistributionByName(ctx context.Context, cfg *awscfg.Config, name string) (*types.DistributionSummary, error) {

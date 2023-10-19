@@ -72,6 +72,7 @@ func EnsureCertificate(
 		if certDetail, err = DescribeCertificate(ctx, cfg, certARN); err != nil {
 			return nil, ui.StopErr(err)
 		}
+		//ui.Debug(certDetail)
 		if certDetail.DomainValidationOptions != nil && certDetail.DomainValidationOptions[0].ResourceRecord != nil {
 			break
 		}

@@ -28,17 +28,20 @@ func JitteredExponentialBackoff(init, max time.Duration) <-chan time.Duration {
 			// We can safely break to let this goroutine exit and the channel
 			// be garbage-collected.
 			time.Sleep(d + jitter)
-			var closed bool
-			select {
-			case ch <- d + jitter:
-				//log.Printf("slept %v+%v and sent", d, jitter)
-			default:
-				closed = true // indirection because break applies to selects, too
-				//log.Printf("slept %v+%v and broke the loop", d, jitter)
-			}
-			if closed {
-				break
-			}
+			/*
+				var closed bool
+				select {
+				case ch <- d + jitter:
+					//log.Printf("slept %v+%v and sent", d, jitter)
+				default:
+					closed = true // indirection because break applies to selects, too
+					//log.Printf("slept %v+%v and broke the loop", d, jitter)
+				}
+				if closed {
+					break
+				}
+			*/ // XXX fine, let the channel and the goroutine leak
+			ch <- d + jitter
 
 			d *= 2
 			if d > max {

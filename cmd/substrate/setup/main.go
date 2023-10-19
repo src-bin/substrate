@@ -773,24 +773,17 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 	// Configure the Intranet in the Substrate account.
 	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
-	var (
-		dnsDomainName2 string
-		idpName2       oauthoidc.Provider
-	)
-	if features.APIGatewayV2.Enabled() {
-		dnsDomainName2, idpName2 = intranet2(ctx, mgmtCfg, substrateCfg)
-		/*
-			if dnsDomainName2 != "" && dnsDomainName != dnsDomainName2 {
-				ui.Fatalf(
-					"first- and second-generation Intranets should have the same DNS domain name but got %q and %q",
-					dnsDomainName,
-					dnsDomainName2,
-				)
-			}
-			if idpName2 != "" && idpName != idpName2 {
-				ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
-			}
-		*/
+	dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
+	if dnsDomainName2 != "" && fmt.Sprintf("preview.%s", dnsDomainName) != dnsDomainName2 {
+		ui.Fatalf(
+			`expected second-generation Intranet DNS domain name to be %q, based on the first-generation name %q, but got %q`,
+			fmt.Sprintf("preview.%s", dnsDomainName),
+			dnsDomainName,
+			dnsDomainName2,
+		)
+	}
+	if idpName2 != "" && idpName != idpName2 {
+		ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
 	}
 
 	// TODO configure IAM Identity Center (later)
@@ -829,8 +822,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Print("modules/")
 	ui.Print("root-modules/")
 	ui.Print("substrate.*")
-	ui.Printf("%s (new as of Substrate 2023.09)", terraform.RequiredVersionFilename)              // TODO remove parenthetical in 2023.10
-	ui.Printf("%s (new as of Substrate 2023.09)", terraform.AWSProviderVersionConstraintFilename) // TODO remove parenthetical in 2023.10
+	ui.Print(terraform.RequiredVersionFilename)
+	ui.Print(terraform.AWSProviderVersionConstraintFilename)
 	ui.Print("")
 	ui.Print("next steps:")
 	ui.Print("- run `substrate setup-cloudtrail` to setup CloudTrail logging to S3 for all accounts in all regions")
@@ -850,21 +843,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Print("- refer to the Substrate documentation at <https://docs.substrate.tools/substrate/>")
 	ui.Print("- email <help@src-bin.com> or mention us in Slack for support")
 
-	if features.APIGatewayV2.Enabled() {
-		ui.Print("")
-		ui.Print("you've opted into a preview of the Intranet served by AWS API Gateway v2")
-		ui.Printf("you can access your Intranet, still via %s, at <https://%s> now, too", idpName2, dnsDomainName2)
-		if selected := regions.Selected(); len(selected) > 1 {
-			ui.Printf(
-				"note that, due to limitations in AWS API Gateway v2 and CloudFront, this preview only routes to your Intranet in %s",
-				selected[0],
-			)
-		}
-		ui.Printf(
-			"before you can use it, you'll need to add <https://%s/login> to the list of OAuth OIDC redirect URIs in %s",
-			dnsDomainName2,
-			idpName2,
-		)
-	}
+	ui.Print("")
+	ui.Print("Substrate 2023.11 includes a preview of the Intranet as it will be in 2023.12, powered by AWS API Gateway v2")
+	ui.Printf("you can visit the preview, still via %s, at <https://%s> now", idpName2, dnsDomainName2)
+	ui.Printf(
+		"before you can use it, you'll need to add <https://%s/login> to the list of OAuth OIDC redirect URIs in %s",
+		dnsDomainName2,
+		idpName2,
+	)
 
 }

@@ -66,10 +66,9 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 	ui.Printf("using DNS domain name %s for your organization's Intranet", dnsDomainName)
 	ui.Spinf("waiting for a hosted zone to appear for %s.", dnsDomainName)
 	var zone *awsroute53.HostedZone
-	for {
+	for range awsutil.StandardJitteredExponentialBackoff() {
 		zone, err = awsroute53.FindHostedZone(ctx, substrateCfg, dnsDomainName+".")
 		if _, ok := err.(awsroute53.HostedZoneNotFoundError); ok {
-			time.Sleep(1e9) // TODO exponential backoff
 			continue
 		}
 		ui.Must(err)
@@ -223,7 +222,8 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		ctx,
 		substrateCfg,
 		naming.Substrate,
-		[]string{}, // TODO []string{fmt.Sprintf("preview.%s", dnsDomainName)}, and then without "preview."
+		[]string{fmt.Sprintf("preview.%s", dnsDomainName)}, // TODO without "preview." in 2023.12
+		aws.ToString(zone.Id),
 		[]awscloudfront.EventType{awscloudfront.ViewerRequest, awscloudfront.ViewerResponse},
 		`
 var querystring = require("querystring");
@@ -269,13 +269,13 @@ function handler(event) {
 		fmt.Sprintf("https://apigatewayv2.%s", dnsDomainName),
 	)
 	ui.Must(err)
-	ui.Stop("ok")
+	ui.Stopf("distribution %s", distribution.Id)
 	//ui.Debug(distribution)
 
 	// Now that we have the CloudFront distribution for sure, reconfigure the
 	// Lambda functions to make sure they know their DNS domain name.
 	ui.Spin("connecting API Gateway v2 to CloudFront")
-	environment["DNS_DOMAIN_NAME"] = distribution.DomainName
+	environment["DNS_DOMAIN_NAME"] = fmt.Sprintf("preview.%s", dnsDomainName) // TODO without "preview." in 2023.12
 	for _, region := range regions.Selected() {
 		ui.Must2(awslambda.UpdateFunctionConfiguration(
 			ctx,
@@ -287,5 +287,5 @@ function handler(event) {
 	}
 	ui.Stop("ok")
 
-	return distribution.DomainName, idpName
+	return fmt.Sprintf("preview.%s", dnsDomainName), idpName // TODO without "preview." in 2023.12
 }
