@@ -82,7 +82,7 @@ func shellCompletion() {
 			shellCompletionMatches([]string{"json", "shell"}, word)
 			return
 		}
-		options = append(options, "-auto-approve", "-format", "-no-apply", "-number", "-only-tags")
+		options = append(options, "-auto-approve", "-format", "-ignore-service-quotas", "-no-apply", "-number", "-only-tags")
 
 	case "assume-role":
 		switch previousWord {

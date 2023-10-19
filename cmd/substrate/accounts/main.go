@@ -26,6 +26,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		cmdutil.SerializationFormatText,
 		`output format - "text" for human-readable plaintext, "json" for output like the AWS organizations:ListAccounts API augmented with Substrate roles and tags, or "shell" for a shell program that will update all your AWS accounts`,
 	)
+	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, `with -format "shell", add the -ignore-service-quotas flag to all the generated commands that accept it`)
 	noApply := flag.Bool("no-apply", false, `with -format "shell", add the -no-apply flag to all the generated commands that accept it`)
 	number := flag.String("number", "", `with -format "json", account number of the single AWS account to output`)
 	onlyTags := flag.Bool("only-tags", false, `with -format "json" and -number "...", output only the tags on the account`)
@@ -102,9 +103,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}, adminAccounts...), serviceAccounts...))
 
 	case cmdutil.SerializationFormatShell:
-		var autoApproveFlag, noApplyFlag string
+		var autoApproveFlag, ignoreServiceQuotasFlag, noApplyFlag string
 		if *autoApprove {
 			autoApproveFlag = " -auto-approve" // leading space to format pleasingly both ways
+		}
+		if *ignoreServiceQuotas {
+			ignoreServiceQuotasFlag = " -ignore-service-quotas" // leading space to format pleasingly both ways
 		}
 		if *noApply {
 			noApplyFlag = " -no-apply" // leading space to format pleasingly both ways
@@ -112,7 +116,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 		fmt.Println("set -e -x")
 
-		fmt.Printf("substrate setup%s%s\n", autoApproveFlag, noApplyFlag)
+		fmt.Printf("substrate setup%s%s%s\n", autoApproveFlag, ignoreServiceQuotasFlag, noApplyFlag)
 
 		if ok, err := ui.ConfirmFile(setupcloudtrail.ManageCloudTrailFilename); err != nil {
 			ui.Fatal(err)
@@ -125,8 +129,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				continue
 			}
 			fmt.Printf(
-				"substrate create-account%s%s -domain %q -environment %q -quality %q\n",
+				"substrate create-account%s%s%s -domain %q -environment %q -quality %q\n",
 				autoApproveFlag,
+				ignoreServiceQuotasFlag,
 				noApplyFlag,
 				account.Tags[tagging.Domain],
 				account.Tags[tagging.Environment],
