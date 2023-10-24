@@ -86,6 +86,66 @@ func Test6(roleName string) *awscfg.Config {
 	))
 }
 
+// Test7 returns an *awscfg.Config with the given role in the src-bin-test7
+// organization's Substrate account.
+func Test7(roleName string) *awscfg.Config {
+	substrateRoot("test7")
+	return awscfg.Must(cfg(ctx()).AssumeRole(
+		ctx(),
+		Test7SubstrateAccountId,
+		roleName,
+		time.Hour,
+	))
+}
+
+// Test8 returns an *awscfg.Config with the given role in the src-bin-test8
+// organization's Substrate account.
+func Test8(roleName string) *awscfg.Config {
+	substrateRoot("test8")
+	return awscfg.Must(cfg(ctx()).AssumeRole(
+		ctx(),
+		Test8SubstrateAccountId,
+		roleName,
+		time.Hour,
+	))
+}
+
+// Test9 returns an *awscfg.Config with the given role in the src-bin-test9
+// organization's Substrate account.
+func Test9(roleName string) *awscfg.Config {
+	substrateRoot("test9")
+	return awscfg.Must(cfg(ctx()).AssumeRole(
+		ctx(),
+		Test9SubstrateAccountId,
+		roleName,
+		time.Hour,
+	))
+}
+
+// Test10 returns an *awscfg.Config with the given role in the src-bin-test10
+// organization's Substrate account.
+func Test10(roleName string) *awscfg.Config {
+	substrateRoot("test10")
+	return awscfg.Must(cfg(ctx()).AssumeRole(
+		ctx(),
+		Test10SubstrateAccountId,
+		roleName,
+		time.Hour,
+	))
+}
+
+// Test11 returns an *awscfg.Config with the given role in the src-bin-test11
+// organization's Substrate account.
+func Test11(roleName string) *awscfg.Config {
+	substrateRoot("test11")
+	return awscfg.Must(cfg(ctx()).AssumeRole(
+		ctx(),
+		Test11SubstrateAccountId,
+		roleName,
+		time.Hour,
+	))
+}
+
 // cfg returns an *awscfg.Config using whatever credentials it finds in the
 // environment or blows up. If it blows up, here's how to get the appropriate
 // credentials:
