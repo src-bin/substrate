@@ -786,7 +786,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
 	}
 
-	// TODO configure IAM Identity Center (later)
+	// If we find an IAM Identity Center installation, take it under our wing.
+	if features.IdentityCenter.Enabled() {
+		// TODO
+	}
 
 	// Clean up resources that we don't need anymore after the transition to
 	// `substrate setup`, the Substrate user/role, etc.
