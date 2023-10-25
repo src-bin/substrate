@@ -9,11 +9,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsutil"
 )
 
 const (
-	AlreadyInOrganizationException = "AlreadyInOrganizationException"
-	TooManyRequestsException       = "TooManyRequestsException"
+	AccountAlreadyRegisteredException = "AccountAlreadyRegisteredException"
+	AlreadyInOrganizationException    = "AlreadyInOrganizationException"
+	TooManyRequestsException          = "TooManyRequestsException"
 )
 
 type (
@@ -48,10 +50,24 @@ func DescribeRoot(ctx context.Context, cfg *awscfg.Config) (*Root, error) { // D
 	return &root, nil
 }
 
-func EnableAWSServiceAccess(ctx context.Context, cfg *awscfg.Config, principal string) error {
+func EnableAWSServiceAccess(ctx context.Context, cfg *awscfg.Config, servicePrincipal string) error {
 	_, err := cfg.Organizations().EnableAWSServiceAccess(ctx, &organizations.EnableAWSServiceAccessInput{
-		ServicePrincipal: aws.String(principal),
+		ServicePrincipal: aws.String(servicePrincipal),
 	})
+	return err
+}
+
+func RegisterDelegatedAdministrator(ctx context.Context, cfg *awscfg.Config, accountId, servicePrincipal string) error {
+	if err := EnableAWSServiceAccess(ctx, cfg, servicePrincipal); err != nil {
+		return err
+	}
+	_, err := cfg.Organizations().RegisterDelegatedAdministrator(ctx, &organizations.RegisterDelegatedAdministratorInput{
+		AccountId:        aws.String(accountId),
+		ServicePrincipal: aws.String(servicePrincipal),
+	})
+	if awsutil.ErrorCodeIs(err, AccountAlreadyRegisteredException) {
+		err = nil
+	}
 	return err
 }
 
