@@ -18,6 +18,7 @@ import (
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/features"
+	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/humans"
 	"github.com/src-bin/substrate/naming"
@@ -786,11 +787,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
 	}
 
-	// If we find an IAM Identity Center installation, take it under our wing.
-	if features.IdentityCenter.Enabled() {
-		// TODO
-	}
-
 	// Clean up resources that we don't need anymore after the transition to
 	// `substrate setup`, the Substrate user/role, etc.
 	ui.Spin("cleaning up CredentialFactory IAM user that's no longer used")
@@ -807,6 +803,27 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	ui.Stop("ok")
 	// (There will be more here in the coming months.)
+
+	// If we find an IAM Identity Center installation, take it under our wing.
+	if features.IdentityCenter.Enabled() {
+		if !sso(ctx, mgmtCfg) {
+			ui.Print("")
+			ui.Print("no AWS IAM Identity Center configuration found")
+			creds, err := mgmtCfg.Retrieve(ctx)
+			ui.Must(err)
+			ui.Print("if you want Substrate to manage AWS IAM Identity Center, follow these steps:")
+			consoleSigninURL, err := federation.ConsoleSigninURL(
+				creds,
+				"https://console.aws.amazon.com/singlesignon/home", // destination
+				nil,
+			)
+			ui.Must(err)
+			ui.Printf("1. open the AWS Console in your management account <%s>", consoleSigninURL)
+			ui.Print(`2. click "Enable" and follow the prompts to setup IAM Identity Center (because there's no API to do so)`)
+			ui.Printf("3. repeat step 2 for all your regions (%s)", strings.Join(regions.Selected(), " "))
+			ui.Print("4. re-run `substrate setup`")
+		}
+	}
 
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
