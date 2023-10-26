@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscfg/testawscfg"
 	"github.com/src-bin/substrate/awsorgs"
@@ -26,9 +27,28 @@ func TestListInstancesTest4(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testListInstances(t, ctx, mgmtCfg)
-	// I never bothered to setup us-east-2 when I was doing it manually but
-	// I did set us-west-2 up. Nice regional SPOF you've got there, Richard.
+	accounts, err := mgmtCfg.ListAccounts(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	instances := testListInstances(t, ctx, mgmtCfg)
+	t.Log(jsonutil.MustString(instances))
+	for _, instance := range instances {
+		permissionSets, err := ListPermissionSets(ctx, mgmtCfg, instance)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(jsonutil.MustString(permissionSets))
+		for _, permissionSet := range permissionSets {
+			for _, account := range accounts {
+				assignments, err := ListAccountAssignments(ctx, mgmtCfg, instance, permissionSet, aws.ToString(account.Id))
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Log(aws.ToString(instance.InstanceArn), permissionSet.ARN, aws.ToString(account.Id), jsonutil.MustString(assignments))
+			}
+		}
+	}
 }
 
 func TestListInstancesTest8(t *testing.T) {
@@ -36,17 +56,18 @@ func TestListInstancesTest8(t *testing.T) {
 	substrateCfg := testawscfg.Test8(roles.Administrator)
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 
-	testListInstances(t, ctx, mgmtCfg)
+	instances := testListInstances(t, ctx, mgmtCfg)
+	t.Log(jsonutil.MustString(instances))
 }
 
 func testListInstances(
 	t *testing.T,
 	ctx context.Context,
 	mgmtCfg *awscfg.Config,
-) {
+) []*Instance {
 	instances, err := ListInstances(ctx, mgmtCfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(jsonutil.MustString(instances))
+	return instances
 }

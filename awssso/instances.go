@@ -12,12 +12,12 @@ import (
 
 const AccessDeniedException = "AccessDeniedException"
 
-type InstanceMetadata struct {
+type Instance struct {
 	types.InstanceMetadata
 	Region string
 }
 
-func ListInstances(ctx context.Context, mgmtCfg *awscfg.Config) (instances []InstanceMetadata, err error) {
+func ListInstances(ctx context.Context, mgmtCfg *awscfg.Config) (instances []*Instance, err error) {
 	for _, region := range regions.Selected() {
 		client := mgmtCfg.Regional(region).SSOAdmin()
 		var nextToken *string
@@ -33,9 +33,9 @@ func ListInstances(ctx context.Context, mgmtCfg *awscfg.Config) (instances []Ins
 				return
 			}
 			for _, im := range out.Instances {
-				instances = append(instances, InstanceMetadata{
+				instances = append(instances, &Instance{
 					InstanceMetadata: im,
-					Region:           mgmtCfg.Region(),
+					Region:           region,
 				})
 			}
 			if nextToken = out.NextToken; nextToken == nil {
