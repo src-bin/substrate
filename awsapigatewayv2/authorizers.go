@@ -10,6 +10,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/naming"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 )
 
@@ -22,10 +23,11 @@ func EnsureAuthorizer(
 ) (authorizerId string, err error) {
 	ui.Spinf("finding or creating the %s API Gateway v2 authorizer", name)
 	client := cfg.APIGatewayV2()
+	region := cfg.Region()
 
 	authorizerURI := fmt.Sprintf(
 		"arn:aws:apigateway:%s:lambda:path/2015-03-31/functions/%s/invocations",
-		cfg.Region(),
+		region,
 		functionARN,
 	)
 	//identitySource := []string{"$request.header.Host"} // HERE BE DRAGONS! Don't run any TTL except 0 with this identity source
@@ -90,8 +92,17 @@ func EnsureAuthorizer(
 		ui.StopErr(err)
 		return
 	}
-	err = UpdateRoute(ctx, cfg, apiId, Default, authorizerId, target)
-	if err != nil {
+	if err = UpdateRoute(ctx, cfg, apiId, Default, authorizerId, target); err != nil {
+		ui.StopErr(err)
+		return
+	}
+
+	// Tag the API with its authorizer ID so we can get to it in Terraform,
+	// which doesn't include a data source for authorizers for some reason.
+	if _, err = client.TagResource(ctx, &apigatewayv2.TagResourceInput{
+		ResourceArn: aws.String(fmt.Sprintf("arn:aws:apigateway:%s::/apis/%s", region, apiId)),
+		Tags:        tagging.Map{"AuthorizerId": authorizerId},
+	}); err != nil {
 		ui.StopErr(err)
 		return
 	}
