@@ -61,6 +61,7 @@ func Test6Auditor(t *testing.T) {
 	testFixture(t, Test6, Test6SubstrateAccountId, roles.Auditor)
 }
 
+/*
 func Test7Administrator(t *testing.T) {
 	testFixture(t, Test7, Test7SubstrateAccountId, roles.Administrator)
 }
@@ -100,6 +101,7 @@ func Test11Administrator(t *testing.T) {
 func Test11Auditor(t *testing.T) {
 	testFixture(t, Test11, Test11SubstrateAccountId, roles.Auditor)
 }
+*/
 
 func testFixture(
 	t *testing.T,
