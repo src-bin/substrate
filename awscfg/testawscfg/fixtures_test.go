@@ -22,35 +22,83 @@ func Test0(t *testing.T) {
 }
 
 func Test1Administrator(t *testing.T) {
-	testFixture(t, Test1, Test1AdminAccountId, roles.Administrator)
+	testFixture(t, Test1, Test1SubstrateAccountId, roles.Administrator)
 }
 
 func Test1Auditor(t *testing.T) {
-	testFixture(t, Test1, Test1AdminAccountId, roles.Auditor)
+	testFixture(t, Test1, Test1SubstrateAccountId, roles.Auditor)
 }
 
 func Test2Administrator(t *testing.T) {
-	testFixture(t, Test2, Test2AdminAccountId, roles.Administrator)
+	testFixture(t, Test2, Test2SubstrateAccountId, roles.Administrator)
 }
 
 func Test2Auditor(t *testing.T) {
-	testFixture(t, Test2, Test2AdminAccountId, roles.Auditor)
+	testFixture(t, Test2, Test2SubstrateAccountId, roles.Auditor)
 }
 
 func Test3Administrator(t *testing.T) {
-	testFixture(t, Test3, Test3AdminAccountId, roles.Administrator)
+	testFixture(t, Test3, Test3SubstrateAccountId, roles.Administrator)
 }
 
 func Test3Auditor(t *testing.T) {
-	testFixture(t, Test3, Test3AdminAccountId, roles.Auditor)
+	testFixture(t, Test3, Test3SubstrateAccountId, roles.Auditor)
+}
+
+func Test4Administrator(t *testing.T) {
+	testFixture(t, Test4, Test4SubstrateAccountId, roles.Administrator)
+}
+
+func Test4Auditor(t *testing.T) {
+	testFixture(t, Test4, Test4SubstrateAccountId, roles.Auditor)
 }
 
 func Test6Administrator(t *testing.T) {
-	testFixture(t, Test6, Test6AdminAccountId, roles.Administrator)
+	testFixture(t, Test6, Test6SubstrateAccountId, roles.Administrator)
 }
 
 func Test6Auditor(t *testing.T) {
-	testFixture(t, Test6, Test6AdminAccountId, roles.Auditor)
+	testFixture(t, Test6, Test6SubstrateAccountId, roles.Auditor)
+}
+
+func Test7Administrator(t *testing.T) {
+	testFixture(t, Test7, Test7SubstrateAccountId, roles.Administrator)
+}
+
+func Test7Auditor(t *testing.T) {
+	testFixture(t, Test7, Test7SubstrateAccountId, roles.Auditor)
+}
+
+func Test8Administrator(t *testing.T) {
+	testFixture(t, Test8, Test8SubstrateAccountId, roles.Administrator)
+}
+
+func Test8Auditor(t *testing.T) {
+	testFixture(t, Test8, Test8SubstrateAccountId, roles.Auditor)
+}
+
+func Test9Administrator(t *testing.T) {
+	testFixture(t, Test9, Test9SubstrateAccountId, roles.Administrator)
+}
+
+func Test9Auditor(t *testing.T) {
+	testFixture(t, Test9, Test9SubstrateAccountId, roles.Auditor)
+}
+
+func Test10Administrator(t *testing.T) {
+	testFixture(t, Test10, Test10SubstrateAccountId, roles.Administrator)
+}
+
+func Test10Auditor(t *testing.T) {
+	testFixture(t, Test10, Test10SubstrateAccountId, roles.Auditor)
+}
+
+func Test11Administrator(t *testing.T) {
+	testFixture(t, Test11, Test11SubstrateAccountId, roles.Administrator)
+}
+
+func Test11Auditor(t *testing.T) {
+	testFixture(t, Test11, Test11SubstrateAccountId, roles.Auditor)
 }
 
 func testFixture(
