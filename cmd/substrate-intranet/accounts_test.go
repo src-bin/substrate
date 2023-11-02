@@ -97,7 +97,7 @@ func apiGatewayProxyRequest(initialRoleName, finalRoleName string) *events.APIGa
 			"role":   finalRoleName,
 		},
 		RequestContext: events.APIGatewayProxyRequestContext{
-			AccountID: testawscfg.Test1AdminAccountId,
+			AccountID: testawscfg.Test1SubstrateAccountId,
 			Authorizer: map[string]interface{}{
 				authorizerutil.RoleName: initialRoleName,
 			},
