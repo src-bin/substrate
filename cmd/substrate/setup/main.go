@@ -271,7 +271,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	statements := []policies.Statement{
 
 		// Allow everything not explicitly denied. Bring it on.
-		policies.Statement{
+		{
 			Action:   []string{"*"},
 			Resource: []string{"*"},
 		},
@@ -281,7 +281,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		// trail. It's really too bad this doesn't bind the managemente
 		// account in the slightest since that's perhaps the most likely place
 		// someone will try to create another trail.
-		policies.Statement{
+		{
 			Action: []string{
 				"cloudtrail:CreateTrail",
 				"cloudtrail:DeleteTrail",
@@ -872,4 +872,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		idpName2,
 	)
 
+}
+
+// Synopsis returns a one-line, short synopsis of the command.
+func Synopsis() string {
+	return "setup Substrate"
 }

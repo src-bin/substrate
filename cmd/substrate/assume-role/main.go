@@ -231,3 +231,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	cmdutil.PrintCredentials(format, creds)
 
 }
+
+// Synopsis returns a one-line, short synopsis of the command.
+func Synopsis() string {
+	return "assume a role in an AWS account"
+}

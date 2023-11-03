@@ -190,3 +190,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Stop("ok")
 
 }
+
+// Synopsis returns a one-line, short synopsis of the command.
+func Synopsis() string {
+	return "configures CloudTrail for your organization"
+}

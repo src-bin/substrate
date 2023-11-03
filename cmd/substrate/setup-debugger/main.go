@@ -77,3 +77,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(cmd.Run())
 
 }
+
+// Synopsis returns a one-line, short synopsis of the command.
+func Synopsis() string {
+	return "runs a shell with AWS credentials before IdP integration is complete"
+}

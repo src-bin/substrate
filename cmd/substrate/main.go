@@ -103,9 +103,15 @@ func main() {
 
 func usage(status int) {
 	var commands []string
+	var synopsis string
 
-	for subcommand, _ := range dispatchMapMain {
-		commands = append(commands, fmt.Sprintf("substrate %s", subcommand))
+	for subcommand := range dispatchMapMain {
+		if f, ok := dispatchMapSynopsis[subcommand]; ok {
+			synopsis = f()
+		}
+		// The padding here should be adjusted if the longest subcommand name
+		// exceeds 30 characters.
+		commands = append(commands, fmt.Sprintf("substrate %-30s %s", subcommand, synopsis))
 	}
 
 	executable, err := os.Executable()
@@ -128,7 +134,7 @@ func usage(status int) {
 	var previousCommand string
 	for _, command := range commands {
 		if command != previousCommand {
-			ui.Printf("\t%s", command)
+			ui.Printf("  %s", command)
 		}
 		previousCommand = command
 	}

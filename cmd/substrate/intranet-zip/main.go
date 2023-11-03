@@ -76,3 +76,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 type terraformExternal struct {
 	Base64SHA256 string `json:"base64sha256"` // make it make sense in Terraform
 }
+
+// Synopsis returns a one-line, short synopsis of the command.
+func Synopsis() string {
+	return "prints the substrate-intranet binary"
+}

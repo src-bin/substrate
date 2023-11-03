@@ -372,3 +372,8 @@ type treeNode struct {
 	PolicyARNs []string
 	Role       *awsiam.Role
 }
+
+// Synopsis returns a one-line, short synopsis of the command.
+func Synopsis() string {
+	return "prints a summary of all Substrate-managed roles in all AWS accounts"
+}

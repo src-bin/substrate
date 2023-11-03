@@ -31,3 +31,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 	}
 }
+
+// Synopsis returns a one-line, short synopsis of the command.
+func Synopsis() string {
+	return "creates a new Terraform module"
+}
