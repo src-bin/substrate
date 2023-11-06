@@ -375,5 +375,5 @@ type treeNode struct {
 
 // Synopsis returns a one-line, short synopsis of the command.
 func Synopsis() string {
-	return "prints a summary of all Substrate-managed roles in all AWS accounts"
+	return "print a summary of all Substrate-managed roles"
 }

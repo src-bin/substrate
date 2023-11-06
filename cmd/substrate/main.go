@@ -111,7 +111,7 @@ func usage(status int) {
 		}
 		// The padding here should be adjusted if the longest subcommand name
 		// exceeds 30 characters.
-		commands = append(commands, fmt.Sprintf("substrate %-30s %s", subcommand, synopsis))
+		commands = append(commands, fmt.Sprintf("%-30s %s", subcommand, synopsis))
 	}
 
 	executable, err := os.Executable()
@@ -128,8 +128,9 @@ func usage(status int) {
 		}
 	}
 
-	ui.Print("Substrate manages secure, reliable, and compliant cloud infrastructure in AWS")
-	ui.Print("the following commands are available:")
+	ui.Print("Usage: substrate <subcommand> [options]\n\n")
+	ui.Print("Substrate manages secure, reliable, and compliant cloud infrastructure in AWS.")
+	ui.Print("The following commands are available:\n\n")
 	sort.Strings(commands)
 	var previousCommand string
 	for _, command := range commands {
@@ -138,7 +139,7 @@ func usage(status int) {
 		}
 		previousCommand = command
 	}
-	ui.Print("if you're unsure where to start, visit <https://docs.substrate.tools/>")
+	ui.Print("\nIf you're unsure where to start, visit <https://docs.substrate.tools/>")
 
 	os.Exit(status)
 }

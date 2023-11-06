@@ -52,5 +52,5 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 
 // Synopsis returns a one-line, short synopsis of the command.
 func Synopsis() string {
-	return "deletes all static access keys for the Substrate user"
+	return "delete Substrate user static access keys"
 }

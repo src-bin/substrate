@@ -117,5 +117,5 @@ func fetch(u *url.URL) (*aws.Credentials, error) {
 
 // Synopsis returns a one-line, short synopsis of the command.
 func Synopsis() string {
-	return "authenticate with your IdP to create temporary AWS credentials"
+	return "authenticate with your IdP"
 }
