@@ -40,10 +40,10 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 	roleARN := roles.ARN(substrateCfg.MustAccountId(ctx), roles.Substrate)
 
 	// Make arrangements for a hosted zone to appear in this account so that
-	// the Intranet can configure itself.  It's possible to do this entirely
+	// the Intranet can configure itself. It's possible to do this entirely
 	// programmatically but there's a lot of UI surface area involved in doing
 	// a really good job.
-	// TODO allow them to just use the API Gateway or CloudFront hostname.
+	// TODO allow them to just use the CloudFront hostname.
 	if !fileutil.Exists(naming.IntranetDNSDomainNameFilename) {
 		creds, err := substrateCfg.Retrieve(ctx)
 		ui.Must(err)

@@ -93,6 +93,14 @@ func ShortInstalledVersion() (string, error) {
 	return strings.Join(parts[:2], "."), nil
 }
 
+func StateList(dirname string) error {
+	return execdlp(dirname, "terraform", "state", "list")
+}
+
+func StateRm(dirname string, address string) error {
+	return execdlp(dirname, "terraform", "state", "rm", address)
+}
+
 func Upgrade(dirname string) error {
 	shortVersion, err := ShortInstalledVersion()
 	if err != nil {

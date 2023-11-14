@@ -5,7 +5,7 @@ func IntranetGlobalModule() *Directory {
 	return &Directory{
 		ConfigurationAliases: []ProviderAlias{UsEast1ProviderAlias},
 		Files:                intranetGlobalTemplate(),
-		RemoveFiles:          []string{"outputs.tf"},
+		RemoveFiles:          []string{"outputs.tf"}, // TODO add "main.tf" to this list in 2024.01
 	}
 }
 
@@ -14,13 +14,7 @@ func IntranetRegionalModule() *Directory {
 	return &Directory{
 		ConfigurationAliases: []ProviderAlias{NetworkProviderAlias},
 		Files:                intranetRegionalTemplate(),
-	}
-}
-
-//go:generate go run ../tools/template/main.go -name intranetRegionalProxyTemplate -o intranet-regional-proxy.go modules/intranet/regional/proxy
-func IntranetRegionalProxyModule() *Directory {
-	return &Directory{
-		Files: intranetRegionalProxyTemplate(),
+		RemoveFiles:          []string{"main.tf", "outputs.tf"},
 	}
 }
 

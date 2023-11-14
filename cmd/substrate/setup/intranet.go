@@ -141,8 +141,7 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 	ui.Must(intranetGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/global")))
 	intranetRegionalModule := terraform.IntranetRegionalModule()
 	ui.Must(intranetRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional")))
-	intranetRegionalProxyModule := terraform.IntranetRegionalProxyModule()
-	ui.Must(intranetRegionalProxyModule.Write(filepath.Join(terraform.ModulesDirname, "intranet/regional/proxy")))
+	ui.Must(os.RemoveAll(filepath.Join(terraform.ModulesDirname, "intranet/regional/proxy")))
 	lambdaFunctionGlobalModule := terraform.LambdaFunctionGlobalModule()
 	ui.Must(lambdaFunctionGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "lambda-function/global")))
 	lambdaFunctionRegionalModule := terraform.LambdaFunctionRegionalModule()
@@ -151,12 +150,6 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 	ui.Must(substrateGlobalModule.Write(filepath.Join(terraform.ModulesDirname, "substrate/global")))
 	substrateRegionalModule := terraform.SubstrateRegionalModule()
 	ui.Must(substrateRegionalModule.Write(filepath.Join(terraform.ModulesDirname, "substrate/regional")))
-
-	// Leave the user a place to put their own Terraform code that can be
-	// shared between admin accounts of different qualities.
-	/*
-		ui.Must(terraform.Scaffold(Domain, true))
-	*/
 
 	if !*autoApprove && !*noApply {
 		ui.Print("this tool can affect every AWS region in rapid succession")
@@ -185,6 +178,11 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		}
 		file.Add(module)
 		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
+
+		// Remove a select few resources from Terraform state so that they
+		// aren't destroyed when Terraform runs with the matching resource
+		// definitions removed.
+		// ui.Must(terraform.StateRm(dirname, "module.intranet.aws_iam_instance_profile.admin")) // TODO uncomment in 2024.01
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
@@ -248,6 +246,19 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 			Source: terraform.Q("../../../../modules/intranet/regional"),
 		})
 		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
+
+		// Remove a select few resources from Terraform state so that they
+		// aren't destroyed when Terraform runs with the matching resource
+		// definitions removed.
+		if region == "us-east-1" {
+			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_acm_certificate.intranet"))
+			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_acm_certificate_validation.intranet"))
+			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_route53_record.intranet"))
+			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_route53_record.validation"))
+		}
+		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group.instance-factory"))
+		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group_rule.instance-factory-egress"))
+		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group_rule.instance-factory-ssh-ingress"))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
