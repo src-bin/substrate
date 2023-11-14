@@ -15,26 +15,26 @@ func TestIntranet2Test1(t *testing.T) {
 	ctx := context.Background()
 	substrateCfg := testawscfg.Test1(roles.Administrator)
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
-	dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
-	if dnsDomainName2 != "preview.src-bin-test1.net" {
-		t.Fatalf(`%q != "preview.src-bin-test1.net"`, dnsDomainName2)
+	dnsDomainName, idpName := intranet2(ctx, mgmtCfg, substrateCfg)
+	if dnsDomainName != "src-bin-test1.net" {
+		t.Fatalf(`%q != "src-bin-test1.net"`, dnsDomainName)
 	}
-	if idpName2 != oauthoidc.Okta {
-		t.Fatalf(`%q != %q`, idpName2, oauthoidc.Okta)
+	if idpName != oauthoidc.Okta {
+		t.Fatalf(`%q != %q`, idpName, oauthoidc.Okta)
 	}
-	t.Log(dnsDomainName2, idpName2)
+	t.Log(dnsDomainName, idpName)
 }
 
 func TestIntranet2Test2(t *testing.T) {
 	ctx := context.Background()
 	substrateCfg := testawscfg.Test2(roles.Administrator)
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
-	dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
-	if dnsDomainName2 != "preview.src-bin-test2.net" {
-		t.Fatalf(`%q != "preview.src-bin-test2.net"`, dnsDomainName2)
+	dnsDomainName, idpName := intranet2(ctx, mgmtCfg, substrateCfg)
+	if dnsDomainName != "src-bin-test2.net" {
+		t.Fatalf(`%q != "src-bin-test2.net"`, dnsDomainName)
 	}
-	if idpName2 != oauthoidc.Okta {
-		t.Fatalf(`%q != %q`, idpName2, oauthoidc.Okta)
+	if idpName != oauthoidc.Okta {
+		t.Fatalf(`%q != %q`, idpName, oauthoidc.Okta)
 	}
-	t.Log(dnsDomainName2, idpName2)
+	t.Log(dnsDomainName, idpName)
 }

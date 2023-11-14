@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/randutil"
 	"github.com/src-bin/substrate/ui"
@@ -47,9 +46,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		Host:     naming.MustIntranetDNSDomainName(),
 		Path:     "/credential-factory/authorize",
 		RawQuery: url.Values{"token": []string{token}}.Encode(),
-	}
-	if features.APIGatewayV2.Enabled() {
-		u.Host = fmt.Sprintf("preview.%s", u.Host)
 	}
 	if *noOpen {
 		ui.Printf("open <%s> in your web browser; authenticate if prompted, then return here", u)

@@ -773,19 +773,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	network(ctx, mgmtCfg)
 
 	// Configure the Intranet in the Substrate account.
-	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
-	dnsDomainName2, idpName2 := intranet2(ctx, mgmtCfg, substrateCfg)
-	if dnsDomainName2 != "" && fmt.Sprintf("preview.%s", dnsDomainName) != dnsDomainName2 {
-		ui.Fatalf(
-			`expected second-generation Intranet DNS domain name to be %q, based on the first-generation name %q, but got %q`,
-			fmt.Sprintf("preview.%s", dnsDomainName),
-			dnsDomainName,
-			dnsDomainName2,
-		)
-	}
-	if idpName2 != "" && idpName != idpName2 {
-		ui.Fatalf("first- and second-generation Intranets should use the same IdP but got %q and %q", idpName, idpName2)
-	}
+	dnsDomainName, idpName := intranet2(ctx, mgmtCfg, substrateCfg)
+	_, _ = intranet(ctx, mgmtCfg, substrateCfg) // old after new to clean up now-useless resources
 
 	// Clean up resources that we don't need anymore after the transition to
 	// `substrate setup`, the Substrate user/role, etc.
@@ -862,14 +851,5 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	ui.Print("- refer to the Substrate documentation at <https://docs.substrate.tools/substrate/>")
 	ui.Print("- email <help@src-bin.com> or mention us in Slack for support")
-
-	ui.Print("")
-	ui.Print("Substrate 2023.11 includes a preview of the Intranet as it will be in 2023.12, powered by AWS API Gateway v2")
-	ui.Printf("you can visit the preview, still via %s, at <https://%s> now", idpName2, dnsDomainName2)
-	ui.Printf(
-		"before you can use it, you'll need to add <https://%s/login> to the list of OAuth OIDC redirect URIs in %s",
-		dnsDomainName2,
-		idpName2,
-	)
 
 }

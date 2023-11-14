@@ -222,7 +222,7 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		ctx,
 		substrateCfg,
 		naming.Substrate,
-		[]string{fmt.Sprintf("preview.%s", dnsDomainName)}, // TODO without "preview." in 2023.12
+		[]string{dnsDomainName},
 		aws.ToString(zone.Id),
 		[]awscloudfront.EventType{awscloudfront.ViewerRequest, awscloudfront.ViewerResponse},
 		`
@@ -269,13 +269,17 @@ function handler(event) {
 		fmt.Sprintf("https://apigatewayv2.%s", dnsDomainName),
 	)
 	ui.Must(err)
+	ui.Must(awsroute53.DeleteResourceRecordSets(ctx, cfg, aws.ToString(zone.Id), func(record awsroute53.ResourceRecordSet) bool {
+		recordName, preview := aws.ToString(record.Name), fmt.Sprintf("preview.%s.", dnsDomainName)
+		return recordName == preview || strings.HasSuffix(recordName, "."+preview)
+	}))
 	ui.Stopf("distribution %s", distribution.Id)
 	//ui.Debug(distribution)
 
 	// Now that we have the CloudFront distribution for sure, reconfigure the
 	// Lambda functions to make sure they know their DNS domain name.
 	ui.Spin("connecting API Gateway v2 to CloudFront")
-	environment["DNS_DOMAIN_NAME"] = fmt.Sprintf("preview.%s", dnsDomainName) // TODO without "preview." in 2023.12
+	environment["DNS_DOMAIN_NAME"] = dnsDomainName
 	for _, region := range regions.Selected() {
 		ui.Must2(awslambda.UpdateFunctionConfiguration(
 			ctx,
@@ -287,5 +291,5 @@ function handler(event) {
 	}
 	ui.Stop("ok")
 
-	return fmt.Sprintf("preview.%s", dnsDomainName), idpName // TODO without "preview." in 2023.12
+	return dnsDomainName, idpName
 }
