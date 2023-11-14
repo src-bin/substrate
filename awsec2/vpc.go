@@ -12,7 +12,7 @@ import (
 type (
 	SecurityGroup = types.SecurityGroup
 	Subnet        = types.Subnet
-	Vpc           = types.Vpc
+	VPC           = types.Vpc
 )
 
 func DescribeSecurityGroups(
@@ -57,11 +57,11 @@ func DescribeSubnets(
 	return out.Subnets, nil
 }
 
-func DescribeVpcs(
+func DescribeVPCs(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	environment, quality string,
-) ([]Vpc, error) {
+) ([]VPC, error) {
 	out, err := cfg.EC2().DescribeVpcs(ctx, &ec2.DescribeVpcsInput{
 		Filters: []types.Filter{
 			{

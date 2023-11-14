@@ -371,7 +371,7 @@ func randomSubnet(
 		return nil, err
 	}
 	// TODO cfg region
-	vpcs, err := awsec2.DescribeVpcs(ctx, cfg, environment, quality)
+	vpcs, err := awsec2.DescribeVPCs(ctx, cfg, environment, quality)
 	if err != nil {
 		return nil, err
 	}
