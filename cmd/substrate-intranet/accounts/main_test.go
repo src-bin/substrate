@@ -1,4 +1,4 @@
-package main
+package accounts
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 func TestAccountsConsole12hAdministrator(t *testing.T) {
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
-	resp, err := accountsHandler(ctx, cfg, nil /* oc */, apiGatewayProxyRequest(
+	resp, err := Main2(ctx, cfg, nil /* oc */, request(
 		roles.Administrator,       // start as Administrator in the admin account
 		roles.DeployAdministrator, // assume DeployAdministrator in the deploy account
 	))
@@ -54,7 +54,7 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 	}()
 	time.Sleep(10 * time.Second) // give AWS IAM time to sort itself out
 
-	resp, err := accountsHandler(ctx, cfg, nil /* oc */, apiGatewayProxyRequest(
+	resp, err := Main2(ctx, cfg, nil /* oc */, request(
 		roleName, // start as TestDeveloper in the admin account
 		roleName, // assume TestDeveloper in the deploy account
 	))
@@ -77,7 +77,7 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 func TestAccountsConsoleDenied(t *testing.T) {
 	ctx := context.Background()
 	cfg := testawscfg.Test1(roles.Administrator)
-	resp, err := accountsHandler(ctx, cfg, nil /* oc */, apiGatewayProxyRequest(
+	resp, err := Main2(ctx, cfg, nil /* oc */, request(
 		roles.Auditor,             // start as Auditor in the admin account
 		roles.DeployAdministrator, // assume DeployAdministrator in the deploy account, which will fail
 	))
@@ -90,16 +90,18 @@ func TestAccountsConsoleDenied(t *testing.T) {
 	}
 }
 
-func apiGatewayProxyRequest(initialRoleName, finalRoleName string) *events.APIGatewayProxyRequest {
-	return &events.APIGatewayProxyRequest{
+func request(initialRoleName, finalRoleName string) *events.APIGatewayV2HTTPRequest {
+	return &events.APIGatewayV2HTTPRequest{
 		QueryStringParameters: map[string]string{
 			"number": "903998760555", // test1 deploy account
 			"role":   finalRoleName,
 		},
-		RequestContext: events.APIGatewayProxyRequestContext{
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
 			AccountID: testawscfg.Test1SubstrateAccountId,
-			Authorizer: map[string]interface{}{
-				authorizerutil.RoleName: initialRoleName,
+			Authorizer: &events.APIGatewayV2HTTPRequestContextAuthorizerDescription{
+				Lambda: map[string]interface{}{
+					authorizerutil.RoleName: initialRoleName,
+				},
 			},
 		},
 	}

@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	InstanceFactory = "InstanceFactory"
+
 	IntranetDNSDomainNameFilename = "substrate.intranet-dns-domain-name"
 	IntranetDNSDomainNameVariable = "SUBSTRATE_INTRANET" // XXX or just "SUBSTRATE"?
 )

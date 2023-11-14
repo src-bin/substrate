@@ -26,8 +26,6 @@ import (
 	"github.com/src-bin/substrate/tagging"
 )
 
-const InstanceFactory = "InstanceFactory"
-
 func Main2(
 	ctx context.Context,
 	cfg *awscfg.Config,
@@ -287,7 +285,7 @@ func Main2(
 	if arch == "i386" && len(archs) == 2 {
 		arch = archs[1]
 	}
-	launchTemplateName := fmt.Sprintf("%s-%s", InstanceFactory, arch)
+	launchTemplateName := fmt.Sprintf("%s-%s", naming.InstanceFactory, arch)
 	launchTemplate, err := awsec2.DescribeLaunchTemplateVersion(ctx, cfg, launchTemplateName)
 	if err != nil {
 		if awsutil.ErrorCodeIs(err, awsec2.InvalidLaunchTemplateName_NotFoundException) {
@@ -321,7 +319,7 @@ func Main2(
 	if err != nil {
 		return nil, err
 	}
-	securityGroups, err := awsec2.DescribeSecurityGroups(ctx, cfg, aws.ToString(subnet.VpcId), InstanceFactory)
+	securityGroups, err := awsec2.DescribeSecurityGroups(ctx, cfg, aws.ToString(subnet.VpcId), naming.InstanceFactory)
 	if err != nil {
 		return nil, err
 	}
