@@ -33,11 +33,14 @@ func (err HostedZoneNotFoundError) Error() string {
 }
 
 func ListHostedZones(ctx context.Context, cfg *awscfg.Config) (zones []HostedZone, err error) {
+	client := cfg.Route53()
 	var marker *string
 	for {
-		out, err := cfg.Route53().ListHostedZones(ctx, &route53.ListHostedZonesInput{Marker: marker})
-		if err != nil {
-			return nil, err
+		var out *route53.ListHostedZonesOutput
+		if out, err = client.ListHostedZones(ctx, &route53.ListHostedZonesInput{
+			Marker: marker,
+		}); err != nil {
+			return
 		}
 		zones = append(zones, out.HostedZones...)
 		if marker = out.NextMarker; marker == nil {

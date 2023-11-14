@@ -242,6 +242,27 @@ func changeResourceRecordSets(
 	zoneId string,
 	aliasDNSName *string,
 ) error {
+	if len(subjectAlternativeNames) == 0 {
+		return nil
+	}
+
+	// At the Intranet's transition from API Gateway v1 to API Gateway v2, we
+	// need to explicitly delete the old latency-based routing records to make
+	// room for the simple record we're about to point to CloudFront.
+	if err := awsroute53.DeleteResourceRecordSets(ctx, cfg, zoneId, func(record awsroute53.ResourceRecordSet) bool {
+		if record.SetIdentifier != nil && (record.Type == awsroute53.A || record.Type == awsroute53.AAAA) {
+			recordName := aws.ToString(record.Name)
+			for _, subjectAlternativeName := range subjectAlternativeNames {
+				if subjectAlternativeName == recordName || subjectAlternativeName+"." == recordName {
+					return true
+				}
+			}
+		}
+		return false
+	}); err != nil {
+		return err
+	}
+
 	aliasTarget := &awsroute53.AliasTarget{
 		DNSName:              aliasDNSName,
 		EvaluateTargetHealth: true,
