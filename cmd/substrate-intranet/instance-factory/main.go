@@ -10,7 +10,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -22,7 +21,6 @@ import (
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/oauthoidc"
-	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 )
 
@@ -315,16 +313,12 @@ func Main2(
 		quality = naming.Default
 	}
 	subnet, err := randomSubnet(ctx, cfg, accounts.Admin, quality, region)
-	//subnet, err := randomSubnet(ctx, cfg, accounts.Admin, event.RequestContext.Stage, region)
 	if err != nil {
 		return nil, err
 	}
-	securityGroups, err := awsec2.DescribeSecurityGroups(ctx, cfg, aws.ToString(subnet.VpcId), naming.InstanceFactory)
+	securityGroup, err := awsec2.EnsureSecurityGroup(ctx, cfg, aws.ToString(subnet.VpcId), naming.InstanceFactory, []int{22})
 	if err != nil {
 		return nil, err
-	}
-	if len(securityGroups) != 1 {
-		return nil, fmt.Errorf("security group not found in %s", aws.ToString(subnet.VpcId))
 	}
 
 	// Provision the instance! Tell the caller all about it.
@@ -337,7 +331,7 @@ func Main2(
 		aws.ToString(keyPairs[0].KeyName),
 		launchTemplateName,
 		100, // gigabyte root volume
-		aws.ToString(securityGroups[0].GroupId),
+		aws.ToString(securityGroup.GroupId),
 		aws.ToString(subnet.SubnetId),
 		[]awsec2.Tag{{
 			Key:   aws.String(tagging.Manager),
@@ -365,28 +359,27 @@ func randomSubnet(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	environment, quality, region string,
-) (*awsec2.Subnet, error) {
-	cfg, err := cfg.AssumeSpecialRole(ctx, accounts.Network, roles.Auditor, time.Hour)
-	if err != nil {
-		return nil, err
-	}
-	// TODO cfg region
-	vpcs, err := awsec2.DescribeVPCs(ctx, cfg, environment, quality)
-	if err != nil {
-		return nil, err
+) (subnet *awsec2.Subnet, err error) {
+	cfg = cfg.Regional(region)
+	var vpcs []awsec2.VPC
+	if vpcs, err = awsec2.DescribeVPCs(ctx, cfg, environment, quality); err != nil { // TODO maybe support an alternative tagging regime for the Instance Factory's VPC
+		return
 	}
 	if len(vpcs) != 1 {
-		return nil, fmt.Errorf("%s %s VPC not found in %s", environment, quality, region)
+		err = fmt.Errorf("%s %s VPC not found in %s", environment, quality, region)
+		return
 	}
-	subnets, err := awsec2.DescribeSubnets(ctx, cfg, aws.ToString(vpcs[0].VpcId))
-	if err != nil {
-		return nil, err
+	var subnets []awsec2.Subnet
+	if subnets, err = awsec2.DescribeSubnets(ctx, cfg, aws.ToString(vpcs[0].VpcId)); err != nil {
+		return
 	}
 	if len(subnets) == 0 {
-		return nil, fmt.Errorf("no subnets in %s", aws.ToString(vpcs[0].VpcId))
+		err = fmt.Errorf("no subnets in %s", aws.ToString(vpcs[0].VpcId))
+		return
 	}
-	subnet := subnets[rand.Intn(len(subnets))] // don't leak the slice
-	return &subnet, nil
+	s := subnets[rand.Intn(len(subnets))] // don't leak the slice
+	subnet = &s
+	return
 }
 
 //go:embed instance-factory.html

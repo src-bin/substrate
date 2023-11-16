@@ -269,7 +269,7 @@ function handler(event) {
 		fmt.Sprintf("https://apigatewayv2.%s", dnsDomainName),
 	)
 	ui.Must(err)
-	ui.Must(awsroute53.DeleteResourceRecordSets(ctx, cfg, aws.ToString(zone.Id), func(record awsroute53.ResourceRecordSet) bool {
+	ui.Must(awsroute53.DeleteResourceRecordSets(ctx, substrateCfg, aws.ToString(zone.Id), func(record awsroute53.ResourceRecordSet) bool {
 		recordName, preview := aws.ToString(record.Name), fmt.Sprintf("preview.%s.", dnsDomainName)
 		return recordName == preview || strings.HasSuffix(recordName, "."+preview)
 	}))

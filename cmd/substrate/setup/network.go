@@ -84,6 +84,7 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 				doc = netDoc
 			}
 			n, err := doc.Ensure(&networks.Network{
+				// TODO maybe support an alternative tagging regime for the Instance Factory's VPC
 				Environment: eq.Environment,
 				Quality:     eq.Quality,
 				Region:      region,
