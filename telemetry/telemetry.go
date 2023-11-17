@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -72,6 +73,7 @@ type Event struct {
 	Prefix                           string
 	InitialRoleName, FinalRoleName   string // "Administrator", "Auditor", or "Other" (avoid disclosing custom role names)
 	IsEC2                            bool
+	OS                               string        // runtime.GOOS
 	Format                           string        `json:",omitempty"` // -format, if applicable
 	mu                               sync.Mutex    `json:"-"`
 	once                             sync.Once     `json:"-"`
@@ -89,6 +91,7 @@ func NewEvent(ctx context.Context) (*Event, error) {
 		Subcommand: contextutil.ValueString(ctx, contextutil.Subcommand),
 		Version:    version.Version,
 		Prefix:     prefix(),
+		OS:         runtime.GOOS,
 		//Format // TODO when cmdutil.SerializationFormat.Set is called
 		wait: make(chan struct{}),
 	}
