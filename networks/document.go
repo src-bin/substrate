@@ -113,7 +113,14 @@ func (d *Document) next(n *Network) (*Network, error) {
 	}
 	sort.Sort(d)
 	var err error
+
+	// TODO Tolerate varied CIDR prefix lengths. If there's a long prefix that
+	// sorts into the middle of the list then we might produce overlapping
+	// entries. If there's a long prefix that's not aligned with its length
+	// (unlikely thought it would be for someone to manually add that), we'll
+	// happily produce nonsensical entries with octets greater than 255.
 	n.IPv4, err = NextIPv4(d.Networks[len(d.Networks)-1].IPv4)
+
 	if err != nil {
 		return nil, err
 	}
