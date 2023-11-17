@@ -12,6 +12,13 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+const (
+	AWS_ACCESS_KEY_ID                = "AWS_ACCESS_KEY_ID"
+	AWS_SECRET_ACCESS_KEY            = "AWS_SECRET_ACCESS_KEY"
+	AWS_SESSION_TOKEN                = "AWS_SESSION_TOKEN"
+	SUBSTRATE_CREDENTIALS_EXPIRATION = "SUBSTRATE_CREDENTIALS_EXPIRATION"
+)
+
 func PrintCredentials(format *SerializationFormat, creds aws.Credentials) {
 	// Check if we're using Fish as our shell. If so, we have to use it's unique and special syntax for variables
 	isFish := CheckForFish()
@@ -48,17 +55,27 @@ func CheckForFish() bool {
 func PrintCredentialsEnv(creds aws.Credentials, isFish bool) {
 	if isFish {
 		fmt.Printf(
-			"set AWS_ACCESS_KEY_ID %q\nset AWS_SECRET_ACCESS_KEY %q\nset AWS_SESSION_TOKEN %q\n",
+			"set %s %q\nset %s %q\nset %s %q\nset %s %q\n",
+			AWS_ACCESS_KEY_ID,
 			creds.AccessKeyID,
+			AWS_SECRET_ACCESS_KEY,
 			creds.SecretAccessKey,
+			AWS_SESSION_TOKEN,
 			creds.SessionToken,
+			SUBSTRATE_CREDENTIALS_EXPIRATION,
+			creds.Expires.Format(time.RFC3339),
 		)
 	} else {
 		fmt.Printf(
-			"AWS_ACCESS_KEY_ID=%q\nAWS_SECRET_ACCESS_KEY=%q\nAWS_SESSION_TOKEN=%q\n",
+			"%s=%q\n%s=%q\n%s=%q\n%s=%q\n",
+			AWS_ACCESS_KEY_ID,
 			creds.AccessKeyID,
+			AWS_SECRET_ACCESS_KEY,
 			creds.SecretAccessKey,
+			AWS_SESSION_TOKEN,
 			creds.SessionToken,
+			SUBSTRATE_CREDENTIALS_EXPIRATION,
+			creds.Expires.Format(time.RFC3339),
 		)
 	}
 }
@@ -66,17 +83,27 @@ func PrintCredentialsEnv(creds aws.Credentials, isFish bool) {
 func PrintCredentialsExport(creds aws.Credentials, isFish bool) {
 	if isFish {
 		fmt.Printf(
-			" set -x AWS_ACCESS_KEY_ID %q; set -x AWS_SECRET_ACCESS_KEY %q; set -x AWS_SESSION_TOKEN %q\n",
+			" set -x %s %q; set -x %s %q; set -x %s %q; set -x %s %q\n",
+			AWS_ACCESS_KEY_ID,
 			creds.AccessKeyID,
+			AWS_SECRET_ACCESS_KEY,
 			creds.SecretAccessKey,
+			AWS_SESSION_TOKEN,
 			creds.SessionToken,
+			SUBSTRATE_CREDENTIALS_EXPIRATION,
+			creds.Expires.Format(time.RFC3339),
 		)
 	} else {
 		fmt.Printf(
-			" export AWS_ACCESS_KEY_ID=%q AWS_SECRET_ACCESS_KEY=%q AWS_SESSION_TOKEN=%q\n",
+			" export %s=%q %s=%q %s=%q %s=%q\n",
+			AWS_ACCESS_KEY_ID,
 			creds.AccessKeyID,
+			AWS_SECRET_ACCESS_KEY,
 			creds.SecretAccessKey,
+			AWS_SESSION_TOKEN,
 			creds.SessionToken,
+			SUBSTRATE_CREDENTIALS_EXPIRATION,
+			creds.Expires.Format(time.RFC3339),
 		)
 	}
 }
@@ -88,19 +115,45 @@ func PrintCredentialsExportWithHistory(creds aws.Credentials, isFish bool) {
 
 	if isFish {
 		fmt.Printf(
-			` set -x OLD_AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"; set -x AWS_ACCESS_KEY_ID %q; set -x OLD_AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"; set -x AWS_SECRET_ACCESS_KEY %q; set -x OLD_AWS_SESSION_TOKEN "$AWS_SESSION_TOKEN"; set -x AWS_SESSION_TOKEN %q; alias unassume-role 'set AWS_ACCESS_KEY_ID "$OLD_AWS_ACCESS_KEY_ID"; set AWS_SECRET_ACCESS_KEY "$OLD_AWS_SECRET_ACCESS_KEY"; set AWS_SESSION_TOKEN "$OLD_AWS_SESSION_TOKEN"; set -e OLD_AWS_ACCESS_KEY_ID; set -e OLD_AWS_SECRET_ACCESS_KEY; set -e OLD_AWS_SESSION_TOKEN'
+			` set -x OLD_%s "$%s"; set -x %s %q; set -x OLD_%s "$%s"; set -x %s %q; set -x OLD_%s "$%s"; set -x %s %q; set -x OLD_%s "$%s"; set -x %s %q; alias unassume-role 'set %s "$OLD_%s"; set %s "$OLD_%s"; set %s "$OLD_%s"; set %s "$OLD_%s"; set -e OLD_%s; set -e OLD_%s; set -e OLD_%s; set -e OLD_%s'
 `,
+			AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID,
 			creds.AccessKeyID,
+			AWS_SECRET_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, AWS_SECRET_ACCESS_KEY,
 			creds.SecretAccessKey,
+			AWS_SESSION_TOKEN, AWS_SESSION_TOKEN, AWS_SESSION_TOKEN,
 			creds.SessionToken,
+			SUBSTRATE_CREDENTIALS_EXPIRATION, SUBSTRATE_CREDENTIALS_EXPIRATION, SUBSTRATE_CREDENTIALS_EXPIRATION,
+			creds.Expires.Format(time.RFC3339),
+			AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID,
+			AWS_SECRET_ACCESS_KEY, AWS_SECRET_ACCESS_KEY,
+			AWS_SESSION_TOKEN, AWS_SESSION_TOKEN,
+			SUBSTRATE_CREDENTIALS_EXPIRATION, SUBSTRATE_CREDENTIALS_EXPIRATION,
+			AWS_ACCESS_KEY_ID,
+			AWS_SECRET_ACCESS_KEY,
+			AWS_SESSION_TOKEN,
+			SUBSTRATE_CREDENTIALS_EXPIRATION,
 		)
 	} else {
 		fmt.Printf(
-			` export OLD_AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" AWS_ACCESS_KEY_ID=%q OLD_AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" AWS_SECRET_ACCESS_KEY=%q OLD_AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" AWS_SESSION_TOKEN=%q; alias unassume-role='AWS_ACCESS_KEY_ID="$OLD_AWS_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$OLD_AWS_SECRET_ACCESS_KEY" AWS_SESSION_TOKEN="$OLD_AWS_SESSION_TOKEN"; unset OLD_AWS_ACCESS_KEY_ID OLD_AWS_SECRET_ACCESS_KEY OLD_AWS_SESSION_TOKEN'
+			` export OLD_%s="$%s" %s=%q OLD_%s="$%s" %s=%q OLD_%s="$%s" %s=%q OLD_%s="$%s" %s=%q; alias unassume-role='%s="$OLD_%s" %s="$OLD_%s" %s="$OLD_%s" %s="$OLD_%s"; unset OLD_%s OLD_%s OLD_%s OLD_%s'
 `,
+			AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID,
 			creds.AccessKeyID,
+			AWS_SECRET_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, AWS_SECRET_ACCESS_KEY,
 			creds.SecretAccessKey,
+			AWS_SESSION_TOKEN, AWS_SESSION_TOKEN, AWS_SESSION_TOKEN,
 			creds.SessionToken,
+			SUBSTRATE_CREDENTIALS_EXPIRATION, SUBSTRATE_CREDENTIALS_EXPIRATION, SUBSTRATE_CREDENTIALS_EXPIRATION,
+			creds.Expires.Format(time.RFC3339),
+			AWS_ACCESS_KEY_ID, AWS_ACCESS_KEY_ID,
+			AWS_SECRET_ACCESS_KEY, AWS_SECRET_ACCESS_KEY,
+			AWS_SESSION_TOKEN, AWS_SESSION_TOKEN,
+			SUBSTRATE_CREDENTIALS_EXPIRATION, SUBSTRATE_CREDENTIALS_EXPIRATION,
+			AWS_ACCESS_KEY_ID,
+			AWS_SECRET_ACCESS_KEY,
+			AWS_SESSION_TOKEN,
+			SUBSTRATE_CREDENTIALS_EXPIRATION,
 		)
 	}
 }

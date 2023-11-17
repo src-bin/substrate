@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -22,6 +23,7 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
+	force := flag.Bool("force", false, "force minting new credentials even if there are valid credentials in the environment")
 	format := cmdutil.SerializationFormatFlag(
 		cmdutil.SerializationFormatExport,
 		cmdutil.SerializationFormatUsage,
@@ -36,6 +38,24 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	version.Flag()
 	if *quiet {
 		ui.Quiet()
+	}
+
+	if !*force {
+		if _, err := cfg.GetCallerIdentity(ctx); err == nil {
+			expiry, err := time.Parse(time.RFC3339, os.Getenv(cmdutil.SUBSTRATE_CREDENTIALS_EXPIRATION))
+			if err != nil {
+				ui.Print("found valid credentials in the environment; exiting without minting new ones")
+				return
+			}
+			if time.Now().Add(6 * time.Hour).Before(expiry) {
+				hours := expiry.Sub(time.Now()).Hours()
+				ui.Printf(
+					"found credentials in the environment that are still valid for more than %d hours; exiting without minting new ones",
+					int(hours),
+				)
+				return
+			}
+		}
 	}
 
 	// Generate the token we'll exchange for AWS credentials.
