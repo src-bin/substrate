@@ -143,10 +143,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	cloudwatchRole, err := awsiam.EnsureRole(ctx, accountCfg, cloudwatchRoleName, orgAssumeRolePolicy)
 	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, cfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"))
-	ui.Must(awsiam.AttachRolePolicy(ctx, cfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/AWSXrayReadOnlyAccess"))
-	ui.Must(awsiam.AttachRolePolicy(ctx, cfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"))
-	ui.Must(awsiam.AttachRolePolicy(ctx, cfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/CloudWatchAutomaticDashboardsAccess"))
+	ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"))
+	ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/AWSXrayReadOnlyAccess"))
+	ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"))
+	ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, cloudwatchRole.Name, "arn:aws:iam::aws:policy/CloudWatchAutomaticDashboardsAccess"))
 	ui.Stop("ok")
 
 	// Leave the user a place to put their own Terraform code that can be
