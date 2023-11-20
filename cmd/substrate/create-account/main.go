@@ -139,7 +139,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// for longer than Substrate had custom role management and would be
 	// a bit troublesome to remove now.
 	const cloudwatchRoleName = "CloudWatch-CrossAccountSharingRole"
-	orgAssumeRolePolicy, err := awsorgs.OrgAssumeRolePolicy(ctx, cfg)
+	orgAssumeRolePolicy, err := awsorgs.OrgAssumeRolePolicy(ctx, mgmtCfg)
 	ui.Must(err)
 	cloudwatchRole, err := awsiam.EnsureRole(ctx, accountCfg, cloudwatchRoleName, orgAssumeRolePolicy)
 	ui.Must(err)
