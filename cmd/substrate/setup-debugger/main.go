@@ -12,15 +12,17 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
+	console := flag.Bool("console", false, "open the AWS Console instead of executing a shell")
 	shell := flag.String("shell", "", "pathname of the shell to run instead of $SHELL")
 	flag.Usage = func() {
-		ui.Print("Usage: substrate setup-debugger [-shell <shell>]")
+		ui.Print("Usage: substrate setup-debugger [-console] [-shell <shell>]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -58,6 +60,19 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		creds, err = mgmtCfg.Retrieve(ctx)
 	}
 	ui.Must(err)
+
+	if *console {
+		consoleSigninURL, err := federation.ConsoleSigninURL(
+			creds,
+			"", // destination (empty means the AWS Console homepage)
+			nil,
+		)
+		if err != nil {
+			ui.Fatal(err)
+		}
+		ui.OpenURL(consoleSigninURL)
+		return
+	}
 
 	cmd := &exec.Cmd{
 		Env: append(
