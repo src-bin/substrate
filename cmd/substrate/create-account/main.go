@@ -42,6 +42,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 	flag.Parse()
 	version.Flag()
+	if *environment != "" && *quality == "" {
+		*quality = cmdutil.QualityForEnvironment(*environment)
+	}
 	if *domain == "" || *environment == "" || *quality == "" {
 		ui.Fatal(`-domain "..." -environment "..." -quality"..." are required`)
 	}

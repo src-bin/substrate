@@ -52,6 +52,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if *admin {
 		*domain, *environment = "admin", "admin"
 	}
+	if *environment != "" && *quality == "" {
+		*quality = cmdutil.QualityForEnvironment(*environment)
+	}
 	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*substrate && !*management && *number == "" && *roleARN == "" {
 		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -management or -special "..." or -substrate or -number "..." or -arn "..." is required`)
 	}

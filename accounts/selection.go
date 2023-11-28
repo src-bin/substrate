@@ -352,7 +352,9 @@ func (f *SelectionFlags) Selection() (*Selection, error) {
 	}
 
 	// If no explicit -quality was given and we only have one quality,
-	// imply -all-qualities.
+	// imply -all-qualities. TODO maybe drop the "and we only have one
+	// quality" bit here to cover installations that have one quality
+	// _per environment_ but use different names in each environment.
 	if f.Qualities.Len() == 0 {
 		qualities, err := naming.Qualities()
 		if err != nil {
