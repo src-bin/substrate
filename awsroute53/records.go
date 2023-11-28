@@ -58,7 +58,7 @@ func DeleteResourceRecordSets(
 	var changes []Change
 	for _, record := range records {
 		if f(record) {
-			var recordPtr *ResourceRecordSet
+			recordPtr := new(ResourceRecordSet)
 			*recordPtr = record
 			changes = append(
 				changes,
