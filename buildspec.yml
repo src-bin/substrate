@@ -6,7 +6,7 @@ version: 0.2
 
 env:
   variables:
-    GO_VERSION: 1.21.1
+    GO_VERSION: 1.21.4
     PATH: /go/bin:/root/bin:/root/go/bin:/usr/local/bin:/usr/bin:/bin
     # SLACK_WEBHOOK_URL comes from upstream
 
