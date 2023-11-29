@@ -97,8 +97,22 @@ func StateList(dirname string) error {
 	return execdlp(dirname, "terraform", "state", "list")
 }
 
-func StateRm(dirname string, address string) error {
-	return execdlp(dirname, "terraform", "state", "rm", address)
+func StateRm(dirname string, address string) (err error) {
+	cmd := exec.Command("terraform", "state", "rm", address)
+	cmd.Dir = dirname
+	cmd.Stdin = nil  // /dev/null
+	cmd.Stdout = nil // /dev/null
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
+	if err = cmd.Run(); err != nil {
+		s := stderr.String()
+		if strings.Contains(s, "Invalid target address") { // the "Error:" has a bunch of escape codes surrounding it
+			err = nil
+		} else {
+			fmt.Fprint(os.Stderr, s)
+		}
+	}
+	return
 }
 
 func Upgrade(dirname string) error {
