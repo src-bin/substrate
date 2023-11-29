@@ -14,6 +14,7 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/humans"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
@@ -129,10 +130,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Must(err)
 	ui.Must2(humans.EnsureAdministratorRole(ctx, mgmtCfg, accountCfg))
 	ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, accountCfg))
+	networkCfg := awscfg.Must(mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour))
 
 	// TODO if the legacy network account exists, ensure there's a network for this service account there
-	// TODO if not, create (with confirmation) a network account for this environment and quality, peer it, and pass it into the Terraform
-	// TODO (later) move the network sharing from Terraform to here
+	// TODO if not, create (with confirmation) a network account for this environment and quality, peer it, and pass it along
 
 	ui.Must2(terraform.EnsureStateManager(ctx, awscfg.Must(mgmtCfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))))
 
@@ -201,14 +202,18 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, *domain, *environment, *quality, region)
 
-		networkFile := terraform.NewFile()
-		dependsOn := networks.ShareVPC(networkFile, account, *domain, *environment, *quality, region)
-		ui.Must(networkFile.Write(filepath.Join(dirname, "network.tf")))
+		networks.ShareVPC(
+			ctx,
+			accountCfg.Regional(region),
+			networkCfg.Regional(region),
+			*domain, *environment, *quality,
+			region,
+		)
+		ui.Must(fileutil.Remove(filepath.Join(dirname, "network.tf")))
 
 		file := terraform.NewFile()
 		file.Add(terraform.Module{
-			DependsOn: dependsOn,
-			Label:     terraform.Q(*domain),
+			Label: terraform.Q(*domain),
 			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
 				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
 				terraform.NetworkProviderAlias: terraform.NetworkProviderAlias,
@@ -222,11 +227,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			region,
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
 		))
-		networkAccount, err := mgmtCfg.FindSpecialAccount(ctx, accounts.Network)
-		ui.Must(err)
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
-			roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
+			roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator),
 		))
 		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 

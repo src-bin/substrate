@@ -1,150 +1,122 @@
 package networks
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/src-bin/substrate/awsorgs"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsec2"
+	"github.com/src-bin/substrate/awsram"
+	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/jsonutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/terraform"
+	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/version"
 )
 
 func ShareVPC(
-	f *terraform.File,
-	account *awsorgs.Account,
+	ctx context.Context,
+	accountCfg, networkCfg *awscfg.Config,
 	domain, environment, quality string,
 	region string,
-) (dependsOn terraform.ValueSlice) {
-	rs := terraform.ResourceShare{
-		Provider: terraform.NetworkProviderAlias,
-		Tags: terraform.Tags{
-			Environment: environment,
-			Quality:     quality,
-			Region:      region,
-		},
+) {
+
+	// Mimic exactly what we were doing in Terraform for a smooth transition.
+	tags := tagging.Map{
+		tagging.Environment: environment,
+		tagging.Quality:     quality,
+		tagging.Region:      region,
+
+		tagging.Manager:          tagging.Substrate,
+		tagging.SubstrateVersion: version.Version,
 	}
-	if domain == "admin" {
-		rs.Tags.Name = fmt.Sprintf("%s-%s", domain, quality)
+	if domain == naming.Admin {
+		tags[tagging.Name] = fmt.Sprintf("%s-%s", domain, quality) // special case for the Substrate account
 	} else {
-		rs.Tags.Name = fmt.Sprintf("%s-%s-%s", domain, environment, quality)
-	}
-	rs.Label = terraform.Label(rs.Tags)
-	f.Add(rs)
-
-	f.Add(terraform.PrincipalAssociation{
-		Label:            terraform.Label(rs.Tags),
-		Principal:        terraform.Q(aws.ToString(account.Id)),
-		Provider:         terraform.NetworkProviderAlias,
-		ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
-	})
-
-	ts := terraform.TimeSleep{
-		CreateDuration: terraform.Q("60s"),
-		Label:          terraform.Q("share-before-tag"),
+		tags[tagging.Name] = fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 	}
 
-	eqTags := terraform.Tags{
-		Environment: environment,
-		Quality:     quality,
+	// Find the VPC and subnets to share.
+	vpcs, err := awsec2.DescribeVPCs(ctx, networkCfg, environment, quality)
+	ui.Must(err)
+	if len(vpcs) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
+		ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs))
 	}
+	vpc := vpcs[0]
+	subnets, err := awsec2.DescribeSubnets(ctx, networkCfg, aws.ToString(vpc.VpcId))
+	ui.Must(err)
 
-	dataVPC := terraform.DataVPC{
-		Label:    terraform.Label(rs.Tags),
-		Provider: terraform.NetworkProviderAlias,
-		Tags:     eqTags,
+	// Find or create a Resource Share in the network account and ensure it
+	// shares at least these subnets with at least this service account.
+	var resources []string
+	for _, subnet := range subnets {
+		resources = append(resources, aws.ToString(subnet.SubnetArn))
 	}
-	f.Add(dataVPC)
-	dataSubnets := terraform.DataSubnets{
-		Label:    terraform.Label(rs.Tags),
-		Provider: terraform.NetworkProviderAlias,
-		Tags:     eqTags,
-		VpcId:    terraform.U(dataVPC.Ref(), ".id"),
-	}
-	f.Add(dataSubnets)
-	dataSubnet := terraform.DataSubnet{
-		ForEach:  terraform.U("toset(", dataSubnets.Ref(), ".ids", ")"),
-		Id:       terraform.U("each.value"),
-		Label:    terraform.Label(rs.Tags),
-		Provider: terraform.NetworkProviderAlias,
-	}
-	f.Add(dataSubnet)
+	ui.Must2(awsram.EnsureResourceShare(
+		ctx,
+		networkCfg,
+		tags[tagging.Name],
+		[]string{accountCfg.MustAccountId(ctx)}, // principals
+		resources,
+		tags,
+	))
 
-	t := terraform.EC2Tag{
-		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		ForEach:    terraform.U(dataSubnet.Ref()),
-		Key:        terraform.Q(tagging.Connectivity),
-		Label:      terraform.Label(rs.Tags, "subnet-connectivity"),
-		ResourceId: terraform.U("each.value.id"),
-		Value:      terraform.U(fmt.Sprintf("each.value.tags[\"%s\"]", tagging.Connectivity)),
+	// Tag the shared subnets in the service account since tags don't propagate
+	// when resources are shared.
+	for _, subnet := range subnets {
+		for range awsutil.StandardJitteredExponentialBackoff() {
+			_, err := accountCfg.EC2().CreateTags(ctx, &ec2.CreateTagsInput{
+				Resources: []string{aws.ToString(subnet.SubnetId)},
+				Tags:      subnet.Tags,
+			})
+			if err == nil {
+				break
+			} else if !awsutil.ErrorCodeIs(err, "InvalidSubnetID.NotFound") {
+				ui.Fatal(err)
+			}
+		}
 	}
-	f.Add(t)
-	dependsOn = append(dependsOn, t.Ref())
-	t = terraform.EC2Tag{
-		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		ForEach:    terraform.U(dataSubnet.Ref()),
-		Key:        terraform.Q(tagging.Environment),
-		Label:      terraform.Label(rs.Tags, "subnet-environment"),
-		ResourceId: terraform.U("each.value.id"),
-		Value:      terraform.Q(environment),
-	}
-	f.Add(t)
-	dependsOn = append(dependsOn, t.Ref())
-	f.Add(terraform.EC2Tag{
-		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		ForEach:    terraform.U(dataSubnet.Ref()),
-		Key:        terraform.Q(tagging.Name),
-		Label:      terraform.Label(rs.Tags, "subnet-name"),
-		ResourceId: terraform.U("each.value.id"),
-		Value:      terraform.U(fmt.Sprintf("\"%s-%s-${each.value.tags[\"%s\"]}-${each.value.availability_zone}\"", environment, quality, tagging.Connectivity)),
-	})
-	t = terraform.EC2Tag{
-		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		ForEach:    terraform.U(dataSubnet.Ref()),
-		Key:        terraform.Q(tagging.Quality),
-		Label:      terraform.Label(rs.Tags, "subnet-quality"),
-		ResourceId: terraform.U("each.value.id"),
-		Value:      terraform.Q(quality),
-	}
-	f.Add(t)
-	dependsOn = append(dependsOn, t.Ref())
+	ui.Must2(accountCfg.EC2().CreateTags(ctx, &ec2.CreateTagsInput{
+		Resources: []string{aws.ToString(vpc.VpcId)},
+		Tags:      vpc.Tags,
+	}))
 
-	t = terraform.EC2Tag{
-		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		Key:        terraform.Q(tagging.Environment),
-		Label:      terraform.Label(rs.Tags, "vpc-environment"),
-		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
-		Value:      terraform.Q(environment),
+	// Remove the resource share, shared subnets, and all the tags from
+	// Terraform to stop it from trying to manage them.
+	dirname := filepath.Join(terraform.RootModulesDirname, domain, environment, quality, region)
+	if domain == naming.Admin {
+		dirname = filepath.Join(terraform.RootModulesDirname, domain, quality, region)
 	}
-	f.Add(t)
-	dependsOn = append(dependsOn, t.Ref())
-	f.Add(terraform.EC2Tag{
-		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		Key:        terraform.Q(tagging.Name),
-		Label:      terraform.Label(rs.Tags, "vpc-name"),
-		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
-		Value:      terraform.Q(fmt.Sprintf("%s-%s", environment, quality)),
-	})
-	t = terraform.EC2Tag{
-		DependsOn:  terraform.ValueSlice{ts.Ref()},
-		Key:        terraform.Q(tagging.Quality),
-		Label:      terraform.Label(rs.Tags, "vpc-quality"),
-		ResourceId: terraform.U(dataVPC.Ref(), ".id"),
-		Value:      terraform.Q(quality),
+	tfTags := terraformTags(tags)
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-connectivity"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-environment"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-name"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-quality"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-environment"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-name"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-quality"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_principal_association.%s", terraform.Label(tfTags))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_association.%s", terraform.Label(tfTags))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_share.%s", terraform.Label(tfTags))))
+
+}
+
+func terraformTags(tags tagging.Map) terraform.Tags {
+	return terraform.Tags{
+		Connectivity: tags[tagging.Connectivity],
+
+		Domain:      tags[tagging.Domain],
+		Environment: tags[tagging.Environment],
+		Quality:     tags[tagging.Quality],
+
+		Name: tags[tagging.Name],
+
+		Region:           tags[tagging.Region],
+		AvailabilityZone: tags[tagging.AvailabilityZone],
 	}
-	f.Add(t)
-	dependsOn = append(dependsOn, t.Ref())
-
-	ra := terraform.ResourceAssociation{
-		ForEach:          terraform.U(dataSubnet.Ref()),
-		Label:            terraform.Label(rs.Tags),
-		Provider:         terraform.NetworkProviderAlias,
-		ResourceArn:      terraform.U("each.value.arn"),
-		ResourceShareArn: terraform.U(rs.Ref(), ".arn"),
-	}
-	f.Add(ra)
-
-	ts.DependsOn = terraform.ValueSlice{ra.Ref()}
-	f.Add(ts)
-
-	return dependsOn
 }

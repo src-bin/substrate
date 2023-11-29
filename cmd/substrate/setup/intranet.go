@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
@@ -17,12 +16,10 @@ import (
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
-	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/telemetry"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
@@ -38,21 +35,9 @@ const (
 // from `substrate create-admin-account`.
 func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDomainName string, idpName oauthoidc.Provider) {
 	substrateAccountId := substrateCfg.MustAccountId(ctx)
-	substrateAccount := awsorgs.Must(awsorgs.DescribeAccount(ctx, mgmtCfg, substrateAccountId))
+	networkCfg := awscfg.Must(mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour))
 
-	quality := substrateAccount.Tags[tagging.Quality]
-	if quality == "" {
-		qualities, err := naming.Qualities()
-		ui.Must(err)
-		quality = qualities[0]
-		if len(qualities) > 1 {
-			ui.Printf(
-				"found multiple qualities %s; choosing %s for your Substrate account (this is temporary and inconsequential)",
-				strings.Join(qualities, ", "),
-				quality,
-			)
-		}
-	}
+	quality := substrateAccountQuality(awsorgs.Must(awsorgs.DescribeAccount(ctx, mgmtCfg, substrateAccountId)))
 
 	// TODO SAML?
 
@@ -210,9 +195,7 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, Domain, quality, region)
 
-		networkFile := terraform.NewFile()
-		dependsOn := networks.ShareVPC(networkFile, substrateAccount, Domain, Environment, quality, region)
-		ui.Must(networkFile.Write(filepath.Join(dirname, "network.tf")))
+		ui.Must(fileutil.Remove(filepath.Join(dirname, "network.tf")))
 
 		file := terraform.NewFile()
 		arguments := map[string]terraform.Value{
@@ -237,7 +220,6 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		tags.Region = region
 		file.Add(terraform.Module{
 			Arguments: arguments,
-			DependsOn: dependsOn,
 			Label:     terraform.Q("intranet"),
 			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
 				terraform.DefaultProviderAlias: terraform.DefaultProviderAlias,
@@ -265,11 +247,9 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 			region,
 			roles.ARN(substrateAccountId, roles.Administrator),
 		))
-		networkAccount, err := mgmtCfg.FindSpecialAccount(ctx, accounts.Network)
-		ui.Must(err)
 		providersFile.Add(terraform.NetworkProviderFor(
 			region,
-			roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator), // TODO a role that only allows sharing VPCs would be a nice safety measure here
+			roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator),
 		))
 		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
 

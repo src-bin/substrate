@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awsapigatewayv2"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscloudfront"
 	"github.com/src-bin/substrate/awslambda"
+	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsroute53"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awsutil"
@@ -19,6 +21,7 @@ import (
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
+	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -156,7 +159,11 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		environment["DNS_DOMAIN_NAME"] = distribution.DomainName
 	}
 
-	// Construct the Intranet in every region we're using.
+	// Construct the Intranet in every region we're using. For legacy reasons
+	// this requires knowing the quality associated with the VPC created for
+	// the Substrate account (from when it was called the admin account and
+	// we had aspirations of supporting multiple of them).
+	quality := substrateAccountQuality(awsorgs.Must(awsorgs.DescribeAccount(ctx, mgmtCfg, substrateCfg.MustAccountId(ctx))))
 	for _, region := range regions.Selected() {
 		ui.Spinf("configuring the Substrate-managed Intranet in %s", region)
 		cfg := substrateCfg.Regional(region)
@@ -203,6 +210,14 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 			err = nil // this is only safe because we've never changed the arguments to AddPermission
 		}
 		ui.Must(err)
+
+		networks.ShareVPC(
+			ctx,
+			cfg,
+			awscfg.Must(cfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour)).Regional(region),
+			naming.Admin, naming.Admin, quality, // domain, environment, quality
+			region,
+		)
 
 		ui.Stop("ok")
 	}
