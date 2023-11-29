@@ -31,7 +31,6 @@ type (
 	Instance           = types.Instance
 	KeyPairInfo        = types.KeyPairInfo
 	RunInstancesOutput = ec2.RunInstancesOutput
-	Tag                = types.Tag
 )
 
 func DescribeImages(

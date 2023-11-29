@@ -2,7 +2,6 @@ package tagging
 
 // Keys.
 const (
-	Connectivity = "Connectivity" // only used by subnets
 
 	// TODO Customer = "Customer"
 	Domain      = "Domain"
@@ -12,6 +11,10 @@ const (
 	Manager = "Manager"
 
 	Name = "Name"
+
+	Region           = "Region"           // only used by VPCs and subnets; probably unnecessary
+	AvailabilityZone = "AvailabilityZone" // only used by subnets
+	Connectivity     = "Connectivity"     // only used by subnets
 
 	SubstrateAccountSelectors          = "SubstrateAccountSelectors"
 	SubstrateAssumeRolePolicyFilenames = "SubstrateAssumeRolePolicyFilenames"
