@@ -4,7 +4,9 @@ import (
 	"context"
 	"flag"
 	"io"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -221,6 +223,20 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			Source: terraform.Q("../../../../../modules/", *domain, "/regional"),
 		})
 		ui.Must(file.WriteIfNotExists(filepath.Join(dirname, "main.tf")))
+
+		// Even though we say in main.tf that it won't be overwritten, we need
+		// to selectively overwrite it to remove the depends_on attribute that
+		// used to order the customer's code to come after the VPC subnets
+		// were definitely shared because they're no longer in Terraform.
+		b, err := os.ReadFile(filepath.Join(dirname, "main.tf"))
+		ui.Must(err)
+		b = regexp.MustCompile(
+			` *depends_on = \[
+( *aws_ec2_tag\.[0-9a-z-]*,
+)* *\]
+`,
+		).ReplaceAllLiteral(b, []byte{})
+		ui.Must(os.WriteFile(filepath.Join(dirname, "main.tf"), b, 0666))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
