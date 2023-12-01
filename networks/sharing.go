@@ -11,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/awsec2"
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/tagging"
@@ -93,16 +94,18 @@ func ShareVPC(
 		dirname = filepath.Join(terraform.RootModulesDirname, domain, quality, region)
 	}
 	tfTags := terraformTags(tags)
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-connectivity"))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-environment"))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-name"))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-quality"))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-environment"))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-name"))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-quality"))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_principal_association.%s", terraform.Label(tfTags))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_association.%s", terraform.Label(tfTags))))
-	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_share.%s", terraform.Label(tfTags))))
+	if fileutil.IsDir(dirname) {
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-connectivity"))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-environment"))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-name"))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-quality"))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-environment"))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-name"))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-quality"))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_principal_association.%s", terraform.Label(tfTags))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_association.%s", terraform.Label(tfTags))))
+		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_share.%s", terraform.Label(tfTags))))
+	}
 
 }
 
