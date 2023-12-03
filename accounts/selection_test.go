@@ -14,7 +14,8 @@ import (
 
 func TestSelectionAdmin(t *testing.T) {
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	selection := Selection{Admin: true}
 	selected, _, err := selection.Partition(ctx, cfg)
 	if err != nil {
@@ -26,7 +27,8 @@ func TestSelectionAdmin(t *testing.T) {
 
 func TestSelectionAllService(t *testing.T) {
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	selection := Selection{
 		AllDomains:      true,
 		AllEnvironments: true,
@@ -105,7 +107,8 @@ func TestSelectionFlagsToSelection2(t *testing.T) {
 
 func TestSelectionHumans(t *testing.T) {
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	selection := Selection{Humans: true}
 	selected, _, err := selection.Partition(ctx, cfg)
 	if err != nil {
@@ -117,7 +120,8 @@ func TestSelectionHumans(t *testing.T) {
 
 func TestSelectionSubstrate(t *testing.T) {
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	selection := Selection{Substrate: true}
 	selected, _, err := selection.Partition(ctx, cfg)
 	if err != nil {

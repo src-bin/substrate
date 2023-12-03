@@ -20,7 +20,8 @@ func TestEC2(t *testing.T) {
 	const roleName = "TestEC2"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	stdout := &strings.Builder{}
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
@@ -103,7 +104,8 @@ func TestEverything(t *testing.T) {
 	const roleName = "TestEverything"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	stdout := &strings.Builder{}
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
@@ -226,7 +228,8 @@ func TestZero(t *testing.T) {
 	const roleName = "TestZero"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	stdout := &strings.Builder{}
 
 	testRole(t, ctx, cfg, roleName, testNotExists)

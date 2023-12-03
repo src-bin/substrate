@@ -24,7 +24,8 @@ func TestFooBarBaz(t *testing.T) {
 	const roleName = "TestFooBarBaz"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	_, serviceAccounts, _, _, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -66,7 +67,8 @@ func TestFooHumans(t *testing.T) {
 	)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	fooCfg := awscfg.Must(cfg.AssumeServiceRole(
 		ctx,
 		domain, environment, quality,
@@ -106,7 +108,8 @@ func TestManagement(t *testing.T) {
 	const roleName = "TestMgmt"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	_, serviceAccounts, _, _, deployAccount, _, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
@@ -140,7 +143,8 @@ func TestSpecial(t *testing.T) {
 	const roleName = "TestSpecial"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	deployCfg := awscfg.Must(cfg.AssumeSpecialRole(
 		ctx,
 		naming.Deploy,
@@ -185,7 +189,8 @@ func TestSubstrate(t *testing.T) {
 	const roleName = "TestSubstrate"
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	_, serviceAccounts, _, _, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

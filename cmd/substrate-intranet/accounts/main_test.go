@@ -20,7 +20,8 @@ import (
 
 func TestAccountsConsole12hAdministrator(t *testing.T) {
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	resp, err := Main2(ctx, cfg, nil /* oc */, request(
 		roles.Administrator,       // start as Administrator in the admin account
 		roles.DeployAdministrator, // assume DeployAdministrator in the deploy account
@@ -44,7 +45,8 @@ func TestAccountsConsole12hAdministrator(t *testing.T) {
 func TestAccountsConsole12hDeveloper(t *testing.T) {
 	const roleName = "TestDeveloper"
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 
 	cmdutil.OverrideArgs("-role", roleName, "-humans", "-special", accounts.Deploy, "-administrator-access")
 	createrole.Main(ctx, cfg, os.Stdout)
@@ -76,7 +78,8 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 
 func TestAccountsConsoleDenied(t *testing.T) {
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator)
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	resp, err := Main2(ctx, cfg, nil /* oc */, request(
 		roles.Auditor,             // start as Auditor in the admin account
 		roles.DeployAdministrator, // assume DeployAdministrator in the deploy account, which will fail

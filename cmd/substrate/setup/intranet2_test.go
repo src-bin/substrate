@@ -13,7 +13,8 @@ import (
 
 func TestIntranet2Test1(t *testing.T) {
 	ctx := context.Background()
-	substrateCfg := testawscfg.Test1(roles.Administrator)
+	substrateCfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	dnsDomainName, idpName := intranet2(ctx, mgmtCfg, substrateCfg)
 	if dnsDomainName != "src-bin-test1.net" {
@@ -27,7 +28,8 @@ func TestIntranet2Test1(t *testing.T) {
 
 func TestIntranet2Test2(t *testing.T) {
 	ctx := context.Background()
-	substrateCfg := testawscfg.Test2(roles.Administrator)
+	substrateCfg, restore := testawscfg.Test2(roles.Administrator)
+	defer restore()
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	dnsDomainName, idpName := intranet2(ctx, mgmtCfg, substrateCfg)
 	if dnsDomainName != "src-bin-test2.net" {

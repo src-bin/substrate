@@ -13,7 +13,9 @@ import (
 
 func TestDescribeVPCs(t *testing.T) {
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator).Regional("us-west-2")
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
+	cfg = cfg.Regional("us-west-2")
 
 	// We don't need to switch into the network account, which saves a little
 	// time, since we know this network's already shared and tagged.
@@ -30,7 +32,9 @@ func TestDescribeVPCs(t *testing.T) {
 
 func TestEnsureSecurityGroup(t *testing.T) {
 	ctx := context.Background()
-	cfg := testawscfg.Test1(roles.Administrator).Regional("us-west-2")
+	cfg, restore := testawscfg.Test1(roles.Administrator)
+	defer restore()
+	cfg = cfg.Regional("us-west-2")
 	vpcs, err := DescribeVPCs(ctx, cfg, naming.Admin, naming.Default)
 	if err != nil {
 		t.Fatal(err)

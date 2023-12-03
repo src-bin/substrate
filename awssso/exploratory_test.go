@@ -15,7 +15,8 @@ import (
 
 func TestListInstancesTest4(t *testing.T) {
 	ctx := context.Background()
-	substrateCfg := testawscfg.Test4(roles.Administrator)
+	substrateCfg, restore := testawscfg.Test4(roles.Administrator)
+	defer restore()
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 
 	if err := awsorgs.RegisterDelegatedAdministrator(
@@ -53,7 +54,8 @@ func TestListInstancesTest4(t *testing.T) {
 
 func TestListInstancesTest8(t *testing.T) {
 	ctx := context.Background()
-	substrateCfg := testawscfg.Test8(roles.Administrator)
+	substrateCfg, restore := testawscfg.Test8(roles.Administrator)
+	defer restore()
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 
 	instances := testListInstances(t, ctx, mgmtCfg)

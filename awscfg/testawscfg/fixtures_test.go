@@ -1,6 +1,7 @@
 package testawscfg
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -12,8 +13,9 @@ import (
 )
 
 func Test0(t *testing.T) {
-	_, err := cfg(ctx()).GetCallerIdentity(ctx())
-	if err != nil {
+	ctx := context.Background()
+	if _, err := awscfg.Must(awscfg.NewConfig(ctx)).Regional("us-east-1").GetCallerIdentity(ctx); err != nil {
+		t.Fatal(err)
 		fmt.Printf(
 			"no AWS credentials; run `eval $(cd ../src-bin && substrate credentials)` to get some",
 		)
@@ -61,6 +63,8 @@ func Test6Auditor(t *testing.T) {
 	testFixture(t, Test6, Test6SubstrateAccountId, roles.Auditor)
 }
 
+// These haven't had src-bin's Administrator added to their
+// substrate.Administrator.assume-role-policy.json yet.
 /*
 func Test7Administrator(t *testing.T) {
 	testFixture(t, Test7, Test7SubstrateAccountId, roles.Administrator)
@@ -105,10 +109,13 @@ func Test11Auditor(t *testing.T) {
 
 func testFixture(
 	t *testing.T,
-	f func(string) *awscfg.Config,
+	f func(string) (*awscfg.Config, func()),
 	accountId, roleName string,
 ) {
-	callerIdentity, err := f(roleName).GetCallerIdentity(ctx())
+	ctx := context.Background()
+	cfg, restore := f(roleName)
+	defer restore()
+	callerIdentity, err := cfg.GetCallerIdentity(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
