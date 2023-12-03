@@ -26,6 +26,7 @@ func ShareVPC(
 	domain, environment, quality string,
 	region string,
 ) {
+	ui.Spinf("sharing the %s/%s VPC with account %s", environment, quality, accountCfg.MustAccountId(ctx))
 
 	// Mimic exactly what we were doing in Terraform for a smooth transition.
 	tags := tagging.Map{
@@ -95,6 +96,8 @@ func ShareVPC(
 	}
 	tfTags := terraformTags(tags)
 	if fileutil.IsDir(dirname) {
+		ui.Stop("ok")
+		ui.Spinf("removing VPC sharing resources from Terraform in %s", dirname)
 		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-connectivity"))))
 		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-environment"))))
 		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-name"))))
@@ -107,6 +110,7 @@ func ShareVPC(
 		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_share.%s", terraform.Label(tfTags))))
 	}
 
+	ui.Stop("ok")
 }
 
 func terraformTags(tags tagging.Map) terraform.Tags {
