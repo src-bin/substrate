@@ -16,6 +16,7 @@ import (
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
+	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
@@ -256,6 +257,7 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region))
 
 		ui.Must(terraform.Init(dirname))
+		networks.StateRm(dirname, Environment, quality, region)
 
 		if *noApply {
 			err = terraform.Plan(dirname)

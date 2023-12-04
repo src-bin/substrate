@@ -3,7 +3,6 @@ package networks
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -88,42 +87,30 @@ func ShareVPC(
 		Tags:      vpc.Tags,
 	}))
 
-	// Remove the resource share, shared subnets, and all the tags from
-	// Terraform to stop it from trying to manage them.
-	dirname := filepath.Join(terraform.RootModulesDirname, domain, environment, quality, region)
-	if domain == naming.Admin {
-		dirname = filepath.Join(terraform.RootModulesDirname, domain, quality, region)
-	}
-	tfTags := terraformTags(tags)
-	if fileutil.IsDir(dirname) {
-		ui.Stop("ok")
-		ui.Spinf("removing VPC sharing resources from Terraform in %s", dirname)
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-connectivity"))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-environment"))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-name"))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-quality"))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-environment"))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-name"))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-quality"))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_principal_association.%s", terraform.Label(tfTags))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_association.%s", terraform.Label(tfTags))))
-		ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_share.%s", terraform.Label(tfTags))))
-	}
-
 	ui.Stop("ok")
 }
 
-func terraformTags(tags tagging.Map) terraform.Tags {
-	return terraform.Tags{
-		Connectivity: tags[tagging.Connectivity],
-
-		Domain:      tags[tagging.Domain],
-		Environment: tags[tagging.Environment],
-		Quality:     tags[tagging.Quality],
-
-		Name: tags[tagging.Name],
-
-		Region:           tags[tagging.Region],
-		AvailabilityZone: tags[tagging.AvailabilityZone],
+// StateRm removes the resource share, shared subnets, and all the tags from
+// Terraform to stop it from trying to manage them.
+func StateRm(dirname, environment, quality, region string) {
+	if !fileutil.IsDir(dirname) {
+		return
 	}
+	tfTags := terraform.Tags{
+		Environment: environment,
+		Quality:     quality,
+		Region:      region,
+	}
+	ui.Spinf("removing VPC sharing resources from Terraform in %s", dirname)
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-connectivity"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-environment"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-name"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-quality"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-environment"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-name"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "vpc-quality"))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_principal_association.%s", terraform.Label(tfTags))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_association.%s", terraform.Label(tfTags))))
+	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_share.%s", terraform.Label(tfTags))))
+	ui.Stop("ok")
 }

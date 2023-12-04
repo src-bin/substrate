@@ -254,6 +254,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Must(terraform.Fmt(dirname))
 
 		ui.Must(terraform.Init(dirname))
+		networks.StateRm(dirname, *environment, *quality, region)
 
 		if *noApply {
 			if err := terraform.Plan(dirname); err != nil {
