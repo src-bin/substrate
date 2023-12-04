@@ -92,11 +92,12 @@ func ShareVPC(
 
 // StateRm removes the resource share, shared subnets, and all the tags from
 // Terraform to stop it from trying to manage them.
-func StateRm(dirname, environment, quality, region string) {
+func StateRm(dirname, domain, environment, quality, region string) {
 	if !fileutil.IsDir(dirname) {
 		return
 	}
 	tfTags := terraform.Tags{
+		Domain:      domain,
 		Environment: environment,
 		Quality:     quality,
 		Region:      region,

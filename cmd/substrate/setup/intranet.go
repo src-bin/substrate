@@ -230,19 +230,6 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		})
 		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
 
-		// Remove a select few resources from Terraform state so that they
-		// aren't destroyed when Terraform runs with the matching resource
-		// definitions removed.
-		if region == "us-east-1" {
-			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_acm_certificate.intranet"))
-			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_acm_certificate_validation.intranet"))
-			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_route53_record.intranet"))
-			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_route53_record.validation"))
-		}
-		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group.instance-factory"))
-		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group_rule.instance-factory-egress"))
-		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group_rule.instance-factory-ssh-ingress"))
-
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
 			region,
@@ -257,7 +244,23 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region))
 
 		ui.Must(terraform.Init(dirname))
-		networks.StateRm(dirname, Environment, quality, region)
+
+		// Remove a select few resources from Terraform state so that they
+		// aren't destroyed when Terraform runs with the matching resource
+		// definitions removed.
+		if region == "us-east-1" {
+			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_acm_certificate.intranet"))
+			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_acm_certificate_validation.intranet"))
+			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_route53_record.intranet"))
+			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_route53_record.validation"))
+		}
+		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group.instance-factory"))
+		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group_rule.instance-factory-egress"))
+		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group_rule.instance-factory-ssh-ingress"))
+
+		// Remove network sharing and tagging from Terraform because Substrate
+		// handles that directly now.
+		networks.StateRm(dirname, Domain, Environment, quality, region)
 
 		if *noApply {
 			err = terraform.Plan(dirname)

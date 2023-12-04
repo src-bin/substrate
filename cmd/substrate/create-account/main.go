@@ -254,7 +254,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Must(terraform.Fmt(dirname))
 
 		ui.Must(terraform.Init(dirname))
-		networks.StateRm(dirname, *environment, *quality, region)
+
+		// Remove network sharing and tagging from Terraform because Substrate
+		// handles that directly now.
+		networks.StateRm(dirname, *domain, *environment, *quality, region)
 
 		if *noApply {
 			if err := terraform.Plan(dirname); err != nil {
