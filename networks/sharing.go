@@ -29,17 +29,15 @@ func ShareVPC(
 
 	// Mimic exactly what we were doing in Terraform for a smooth transition.
 	tags := tagging.Map{
+		tagging.Name: nameTag(domain, environment, quality),
+
 		tagging.Environment: environment,
 		tagging.Quality:     quality,
-		tagging.Region:      region,
+
+		tagging.Region: region,
 
 		tagging.Manager:          tagging.Substrate,
 		tagging.SubstrateVersion: version.Version,
-	}
-	if domain == naming.Admin {
-		tags[tagging.Name] = fmt.Sprintf("%s-%s", domain, quality) // special case for the Substrate account
-	} else {
-		tags[tagging.Name] = fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 	}
 
 	// Find the VPC and subnets to share.
@@ -96,12 +94,17 @@ func StateRm(dirname, domain, environment, quality, region string) {
 	if !fileutil.IsDir(dirname) {
 		return
 	}
+
 	tfTags := terraform.Tags{
+		Name: nameTag(domain, environment, quality),
+
 		Domain:      domain,
 		Environment: environment,
 		Quality:     quality,
-		Region:      region,
+
+		Region: region,
 	}
+
 	ui.Spinf("removing VPC sharing resources from Terraform in %s", dirname)
 	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-connectivity"))))
 	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ec2_tag.%s", terraform.Label(tfTags, "subnet-environment"))))
@@ -114,4 +117,11 @@ func StateRm(dirname, domain, environment, quality, region string) {
 	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_association.%s", terraform.Label(tfTags))))
 	ui.Must(terraform.StateRm(dirname, fmt.Sprintf("aws_ram_resource_share.%s", terraform.Label(tfTags))))
 	ui.Stop("ok")
+}
+
+func nameTag(domain, environment, quality string) string {
+	if domain == naming.Admin {
+		return fmt.Sprintf("%s-%s", domain, quality) // special case for the Substrate account
+	}
+	return fmt.Sprintf("%s-%s-%s", domain, environment, quality)
 }
