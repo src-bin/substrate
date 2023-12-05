@@ -202,9 +202,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
 	// other environment variables in case they're relevant to the command.
 	if args := flag.Args(); len(args) > 0 {
-		ui.Must(os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID))
-		ui.Must(os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey))
-		ui.Must(os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken))
+		ui.Must(cmdutil.Setenv(creds))
 
 		// Switch back to the original working directory before looking for the
 		// program to execute.

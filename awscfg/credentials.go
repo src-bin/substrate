@@ -3,7 +3,6 @@ package awscfg
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/awsiam/awsiamusers"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
@@ -127,18 +127,7 @@ func (c *Config) BootstrapCredentials(ctx context.Context) (callerIdentity *sts.
 	// that means for child processes like `terraform plan|apply` that tend
 	// today to end up jumping out of the management account during initial
 	// setup and from then on out of the Substrate account.
-	if err = os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID); err != nil {
-		return
-	}
-	if err = os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey); err != nil {
-		return
-	}
-	if creds.SessionToken == "" {
-		err = os.Unsetenv("AWS_SESSION_TOKEN")
-	} else {
-		err = os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken)
-	}
-	if err != nil {
+	if err = cmdutil.Setenv(creds); err != nil {
 		return
 	}
 

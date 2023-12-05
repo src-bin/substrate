@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
 )
 
@@ -99,38 +100,21 @@ func fixture(accountId, repo string) func(string) (*awscfg.Config, func()) {
 		// before replacing them with credentials from the AWS config we just
 		// constructed in the test organization.
 		oldCreds := aws.Credentials{
-			AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
-			SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-			SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
+			AccessKeyID:     os.Getenv(cmdutil.AWS_ACCESS_KEY_ID),
+			SecretAccessKey: os.Getenv(cmdutil.AWS_SECRET_ACCESS_KEY),
+			SessionToken:    os.Getenv(cmdutil.AWS_SESSION_TOKEN),
 		}
 		creds, err := cfg.Retrieve(ctx)
 		if err != nil {
 			panic(err)
 		}
-		if err := os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID); err != nil {
-			panic(err)
-		}
-		if err := os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey); err != nil {
-			panic(err)
-		}
-		if err := os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken); err != nil {
+		if err := cmdutil.Setenv(creds); err != nil {
 			panic(err)
 		}
 
 		return cfg, func() {
 			var err error
-			if err = os.Setenv("AWS_ACCESS_KEY_ID", oldCreds.AccessKeyID); err != nil {
-				panic(err)
-			}
-			if err = os.Setenv("AWS_SECRET_ACCESS_KEY", oldCreds.SecretAccessKey); err != nil {
-				panic(err)
-			}
-			if oldCreds.SessionToken == "" {
-				err = os.Unsetenv("AWS_SESSION_TOKEN")
-			} else {
-				err = os.Setenv("AWS_SESSION_TOKEN", oldCreds.SessionToken)
-			}
-			if err != nil {
+			if err = cmdutil.Setenv(oldCreds); err != nil {
 				panic(err)
 			}
 		}

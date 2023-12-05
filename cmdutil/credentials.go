@@ -173,3 +173,22 @@ func PrintCredentialsJSON(creds aws.Credentials) {
 		1,
 	})
 }
+
+func Setenv(creds aws.Credentials) (err error) {
+	if err = os.Setenv(AWS_ACCESS_KEY_ID, creds.AccessKeyID); err != nil {
+		return
+	}
+	if err = os.Setenv(AWS_SECRET_ACCESS_KEY, creds.SecretAccessKey); err != nil {
+		return
+	}
+	if creds.SessionToken == "" {
+		err = os.Unsetenv(AWS_SESSION_TOKEN)
+	} else {
+		err = os.Setenv(AWS_SESSION_TOKEN, creds.SessionToken)
+	}
+	if err != nil {
+		return
+	}
+	err = os.Setenv(SUBSTRATE_CREDENTIALS_EXPIRATION, creds.Expires.Format(time.RFC3339))
+	return
+}
