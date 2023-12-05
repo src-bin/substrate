@@ -13,6 +13,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -85,6 +86,10 @@ func main() {
 			os.Exit(1)
 		}
 		os.Exit(0)
+	}
+
+	if features.MacOSKeychain.Enabled() {
+		ui.Must(cmdutil.SetenvFromTPM())
 	}
 
 	ui.Must(cmdutil.Chdir())
