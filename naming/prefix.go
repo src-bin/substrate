@@ -2,6 +2,7 @@ package naming
 
 import (
 	"os"
+	"strings"
 
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/ui"
@@ -38,6 +39,18 @@ func Prefix() (prefix string) {
 		printedPrefix = true
 	}
 	return
+}
+
+func PrefixNoninteractive() (string, error) {
+	pathname, err := fileutil.PathnameInParents(PrefixFilename)
+	if err != nil {
+		return "", err
+	}
+	b, err := os.ReadFile(pathname)
+	if err != nil {
+		return "", err
+	}
+	return strings.Trim(string(b), "\r\n"), nil
 }
 
 var printedPrefix bool
