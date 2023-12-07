@@ -184,6 +184,14 @@ func (c *Config) AssumeRole(
 	// during which I forgot I'd assumed a role and needed to unassume-role
 	// before carrying on.
 
+	// If we're trying to assume a Substrate-managed Administrator role
+	// (including in the deploy or network account) and we fail, try to
+	// assume OrganizationAccountAccessRole, too, which will succeed during
+	// account creation before the Substrate-managed role exists.
+	if err != nil && (roleName == roles.Administrator || roleName == roles.DeployAdministrator || roleName == roles.NetworkAdministrator) {
+		return c.AssumeRole(ctx, accountId, roles.OrganizationAccountAccessRole, duration)
+	}
+
 	return cfg, err
 }
 
