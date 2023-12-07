@@ -56,7 +56,7 @@
 {{- end}}
 {{- if .SubstrateAccount}}
 <tr>
-    <td>Substrate<small><small>&nbsp;(formerly&nbsp;&ldquo;admin&rdquo;)</small></small></td>
+    <td>Substrate</td>
     <td>{{.SubstrateAccount.Id}}</td>
     <td><a class="aws-console" href="accounts?number={{.SubstrateAccount.Id}}&role={{$roleName}}" target="aws-console-{{.SubstrateAccount.Id}}">{{$roleName}}</a></td>
     <td><a class="aws-console" href="accounts?number={{.SubstrateAccount.Id}}&role=Auditor" target="aws-console-{{.SubstrateAccount.Id}}">Auditor</a></td>
