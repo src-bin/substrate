@@ -33,10 +33,11 @@ deps:
 	go get -u golang.org/x/tools/cmd/goimports
 
 go-generate:
-	go generate ./lambdautil # dependency of several packages with go:generate directives
-	go generate ./cmd/substrate-intranet     # dependency of cmd/substrate/intranet-zip's...
-	go generate ./cmd/substrate-intranet/... # ...go:generate directives
-	go generate ./... # the rest of the go:generate directives
+	go generate -x ./lambdautil # dependency of several packages with go:generate directives
+	go generate -x ./cmd/substrate-intranet     # dependencies of...
+	go generate -x ./cmd/substrate-intranet/... # ...cmd/substrate/intranet-zip's...
+	go generate -x ./terraform                  # ...go:generate directives
+	go generate -x ./... # the rest of the go:generate directives
 
 go-generate-intranet:
 	env GOARCH=arm64 GOOS=linux go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.DefaultRequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o cmd/substrate/intranet-zip/bootstrap ./cmd/substrate-intranet
