@@ -7,12 +7,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsdynamodb"
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -39,11 +39,11 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 		return nil, ui.StopErr(err)
 	}
 	for _, account := range allAccounts {
-		if account.Tags[tagging.SubstrateSpecialAccount] == accounts.Deploy {
+		if account.Tags[tagging.SubstrateSpecialAccount] == naming.Deploy {
 			terraformPrincipals = append(terraformPrincipals, roles.ARN(aws.ToString(account.Id), roles.DeployAdministrator))
-		} else if account.Tags[tagging.SubstrateSpecialAccount] == accounts.Network {
+		} else if account.Tags[tagging.SubstrateSpecialAccount] == naming.Network {
 			terraformPrincipals = append(terraformPrincipals, roles.ARN(aws.ToString(account.Id), roles.NetworkAdministrator))
-		} else if account.Tags[tagging.SubstrateType] == accounts.Substrate {
+		} else if account.Tags[tagging.SubstrateType] == naming.Substrate {
 			terraformPrincipals = append(
 				terraformPrincipals,
 				roles.ARN(aws.ToString(account.Id), roles.Administrator),
@@ -108,7 +108,7 @@ func EnsureStateManager(ctx context.Context, cfg *awscfg.Config) (*awsiam.Role, 
 			// over again.
 			ui.Stop("bucket already exists")
 			ui.Stop("switching to the deploy account")
-			cfg, err = cfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)
+			cfg, err = cfg.AssumeSpecialRole(ctx, naming.Deploy, roles.DeployAdministrator, time.Hour)
 			if err != nil {
 				return nil, ui.StopErr(ui.StopErr(err))
 			}

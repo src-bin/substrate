@@ -8,7 +8,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
@@ -38,7 +37,7 @@ func Root(ctx context.Context, cfg *awscfg.Config, dirname, region string) (err 
 	// Substrate account.
 	stateCfg, err := cfg.AssumeSpecialRole(
 		ctx,
-		accounts.Deploy,
+		naming.Deploy,
 		roles.DeployAdministrator,
 		time.Hour,
 	)
