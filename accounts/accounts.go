@@ -41,16 +41,12 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	}
 	defer f.Close()
 
-	//adminAccountsCells := table.MakeCells(6, 1)
 	adminAccountsCells := table.MakeCells(5, 1)
 	adminAccountsCells[0][0] = "Quality"
 	adminAccountsCells[0][1] = "Account Number"
 	adminAccountsCells[0][2] = "Role Name"
 	adminAccountsCells[0][3] = "Role ARN"
-	//adminAccountsCells[0][4] = "E-mail"
-	//adminAccountsCells[0][5] = "Version"
 	adminAccountsCells[0][4] = "Version"
-	//serviceAccountsCells := table.MakeCells(8, 1)
 	serviceAccountsCells := table.MakeCells(7, 1)
 	serviceAccountsCells[0][0] = "Domain"
 	serviceAccountsCells[0][1] = "Environment"
@@ -58,17 +54,12 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	serviceAccountsCells[0][3] = "Account Number"
 	serviceAccountsCells[0][4] = "Role Name"
 	serviceAccountsCells[0][5] = "Role ARN"
-	//serviceAccountsCells[0][6] = "E-mail"
-	//serviceAccountsCells[0][7] = "Version"
 	serviceAccountsCells[0][6] = "Version"
-	//specialAccountsCells := table.MakeCells(6, 3)
 	specialAccountsCells := table.MakeCells(5, 3)
 	specialAccountsCells[0][0] = "Account Name"
 	specialAccountsCells[0][1] = "Account Number"
 	specialAccountsCells[0][2] = "Role Name"
 	specialAccountsCells[0][3] = "Role ARN"
-	//specialAccountsCells[0][4] = "E-mail"
-	//specialAccountsCells[0][5] = "Version"
 	specialAccountsCells[0][4] = "Version"
 
 	ui.Must(cfg.ClearCachedAccounts())
@@ -81,8 +72,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[1][1] = aws.ToString(managementAccount.Id)
 	specialAccountsCells[1][2] = roles.OrganizationAdministrator
 	specialAccountsCells[1][3] = roles.ARN(aws.ToString(managementAccount.Id), roles.OrganizationAdministrator)
-	//specialAccountsCells[1][4] = aws.ToString(managementAccount.Email)
-	//specialAccountsCells[1][5] = managementAccount.Tags[tagging.SubstrateVersion]
 	specialAccountsCells[1][4] = managementAccount.Tags[tagging.SubstrateVersion]
 
 	specialAccountsCells[2][0] = Audit
@@ -90,8 +79,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 		specialAccountsCells[2][1] = aws.ToString(auditAccount.Id)
 		specialAccountsCells[2][2] = roles.Auditor
 		specialAccountsCells[2][3] = roles.ARN(aws.ToString(auditAccount.Id), roles.Auditor)
-		//specialAccountsCells[2][4] = aws.ToString(auditAccount.Email)
-		//specialAccountsCells[2][5] = auditAccount.Tags[tagging.SubstrateVersion]
 		specialAccountsCells[2][4] = auditAccount.Tags[tagging.SubstrateVersion]
 	}
 
@@ -101,7 +88,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			aws.ToString(deployAccount.Id),
 			roles.DeployAdministrator,
 			roles.ARN(aws.ToString(deployAccount.Id), roles.DeployAdministrator),
-			//aws.ToString(deployAccount.Email),
 			deployAccount.Tags[tagging.SubstrateVersion],
 		})
 	}
@@ -111,7 +97,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 		aws.ToString(networkAccount.Id),
 		roles.NetworkAdministrator,
 		roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator),
-		//aws.ToString(networkAccount.Email),
 		networkAccount.Tags[tagging.SubstrateVersion],
 	})
 
@@ -121,7 +106,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			aws.ToString(substrateAccount.Id),
 			roles.Administrator,
 			roles.ARN(aws.ToString(substrateAccount.Id), roles.Administrator),
-			//aws.ToString(substrateAccount.Email),
 			substrateAccount.Tags[tagging.SubstrateVersion],
 		})
 	}
@@ -132,7 +116,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			aws.ToString(account.Id),
 			roles.Administrator,
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
-			//aws.ToString(account.Email),
 			account.Tags[tagging.SubstrateVersion],
 		})
 	}
@@ -145,7 +128,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 			aws.ToString(account.Id),
 			roles.Administrator,
 			roles.ARN(aws.ToString(account.Id), roles.Administrator),
-			//aws.ToString(account.Email),
 			account.Tags[tagging.SubstrateVersion],
 		})
 	}
