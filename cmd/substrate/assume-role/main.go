@@ -175,7 +175,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		cfg, err = cfg.AssumeServiceRole(ctx, *domain, *environment, *quality, *roleName, duration)
 	}
 	if err != nil {
-		ui.Fatal(err)
+		ui.Print(err)
+		if os.Getenv("OLD_AWS_ACCESS_KEY_ID") != "" {
+			ui.Print("this might be because you already assumed a role; run `unassume-role` and try again")
+		}
+		os.Exit(1)
 	}
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
