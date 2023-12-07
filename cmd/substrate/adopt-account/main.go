@@ -1,4 +1,4 @@
-package createaccount
+package adoptaccount
 
 import (
 	"context"
@@ -12,8 +12,10 @@ import (
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
 	"github.com/src-bin/substrate/version"
@@ -21,17 +23,20 @@ import (
 )
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
+	number := flag.String("number", "", "tag and begin managing this account instead of creating a new AWS account")
 	domain := cmdutil.DomainFlag("domain for this new AWS account")
 	environment := cmdutil.EnvironmentFlag("environment for this new AWS account")
 	quality := cmdutil.QualityFlag("quality for this new AWS account")
-	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	ui.InteractivityFlags()
 	flag.Usage = func() {
-		ui.Print("Usage: substrate create-account -domain <domain> -environment <environment> [-quality <quality>] [-ignore-service-quotas]")
+		ui.Print("Usage: substrate adopt-account -number <number> -domain <domain> -environment <environment> [-quality <quality>]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
 	version.Flag()
+	if *number == "" {
+		ui.Fatal(`-number "..." is required`)
+	}
 	if *environment != "" && *quality == "" {
 		*quality = cmdutil.QualityForEnvironment(*environment)
 	}
@@ -59,26 +64,17 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
 
-	ui.Spin("creating the account")
-	account, err := mgmtCfg.FindServiceAccount(ctx, *domain, *environment, *quality)
+	ui.Spin("finding the account")
+	account, err := awsorgs.DescribeAccount(ctx, mgmtCfg, *number)
+	if awsutil.ErrorCodeIs(err, awsorgs.AccountNotFoundException) {
+		ui.Stop("not found")
+		ui.Printf("is account number %s a member of your organization?", *number)
+		os.Exit(1)
+	}
 	ui.Must(err)
-	if account == nil {
-		var deadline time.Time
-		if *ignoreServiceQuotas {
-			deadline = time.Now()
-		}
-		account, err = awsorgs.EnsureAccount(
-			ctx,
-			mgmtCfg,
-			*domain,
-			*environment,
-			*quality,
-			deadline,
-		)
-		ui.Must(err)
-		ui.Stop(account)
-	} else {
-		ui.Stopf("%s already exists", account)
+	ui.Stop(account)
+	if account.Tags[tagging.Manager] == tagging.Substrate {
+		ui.Printf("%s is already being managed by Substrate", account)
 		os.Exit(1)
 	}
 
@@ -105,7 +101,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		"then, write Terraform code in modules/%s/ to define your infrastructure and run `substrate update-account` to apply it",
 		*domain,
 	)
-	ui.Print("or, run `substrate create-account` again to create other service accounts")
 
 }
 

@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	AccountNotFoundException        = "AccountNotFoundException"
 	ConstraintViolationException    = "ConstraintViolationException"
 	FinalizingOrganizationException = "FinalizingOrganizationException"
 )

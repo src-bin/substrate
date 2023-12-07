@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
-	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
@@ -24,10 +23,11 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	domain := cmdutil.DomainFlag("domain for this new AWS account")
 	environment := cmdutil.EnvironmentFlag("environment for this new AWS account")
 	quality := cmdutil.QualityFlag("quality for this new AWS account")
-	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
+	autoApprove := flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
+	noApply := flag.Bool("no-apply", false, "do not apply Terraform changes")
 	ui.InteractivityFlags()
 	flag.Usage = func() {
-		ui.Print("Usage: substrate create-account -domain <domain> -environment <environment> [-quality <quality>] [-ignore-service-quotas]")
+		ui.Print("Usage: substrate update-account -domain <domain> -environment <environment> [-quality <quality>] [-auto-approve|-no-apply]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -41,7 +41,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	if d := *domain; d == "admin" || d == "common" || d == "deploy" || d == "intranet" || d == "lambda-function" || d == "network" || d == "peering-connection" || d == "substrate" {
 		ui.Fatalf(`-domain %q is reserved; please choose a different name`, d)
 	}
-	if strings.ContainsAny(*domain, ", ") {
+	if strings.ContainsAny(*domain, ",. ") {
 		ui.Fatalf("-domain %q cannot contain commas or spaces", *domain)
 	}
 	if strings.ContainsAny(*environment, ", ") {
@@ -59,28 +59,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
 
-	ui.Spin("creating the account")
+	ui.Spin("finding the account")
 	account, err := mgmtCfg.FindServiceAccount(ctx, *domain, *environment, *quality)
 	ui.Must(err)
 	if account == nil {
-		var deadline time.Time
-		if *ignoreServiceQuotas {
-			deadline = time.Now()
-		}
-		account, err = awsorgs.EnsureAccount(
-			ctx,
-			mgmtCfg,
-			*domain,
-			*environment,
-			*quality,
-			deadline,
-		)
-		ui.Must(err)
-		ui.Stop(account)
-	} else {
-		ui.Stopf("%s already exists", account)
+		ui.Stop("not found")
 		os.Exit(1)
 	}
+	ui.Stop(account)
 
 	mgmtCfg.Telemetry().FinalAccountId = aws.ToString(account.Id)
 	mgmtCfg.Telemetry().FinalRoleName = roles.Administrator
@@ -92,20 +78,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	accounts.SetupIAM(ctx, mgmtCfg, networkCfg, substrateCfg, accountCfg, *domain, *environment, *quality)
 
 	accounts.SetupTerraform(ctx, mgmtCfg, networkCfg, accountCfg, *domain, *environment, *quality)
-
-	ui.Print("next, commit the following files to version control:")
-	ui.Print("")
-	ui.Print("substrate.*")
-	ui.Printf("modules/%s/", *domain)
-	ui.Print("modules/common/")
-	ui.Print("modules/substrate/")
-	ui.Printf("root-modules/%s/%s/%s/", *domain, *environment, *quality)
-	ui.Print("")
-	ui.Printf(
-		"then, write Terraform code in modules/%s/ to define your infrastructure and run `substrate update-account` to apply it",
-		*domain,
-	)
-	ui.Print("or, run `substrate create-account` again to create other service accounts")
+	accounts.RunTerraform(*domain, *environment, *quality, *autoApprove, *noApply)
 
 }
 
