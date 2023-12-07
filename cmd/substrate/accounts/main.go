@@ -129,7 +129,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				continue
 			}
 			fmt.Printf(
-				"substrate create-account%s%s%s -domain %q -environment %q -quality %q\n",
+				"substrate update-account%s%s%s -domain %q -environment %q -quality %q\n",
 				autoApproveFlag,
 				ignoreServiceQuotasFlag,
 				noApplyFlag,
