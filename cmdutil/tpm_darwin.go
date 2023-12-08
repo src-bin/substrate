@@ -61,7 +61,7 @@ func SetenvFromTPM() error {
 		return err
 	}
 	for _, result := range results {
-		if result.Account == prefix && result.Service == naming.Substrate { // it's unclear how careful we need to be about this
+		if result.Account == prefix && result.Service == naming.Substrate { // belt and suspenders
 
 			var creds aws.Credentials
 			if err := json.Unmarshal(result.Data, &creds); err != nil {
