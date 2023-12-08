@@ -67,6 +67,9 @@ func SetenvFromTPM() error {
 			if err := json.Unmarshal(result.Data, &creds); err != nil {
 				return err
 			}
+			if creds.Expires.Before(time.Now()) {
+				continue
+			}
 			if err := Setenv(creds); err != nil {
 				return err
 			}
