@@ -14,7 +14,7 @@ import (
 )
 
 func SetTPM(creds aws.Credentials) error {
-	ui.Printf("storing access key %s (expires %s) in the MacOS Keychain", creds.AccessKeyID, creds.Expires.Format(time.RFC3339))
+	ui.Printf("storing access key %s (expires %s) in the macOS keychain", creds.AccessKeyID, creds.Expires.Format(time.RFC3339))
 	item := keychain.NewItem()
 	item.SetAccessible(keychain.AccessibleWhenUnlocked)
 	item.SetSecClass(keychain.SecClassGenericPassword)
@@ -70,7 +70,7 @@ func SetenvFromTPM() error {
 			if err := Setenv(creds); err != nil {
 				return err
 			}
-			ui.Printf("found access key %s (expires %s) in the MacOS Keychain", creds.AccessKeyID, creds.Expires.Format(time.RFC3339))
+			ui.Printf("found access key %s (expires %s) in the macOS keychain", creds.AccessKeyID, creds.Expires.Format(time.RFC3339))
 
 		}
 	}
