@@ -41,7 +41,7 @@ func SetTPM(creds aws.Credentials) error {
 	return err
 }
 
-func SetenvFromTPM() error {
+func SetenvFromTPM(subcommand string) error {
 	query := keychain.NewItem()
 	query.SetMatchLimit(keychain.MatchLimitOne)
 	query.SetReturnAttributes(true)
@@ -73,7 +73,9 @@ func SetenvFromTPM() error {
 			if err := Setenv(creds); err != nil {
 				return err
 			}
-			ui.Printf("found access key %s (expires %s) in the macOS keychain", creds.AccessKeyID, creds.Expires.Format(time.RFC3339))
+			if subcommand == "credentials" {
+				ui.Printf("found access key %s (expires %s) in the macOS keychain", creds.AccessKeyID, creds.Expires.Format(time.RFC3339))
+			}
 
 		}
 	}
