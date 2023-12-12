@@ -73,7 +73,7 @@ func SetenvFromTPM(subcommand string) error {
 			if err := Setenv(creds); err != nil {
 				return err
 			}
-			if subcommand == "credentials" {
+			if subcommand == "credentials" || subcommand == "whoami" {
 				ui.Printf("found access key %s (expires %s) in the macOS keychain", creds.AccessKeyID, creds.Expires.Format(time.RFC3339))
 			}
 
