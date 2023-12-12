@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
 	"sort"
@@ -22,43 +21,27 @@ import (
 
 func main() {
 
-	// If we were invoked directly, expect to find a subcommand in the first
-	// position. Reconfigure the arguments to make it look like we were invoked
-	// via a symbolic link so as to unify dispatch and simply argument parsing
-	// after dispatch.
-	//
-	// The extra call to filepath.EvalSymlinks is to normalize executable to
-	// be a reference to the actual binary. On MacOS, os.Executable returns
-	// the pathname of the symbolic link, which caused the comparison with
-	// os.Args[0] to always succeed.
-	executable, err := os.Executable()
-	ui.Must(err)
-	executable, err = filepath.EvalSymlinks(executable)
-	ui.Must(err)
-	if filepath.Base(os.Args[0]) == filepath.Base(executable) {
-		if len(os.Args) < 2 {
-			usage(1)
-		}
-		switch os.Args[1] {
+	if len(os.Args) < 2 {
+		usage(1)
+	}
+	switch os.Args[1] {
 
-		// Respond to `substrate -h` but not `substrate-* -h` or
-		// `substrate * -h`, which are handled by main.main or *.Main.
-		case "-h", "-help", "--help":
-			usage(0)
+	// Respond to `substrate -h` but not `substrate-* -h` or
+	// `substrate * -h`, which are handled by main.main or *.Main.
+	case "-h", "-help", "--help":
+		usage(0)
 
-		// Dispatch shell completion from here so we can get in and out before
-		// we go into all the awscfg business, which is too slow to do
-		// keystroke-by-keystroke.
-		case "-shell-completion", "--shell-completion", "-shell-completion=bash", "--shell-completion=bash":
-			shellCompletion()
+	// Dispatch shell completion from here so we can get in and out before
+	// we go into all the awscfg business, which is too slow to do
+	// keystroke-by-keystroke.
+	case "-shell-completion", "--shell-completion", "-shell-completion=bash", "--shell-completion=bash":
+		shellCompletion()
 
-		// Respond to -version or --version, however folks want to call it.
-		case "-v", "-version", "--version":
-			version.Print()
-			os.Exit(0)
+	// Respond to -version or --version, however folks want to call it.
+	case "-v", "-version", "--version":
+		version.Print()
+		os.Exit(0)
 
-		}
-		os.Args = append([]string{fmt.Sprintf("substrate-%s", os.Args[1])}, os.Args[2:]...)
 	}
 
 	if version.IsTrial() {
@@ -67,32 +50,18 @@ func main() {
 
 	// Dispatch to the package named like the subcommand with a Main function
 	// or to the appropriate substrate-* program.
-	subcommand := strings.TrimPrefix(filepath.Base(os.Args[0]), "substrate-")
+	subcommand := os.Args[1]
 	f, ok := dispatchMapMain[subcommand]
 	if !ok {
-		ui.Printf("dispatching %s, which is deprecated", os.Args[0])
-		if _, err := exec.LookPath(os.Args[0]); err != nil {
-			ui.Fatalf("%s not found", os.Args[0])
-		}
-		cmd := exec.Command(os.Args[0], os.Args[1:]...)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				os.Exit(exitErr.ExitCode())
-			}
-			os.Exit(1)
-		}
-		os.Exit(0)
+		usage(1) // TODO fancy and helpful usage messages
 	}
-
 	ui.Must(cmdutil.Chdir())
 	u, err := user.Current()
 	ui.Must(err)
 	ctx := contextutil.WithValues(context.Background(), "substrate", subcommand, u.Username)
 	cfg, err := awscfg.NewConfig(ctx)
 	ui.Must(err)
+	os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so f can flag.Parse()
 	f(ctx, cfg, os.Stdout)
 
 	// If no one's posted telemetry yet, post it now, and wait for it to finish.
