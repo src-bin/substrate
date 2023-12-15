@@ -73,6 +73,7 @@ tarball:
 	rm -f -r substrate-$(VERSION)-$(COMMIT)-$(GOOS)-$(GOARCH)
 
 test:
+	substrate whoami
 	go clean -testcache
 	go test -race -timeout 0 -v ./...
 
