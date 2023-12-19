@@ -7,6 +7,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,6 +19,54 @@ import (
 	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/imports"
 )
+
+type Map struct {
+	Func bool // true to include a Func pointer in the dispatch map
+	Map  map[string]*Map
+}
+
+func (m *Map) Add(ss []string) {
+	if len(ss) == 0 {
+		m.Func = true
+		return
+	}
+	if m.Map == nil {
+		m.Map = make(map[string]*Map)
+	}
+	if m.Map[ss[0]] == nil {
+		m.Map[ss[0]] = &Map{}
+	}
+	m.Map[ss[0]].Add(ss[1:])
+}
+
+func (m *Map) Write(funcName, funcType string, w io.Writer) {
+	m.write("", "", funcName, funcType, w)
+}
+
+func (m *Map) write(indent, dirname, funcName, funcType string, w io.Writer) {
+	fmt.Fprintf(w, "&dispatchMap%s{\n", funcName) // no indent because this is an expression
+	if dirname != "" && m.Func {
+		fmt.Fprintf(w, "%s\tFunc: %s.%s,\n", indent, pkgName(dirname), funcName)
+	}
+	if m.Map != nil {
+		fmt.Fprintf(w, "%s\tMap: map[string]*dispatchMap%s{\n", indent, funcName)
+		re := regexp.MustCompile(`[\p{Lu}]`)
+		for s, m2 := range m.Map {
+
+			// Turn camelCase and snake_case directory names into dash-case
+			// subcommand names. (This is probably superfluous because I don't
+			// actually name directories in camelCase or snake_case.)
+			fmt.Fprintf(w, "%s\t\t%q: ", indent, re.ReplaceAllStringFunc(s, func(s string) string {
+				return fmt.Sprintf("-%s", strings.ReplaceAll(strings.ToLower(s), "_", "-"))
+			}))
+
+			m2.write(indent+"\t\t", filepath.Join(dirname, s), funcName, funcType, w)
+			fmt.Fprintf(w, ",\n")
+		}
+		fmt.Fprintf(w, "%s\t},\n", indent)
+	}
+	fmt.Fprintf(w, "%s}", indent)
+}
 
 func init() {
 	log.SetFlags(log.Lshortfile)
@@ -63,18 +113,17 @@ func main() {
 	// Look for packages that export the function named by the -function
 	// argument. Make a note of all its parameter types. It's presumed they're
 	// all the same; the compiler will catch it if this isn't actually true.
-	entries, err := os.ReadDir(flag.Arg(0))
-	if err != nil {
-		log.Fatal(err)
-	}
 	var dirnames, params, results []string
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
+	m := &Map{}
+	fs.WalkDir(os.DirFS(flag.Arg(0)), ".", func(pathname string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
-		//log.Printf("%+v", entry)
+		if !entry.IsDir() {
+			return nil
+		}
 		fset := token.NewFileSet()
-		pkgs, err := parser.ParseDir(fset, filepath.Join(flag.Arg(0), entry.Name()), nil, parser.ParseComments)
+		pkgs, err := parser.ParseDir(fset, filepath.Join(flag.Arg(0), pathname), nil, parser.ParseComments)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -85,7 +134,8 @@ func main() {
 			for _, file := range pkg.Files {
 				for name, object := range file.Scope.Objects {
 					if name == *function && object.Kind == ast.Fun {
-						dirnames = append(dirnames, entry.Name())
+						dirnames = append(dirnames, pathname)
+						m.Add(strings.Split(pathname, "/"))
 						if object.Decl.(*ast.FuncDecl).Type.Params != nil {
 							params = typeListString(object.Decl.(*ast.FuncDecl).Type.Params.List)
 						}
@@ -96,73 +146,59 @@ func main() {
 				}
 			}
 		}
-	}
+		return nil
+	})
+	//log.Printf("%+v", dirnames)
 	//log.Printf("%+v", params)
 	//log.Printf("%+v", results)
+	//log.Print(jsonutil.MustString(m))
 
-	// Generate and format Go code that declares the dispatch map. Rewrite
-	// camelCase function names in dash-case to match command-line arguments.
+	// Generate and format Go code that declares the dispatch map.
 	b := &bytes.Buffer{}
-	re := regexp.MustCompile(`[\p{Lu}]`)
 	fmt.Fprintf(b, "package %s\n\nimport (\n", *pkg)
 	for _, dirname := range dirnames {
-		if strings.Contains(dirname, "-") {
-
-			// Remove dashes from directory names as is convention for package names.
-			if dirnameNoDashes := strings.ReplaceAll(dirname, "-", ""); dirnameNoDashes != *pkg {
-				fmt.Fprintf(b, "\t%s \"%s/%s\"\n", dirnameNoDashes, pkgPath, dirname)
-			}
-
-		} else if dirname != *pkg {
-			fmt.Fprintf(b, "\t\"%s/%s\"\n", pkgPath, dirname)
-		}
+		fmt.Fprintf(b, "\t%s \"%s/%s\"\n", pkgName(dirname), pkgPath, dirname)
 	}
 	joinedParams := strings.Join(params, ", ")
 	joinedResults := strings.Join(results, ", ")
+	var funcType string
 	switch len(results) {
 	case 0:
-		fmt.Fprintf(b, ")\n\nvar dispatchMap%s = map[string]func(%s){\n", *function, joinedParams)
+		funcType = fmt.Sprintf("func(%s)", joinedParams)
 	case 1:
-		fmt.Fprintf(b, ")\n\nvar dispatchMap%s = map[string]func(%s) %s {\n", *function, joinedParams, joinedResults)
+		funcType = fmt.Sprintf("func(%s) %s", joinedParams, joinedResults)
 	default:
-		fmt.Fprintf(b, ")\n\nvar dispatchMap%s = map[string]func(%s) (%s) {\n", *function, joinedParams, joinedResults)
+		funcType = fmt.Sprintf("func(%s) (%s)", joinedParams, joinedResults)
 	}
-	for _, dirname := range dirnames {
+	fmt.Fprintf(b, ")\n\n")
+	fmt.Fprintf(b, "var DispatchMap%s = ", *function)
+	m.Write(*function, funcType, b)
+	fmt.Fprintf(b, "\ntype dispatchMap%s struct {\n\tFunc %s\n\tMap map[string]*dispatchMap%s\n}\n\n", *function, funcType, *function)
 
-		// Turn camelCase and snake_case into dash-case for the command-line argument.
-		// (This is probably superfluous.)
-		subcommand := re.ReplaceAllStringFunc(dirname, func(s string) string {
-			return fmt.Sprintf("-%s", strings.ReplaceAll(strings.ToLower(s), "_", "-"))
-		})
-
-		dirnameNoDashes := strings.ReplaceAll(dirname, "-", "")
-		if dirnameNoDashes == *pkg {
-			fmt.Fprintf(
-				b,
-				"\t%q: func(context.Context, *awscfg.Config, io.Writer) {},\n",
-				subcommand,
-			)
-		} else {
-			fmt.Fprintf(
-				b,
-				"\t%q: %s.%s,\n",
-				subcommand,
-				strings.ReplaceAll(dirname, "-", ""),
-				*function,
-			)
-		}
-	}
-	fmt.Fprint(b, "}\n")
+	//log.Print(string(b.Bytes()))
 	p, err := imports.Process(*out, b.Bytes(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
+	//log.Print(string(p))
+
 	if err := os.WriteFile(*out, p, 0666); err != nil {
 		log.Fatal(err)
 	}
-
 }
 
+// pkgName sanitizes a possibly nested directory path into an identifier that,
+// while maybe not idiomatic Go, will definitely work in the generated map.
+func pkgName(dirname string) (pkg string) {
+	pkg = strings.ToLower(dirname)
+	pkg = strings.ReplaceAll(pkg, "-", "")
+	pkg = strings.ReplaceAll(pkg, "_", "")
+	pkg = strings.ReplaceAll(pkg, "/", "_") // last, after "_" is replaced
+	return
+}
+
+// typeListString returns a slice of syntactically valid Go type declarations
+// as strings to be used in the generated map.
 func typeListString(list []*ast.Field) []string {
 	strings := []string{}
 	for _, item := range list {

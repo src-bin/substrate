@@ -48,12 +48,20 @@ func main() {
 		ui.Print("this is a trial version of Substrate; contact <sales@src-bin.com> for support and the latest version")
 	}
 
-	// Dispatch to the package named like the subcommand with a Main function
-	// or to the appropriate substrate-* program.
-	subcommand := os.Args[1]
-	f, ok := dispatchMapMain[subcommand]
+	// Dispatch to the package named like the subcommand with a Main function.
+	m, ok := DispatchMapMain.Map[os.Args[1]]
 	if !ok {
-		usage(1) // TODO fancy and helpful usage messages
+		usage(1)
+	}
+	subcommand := os.Args[1]
+	os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so m.Func can flag.Parse()
+	for m.Func == nil {
+		m, ok = m.Map[os.Args[1]]
+		if !ok {
+			usage(1)
+		}
+		subcommand = fmt.Sprintf("%s %s", subcommand, os.Args[1])
+		os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so m.Func can flag.Parse()
 	}
 	ui.Must(cmdutil.Chdir())
 	u, err := user.Current()
@@ -61,8 +69,7 @@ func main() {
 	ctx := contextutil.WithValues(context.Background(), "substrate", subcommand, u.Username)
 	cfg, err := awscfg.NewConfig(ctx) // TODO takes 0.8s!
 	ui.Must(err)
-	os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so f can flag.Parse()
-	f(ctx, cfg, os.Stdout)
+	m.Func(ctx, cfg, os.Stdout)
 
 	// If no one's posted telemetry yet, post it now, and wait for it to finish.
 	cfg.Telemetry().Post(ctx)
@@ -73,7 +80,7 @@ func main() {
 func usage(status int) {
 	var commands []string
 
-	for subcommand, _ := range dispatchMapMain {
+	for subcommand, _ := range DispatchMapMain.Map { // TODO hand-write this message; this auto-generated one is trash
 		commands = append(commands, fmt.Sprintf("substrate %s", subcommand))
 	}
 

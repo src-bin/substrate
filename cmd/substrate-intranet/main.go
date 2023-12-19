@@ -64,16 +64,16 @@ func main() {
 				return &events.APIGatewayV2HTTPResponse{StatusCode: http.StatusNoContent}, nil
 			} else if path.Dir(event.RawPath) == "/js" && path.Ext(event.RawPath) == ".js" {
 				k := strings.TrimSuffix(path.Base(event.RawPath), ".js")
-				if f, ok := dispatchMapJavaScript[k]; ok {
-					return f(ctx, cfg, oc.Copy(), event)
+				if m, ok := DispatchMapJavaScript.Map[k]; ok && m.Func != nil {
+					return m.Func(ctx, cfg, oc.Copy(), event)
 				}
 			} else {
 				k := strings.SplitN(event.RawPath, "/", 3)[1] // safe because there's always at least the leading '/'
 				if k == "" {
 					k = "index"
 				}
-				if f, ok := dispatchMapMain2[k]; ok {
-					return f(ctx, cfg, oc.Copy(), event)
+				if m, ok := DispatchMapMain2.Map[k]; ok && m.Func != nil { // TODO handle nested routes here, too
+					return m.Func(ctx, cfg, oc.Copy(), event)
 				}
 			}
 
