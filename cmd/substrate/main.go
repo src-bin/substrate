@@ -59,7 +59,7 @@ func main() {
 	u, err := user.Current()
 	ui.Must(err)
 	ctx := contextutil.WithValues(context.Background(), "substrate", subcommand, u.Username)
-	cfg, err := awscfg.NewConfig(ctx)
+	cfg, err := awscfg.NewConfig(ctx) // TODO takes 0.8s!
 	ui.Must(err)
 	os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so f can flag.Parse()
 	f(ctx, cfg, os.Stdout)

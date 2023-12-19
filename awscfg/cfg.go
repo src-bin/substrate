@@ -173,7 +173,18 @@ func (c *Config) Tags(ctx context.Context) (tagging.Map, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := c.OrganizationReader(ctx)
+
+	accounts, err := c.listCachedAccounts()
+	if err != nil {
+		return nil, err
+	}
+	for _, account := range accounts {
+		if aws.ToString(account.Id) == aws.ToString(callerIdentity.Account) {
+			return account.Tags, nil
+		}
+	}
+
+	cfg, err := c.OrganizationReader(ctx) // TODO sometimes takes more than 1s!
 	if err != nil {
 		return nil, err
 	}

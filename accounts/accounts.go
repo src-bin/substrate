@@ -13,7 +13,6 @@ import (
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/table"
 	"github.com/src-bin/substrate/tagging"
-	"github.com/src-bin/substrate/ui"
 )
 
 const (
@@ -62,7 +61,6 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 	specialAccountsCells[0][3] = "Role ARN"
 	specialAccountsCells[0][4] = "Version"
 
-	ui.Must(cfg.ClearCachedAccounts())
 	adminAccounts, serviceAccounts, substrateAccount, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
 	if err != nil {
 		return err

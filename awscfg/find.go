@@ -149,33 +149,27 @@ func (c *Config) FindSubstrateAccount(ctx context.Context) (*Account, error) {
 // For a higher-level interface, see accounts.Grouped. This may be called from
 // any account.
 func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err error) {
-
-	// Return early if we have memoized accounts that are still valid.
-	if c.accounts != nil && c.accountsExpiry.After(time.Now()) {
-		return c.accounts, nil
+	if accounts, err = c.listCachedAccounts(); accounts != nil || err != nil {
+		return
 	}
+	ui.Spin("fetching a list of all your AWS accounts and their tags")
 
-	// Return early if we have cached accounts.
-	if pathname, err := fileutil.PathnameInParents(CachedAccountsFilename); err == nil {
-		if err := jsonutil.Read(pathname, &accounts); err == nil {
-			return accounts, err
-		}
-	}
-
-	cfg, err := c.OrganizationReader(ctx)
-	if err != nil {
-		return nil, err
+	var cfg *Config
+	if cfg, err = c.OrganizationReader(ctx); err != nil {
+		ui.StopErr(err)
+		return
 	}
 	client := cfg.Organizations()
 
 	// List all the accounts in the organization, even across multiple pages.
 	var nextToken *string
 	for {
-		out, err := client.ListAccounts(ctx, &organizations.ListAccountsInput{
+		var out *organizations.ListAccountsOutput
+		if out, err = client.ListAccounts(ctx, &organizations.ListAccountsInput{
 			NextToken: nextToken,
-		})
-		if err != nil {
-			return nil, err
+		}); err != nil {
+			ui.StopErr(err)
+			return
 		}
 		for _, account := range out.Accounts {
 
@@ -204,7 +198,8 @@ func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err err
 	}
 	for i := 0; i < len(accounts); i++ {
 		if err = <-ch; err != nil {
-			return nil, err
+			ui.StopErr(err)
+			return
 		}
 	}
 
@@ -217,9 +212,30 @@ func (c *Config) ListAccounts(ctx context.Context) (accounts []*Account, err err
 		}
 	}
 
-	// Memoize - cache in memory - the accounts, too.
+	// Memoize the list of accounts and tags, too.
+	c.memoizeAccounts(accounts)
+
+	ui.StopErr(err)
+	return
+}
+
+func (c *Config) listCachedAccounts() ([]*Account, error) {
+	if c.accounts != nil && c.accountsExpiry.After(time.Now()) {
+		return c.accounts, nil
+	}
+
+	if pathname, err := fileutil.PathnameInParents(CachedAccountsFilename); err == nil {
+		var accounts []*Account
+		if err := jsonutil.Read(pathname, &accounts); err == nil {
+			c.memoizeAccounts(accounts)
+			return accounts, nil
+		}
+	}
+
+	return nil, nil // cache miss
+}
+
+func (c *Config) memoizeAccounts(accounts []*Account) {
 	c.accounts = accounts
 	c.accountsExpiry = time.Now().Add(MemoizedAccountsTTL)
-
-	return
 }
