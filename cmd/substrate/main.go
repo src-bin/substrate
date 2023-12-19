@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/user"
 	"path/filepath"
-	"sort"
-	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
@@ -21,28 +21,67 @@ import (
 
 func main() {
 
-	if len(os.Args) < 2 {
-		usage(1)
+	// XXX EXPERIMENTAL COBRA IMPLEMENTATION OF SUBSTRATE XXX
+	run := func(cmd *cobra.Command, args []string) {
+		log.Printf("Run %s cmd.Flags(): %+v, args: %+v)", cmd.Use, cmd.Flags(), args)
 	}
-	switch os.Args[1] {
-
-	// Respond to `substrate -h` but not `substrate-* -h` or
-	// `substrate * -h`, which are handled by main.main or *.Main.
-	case "-h", "-help", "--help":
-		usage(0)
-
-	// Dispatch shell completion from here so we can get in and out before
-	// we go into all the awscfg business, which is too slow to do
-	// keystroke-by-keystroke.
-	case "-shell-completion", "--shell-completion", "-shell-completion=bash", "--shell-completion=bash":
-		shellCompletion()
-
-	// Respond to -version or --version, however folks want to call it.
-	case "-v", "-version", "--version":
-		version.Print()
-		os.Exit(0)
-
+	var shellCompletionFlag, versionFlag bool
+	shellCompletionCmd := &cobra.Command{
+		Use:    "shell-completion",
+		Hidden: true,
+		Short:  "TODO",
+		Long:   `TODO`,
+		Run: func(cmd *cobra.Command, args []string) {
+			shell := os.Getenv("SHELL")
+			if shell != "" {
+				shell = filepath.Base(shell)
+			}
+			switch shell {
+			case "", "bash":
+				cmd.Root().GenBashCompletionV2(os.Stdout, true /* includeDesc */)
+			case "zsh":
+				cmd.Root().GenZshCompletion(os.Stdout)
+			case "fish":
+				cmd.Root().GenFishCompletion(os.Stdout, true /* includeDesc */)
+			default:
+				ui.Fatalf("unsupported SHELL=%q", shell)
+			}
+		},
 	}
+	rootCmd := &cobra.Command{
+		Use:   "substrate",
+		Short: "TODO",
+		Long:  `TODO`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if shellCompletionFlag {
+				shellCompletionCmd.Run(cmd, args)
+			} else if versionFlag {
+				version.Print()
+				return
+			} else {
+				run(cmd, args)
+			}
+		},
+	}
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	rootCmd.Flags().BoolVar(&shellCompletionFlag, "shell-completion", false, "TODO")
+	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "TODO")
+	accountCmd := &cobra.Command{
+		Use:   "account",
+		Short: "TODO",
+		Long:  `TODO`,
+	}
+	accountCmd.AddCommand(&cobra.Command{
+		Use:   "list",
+		Short: "TODO",
+		Long:  `TODO`,
+		Run:   run,
+	})
+	rootCmd.AddCommand(accountCmd)
+	rootCmd.AddCommand(shellCompletionCmd)
+	ui.Must(rootCmd.Execute())
+	return
+	// XXX EXPERIMENTAL COBRA IMPLEMENTATION OF SUBSTRATE XXX
 
 	if version.IsTrial() {
 		ui.Print("this is a trial version of Substrate; contact <sales@src-bin.com> for support and the latest version")
@@ -51,14 +90,14 @@ func main() {
 	// Dispatch to the package named like the subcommand with a Main function.
 	m, ok := DispatchMapMain.Map[os.Args[1]]
 	if !ok {
-		usage(1)
+		ui.Fatal(ok)
 	}
 	subcommand := os.Args[1]
 	os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so m.Func can flag.Parse()
 	for m.Func == nil {
 		m, ok = m.Map[os.Args[1]]
 		if !ok {
-			usage(1)
+			ui.Fatal(ok)
 		}
 		subcommand = fmt.Sprintf("%s %s", subcommand, os.Args[1])
 		os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so m.Func can flag.Parse()
@@ -75,40 +114,4 @@ func main() {
 	cfg.Telemetry().Post(ctx)
 	cfg.Telemetry().Wait(ctx)
 
-}
-
-func usage(status int) {
-	var commands []string
-
-	for subcommand, _ := range DispatchMapMain.Map { // TODO hand-write this message; this auto-generated one is trash
-		commands = append(commands, fmt.Sprintf("substrate %s", subcommand))
-	}
-
-	executable, err := os.Executable()
-	if err != nil {
-		ui.Fatal(err)
-	}
-	entries, err := os.ReadDir(filepath.Dir(executable))
-	if err != nil {
-		ui.Fatal(err)
-	}
-	for _, entry := range entries {
-		if name := entry.Name(); strings.HasPrefix(name, "substrate-") && entry.Type() != os.ModeSymlink {
-			commands = append(commands, name)
-		}
-	}
-
-	ui.Print("Substrate manages secure, reliable, and compliant cloud infrastructure in AWS")
-	ui.Print("the following commands are available:")
-	sort.Strings(commands)
-	var previousCommand string
-	for _, command := range commands {
-		if command != previousCommand {
-			ui.Printf("\t%s", command)
-		}
-		previousCommand = command
-	}
-	ui.Print("if you're unsure where to start, visit <https://docs.substrate.tools/>")
-
-	os.Exit(status)
 }
