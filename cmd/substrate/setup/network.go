@@ -3,13 +3,18 @@ package setup
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/availabilityzones"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsec2"
 	"github.com/src-bin/substrate/awsservicequotas"
+	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
@@ -226,8 +231,20 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 
 	// Now that all the networks exist, establish a fully-connected mesh of
 	// peering connections within each environment's qualities and regions.
-	peeringConnectionModule := terraform.PeeringConnectionModule()
-	ui.Must(peeringConnectionModule.Write(filepath.Join(terraform.ModulesDirname, "peering-connection")))
+	ui.Must(fileutil.Remove(filepath.Join(terraform.ModulesDirname, "peering-connection/main.tf")))
+	ui.Must(fileutil.Remove(filepath.Join(terraform.ModulesDirname, "peering-connection/variables.tf")))
+	ui.Must(fileutil.Remove(filepath.Join(terraform.ModulesDirname, "peering-connection/versions.tf")))
+	if err := fileutil.Remove(filepath.Join(terraform.ModulesDirname, "peering-connection")); err != nil {
+		ui.Printf(
+			"warning: failed to remove %s, which should now be empty (%s)",
+			filepath.Join(terraform.ModulesDirname, "peering-connection"),
+			err,
+		)
+	}
+	networkCfg := awscfg.Must(mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour))
+	for _, region := range regions.Selected() {
+		ui.Debug(awsec2.DescribeVPCPeeringConnections(ctx, networkCfg.Regional(region)))
+	}
 	peeringConnections, err := networks.EnumeratePeeringConnections()
 	ui.Must(err)
 	for _, pc := range peeringConnections.Slice() {
@@ -238,6 +255,25 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 			eq0.Environment, eq0.Quality, region0,
 			eq1.Environment, eq1.Quality, region1,
 		)
+
+		vpcs0, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region0), eq0.Environment, eq0.Quality)
+		ui.Must(err)
+		if len(vpcs0) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
+			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs0))
+		}
+		ui.Debug(vpcs0[0])
+		vpcId0 := aws.ToString(vpcs0[0].VpcId)
+		vpcs1, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region1), eq1.Environment, eq1.Quality)
+		ui.Must(err)
+		if len(vpcs1) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
+			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs1))
+		}
+		ui.Debug(vpcs1[0])
+		vpcId1 := aws.ToString(vpcs1[0].VpcId)
+		conn, err := awsec2.EnsureVPCPeeringConnection(ctx, networkCfg, region0, vpcId0, region1, vpcId1)
+		ui.Must(err)
+		ui.Debug(conn)
+		// TODO regional route for public subnets and zonal routes for private subnets (even if there are more than three)
 
 		dirname := filepath.Join(
 			terraform.RootModulesDirname,
@@ -250,54 +286,42 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 			region0,
 			region1,
 		)
-
-		file := terraform.NewFile()
-		file.Add(terraform.Module{
-			Arguments: map[string]terraform.Value{
-				"accepter_environment":  terraform.Q(eq0.Environment),
-				"accepter_quality":      terraform.Q(eq0.Quality),
-				"requester_environment": terraform.Q(eq1.Environment),
-				"requester_quality":     terraform.Q(eq1.Quality),
-			},
-			Label: terraform.Q("peering-connection"),
-			Providers: map[terraform.ProviderAlias]terraform.ProviderAlias{
-				terraform.ProviderAliasFor("accepter"):  terraform.ProviderAliasFor("accepter"),
-				terraform.ProviderAliasFor("requester"): terraform.ProviderAliasFor("requester"),
-			},
-			Source: terraform.Q("../../../../../../../../../modules/peering-connection"),
-		})
-		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
-
-		providersFile := terraform.NewFile()
-		accepterProvider := terraform.ProviderFor(
-			region1,
-			roles.ARN(accountId, roles.NetworkAdministrator),
-		)
-		accepterProvider.Alias = "accepter"
-		providersFile.Add(accepterProvider)
-		requesterProvider := terraform.ProviderFor(
-			region0,
-			roles.ARN(accountId, roles.NetworkAdministrator),
-		)
-		requesterProvider.Alias = "requester"
-		providersFile.Add(requesterProvider)
-		ui.Must(providersFile.Write(filepath.Join(dirname, "providers.tf")))
-
-		// The choice of region0 here is arbitrary.  Only one side
-		// can store the Terraform state and region0 wins.
-		ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region0))
-
-		ui.Must(terraform.Fmt(dirname))
-
-		ui.Must(terraform.Init(dirname))
-
-		if *noApply {
-			err = terraform.Plan(dirname)
-		} else {
-			err = terraform.Apply(dirname, true) // always auto-approve peering since it's low-stakes and high-annoyance
+		ui.Must(fileutil.Remove(filepath.Join(dirname, ".gitignore")))
+		ui.Must(fileutil.Remove(filepath.Join(dirname, "main.tf")))
+		ui.Must(fileutil.Remove(filepath.Join(dirname, "Makefile")))
+		ui.Must(fileutil.Remove(filepath.Join(dirname, "providers.tf")))
+		ui.Must(fileutil.Remove(filepath.Join(dirname, ".terraform.lock.hcl")))
+		ui.Must(fileutil.Remove(filepath.Join(dirname, "terraform.tf")))
+		ui.Must(fileutil.Remove(filepath.Join(dirname, "versions.tf")))
+		ui.Must(os.RemoveAll(filepath.Join(dirname, ".terraform")))
+		for ; dirname != filepath.Join(terraform.RootModulesDirname, "network"); dirname = filepath.Dir(dirname) {
+			if err := fileutil.Remove(dirname); err != nil {
+				ui.Printf("couldn't remove %s (%s)", dirname, err)
+				break
+			}
 		}
-		ui.Must(err)
+
+		/*
+					"accepter_environment":  terraform.Q(eq0.Environment),
+					"accepter_quality":      terraform.Q(eq0.Quality),
+					"requester_environment": terraform.Q(eq1.Environment),
+					"requester_quality":     terraform.Q(eq1.Quality),
+			accepterProvider := terraform.ProviderFor(
+				region1,
+				roles.ARN(accountId, roles.NetworkAdministrator),
+			)
+			requesterProvider := terraform.ProviderFor(
+				region0,
+				roles.ARN(accountId, roles.NetworkAdministrator),
+			)
+
+			// The choice of region0 here is arbitrary.  Only one side
+			// can store the Terraform state and region0 wins.
+			ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region0))
+		*/
+
 	}
+	// TODO remove the peering state files from S3
 }
 
 func vpcAccoutrements(
