@@ -12,7 +12,6 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
@@ -42,18 +41,17 @@ func CreateRole(
 	assumeRolePolicyDoc *policies.Document,
 	// TODO permissionsBoundaryPolicyARN,
 ) (*Role, error) {
+	docJSON, err := assumeRolePolicyDoc.Marshal()
+	if err != nil {
+		return nil, err
+	}
 	if os.Getenv("SUBSTRATE_DEBUG_AWS_IAM_ASSUME_ROLE_POLICIES") != "" {
 		ui.Printf(
 			"assume-role policy document for %s in account number %s: %s",
 			roleName,
 			cfg.MustAccountId(ctx),
-			jsonutil.MustString(assumeRolePolicyDoc),
+			docJSON,
 		)
-	}
-
-	docJSON, err := assumeRolePolicyDoc.Marshal()
-	if err != nil {
-		return nil, err
 	}
 	out, err := cfg.IAM().CreateRole(ctx, &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
@@ -206,7 +204,7 @@ func EnsureRole(
 		ctx,
 		cfg,
 		roleName,
-		policies.AssumeRolePolicyDocument(&policies.Principal{Service: []string{"ec2.amazonaws.com"}}), // harmless solution to chicken and egg problem
+		assumeRolePolicyDoc,
 		// TODO permissionsBoundaryPolicyARN,
 	)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
@@ -239,7 +237,7 @@ func EnsureRole(
 	if err != nil {
 		return nil, ui.StopErr(err)
 	}
-	if _, err := cfg.IAM().UpdateAssumeRolePolicy(ctx, &iam.UpdateAssumeRolePolicyInput{
+	if _, err := client.UpdateAssumeRolePolicy(ctx, &iam.UpdateAssumeRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
 		RoleName:       aws.String(roleName),
 	}); err != nil {
