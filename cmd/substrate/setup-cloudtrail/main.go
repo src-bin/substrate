@@ -12,7 +12,6 @@ import (
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscloudtrail"
-	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awss3"
 	"github.com/src-bin/substrate/fileutil"
@@ -23,7 +22,6 @@ import (
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
-	"github.com/src-bin/substrate/users"
 )
 
 const (
@@ -147,46 +145,5 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		ui.Stopf("bucket %s, trail %s", bucketName, trail.Name)
 	}
 
-	// Find or create the AuditAdministrator role.
-	extraAdministrator, err := policies.ExtraAdministratorAssumeRolePolicy()
-	ui.Must(err)
-	auditRole, err := awsiam.EnsureRole(
-		ctx,
-		auditCfg,
-		roles.AuditAdministrator,
-		policies.Merge(
-			policies.AssumeRolePolicyDocument(&policies.Principal{
-				AWS: []string{
-					roles.ARN(substrateCfg.MustAccountId(ctx), roles.Administrator),
-					roles.ARN(auditCfg.MustAccountId(ctx), roles.AuditAdministrator), // allow this role to assume itself
-					roles.ARN(mgmtCfg.MustAccountId(ctx), roles.Substrate),
-					roles.ARN(substrateCfg.MustAccountId(ctx), roles.Substrate),
-					users.ARN(mgmtCfg.MustAccountId(ctx), users.Substrate),
-					users.ARN(substrateCfg.MustAccountId(ctx), users.Substrate),
-				},
-			}),
-			extraAdministrator,
-		),
-	)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, auditCfg, auditRole.Name, policies.AdministratorAccess))
-
-	// Find or create the Auditor role in the audit account. We do this even
-	// if we didn't actually setup CloudTrail because having an audit account
-	// with a Substrate-style Auditor role is still valuable.
-	ui.Spin("configuring IAM in the audit account")
-	auditorAssumeRolePolicy, err := humans.AuditorAssumeRolePolicy(ctx, mgmtCfg)
-	ui.Must(err)
-	auditorRole, err := awsiam.EnsureRole(ctx, auditCfg, roles.Auditor, auditorAssumeRolePolicy)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, auditCfg, auditorRole.Name, policies.ReadOnlyAccess))
-	allowAssumeRole, err := awsiam.EnsurePolicy(ctx, auditCfg, policies.AllowAssumeRoleName, policies.AllowAssumeRole)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, auditCfg, auditorRole.Name, aws.ToString(allowAssumeRole.Arn)))
-	denySensitiveReads, err := awsiam.EnsurePolicy(ctx, auditCfg, policies.DenySensitiveReadsName, policies.DenySensitiveReads)
-	ui.Must(err)
-	ui.Must(awsiam.AttachRolePolicy(ctx, auditCfg, auditorRole.Name, aws.ToString(denySensitiveReads.Arn)))
-	//log.Print(jsonutil.MustString(auditorRole))
-	ui.Stop("ok")
-
+	ui.Must(humans.EnsureAuditAccountRoles(ctx, mgmtCfg, substrateCfg, auditCfg))
 }

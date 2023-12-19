@@ -542,6 +542,15 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Spin("configuring additional administrative IAM roles")
 	extraAdministrator, err := policies.ExtraAdministratorAssumeRolePolicy()
 	ui.Must(err)
+	auditCfg, err := mgmtCfg.AssumeSpecialRole(ctx, accounts.Audit, roles.AuditAdministrator, time.Hour)
+	if err != nil {
+		auditCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Audit, roles.OrganizationAccountAccessRole, time.Hour)
+	}
+	if err == nil {
+		ui.Must(humans.EnsureAuditAccountRoles(ctx, mgmtCfg, substrateCfg, auditCfg))
+	} else {
+		ui.Print(" could not assume the AuditAdministrator role; continuing without managing roles and policies in the audit account")
+	}
 	deployCfg, err := mgmtCfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.DeployAdministrator, time.Hour)
 	if err != nil {
 		deployCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.OrganizationAccountAccessRole, time.Hour)
@@ -570,7 +579,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		//log.Print(jsonutil.MustString(deployRole))
 		ui.Must2(humans.EnsureAuditorRole(ctx, mgmtCfg, deployCfg))
 	} else {
-		ui.Print(" could not assume the DeployAdministrator role; continuing without managing its policies")
+		ui.Print(" could not assume the DeployAdministrator role; continuing without managing roles and policies in the (legacy) deploy account")
 	}
 	ui.Spinf("finding or creating the network account")
 	networkAccount, err := awsorgs.EnsureSpecialAccount(ctx, mgmtCfg, accounts.Network)
