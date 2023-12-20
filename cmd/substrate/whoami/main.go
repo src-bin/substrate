@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
@@ -15,6 +16,18 @@ import (
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/versionutil"
 )
+
+func Command() *cobra.Command {
+	return &cobra.Command{
+		Use:   "whoami",
+		Short: "TODO whoami.Command().Short",
+		Long:  `TODO whoami.Command().Long`,
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(awscfg.Main(cmd.Context()))
+		},
+	}
+}
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	format := cmdutil.SerializationFormatFlag(

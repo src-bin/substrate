@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
@@ -21,6 +22,18 @@ import (
 	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
+
+func Command() *cobra.Command {
+	return &cobra.Command{
+		Use:   "credentials",
+		Short: "TODO credentials.Command().Short",
+		Long:  `TODO credentials.Command().Long`,
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(awscfg.Main(cmd.Context()))
+		},
+	}
+}
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	force := flag.Bool("force", false, "force minting new credentials even if there are valid credentials in the environment")

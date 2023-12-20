@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/user"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/cmd/substrate/account"
+	"github.com/src-bin/substrate/cmd/substrate/credentials"
+	"github.com/src-bin/substrate/cmd/substrate/whoami"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/ui"
@@ -21,18 +22,59 @@ import (
 
 func main() {
 
-	// XXX EXPERIMENTAL COBRA IMPLEMENTATION OF SUBSTRATE XXX
-	run := func(cmd *cobra.Command, args []string) {
-		log.Printf("Run %s cmd.Flags(): %+v, args: %+v)", cmd.Use, cmd.Flags(), args)
+	if version.IsTrial() {
+		ui.Print("this is a trial version of Substrate; contact <sales@src-bin.com> for support and the latest version")
 	}
-	var shellCompletionFlag, versionFlag bool
-	shellCompletionCmd := &cobra.Command{
+
+	ui.Must(cmdutil.Chdir())
+	u, err := user.Current()
+	ui.Must(err)
+	var command, subcommand string
+	if len(os.Args) >= 1 {
+		command = os.Args[0]
+	}
+	if len(os.Args) >= 2 && len(os.Args[1]) >= 1 && os.Args[1][0] != '-' {
+		subcommand = os.Args[1] // only valid because there are no flags before subcommands
+	}
+	if len(os.Args) >= 3 && len(os.Args[2]) >= 1 && os.Args[2][0] != '-' {
+		subcommand += " " + os.Args[2] // same as above
+	}
+	ctx := contextutil.WithValues(
+		context.Background(),
+		command,
+		subcommand,
+		u.Username,
+	)
+
+	var versionFlag bool
+	rootCmd := &cobra.Command{
+		Use:   "substrate",
+		Short: "TODO rootCmd.Short",
+		Long:  `TODO rootCmd.Long`,
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			if versionFlag {
+				version.Print()
+			} else {
+				cmd.Help()
+			}
+		},
+	}
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "TODO versionFlag")
+	rootCmd.AddCommand(&cobra.Command{
 		Use:    "shell-completion",
 		Hidden: true,
-		Short:  "TODO",
-		Long:   `TODO`,
+		Short:  "TODO shellCompletionCmd.Short",
+		Long:   `TODO shellCompletionCmd.Long`,
+		Args:   cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			shell := os.Getenv("SHELL")
+			var shell string
+			if cmdutil.CheckForFish() {
+				shell = "fish"
+			} else {
+				shell = os.Getenv("SHELL")
+			}
 			if shell != "" {
 				shell = filepath.Base(shell)
 			}
@@ -47,71 +89,31 @@ func main() {
 				ui.Fatalf("unsupported SHELL=%q", shell)
 			}
 		},
-	}
-	rootCmd := &cobra.Command{
-		Use:   "substrate",
-		Short: "TODO",
-		Long:  `TODO`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if shellCompletionFlag {
-				shellCompletionCmd.Run(cmd, args)
-			} else if versionFlag {
-				version.Print()
-				return
-			} else {
-				run(cmd, args)
-			}
-		},
-	}
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.Flags().BoolVar(&shellCompletionFlag, "shell-completion", false, "TODO")
-	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "TODO")
-	accountCmd := &cobra.Command{
-		Use:   "account",
-		Short: "TODO",
-		Long:  `TODO`,
-	}
-	accountCmd.AddCommand(&cobra.Command{
-		Use:   "list",
-		Short: "TODO",
-		Long:  `TODO`,
-		Run:   run,
 	})
-	rootCmd.AddCommand(accountCmd)
-	rootCmd.AddCommand(shellCompletionCmd)
-	ui.Must(rootCmd.Execute())
-	return
-	// XXX EXPERIMENTAL COBRA IMPLEMENTATION OF SUBSTRATE XXX
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: "TODO versionCmd.Short",
+		Long:  `TODO versionCmd.Long`,
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			version.Print()
+		},
+	})
 
-	if version.IsTrial() {
-		ui.Print("this is a trial version of Substrate; contact <sales@src-bin.com> for support and the latest version")
-	}
+	rootCmd.AddCommand(account.Command())
 
-	// Dispatch to the package named like the subcommand with a Main function.
-	m, ok := DispatchMapMain.Map[os.Args[1]]
-	if !ok {
-		ui.Fatal(ok)
-	}
-	subcommand := os.Args[1]
-	os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so m.Func can flag.Parse()
-	for m.Func == nil {
-		m, ok = m.Map[os.Args[1]]
-		if !ok {
-			ui.Fatal(ok)
-		}
-		subcommand = fmt.Sprintf("%s %s", subcommand, os.Args[1])
-		os.Args = append([]string{fmt.Sprintf("%s-%s", os.Args[0], os.Args[1])}, os.Args[2:]...) // so m.Func can flag.Parse()
-	}
-	ui.Must(cmdutil.Chdir())
-	u, err := user.Current()
-	ui.Must(err)
-	ctx := contextutil.WithValues(context.Background(), "substrate", subcommand, u.Username)
-	cfg, err := awscfg.NewConfig(ctx) // TODO takes 0.8s!
-	ui.Must(err)
-	m.Func(ctx, cfg, os.Stdout)
+	rootCmd.AddCommand(credentials.Command())
+
+	rootCmd.AddCommand(whoami.Command())
+
+	log.Print(time.Now())
+	rootCmd.ExecuteContext(ctx)
+	log.Print(time.Now())
 
 	// If no one's posted telemetry yet, post it now, and wait for it to finish.
-	cfg.Telemetry().Post(ctx)
-	cfg.Telemetry().Wait(ctx)
+	/* XXX SLOW AS FUCK
+		cfg.Telemetry().Post(ctx)
+		cfg.Telemetry().Wait(ctx)
+	XXX */
 
 }

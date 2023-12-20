@@ -1,4 +1,4 @@
-package accounts
+package list
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
@@ -19,6 +20,18 @@ import (
 	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
+
+func Command() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "TODO list.Command().Short",
+		Long:  `TODO list.Command().Long`,
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(awscfg.Main(cmd.Context()))
+		},
+	}
+}
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	autoApprove := flag.Bool("auto-approve", false, `with -format "shell", add the -auto-approve flag to all the generated commands that accept it`)
