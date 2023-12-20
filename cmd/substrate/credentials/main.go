@@ -32,6 +32,7 @@ func Command() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(awscfg.Main(cmd.Context()))
 		},
+		DisableFlagsInUseLine: true,
 	}
 }
 

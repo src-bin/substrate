@@ -41,7 +41,7 @@ func InteractivityFlags() {
 	nonInteractive = flag.Bool("non-interactive", false, "non-interactive mode - no prompts or file editors")
 }
 
-func Quiet() { // TODO directly implement the -quiet flag here instead
+func Quiet() {
 	op(opQuiet, "")
 }
 

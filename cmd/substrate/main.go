@@ -59,8 +59,9 @@ func main() {
 				cmd.Help()
 			}
 		},
+		CompletionOptions:     cobra.CompletionOptions{DisableDefaultCmd: true},
+		DisableFlagsInUseLine: true,
 	}
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "TODO versionFlag")
 	rootCmd.AddCommand(&cobra.Command{
 		Use:    "shell-completion",
@@ -89,6 +90,7 @@ func main() {
 				ui.Fatalf("unsupported SHELL=%q", shell)
 			}
 		},
+		DisableFlagsInUseLine: true,
 	})
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
@@ -98,6 +100,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			version.Print()
 		},
+		DisableFlagsInUseLine: true,
 	})
 
 	rootCmd.AddCommand(account.Command())

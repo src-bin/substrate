@@ -2,7 +2,6 @@ package whoami
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -17,32 +16,32 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
+var formatFlag = cmdutil.FormatFlag(
+	cmdutil.FormatText,
+	[]string{cmdutil.FormatEnv, cmdutil.FormatExport, cmdutil.FormatJSON, cmdutil.FormatText},
+)
+
 func Command() *cobra.Command {
-	return &cobra.Command{
-		Use:   "whoami",
+	cmd := &cobra.Command{
+		Use:   "whoami [--format <format>] [--quiet]",
 		Short: "TODO whoami.Command().Short",
 		Long:  `TODO whoami.Command().Long`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(awscfg.Main(cmd.Context()))
 		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{"--format", "--quiet"}, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
+	cmd.Flags().Var(formatFlag, "format", formatFlag.Usage())
+	cmd.RegisterFlagCompletionFunc("format", formatFlag.CompletionFunc)
+	cmd.Flags().AddFlag(cmdutil.QuietFlag())
+	return cmd
 }
 
 func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	format := cmdutil.SerializationFormatFlag(
-		cmdutil.SerializationFormatText,
-		cmdutil.SerializationFormatUsage,
-	)
-	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	flag.Usage = func() {
-		ui.Print("Usage: substrate whoami [-format <format>] [-quiet]")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-	if *quiet {
-		ui.Quiet()
-	}
 	versionutil.WarnDowngrade(ctx, cfg)
 
 	// TODO maintain a cache of account number, role name (or just role ARN), and tags by access key ID in .substrate.whoami.json; use that to make this fast enough to use in PS1
@@ -52,8 +51,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	identity, err := cfg.Identity(ctx)
 	ui.Must(err)
 
-	switch format.String() {
-	case cmdutil.SerializationFormatEnv:
+	switch formatFlag.String() {
+	case cmdutil.FormatEnv:
 		if identity.Tags.SubstrateSpecialAccount != "" {
 			fmt.Printf(
 				"ROLE=%q SUBSTRATE_SPECIAL_ACCOUNT=%q\n",
@@ -69,7 +68,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				identity.ARN,
 			)
 		}
-	case cmdutil.SerializationFormatExport, cmdutil.SerializationFormatExportWithHistory:
+	case cmdutil.FormatExport, cmdutil.FormatExportWithHistory:
 		if identity.Tags.SubstrateSpecialAccount != "" {
 			fmt.Printf(
 				"export ROLE=%q SUBSTRATE_SPECIAL_ACCOUNT=%q\n",
@@ -85,7 +84,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				identity.ARN,
 			)
 		}
-	case cmdutil.SerializationFormatJSON:
+	case cmdutil.FormatJSON:
 		if identity.Tags.SubstrateSpecialAccount != "" {
 			jsonutil.PrettyPrint(os.Stdout, map[string]string{
 				"Role":                          identity.ARN,
@@ -99,7 +98,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 				"Role":              identity.ARN,
 			})
 		}
-	case cmdutil.SerializationFormatText:
+	case cmdutil.FormatText:
 		if identity.Tags.SubstrateType == naming.Substrate {
 			ui.Printf(
 				"you're %s in your Substrate account",
@@ -127,7 +126,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			)
 		}
 	default:
-		ui.Fatalf("-format %q not supported", format)
+		ui.Fatalf("--format %q not supported", formatFlag)
 	}
 
 }
