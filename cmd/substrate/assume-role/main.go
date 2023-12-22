@@ -65,10 +65,16 @@ func Command() *cobra.Command {
 	cmd.RegisterFlagCompletionFunc(qualityFlag.Name, qualityCompletionFunc)
 	cmd.Flags().BoolVar(management, "management", false, "assume a role in the AWS organization's management account")
 	cmd.Flags().StringVar(special, "special", "", `name of a special AWS account in which to assume a role ("deploy" or "network")`)
+	cmd.RegisterFlagCompletionFunc("special", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return []string{"audit", "deploy", "network"}, cobra.ShellCompDirectiveNoFileComp
+	})
 	cmd.Flags().BoolVar(substrate, "substrate", false, "assume a role in the AWS organization's Substrate account")
 	cmd.Flags().StringVar(number, "number", "", "account number of the AWS account in which to assume a role")
+	cmd.RegisterFlagCompletionFunc("number", cmdutil.NoCompletionFunc)
 	cmd.Flags().StringVar(roleName, "role", "", "name of the IAM role to assume")
+	cmd.RegisterFlagCompletionFunc("role", cmdutil.NoCompletionFunc)
 	cmd.Flags().StringVar(roleARN, "arn", "", "ARN of the IAM role to assume")
+	cmd.RegisterFlagCompletionFunc("arn", cmdutil.NoCompletionFunc)
 	cmd.Flags().BoolVar(console, "console", false, "open the AWS Console to assume a role instead of generating an access key")
 	cmd.Flags().AddFlag(formatFlag)
 	cmd.RegisterFlagCompletionFunc(formatFlag.Name, formatCompletionFunc)
