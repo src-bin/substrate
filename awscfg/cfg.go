@@ -3,6 +3,7 @@ package awscfg
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -16,6 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/fileutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
@@ -24,6 +27,8 @@ import (
 )
 
 const (
+	CachedOrganizationFilename = ".substrate.organization.json" // cached on disk (obviously)
+
 	TooManyRequestsException    = "TooManyRequestsException"
 	UnrecognizedClientException = "UnrecognizedClientException"
 )
@@ -106,9 +111,17 @@ func (c *Config) Copy() *Config {
 }
 
 func (c *Config) DescribeOrganization(ctx context.Context) (*Organization, error) {
+
 	if c.organization != nil {
 		return c.organization, nil
 	}
+
+	if pathname, err := fileutil.PathnameInParents(CachedOrganizationFilename); err == nil {
+		if err := jsonutil.Read(pathname, &c.organization); err == nil {
+			return c.organization, nil
+		}
+	}
+
 	client := c.Organizations()
 	for {
 		out, err := client.DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
@@ -120,8 +133,17 @@ func (c *Config) DescribeOrganization(ctx context.Context) (*Organization, error
 			return nil, err
 		}
 		c.organization = out.Organization
-		return out.Organization, nil
+		break
 	}
+
+	if pathname, err := fileutil.PathnameInParents(AccountsFilename); err == nil {
+		pathname = filepath.Join(filepath.Dir(pathname), CachedOrganizationFilename)
+		if err := jsonutil.Write(c.organization, pathname); err != nil {
+			ui.Print(err)
+		}
+	}
+
+	return c.organization, nil
 }
 
 func (c *Config) GetCallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {
