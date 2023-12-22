@@ -82,7 +82,7 @@ func Command() *cobra.Command {
 	return cmd
 }
 
-func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []string, w io.Writer) {
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, args []string, w io.Writer) {
 	/*
 		flag.Usage = func() {
 			ui.Print("Usage: substrate assume-role -management|-special <special>|-substrate [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")

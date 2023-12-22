@@ -51,7 +51,7 @@ func Command() *cobra.Command {
 	return cmd
 }
 
-func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []string, w io.Writer) {
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 
 	if !*force {
 		if _, err := cfg.GetCallerIdentity(ctx); err == nil {
