@@ -10,6 +10,7 @@ import (
 	"github.com/src-bin/substrate/cmd/substrate/account"
 	assumerole "github.com/src-bin/substrate/cmd/substrate/assume-role"
 	"github.com/src-bin/substrate/cmd/substrate/credentials"
+	"github.com/src-bin/substrate/cmd/substrate/upgrade"
 	"github.com/src-bin/substrate/cmd/substrate/whoami"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
@@ -103,6 +104,7 @@ func main() {
 	rootCmd.AddCommand(account.Command())
 	rootCmd.AddCommand(assumerole.Command())
 	rootCmd.AddCommand(credentials.Command())
+	rootCmd.AddCommand(upgrade.Command())
 	rootCmd.AddCommand(whoami.Command())
 
 	rootCmd.ExecuteContext(ctx)

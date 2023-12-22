@@ -2,13 +2,13 @@ package upgrade
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"runtime"
 
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
@@ -21,14 +21,28 @@ import (
 // support those.
 //func init() { version.Commit = "trial" }
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	no := flag.Bool("no", false, `answer "no" when offered an upgrade; exits 1 if there was an upgrade available`)
-	yes := flag.Bool("yes", false, `answer "yes" when offered an upgrade to accept it without confirmation`)
-	flag.Usage = func() {
-		ui.Print("Usage: substrate upgrade [-no|-yes]")
-		flag.PrintDefaults()
+var yes, no = new(bool), new(bool)
+
+func Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "upgrade [--yes|--no]",
+		Short: "TODO upgrade.Command().Short",
+		Long:  `TODO upgrade.Command().Long`,
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(cmdutil.Main(cmd, args))
+		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{"--yes", "--no"}, cobra.ShellCompDirectiveKeepOrder | cobra.ShellCompDirectiveNoFileComp
+		},
 	}
-	flag.Parse()
+	cmd.Flags().BoolVar(yes, "yes", false, `answer "yes" when offered an upgrade to accept it without confirmation`)
+	cmd.Flags().BoolVar(no, "no", false, `answer "no" when offered an upgrade; exits 1 if there was an upgrade available`)
+	return cmd
+}
+
+func Main(context.Context, *awscfg.Config, *cobra.Command, []string, io.Writer) {
 
 	// Print the current version for context and to make the fact that we're
 	// about to print the prefix make more sense. Then print the URL we'll
