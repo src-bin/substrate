@@ -62,22 +62,22 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 	}
 
 	f := func(ctx context.Context) error {
-		chOrg, chErr := make(chan *organizations.DescribeOrganizationOutput), make(chan error)
+		chOrg, chErr := make(chan *Organization), make(chan error)
 		go func() {
-			org, err := c.Organizations().DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
+			org, err := c.DescribeOrganization(ctx)
 			chOrg <- org
 			chErr <- err
 		}()
-		callerIdentity, err := c.STS().GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+		callerIdentity, err := c.GetCallerIdentity(ctx)
 		if err != nil {
 			return err
 		}
-		describeOrganization, err := <-chOrg, <-chErr
+		org, err := <-chOrg, <-chErr
 		if err != nil {
 			return err
 		}
 
-		c.event.SetEmailDomainName(aws.ToString(describeOrganization.Organization.MasterAccountEmail))
+		c.event.SetEmailDomainName(aws.ToString(org.MasterAccountEmail))
 		if ss := strings.Split(aws.ToString(callerIdentity.UserId), ":"); len(ss) > 1 { // e.g. "AROASTEM43Z77S3GZP5PP:rcrowley@src-bin.com"
 			c.event.SetEmailSHA256(ss[1])
 		}
