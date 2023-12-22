@@ -16,9 +16,9 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-var formatFlag = cmdutil.FormatFlag(
+var format, formatFlag, formatCompletionFunc = cmdutil.FormatFlag(
 	cmdutil.FormatText,
-	[]string{cmdutil.FormatEnv, cmdutil.FormatExport, cmdutil.FormatJSON, cmdutil.FormatText},
+	[]cmdutil.Format{cmdutil.FormatEnv, cmdutil.FormatExport, cmdutil.FormatJSON, cmdutil.FormatText},
 )
 
 func Command() *cobra.Command {
@@ -28,30 +28,32 @@ func Command() *cobra.Command {
 		Long:  `TODO whoami.Command().Long`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			Main(awscfg.Main(cmd.Context()))
+			Main(cmdutil.Main(cmd, args))
 		},
 		DisableFlagsInUseLine: true,
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 			return []string{"--format", "--quiet"}, cobra.ShellCompDirectiveNoFileComp
 		},
 	}
-	cmd.Flags().Var(formatFlag, "format", formatFlag.Usage())
-	cmd.RegisterFlagCompletionFunc("format", formatFlag.CompletionFunc)
+	cmd.Flags().AddFlag(formatFlag)
+	cmd.RegisterFlagCompletionFunc(formatFlag.Name, formatCompletionFunc)
 	cmd.Flags().AddFlag(cmdutil.QuietFlag())
 	return cmd
 }
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
+func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []string, w io.Writer) {
+
 	versionutil.WarnDowngrade(ctx, cfg)
 
 	// TODO maintain a cache of account number, role name (or just role ARN), and tags by access key ID in .substrate.whoami.json; use that to make this fast enough to use in PS1
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
 
 	identity, err := cfg.Identity(ctx)
 	ui.Must(err)
 
-	switch formatFlag.String() {
+	switch *format {
 	case cmdutil.FormatEnv:
 		if identity.Tags.SubstrateSpecialAccount != "" {
 			fmt.Printf(
@@ -126,7 +128,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 			)
 		}
 	default:
-		ui.Fatalf("--format %q not supported", formatFlag)
+		ui.Fatal(cmdutil.FormatFlagError(*format))
 	}
 
 }

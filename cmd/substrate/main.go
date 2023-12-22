@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/user"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/cmd/substrate/account"
+	assumerole "github.com/src-bin/substrate/cmd/substrate/assume-role"
 	"github.com/src-bin/substrate/cmd/substrate/credentials"
 	"github.com/src-bin/substrate/cmd/substrate/whoami"
 	"github.com/src-bin/substrate/cmdutil"
@@ -16,9 +16,6 @@ import (
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
-
-//go:generate go run ../../tools/dispatch-map/main.go -function Main -o dispatch-map-Main.go .
-//go:generate go run ../../tools/dispatch-map/main.go -function Synopsis -o dispatch-map-Synopsis.go .
 
 func main() {
 
@@ -104,19 +101,9 @@ func main() {
 	})
 
 	rootCmd.AddCommand(account.Command())
-
+	rootCmd.AddCommand(assumerole.Command())
 	rootCmd.AddCommand(credentials.Command())
-
 	rootCmd.AddCommand(whoami.Command())
 
-	log.Print(time.Now())
 	rootCmd.ExecuteContext(ctx)
-	log.Print(time.Now())
-
-	// If no one's posted telemetry yet, post it now, and wait for it to finish.
-	/* XXX SLOW AS FUCK
-		cfg.Telemetry().Post(ctx)
-		cfg.Telemetry().Wait(ctx)
-	XXX */
-
 }

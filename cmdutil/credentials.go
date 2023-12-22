@@ -19,11 +19,11 @@ const (
 	SUBSTRATE_CREDENTIALS_EXPIRATION = "SUBSTRATE_CREDENTIALS_EXPIRATION"
 )
 
-func PrintCredentials(format *SerializationFormat, creds aws.Credentials) {
+func PrintCredentials(format Format, creds aws.Credentials) {
 	// Check if we're using Fish as our shell. If so, we have to use it's unique and special syntax for variables
 	isFish := CheckForFish()
 
-	switch format.String() {
+	switch format {
 	case SerializationFormatEnv:
 		PrintCredentialsEnv(creds, isFish)
 	case SerializationFormatExport:
@@ -33,7 +33,7 @@ func PrintCredentials(format *SerializationFormat, creds aws.Credentials) {
 	case SerializationFormatJSON:
 		PrintCredentialsJSON(creds)
 	default:
-		ui.Fatalf("-format %q not supported", format)
+		ui.Fatal(FormatFlagError(format))
 	}
 }
 

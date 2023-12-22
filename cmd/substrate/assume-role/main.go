@@ -2,7 +2,6 @@ package assumerole
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -11,97 +10,131 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
-	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	admin := flag.Bool("admin", false, `(deprecated) shorthand for -domain "admin" -environment "admin"`)
-	domain := cmdutil.DomainFlag("domain of an AWS account in which to assume a role")
-	environment := cmdutil.EnvironmentFlag("environment of an AWS account in which to assume a role")
-	quality := cmdutil.QualityFlag("quality of an AWS account in which to assume a role")
-	special := flag.String("special", "", `name of a special AWS account in which to assume a role ("deploy" or "network")`)
-	substrate := flag.Bool("substrate", false, "assume a role in the AWS organization's Substrate account")
-	management := flag.Bool("management", false, "assume a role in the AWS organization's management account")
-	master := flag.Bool("master", false, "deprecated name for -management")
-	number := flag.String("number", "", "account number of the AWS account in which to assume a role")
-	roleName := flag.String("role", "", "name of the IAM role to assume")
-	roleARN := flag.String("arn", "", "ARN of the IAM role to assume")
-	console := flag.Bool("console", false, "open the AWS Console to assume a role instead of generating an access key")
-	format := cmdutil.SerializationFormatFlag(
-		cmdutil.SerializationFormatExportWithHistory, // default to undocumented special value for substrate-assume-role
-		cmdutil.SerializationFormatUsage,
+var (
+	domain, domainFlag, domainCompletionFunc                = cmdutil.DomainFlag("domain of an AWS account in which to assume a role")
+	environment, environmentFlag, environmentCompletionFunc = cmdutil.EnvironmentFlag("environment of an AWS account in which to assume a role")
+	quality, qualityFlag, qualityCompletionFunc             = cmdutil.QualityFlag("quality of an AWS account in which to assume a role")
+	management                                              = new(bool)
+	special                                                 = new(string)
+	substrate                                               = new(bool)
+	number                                                  = new(string)
+	roleName, roleARN                                       = new(string), new(string)
+	console                                                 = new(bool)
+	format, formatFlag, formatCompletionFunc                = cmdutil.FormatFlag(
+		cmdutil.FormatExportWithHistory,
+		[]cmdutil.Format{cmdutil.FormatEnv, cmdutil.FormatExport, cmdutil.FormatExportWithHistory, cmdutil.FormatJSON},
 	)
-	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	flag.Usage = func() {
-		ui.Print("Usage: substrate assume-role -management|-special <special>|-substrate [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -domain <domain> -environment <environment> [-quality <quality>] [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -number <number> -role <role-name> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		ui.Print("       substrate assume-role -arn <role-arn> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-		flag.PrintDefaults()
-		ui.Print("  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment")
+)
+
+func Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "assume-role [--format <format>] [--force] [--no-open] [--quiet]",
+		Short: "TODO assumerole.Command().Short",
+		Long:  `TODO assumerole.Command().Long`,
+		Args:  cobra.ArbitraryArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(cmdutil.Main(cmd, args))
+		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{
+				"--domain", "--environment", "--quality",
+				"--management", "--special", "--substrate",
+				"--number",
+				"--role", "--arn",
+				"--console",
+				"--format",
+				"--quiet",
+			}, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
-	flag.Parse()
-	*management = *management || *master
-	version.Flag()
-	if *admin {
-		*domain, *environment = "admin", "admin"
-	}
+	cmd.Flags().AddFlag(domainFlag)
+	cmd.RegisterFlagCompletionFunc(domainFlag.Name, domainCompletionFunc)
+	cmd.Flags().AddFlag(environmentFlag)
+	cmd.RegisterFlagCompletionFunc(environmentFlag.Name, environmentCompletionFunc)
+	cmd.Flags().AddFlag(qualityFlag)
+	cmd.RegisterFlagCompletionFunc(qualityFlag.Name, qualityCompletionFunc)
+	cmd.Flags().BoolVar(management, "management", false, "assume a role in the AWS organization's management account")
+	cmd.Flags().StringVar(special, "special", "", `name of a special AWS account in which to assume a role ("deploy" or "network")`)
+	cmd.Flags().BoolVar(substrate, "substrate", false, "assume a role in the AWS organization's Substrate account")
+	cmd.Flags().StringVar(number, "number", "", "account number of the AWS account in which to assume a role")
+	cmd.Flags().StringVar(roleName, "role", "", "name of the IAM role to assume")
+	cmd.Flags().StringVar(roleARN, "arn", "", "ARN of the IAM role to assume")
+	cmd.Flags().BoolVar(console, "console", false, "open the AWS Console to assume a role instead of generating an access key")
+	cmd.Flags().AddFlag(formatFlag)
+	cmd.RegisterFlagCompletionFunc(formatFlag.Name, formatCompletionFunc)
+	cmd.Flags().AddFlag(cmdutil.QuietFlag())
+	return cmd
+}
+
+func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []string, w io.Writer) {
+	/*
+		flag.Usage = func() {
+			ui.Print("Usage: substrate assume-role -management|-special <special>|-substrate [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+			ui.Print("       substrate assume-role -domain <domain> -environment <environment> [-quality <quality>] [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+			ui.Print("       substrate assume-role -number <number> -role <role-name> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+			ui.Print("       substrate assume-role -arn <role-arn> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
+			flag.PrintDefaults()
+			ui.Print("  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment")
+		}
+		flag.Parse()
+	*/
 	if *environment != "" && *quality == "" {
 		*quality = cmdutil.QualityForEnvironment(*environment)
 	}
 	if (*domain == "" || *environment == "" || *quality == "") && *special == "" && !*substrate && !*management && *number == "" && *roleARN == "" {
-		ui.Fatal(`one of -domain "..." -environment "..." -quality "..." or -management or -special "..." or -substrate or -number "..." or -arn "..." is required`)
+		ui.Fatal(`one of --domain "..." --environment "..." --quality "..." or --management or --special "..." or --substrate or --number "..." or --arn "..." is required`)
 	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *management {
-		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -management`)
+		ui.Fatal(`can't mix --domain "..." --environment "..." --quality "..." with --management`)
 	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *special != "" {
-		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -special "..."`)
+		ui.Fatal(`can't mix --domain "..." --environment "..." --quality "..." with --special "..."`)
 	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *substrate {
-		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -substrate`)
+		ui.Fatal(`can't mix --domain "..." --environment "..." --quality "..." with --substrate`)
 	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *number != "" {
-		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -number "..."`)
+		ui.Fatal(`can't mix --domain "..." --environment "..." --quality "..." with --number "..."`)
 	}
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *roleARN != "" {
-		ui.Fatal(`can't mix -domain "..." -environment "..." -quality "..." with -arn "..."`)
+		ui.Fatal(`can't mix --domain "..." --environment "..." --quality "..." with --arn "..."`)
 	}
 	if *management && *special != "" {
-		ui.Fatal(`can't mix -management with -special "..."`)
+		ui.Fatal(`can't mix --management with --special "..."`)
 	}
 	if *management && *substrate {
-		ui.Fatal(`can't mix -management with -substrate`)
+		ui.Fatal(`can't mix --management with --substrate`)
 	}
 	if *management && *number != "" {
-		ui.Fatal(`can't mix -management with -number "..."`)
+		ui.Fatal(`can't mix --management with --number "..."`)
 	}
 	if *management && *roleARN != "" {
-		ui.Fatal(`can't mix -management with -arn "..."`)
+		ui.Fatal(`can't mix --management with --arn "..."`)
 	}
 	if *special != "" && *substrate {
-		ui.Fatal(`can't mix -special "..." with -substrate`)
+		ui.Fatal(`can't mix --special "..." with --substrate`)
 	}
 	if *special != "" && *number != "" {
-		ui.Fatal(`can't mix -special "..." with -number "..."`)
+		ui.Fatal(`can't mix --special "..." with --number "..."`)
 	}
 	if *special != "" && *roleARN != "" {
-		ui.Fatal(`can't mix -special "..." with -arn "..."`)
+		ui.Fatal(`can't mix --special "..." with --arn "..."`)
 	}
 	if *substrate && *number != "" {
-		ui.Fatal(`can't mix -substrate with -number "..."`)
+		ui.Fatal(`can't mix --substrate with --number "..."`)
 	}
 	if *substrate && *roleARN != "" {
-		ui.Fatal(`can't mix -substrate with -arn "..."`)
-	}
-	if *quiet {
-		ui.Quiet()
+		ui.Fatal(`can't mix --substrate with --arn "..."`)
 	}
 
 	callerIdentity := cfg.MustGetCallerIdentity(ctx)
@@ -134,7 +167,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		cfg, err = cfg.AssumeRoleARN(ctx, *roleARN, duration)
 	} else if *number != "" {
 		if *roleName == "" {
-			ui.Fatal(`-role "..." is required with -number "..."`)
+			ui.Fatal(`--role "..." is required with --number "..."`)
 		}
 		cfg, err = cfg.AssumeRole(ctx, *number, *roleName, duration)
 	} else if *substrate {
@@ -157,7 +190,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		cfg, err = cfg.AssumeManagementRole(ctx, *roleName, duration)
 	} else if *special != "" {
 		if *roleName == "" {
-			if *special == "audit" || currentRoleName == roles.Auditor {
+			if currentRoleName == roles.Auditor {
 				roleName = aws.String(roles.Auditor)
 			} else {
 				roleName = aws.String(fmt.Sprintf("%s%s", strings.Title(*special), roles.Administrator))
@@ -183,6 +216,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
 
 	creds, err := cfg.Retrieve(ctx)
 	if err != nil {
@@ -205,7 +239,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	// Execute a command with the credentials in its environment.  We use
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
 	// other environment variables in case they're relevant to the command.
-	if args := flag.Args(); len(args) > 0 {
+	if len(args) > 0 {
 		ui.Must(os.Setenv("AWS_ACCESS_KEY_ID", creds.AccessKeyID))
 		ui.Must(os.Setenv("AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey))
 		ui.Must(os.Setenv("AWS_SESSION_TOKEN", creds.SessionToken))
@@ -217,10 +251,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		// Distinguish between a command error, which presumably is described
 		// by the command itself before exiting with a non-zero status, and
 		// command not found, which is our responsibility as the pseudo-shell.
-		_, err := exec.LookPath(flag.Args()[0])
+		_, err := exec.LookPath(args[0])
 		ui.Must(err)
 
-		cmd := exec.Command(flag.Args()[0], flag.Args()[1:]...)
+		cmd := exec.Command(args[0], args[1:]...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -235,6 +269,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 
 	// Print the credentials for the user to copy into their environment.
-	cmdutil.PrintCredentials(format, creds)
+	cmdutil.PrintCredentials(*format, creds)
 
 }

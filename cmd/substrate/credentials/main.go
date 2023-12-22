@@ -3,7 +3,6 @@ package credentials
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,46 +18,47 @@ import (
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/randutil"
 	"github.com/src-bin/substrate/ui"
-	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
 
+var (
+	format, formatFlag, formatCompletionFunc = cmdutil.FormatFlag(
+		cmdutil.FormatExport,
+		[]cmdutil.Format{cmdutil.FormatEnv, cmdutil.FormatExport, cmdutil.FormatJSON},
+	)
+	force, noOpen = new(bool), new(bool)
+)
+
 func Command() *cobra.Command {
-	return &cobra.Command{
-		Use:   "credentials",
+	cmd := &cobra.Command{
+		Use:   "credentials [--format <format>] [--force] [--no-open] [--quiet]",
 		Short: "TODO credentials.Command().Short",
 		Long:  `TODO credentials.Command().Long`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			Main(awscfg.Main(cmd.Context()))
+			Main(cmdutil.Main(cmd, args))
 		},
 		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{"--format", "--force", "--no-open", "--quiet"}, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
+	cmd.Flags().AddFlag(formatFlag)
+	cmd.RegisterFlagCompletionFunc(formatFlag.Name, formatCompletionFunc)
+	cmd.Flags().BoolVar(force, "force", false, "force minting new credentials even if there are valid credentials in the environment")
+	cmd.Flags().BoolVar(noOpen, "no-open", false, "do not try to open your web browser (so that you can copy the URL and open it yourself)")
+	cmd.Flags().AddFlag(cmdutil.QuietFlag())
+	return cmd
 }
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	force := flag.Bool("force", false, "force minting new credentials even if there are valid credentials in the environment")
-	format := cmdutil.SerializationFormatFlag(
-		cmdutil.SerializationFormatExport,
-		cmdutil.SerializationFormatUsage,
-	)
-	noOpen := flag.Bool("no-open", false, "do not try to open your web browser (so that you can copy the URL and open it yourself)")
-	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	flag.Usage = func() {
-		ui.Print("Usage: substrate credentials [-format <format>] [-quiet]")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-	version.Flag()
-	if *quiet {
-		ui.Quiet()
-	}
+func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []string, w io.Writer) {
 
 	if !*force {
 		if _, err := cfg.GetCallerIdentity(ctx); err == nil {
 			expiry, err := time.Parse(time.RFC3339, os.Getenv(cmdutil.SUBSTRATE_CREDENTIALS_EXPIRATION))
 			if err != nil {
 				ui.Print("found valid credentials in the environment; exiting without minting new ones")
+				cfg.Telemetry().PostWait(ctx)
 				return
 			}
 			if time.Now().Add(6 * time.Hour).Before(expiry) {
@@ -67,6 +67,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 					"found credentials in the environment that are still valid for more than %d hours; exiting without minting new ones",
 					int(hours),
 				)
+				cfg.Telemetry().PostWait(ctx)
 				return
 			}
 		}
@@ -112,12 +113,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	ui.Stop("ok")
 
 	cfg.SetCredentials(ctx, *creds)
+
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
 
 	versionutil.WarnDowngrade(ctx, cfg)
 
 	// Print credentials in whatever format was requested.
-	cmdutil.PrintCredentials(format, *creds)
+	cmdutil.PrintCredentials(*format, *creds)
 
 }
 

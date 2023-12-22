@@ -92,8 +92,7 @@ func NewEvent(ctx context.Context) (*Event, error) {
 		Version:    version.Version,
 		Prefix:     prefix(),
 		OS:         runtime.GOOS,
-		//Format // TODO when cmdutil.SerializationFormat.Set is called
-		wait: make(chan struct{}),
+		wait:       make(chan struct{}),
 	}
 
 	ctx, _ = context.WithTimeout(ctx, 100*time.Millisecond)
@@ -161,6 +160,13 @@ func (e *Event) Post(ctx context.Context) error {
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	_, err = http.DefaultClient.Do(req)
 	return err
+}
+
+func (e *Event) PostWait(ctx context.Context) error {
+	if err := e.Post(ctx); err != nil {
+		return err
+	}
+	return e.Wait(ctx)
 }
 
 func (e *Event) SetInitialAccountId(accountId string) {

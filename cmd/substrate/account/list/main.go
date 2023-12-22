@@ -28,12 +28,12 @@ func Command() *cobra.Command {
 		Long:  `TODO list.Command().Long`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			Main(awscfg.Main(cmd.Context()))
+			Main(cmdutil.Main(cmd, args))
 		},
 	}
 }
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
+func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []string, w io.Writer) {
 	autoApprove := flag.Bool("auto-approve", false, `with -format "shell", add the -auto-approve flag to all the generated commands that accept it`)
 	format := cmdutil.SerializationFormatFlag(
 		cmdutil.SerializationFormatText,
