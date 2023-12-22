@@ -2,29 +2,40 @@ package deletestaticaccesskeys
 
 import (
 	"context"
-	"flag"
 	"io"
 	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
-	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	flag.Usage = func() {
-		ui.Print("Usage: substrate delete-static-access-keys")
-		flag.PrintDefaults()
+func Command() *cobra.Command {
+	return &cobra.Command{
+		Use:    "delete-static-access-keys",
+		Hidden: true,
+		Short:  "TODO deletestaticaccesskeys.Command().Short",
+		Long:   `TODO deletestaticaccesskeys.Command().Long`,
+		Args:   cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(cmdutil.Main(cmd, args))
+		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
-	flag.Parse()
-	version.Flag()
+}
+
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 
 	cfg = awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	versionutil.PreventDowngrade(ctx, cfg)

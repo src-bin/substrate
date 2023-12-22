@@ -10,6 +10,8 @@ import (
 	"github.com/src-bin/substrate/cmd/substrate/account"
 	assumerole "github.com/src-bin/substrate/cmd/substrate/assume-role"
 	"github.com/src-bin/substrate/cmd/substrate/credentials"
+	deletestaticaccesskeys "github.com/src-bin/substrate/cmd/substrate/delete-static-access-keys"
+	intranetzip "github.com/src-bin/substrate/cmd/substrate/intranet-zip"
 	"github.com/src-bin/substrate/cmd/substrate/upgrade"
 	"github.com/src-bin/substrate/cmd/substrate/whoami"
 	"github.com/src-bin/substrate/cmdutil"
@@ -104,6 +106,8 @@ func main() {
 	rootCmd.AddCommand(account.Command())
 	rootCmd.AddCommand(assumerole.Command())
 	rootCmd.AddCommand(credentials.Command())
+	rootCmd.AddCommand(deletestaticaccesskeys.Command())
+	rootCmd.AddCommand(intranetzip.Command())
 	rootCmd.AddCommand(upgrade.Command())
 	rootCmd.AddCommand(whoami.Command())
 
