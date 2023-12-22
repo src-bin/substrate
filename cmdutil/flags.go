@@ -175,7 +175,7 @@ type environmentFlag struct {
 func (e *environmentFlag) CompletionFunc(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	environments, err := naming.Environments()
 	ui.Must(err)
-	return environments, cobra.ShellCompDirectiveNoFileComp
+	return environments, cobra.ShellCompDirectiveKeepOrder | cobra.ShellCompDirectiveNoFileComp
 }
 
 func (e *environmentFlag) Set(environment string) error {
@@ -233,7 +233,7 @@ type qualityFlag struct {
 func (q *qualityFlag) CompletionFunc(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	qualities, err := naming.Qualities()
 	ui.Must(err)
-	return qualities, cobra.ShellCompDirectiveNoFileComp
+	return qualities, cobra.ShellCompDirectiveKeepOrder | cobra.ShellCompDirectiveNoFileComp
 }
 
 func (q *qualityFlag) Set(quality string) error {

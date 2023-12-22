@@ -46,7 +46,7 @@ func Command() *cobra.Command {
 				"--number", "--only-tags",
 				"--refresh",
 				"--auto-approve", "--no-apply", "--ignore-service-quotas",
-			}, cobra.ShellCompDirectiveNoFileComp
+			}, cobra.ShellCompDirectiveNoFileComp // TODO cobra.ShellCompDirectiveKeepOrder, too?
 		},
 	}
 	cmd.Flags().AddFlag(formatFlag)

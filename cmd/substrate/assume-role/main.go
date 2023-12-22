@@ -54,7 +54,7 @@ func Command() *cobra.Command {
 				"--console",
 				"--format",
 				"--quiet",
-			}, cobra.ShellCompDirectiveNoFileComp
+			}, cobra.ShellCompDirectiveNoFileComp // TODO cobra.ShellCompDirectiveKeepOrder, too?
 		},
 	}
 	cmd.Flags().AddFlag(domainFlag)
