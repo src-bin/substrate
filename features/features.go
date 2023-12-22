@@ -8,4 +8,5 @@ const (
 	APIGatewayV2                        feature = "APIGatewayV2"
 	DelegatedOrganizationAdministration feature = "DelegatedOrganizationAdministration"
 	IdentityCenter                      feature = "IdentityCenter"
+	ProxyTelemetry                      feature = "ProxyTelemetry"
 )

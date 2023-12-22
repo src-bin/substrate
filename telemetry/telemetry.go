@@ -18,6 +18,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
@@ -228,7 +229,7 @@ func (e *Event) Wait(ctx context.Context) error {
 }
 
 func endpoint(ctx context.Context) string {
-	if !contextutil.IsIntranet(ctx) { // outside the Intranet
+	if features.ProxyTelemetry.Enabled() && !contextutil.IsIntranet(ctx) { // feature enabled and outside the Intranet
 		if host, err := naming.IntranetDNSDomainName(); err == nil { // and knowing the Intranet's hostname
 			u := &url.URL{
 				Scheme: "https",
@@ -238,7 +239,7 @@ func endpoint(ctx context.Context) string {
 			return u.String()
 		}
 	}
-	return Endpoint // in the Intranet or before it exists, submit telemetry directly
+	return Endpoint // without the feature flag, in the Intranet, or before the Intranet exists, submit telemetry directly
 }
 
 func prefix() string {
