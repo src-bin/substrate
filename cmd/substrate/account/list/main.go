@@ -2,7 +2,6 @@ package list
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -17,42 +16,55 @@ import (
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
-	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
 
+var (
+	format, formatFlag, formatCompletionFunc = cmdutil.FormatFlag(
+		cmdutil.FormatText,
+		[]cmdutil.Format{cmdutil.FormatJSON, cmdutil.FormatShell, cmdutil.FormatText},
+	)
+	number                                    = new(string)
+	onlyTags                                  = new(bool)
+	refresh                                   = new(bool)
+	autoApprove, noApply, ignoreServiceQuotas = new(bool), new(bool), new(bool)
+)
+
 func Command() *cobra.Command {
-	return &cobra.Command{
-		Use:   "list",
+	cmd := &cobra.Command{
+		Use:   "list [--format <format>] [--number <number>] [--only-tags] [--refresh]\nsubstrate account list --format shell [--auto-approve|--no-apply] [--ignore-service-quotas] [--refresh]",
 		Short: "TODO list.Command().Short",
 		Long:  `TODO list.Command().Long`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{
+				"--format",
+				"--number", "--only-tags",
+				"--refresh",
+				"--auto-approve", "--no-apply", "--ignore-service-quotas",
+			}, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
+	cmd.Flags().AddFlag(formatFlag)
+	cmd.RegisterFlagCompletionFunc(formatFlag.Name, formatCompletionFunc)
+	cmd.Flags().StringVar(number, "number", "", "with --format json, account number of the single AWS account to output")
+	cmd.RegisterFlagCompletionFunc("number", cmdutil.NoCompletionFunc)
+	cmd.Flags().BoolVar(onlyTags, "only-tags", false, "with --format json and --number <number>, output only the tags on the account")
+	cmd.Flags().BoolVar(refresh, "refresh", false, "clear Substrate's local cache of AWS accounts and refresh it from the AWS Organizations API")
+	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "with --format shell, add the --auto-approve flag to all the generated commands that accept it")
+	cmd.Flags().BoolVar(noApply, "no-apply", false, "with --format shell, add the --no-apply flag to all the generated commands that accept it")
+	cmd.Flags().BoolVar(ignoreServiceQuotas, "ignore-service-quotas", false, "with --format shell, add the --ignore-service-quotas flag to all the generated commands that accept it")
+	return cmd
 }
 
 func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []string, w io.Writer) {
-	autoApprove := flag.Bool("auto-approve", false, `with -format "shell", add the -auto-approve flag to all the generated commands that accept it`)
-	format := cmdutil.FormatFlag(
-		cmdutil.FormatText,
-		`output format - "text" for human-readable plaintext, "json" for output like the AWS organizations:ListAccounts API augmented with Substrate roles and tags, or "shell" for a shell program that will update all your AWS accounts`,
-	)
-	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, `with -format "shell", add the -ignore-service-quotas flag to all the generated commands that accept it`)
-	noApply := flag.Bool("no-apply", false, `with -format "shell", add the -no-apply flag to all the generated commands that accept it`)
-	number := flag.String("number", "", `with -format "json", account number of the single AWS account to output`)
-	onlyTags := flag.Bool("only-tags", false, `with -format "json" and -number "...", output only the tags on the account`)
-	refresh := flag.Bool("refresh", false, "clear Substrate's local cache of AWS accounts and refresh it from the AWS Organizations API")
-	flag.Usage = func() {
-		ui.Print("Usage: substrate accounts [-format <format>] [-number <number>] [-only-tags]")
-		ui.Print("Usage: substrate accounts -format shell [-auto-approve|-no-apply]")
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-	version.Flag()
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
 
 	versionutil.WarnDowngrade(ctx, cfg)
 
@@ -66,7 +78,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []st
 
 	adminAccounts, serviceAccounts, substrateAccount, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	ui.Must(err)
-	switch format {
+	switch *format {
 
 	case cmdutil.FormatJSON:
 
@@ -119,13 +131,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []st
 	case cmdutil.FormatShell:
 		var autoApproveFlag, ignoreServiceQuotasFlag, noApplyFlag string
 		if *autoApprove {
-			autoApproveFlag = " -auto-approve" // leading space to format pleasingly both ways
+			autoApproveFlag = " --auto-approve" // leading space to format pleasingly both ways
 		}
 		if *ignoreServiceQuotas {
-			ignoreServiceQuotasFlag = " -ignore-service-quotas" // leading space to format pleasingly both ways
+			ignoreServiceQuotasFlag = " --ignore-service-quotas" // leading space to format pleasingly both ways
 		}
 		if *noApply {
-			noApplyFlag = " -no-apply" // leading space to format pleasingly both ways
+			noApplyFlag = " --no-apply" // leading space to format pleasingly both ways
 		}
 
 		fmt.Println("set -e -x")
@@ -143,7 +155,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []st
 				continue
 			}
 			fmt.Printf(
-				"substrate update-account%s%s%s -domain %q -environment %q -quality %q\n",
+				"substrate account update%s%s%s --domain %q --environment %q --quality %q\n",
 				autoApproveFlag,
 				ignoreServiceQuotasFlag,
 				noApplyFlag,
@@ -162,7 +174,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []st
 		io.Copy(os.Stdout, f)
 
 	default:
-		ui.Fatalf("-format %q not supported", format)
+		ui.Fatal(cmdutil.FormatFlagError(*format))
 	}
 
 }

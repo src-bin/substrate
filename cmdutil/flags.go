@@ -87,6 +87,10 @@ func (err FormatFlagError) Error() string {
 	return fmt.Sprintf("--format %q not supported", string(err))
 }
 
+func NoCompletionFunc(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return []string{}, cobra.ShellCompDirectiveNoFileComp
+}
+
 func QualityFlag(usage string) (
 	*string,
 	*pflag.Flag,
