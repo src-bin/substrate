@@ -24,13 +24,13 @@ func PrintCredentials(format Format, creds aws.Credentials) {
 	isFish := CheckForFish()
 
 	switch format {
-	case SerializationFormatEnv:
+	case FormatEnv:
 		PrintCredentialsEnv(creds, isFish)
-	case SerializationFormatExport:
+	case FormatExport:
 		PrintCredentialsExport(creds, isFish)
-	case SerializationFormatExportWithHistory:
+	case FormatExportWithHistory:
 		PrintCredentialsExportWithHistory(creds, isFish)
-	case SerializationFormatJSON:
+	case FormatJSON:
 		PrintCredentialsJSON(creds)
 	default:
 		ui.Fatal(FormatFlagError(format))

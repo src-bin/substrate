@@ -35,8 +35,8 @@ func Command() *cobra.Command {
 
 func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []string, w io.Writer) {
 	autoApprove := flag.Bool("auto-approve", false, `with -format "shell", add the -auto-approve flag to all the generated commands that accept it`)
-	format := cmdutil.SerializationFormatFlag(
-		cmdutil.SerializationFormatText,
+	format := cmdutil.FormatFlag(
+		cmdutil.FormatText,
 		`output format - "text" for human-readable plaintext, "json" for output like the AWS organizations:ListAccounts API augmented with Substrate roles and tags, or "shell" for a shell program that will update all your AWS accounts`,
 	)
 	ignoreServiceQuotas := flag.Bool("ignore-service-quotas", false, `with -format "shell", add the -ignore-service-quotas flag to all the generated commands that accept it`)
@@ -66,9 +66,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []st
 
 	adminAccounts, serviceAccounts, substrateAccount, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	ui.Must(err)
-	switch format.String() {
+	switch format {
 
-	case cmdutil.SerializationFormatJSON:
+	case cmdutil.FormatJSON:
 
 		// Maybe only print one account.
 		prettyPrintJSON := func(account *awsorgs.Account) {
@@ -116,7 +116,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []st
 			substrateAccount,
 		}, adminAccounts...), serviceAccounts...))
 
-	case cmdutil.SerializationFormatShell:
+	case cmdutil.FormatShell:
 		var autoApproveFlag, ignoreServiceQuotasFlag, noApplyFlag string
 		if *autoApprove {
 			autoApproveFlag = " -auto-approve" // leading space to format pleasingly both ways
@@ -153,7 +153,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, cmd *cobra.Command, args []st
 			)
 		}
 
-	case cmdutil.SerializationFormatText:
+	case cmdutil.FormatText:
 		f, err := os.Open(accounts.CheatSheetFilename)
 		if err != nil {
 			ui.Fatal(err)
