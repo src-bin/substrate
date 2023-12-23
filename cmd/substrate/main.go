@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/cmd/substrate/account"
+	"github.com/src-bin/substrate/cmd/substrate/accounts"
 	assumerole "github.com/src-bin/substrate/cmd/substrate/assume-role"
 	"github.com/src-bin/substrate/cmd/substrate/credentials"
 	deletestaticaccesskeys "github.com/src-bin/substrate/cmd/substrate/delete-static-access-keys"
@@ -110,6 +111,9 @@ func main() {
 	rootCmd.AddCommand(intranetzip.Command())
 	rootCmd.AddCommand(upgrade.Command())
 	rootCmd.AddCommand(whoami.Command())
+
+	// Breadcrumbs to deprecated subcommands.
+	rootCmd.AddCommand(accounts.Command())
 
 	rootCmd.ExecuteContext(ctx)
 }
