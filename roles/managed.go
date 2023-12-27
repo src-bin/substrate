@@ -74,6 +74,10 @@ func (p *ManagedAssumeRolePolicy) String() string {
 	return strings.Join(p.Arguments(), " ")
 }
 
+func (p *ManagedAssumeRolePolicy) Validate() error {
+	return nil
+}
+
 type ManagedAssumeRolePolicyError string
 
 func (err ManagedAssumeRolePolicyError) Error() string {
@@ -139,6 +143,13 @@ func (a *ManagedPolicyAttachments) Sort() {
 
 func (a *ManagedPolicyAttachments) String() string {
 	return strings.Join(a.Arguments(), " ")
+}
+
+func (a *ManagedPolicyAttachments) Validate() error {
+	if a.AdministratorAccess && a.ReadOnlyAccess {
+		return ManagedPolicyAttachmentsError("can't provide both --administrator-access and --read-only-access")
+	}
+	return nil
 }
 
 type ManagedPolicyAttachmentsError string

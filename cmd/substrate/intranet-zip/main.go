@@ -37,7 +37,7 @@ func Command() *cobra.Command {
 		},
 		DisableFlagsInUseLine: true,
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{"--base64sha256", "--format"}, cobra.ShellCompDirectiveNoFileComp
+			return []string{"--base64sha256", "--format"}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
 		},
 	}
 	cmd.Flags().BoolVar(base64sha256, "base64sha256", false, "print the base-64-encoded, SHA256 sum of the substrate-intranet binary instead of the binary itself (useful for rectifying lambda:UpdateFunctionCode API arguments and Terraform plans)")

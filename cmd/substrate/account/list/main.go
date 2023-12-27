@@ -32,7 +32,8 @@ var (
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "list [--format <format>] [--number <number>] [--only-tags] [--refresh]\nsubstrate account list --format shell [--auto-approve|--no-apply] [--ignore-service-quotas] [--refresh]",
+		Use: `list [--format <format>] [--number <number>] [--only-tags] [--refresh]
+  substrate account list --format shell [--auto-approve|--no-apply] [--ignore-service-quotas] [--refresh]`,
 		Short: "TODO list.Command().Short",
 		Long:  `TODO list.Command().Long`,
 		Args:  cobra.NoArgs,
@@ -46,7 +47,7 @@ func Command() *cobra.Command {
 				"--number", "--only-tags",
 				"--refresh",
 				"--auto-approve", "--no-apply", "--ignore-service-quotas",
-			}, cobra.ShellCompDirectiveNoFileComp // TODO cobra.ShellCompDirectiveKeepOrder, too?
+			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
 		},
 	}
 	cmd.Flags().AddFlag(formatFlag)

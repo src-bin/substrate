@@ -1,14 +1,14 @@
-package adoptaccount
+package adopt
 
 import (
 	"context"
-	"flag"
 	"io"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
@@ -18,47 +18,73 @@ import (
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/veqp"
-	"github.com/src-bin/substrate/version"
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	number := flag.String("number", "", "tag and begin managing this account instead of creating a new AWS account")
-	domain := cmdutil.DomainFlag("domain for this new AWS account")
-	environment := cmdutil.EnvironmentFlag("environment for this new AWS account")
-	quality := cmdutil.QualityFlag("quality for this new AWS account")
-	ui.InteractivityFlags()
-	flag.Usage = func() {
-		ui.Print("Usage: substrate adopt-account -number <number> -domain <domain> -environment <environment> [-quality <quality>]")
-		flag.PrintDefaults()
+var (
+	number                                                  = new(string)
+	domain, domainFlag, domainCompletionFunc                = cmdutil.DomainFlag("domain for this new AWS account")
+	environment, environmentFlag, environmentCompletionFunc = cmdutil.EnvironmentFlag("environment for this new AWS account")
+	quality, qualityFlag, qualityCompletionFunc             = cmdutil.QualityFlag("quality for this new AWS account")
+	ignoreServiceQuotas                                     = new(bool)
+)
+
+func Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "adopt --number <number> --domain <domain> --environment <environment> [--quality <quality>]",
+		Short: "TODO adopt.Command().Short",
+		Long:  `TODO adopt.Command().Long`,
+		Args:  cobra.ArbitraryArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(cmdutil.Main(cmd, args))
+		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{
+				"--number",
+				"--domain", "--environment", "--quality",
+				"--ignore-service-quotas",
+			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
+		},
 	}
-	flag.Parse()
-	version.Flag()
+	cmd.Flags().StringVar(number, "number", "", "account number of the AWS account to adopt into Substrate management (must already be in this AWS organization)")
+	cmd.RegisterFlagCompletionFunc("number", cmdutil.NoCompletionFunc)
+	cmd.Flags().AddFlag(domainFlag)
+	cmd.RegisterFlagCompletionFunc(domainFlag.Name, domainCompletionFunc)
+	cmd.Flags().AddFlag(environmentFlag)
+	cmd.RegisterFlagCompletionFunc(environmentFlag.Name, environmentCompletionFunc)
+	cmd.Flags().AddFlag(qualityFlag)
+	cmd.RegisterFlagCompletionFunc(qualityFlag.Name, qualityCompletionFunc)
+	cmd.Flags().BoolVar(ignoreServiceQuotas, "ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
+	return cmd
+}
+
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 	if *number == "" {
-		ui.Fatal(`-number "..." is required`)
+		ui.Fatal(`--number "..." is required`)
 	}
 	if *environment != "" && *quality == "" {
 		*quality = cmdutil.QualityForEnvironment(*environment)
 	}
 	if *domain == "" || *environment == "" || *quality == "" {
-		ui.Fatal(`-domain "..." -environment "..." -quality"..." are required`)
+		ui.Fatal(`--domain "..." --environment "..." --quality"..." are required`)
 	}
 	if d := *domain; d == "admin" || d == "common" || d == "deploy" || d == "intranet" || d == "lambda-function" || d == "network" || d == "peering-connection" || d == "substrate" {
-		ui.Fatalf(`-domain %q is reserved; please choose a different name`, d)
+		ui.Fatalf("--domain %q is reserved; please choose a different name", d)
 	}
 	if strings.ContainsAny(*domain, ", ") {
-		ui.Fatalf("-domain %q cannot contain commas or spaces", *domain)
+		ui.Fatalf("--domain %q cannot contain commas or spaces", *domain)
 	}
 	if strings.ContainsAny(*environment, ", ") {
-		ui.Fatalf("-environment %q cannot contain commas or spaces", *environment)
+		ui.Fatalf("--environment %q cannot contain commas or spaces", *environment)
 	}
 	if strings.ContainsAny(*quality, ", ") {
-		ui.Fatalf("-quality %q cannot contain commas or spaces", *quality)
+		ui.Fatalf("--quality %q cannot contain commas or spaces", *quality)
 	}
 	veqpDoc, err := veqp.ReadDocument()
 	ui.Must(err)
 	if !veqpDoc.Valid(*environment, *quality) {
-		ui.Fatalf(`-environment %q -quality %q is not a valid environment and quality pair in your organization`, *environment, *quality)
+		ui.Fatalf("--environment %q --quality %q is not a valid environment and quality pair in your organization", *environment, *quality)
 	}
 
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
@@ -102,8 +128,4 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		*domain,
 	)
 
-}
-
-func Synopsis() {
-	panic("not implemented")
 }

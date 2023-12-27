@@ -10,9 +10,14 @@ import (
 	"github.com/src-bin/substrate/cmd/substrate/account"
 	"github.com/src-bin/substrate/cmd/substrate/accounts"
 	assumerole "github.com/src-bin/substrate/cmd/substrate/assume-role"
+	createaccount "github.com/src-bin/substrate/cmd/substrate/create-account"
+	createrole "github.com/src-bin/substrate/cmd/substrate/create-role"
 	"github.com/src-bin/substrate/cmd/substrate/credentials"
+	deleterole "github.com/src-bin/substrate/cmd/substrate/delete-role"
 	deletestaticaccesskeys "github.com/src-bin/substrate/cmd/substrate/delete-static-access-keys"
 	intranetzip "github.com/src-bin/substrate/cmd/substrate/intranet-zip"
+	"github.com/src-bin/substrate/cmd/substrate/role"
+	"github.com/src-bin/substrate/cmd/substrate/roles"
 	"github.com/src-bin/substrate/cmd/substrate/upgrade"
 	"github.com/src-bin/substrate/cmd/substrate/whoami"
 	"github.com/src-bin/substrate/cmdutil"
@@ -109,11 +114,17 @@ func main() {
 	rootCmd.AddCommand(credentials.Command())
 	rootCmd.AddCommand(deletestaticaccesskeys.Command())
 	rootCmd.AddCommand(intranetzip.Command())
+	rootCmd.AddCommand(role.Command())
 	rootCmd.AddCommand(upgrade.Command())
 	rootCmd.AddCommand(whoami.Command())
 
 	// Breadcrumbs to deprecated subcommands.
 	rootCmd.AddCommand(accounts.Command())
+	rootCmd.AddCommand(createaccount.Command())
+	rootCmd.AddCommand(createrole.Command())
+	rootCmd.AddCommand(deleterole.Command())
+	rootCmd.AddCommand(roles.Command())
+	// TODO rootCmd.AddCommand(rootmodules.Command())
 
 	rootCmd.ExecuteContext(ctx)
 }
