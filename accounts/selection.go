@@ -186,7 +186,7 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 	err error,
 ) {
 	// TODO there's some redundancy in Grouped and Partition which maybe can be rectified later
-	adminAccounts, serviceAccounts, substrateAccount, _, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
+	adminAccounts, serviceAccounts, substrateAccount, auditAccount, deployAccount, managementAccount, networkAccount, err := Grouped(ctx, cfg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -242,9 +242,15 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 		unselected = append(unselected, managementAccount)
 	}
 
-	var selectedDeploy, selectedNetwork bool
+	var selectedAudit, selectedDeploy, selectedNetwork bool
 	for _, special := range s.Specials {
 		switch special {
+		case Audit:
+			selected = append(selected, AccountWithSelectors{
+				Account:   auditAccount,
+				Selectors: []string{"special"},
+			})
+			selectedAudit = true
 		case Deploy:
 			selected = append(selected, AccountWithSelectors{
 				Account:   deployAccount,
@@ -260,6 +266,9 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 		default:
 			return nil, nil, SelectionError("creating additional roles in the audit account is not supported")
 		}
+	}
+	if !selectedAudit {
+		unselected = append(unselected, auditAccount)
 	}
 	if !selectedDeploy {
 		unselected = append(unselected, deployAccount)

@@ -74,7 +74,7 @@ func Command() *cobra.Command {
 		Qualities:       "only create this role in AWS accounts of this quality (may be repeated)",
 		Substrate:       "create this role in the organization's Substrate account",
 		Management:      "create this role in the organization's management AWS account",
-		Specials:        `create this role in a special AWS account (may be repeated; "deploy" and/or "network")`,
+		Specials:        `create this role in a special AWS account (may be repeated; "audit", "deploy", and/or "network")`,
 		Numbers:         "create this role in a specific AWS account, by 12-digit account number (may be repeated)",
 	}))
 	cmd.Flags().AddFlagSet(managedAssumeRolePolicy.FlagSet(roles.ManagedAssumeRolePolicyFlagsUsage{
