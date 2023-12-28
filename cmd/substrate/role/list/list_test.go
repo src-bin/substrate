@@ -32,10 +32,10 @@ func TestEC2(t *testing.T) {
 		"-humans", // TODO what's a better test, with this or without it?
 		"-aws-service", "ec2.amazonaws.com",
 	)
-	createrole.Main(ctx, cfg, os.Stdout)
+	createrole.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg, stdout)
+	Main(ctx, cfg, nil, nil, stdout)
 
 	actual := stdout.String()
 	expected := `[
@@ -84,7 +84,7 @@ func TestEC2(t *testing.T) {
 	stdout.Reset()
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg, stdout)
+	Main(ctx, cfg, nil, nil, stdout)
 
 	actual = stdout.String()
 	expected = `set -e -x
@@ -95,7 +95,7 @@ substrate create-role -role "TestEC2" -special "deploy" -humans -aws-service "ec
 	}
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, os.Stdout)
+	deleterole.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
@@ -129,7 +129,7 @@ func TestEverything(t *testing.T) {
 		"-policy-arn", "arn:aws:iam::aws:policy/job-function/Billing",
 		"-policy", "policies/TestEverything.policy.json",
 	)
-	createrole.Main(ctx, cfg, os.Stdout)
+	createrole.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, awscfg.Must(cfg.AssumeServiceRole(
 		ctx,
@@ -139,7 +139,7 @@ func TestEverything(t *testing.T) {
 	)), roleName, testNotExists) // because no -domain "baz"
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg, stdout)
+	Main(ctx, cfg, nil, nil, stdout)
 
 	actual := stdout.String()
 	expected := `[
@@ -208,7 +208,7 @@ func TestEverything(t *testing.T) {
 	stdout.Reset()
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg, stdout)
+	Main(ctx, cfg, nil, nil, stdout)
 
 	actual = stdout.String()
 	expected = `set -e -x
@@ -219,7 +219,7 @@ substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -enviro
 	}
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, os.Stdout)
+	deleterole.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
@@ -239,10 +239,10 @@ func TestZero(t *testing.T) {
 		"-special", naming.Deploy,
 		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
-	createrole.Main(ctx, cfg, os.Stdout)
+	createrole.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	cmdutil.OverrideArgs("-format", "json")
-	Main(ctx, cfg, stdout)
+	Main(ctx, cfg, nil, nil, stdout)
 
 	actual := stdout.String()
 	expected := `[
@@ -290,7 +290,7 @@ func TestZero(t *testing.T) {
 	stdout.Reset()
 
 	cmdutil.OverrideArgs("-format", "shell")
-	Main(ctx, cfg, stdout)
+	Main(ctx, cfg, nil, nil, stdout)
 
 	actual = stdout.String()
 	expected = `set -e -x
@@ -301,7 +301,7 @@ substrate create-role -role "TestZero" -special "deploy" -aws-service "sts.amazo
 	}
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, os.Stdout)
+	deleterole.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
