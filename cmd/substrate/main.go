@@ -29,10 +29,6 @@ import (
 
 func main() {
 
-	if version.IsTrial() {
-		ui.Print("this is a trial version of Substrate; contact <sales@src-bin.com> for support and the latest version")
-	}
-
 	ui.Must(cmdutil.Chdir())
 	u, err := user.Current()
 	ui.Must(err)

@@ -121,16 +121,12 @@ func main() {
 		log.Fatal(err)
 	}
 	commit := strings.TrimSpace(string(out))
-	var filenames, trialFilenames []string
+	var filenames []string
 	for _, goOS := range []string{"darwin", "linux"} {
 		for _, goArch := range []string{"amd64", "arm64"} {
 			filenames = append(filenames, fmt.Sprintf(
 				"substrate-%s-%s-%s-%s.tar.gz",
 				version, commit, goOS, goArch,
-			))
-			trialFilenames = append(trialFilenames, fmt.Sprintf(
-				"substrate-%s-%s-%s-%s.tar.gz",
-				version, "trial", goOS, goArch,
 			))
 		}
 	}
@@ -183,27 +179,19 @@ func main() {
 		)
 	}
 
-	// Announce the release and trial builds, whether tagged or untagged,
-	// in #substrate (or whichever channel is this webhook's default).
+	// Announce the release builds, whether tagged or untagged, in #substrate
+	// (or whichever channel is this webhook's default).
 	slack(map[string]string{"text": text})
-	slack(map[string]string{"text": parseAndExecuteTemplate(
-		"Trial Substrate {{.Version}}:\n"+
-			"{{range .TrialFilenames -}}\n"+
-			"https://src-bin.com/{{.}}\n"+
-			"{{end -}}\n",
-		struct {
-			TrialFilenames []string
-			Version        string
-		}{trialFilenames, version},
-	)})
 
-	// For tagged releases, announce just the release (not the trials)
-	// directly to customer channels found in the environment.
+	// For tagged builds, announce the release directly to customer channels
+	// found in the environment.
 	if taggedRelease {
 		for _, channel := range split(os.Getenv("CUSTOMER_CHANNELS")) {
 			slack(map[string]string{"channel": strings.TrimSpace(channel), "text": text})
 		}
 	}
+
+	// TODO For tagged builds, announce the release via the mailing list, too.
 
 }
 

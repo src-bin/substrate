@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -46,19 +45,9 @@ func DownloadURL(v, goOS, goArch string) *url.URL {
 }
 
 func UpgradeURL() *url.URL {
-	var prefix string
-	if version.Commit == "trial" {
-		prefix = "trial"
-	} else {
-		prefix = naming.Prefix()
-	}
 	return &url.URL{
 		Scheme: "https",
 		Host:   Domain,
-		Path: fmt.Sprintf(
-			"/substrate/upgrade/%s/%s",
-			fmt.Sprintf("%s-%s", version.Version, version.Commit),
-			prefix,
-		),
+		Path:   fmt.Sprintf("/substrate/upgrade/%s", version.Version),
 	}
 }

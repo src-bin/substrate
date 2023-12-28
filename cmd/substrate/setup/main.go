@@ -86,15 +86,10 @@ to run repeatedly`,
 
 func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 
-	if version.IsTrial() {
-		ui.Print("since this is a trial version of Substrate, it will post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.substrate.tools/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used; paying customers may opt out of this telemetry")
-	} else {
-		_, err := ui.ConfirmFile(
-			telemetry.Filename,
-			"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.substrate.tools/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
-		)
-		ui.Must(err)
-	}
+	ui.Must2(ui.ConfirmFile(
+		telemetry.Filename,
+		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.substrate.tools/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
+	))
 
 	//ui.Debug(cfg.MustGetCallerIdentity(ctx))
 	regions.Default()

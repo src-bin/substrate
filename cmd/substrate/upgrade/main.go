@@ -17,10 +17,6 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-// A handy and hacky way to test upgrades for trial versions now that we
-// support those.
-//func init() { version.Commit = "trial" }
-
 var yes, no = new(bool), new(bool)
 
 func Command() *cobra.Command {

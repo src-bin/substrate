@@ -36,14 +36,9 @@ const Filename = "substrate.telemetry"
 // The actual value is set at build time.
 var Endpoint = ""
 
-// Enabled returns true if telemetry is enabled and false otherwise. It might
-// be enabled because this is a trial build, in which telemetry can't be
-// turned off. Under normal/paid builds, we check an environment variable and
-// file, requiring that it be affirmatively enabled.
+// Enabled returns true if telemetry is enabled and false otherwise. It must
+// be affirmatively enabled in either an environment variable or a file.
 func Enabled() bool {
-	if version.IsTrial() {
-		return true
-	}
 
 	if yesno := os.Getenv("SUBSTRATE_TELEMETRY"); yesno == "yes" {
 		return true

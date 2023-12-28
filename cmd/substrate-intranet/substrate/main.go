@@ -3,7 +3,6 @@ package substrate
 import (
 	"context"
 	_ "embed"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -29,7 +28,7 @@ func Main(
 
 	v := upgradeVersion
 	if v == "" {
-		v = fmt.Sprintf("%s-%s", version.Version, version.Commit)
+		v = version.Version
 	}
 	downloadURLs := []*url.URL{
 		versionutil.DownloadURL(v, "darwin", "amd64"),
@@ -42,7 +41,7 @@ func Main(
 		Version, UpgradeVersion string
 		DownloadURLs            []*url.URL
 	}{
-		Version:        fmt.Sprintf("%s-%s", version.Version, version.Commit),
+		Version:        version.Version,
 		UpgradeVersion: upgradeVersion,
 		DownloadURLs:   downloadURLs,
 	})
@@ -71,7 +70,7 @@ func Main2(
 
 	v := upgradeVersion
 	if v == "" {
-		v = fmt.Sprintf("%s-%s", version.Version, version.Commit)
+		v = version.Version
 	}
 	downloadURLs := []*url.URL{
 		versionutil.DownloadURL(v, "darwin", "amd64"),
@@ -84,7 +83,7 @@ func Main2(
 		Version, UpgradeVersion string
 		DownloadURLs            []*url.URL
 	}{
-		Version:        fmt.Sprintf("%s-%s", version.Version, version.Commit),
+		Version:        version.Version,
 		UpgradeVersion: upgradeVersion,
 		DownloadURLs:   downloadURLs,
 	})

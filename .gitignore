@@ -1,7 +1,8 @@
 *~
-dispatch-map.go
 dispatch-map-*.go
+dispatch-map.go
 *.html.go
+.idea/*
 *.js.go
 *.stdin
 substrate-[0-9]*-*-*
@@ -15,5 +16,5 @@ terraform/peering-connection.go
 terraform/*-regional-*.go
 terraform/*-regional.go
 terraform/*.tf.go
+upgrade
 *.zip
-.idea/*
