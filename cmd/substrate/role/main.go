@@ -11,6 +11,7 @@ func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "role",
 		Short: "manage AWS IAM roles",
+		Args:  cobra.NoArgs,
 	}
 
 	cmd.AddCommand(create.Command())

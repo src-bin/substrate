@@ -19,9 +19,9 @@ import (
 )
 
 var (
-	domain, domainFlag, domainCompletionFunc                = cmdutil.DomainFlag("domain for this new AWS account")
-	environment, environmentFlag, environmentCompletionFunc = cmdutil.EnvironmentFlag("environment for this new AWS account")
-	quality, qualityFlag, qualityCompletionFunc             = cmdutil.QualityFlag("quality for this new AWS account")
+	domain, domainFlag, domainCompletionFunc                = cmdutil.DomainFlag("domain of the AWS account to update")
+	environment, environmentFlag, environmentCompletionFunc = cmdutil.EnvironmentFlag("environment of the AWS account to update")
+	quality, qualityFlag, qualityCompletionFunc             = cmdutil.QualityFlag("quality of the AWS account to update")
 	autoApprove, noApply                                    = new(bool), new(bool)
 )
 

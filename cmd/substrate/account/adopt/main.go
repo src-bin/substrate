@@ -23,9 +23,9 @@ import (
 
 var (
 	number                                                  = new(string)
-	domain, domainFlag, domainCompletionFunc                = cmdutil.DomainFlag("domain for this new AWS account")
-	environment, environmentFlag, environmentCompletionFunc = cmdutil.EnvironmentFlag("environment for this new AWS account")
-	quality, qualityFlag, qualityCompletionFunc             = cmdutil.QualityFlag("quality for this new AWS account")
+	domain, domainFlag, domainCompletionFunc                = cmdutil.DomainFlag("domain to assign to this AWS account")
+	environment, environmentFlag, environmentCompletionFunc = cmdutil.EnvironmentFlag("environment to assign to this AWS account")
+	quality, qualityFlag, qualityCompletionFunc             = cmdutil.QualityFlag("quality to assign to this AWS account")
 	ignoreServiceQuotas                                     = new(bool)
 )
 

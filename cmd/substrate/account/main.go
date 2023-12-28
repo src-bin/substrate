@@ -12,6 +12,7 @@ func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "account",
 		Short: "manage AWS accounts",
+		Args:  cobra.NoArgs,
 	}
 
 	cmd.AddCommand(adopt.Command())
