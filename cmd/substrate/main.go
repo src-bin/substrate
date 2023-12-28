@@ -127,5 +127,5 @@ func main() {
 	rootCmd.AddCommand(deleterole.Command())
 	rootCmd.AddCommand(roles.Command())
 
-	rootCmd.ExecuteContext(ctx)
+	rootCmd.ExecuteContext(ctx) // TODO RunE; let Main return an error; avoid os.Exit(1) breaking defer; use panic/recover in ui.Fatal
 }
