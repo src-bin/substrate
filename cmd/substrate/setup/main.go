@@ -190,7 +190,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 				}
 			}
 		} else {
-			ui.Print("if this is not correct, press ^C and re-run this command with -fully-interactive")
+			ui.Print("if this is not correct, press ^C and re-run this command with --fully-interactive")
 			time.Sleep(5e9) // give them a chance to ^C
 		}
 	}

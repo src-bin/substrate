@@ -69,7 +69,7 @@ func EditFile(pathname, notice, instructions string) ([]string, error) {
 				Printf("\t%s", s)
 			}
 			if Interactivity() < FullyInteractive {
-				Print("if this is not correct, press ^C and re-run this command with -fully-interactive")
+				Print("if this is not correct, press ^C and re-run this command with --fully-interactive")
 				time.Sleep(5e9) // give them a chance to ^C
 				return lines, nil
 			}
