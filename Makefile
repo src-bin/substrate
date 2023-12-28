@@ -66,7 +66,7 @@ tarball:
 	rm -f -r substrate-$(VERSION)-$(GOOS)-$(GOARCH)
 
 test:
-	substrate whoami
+	AWS_DEFAULT_REGION=us-east-1 substrate whoami
 	go clean -testcache
 	go test -race -timeout 0 -v ./...
 
