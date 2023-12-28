@@ -13,8 +13,8 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsutil"
-	createrole "github.com/src-bin/substrate/cmd/substrate/create-role"
-	deleterole "github.com/src-bin/substrate/cmd/substrate/delete-role"
+	"github.com/src-bin/substrate/cmd/substrate/role/create"
+	"github.com/src-bin/substrate/cmd/substrate/role/delete"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
@@ -40,7 +40,7 @@ func TestFooBarBaz(t *testing.T) {
 		// "-all-qualities", // test that we can omit this with only one quality as we have in test1
 		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
-	createrole.Main(ctx, cfg, nil, nil, os.Stdout)
+	create.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testExists) // because -all-{domains,environments,qualities}
 	testRole(t, ctx, cfg, roleName, testNotExists)                         // because no -admin or -humans
@@ -51,7 +51,7 @@ func TestFooBarBaz(t *testing.T) {
 	}, roleName, testNotExists)
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, nil, nil, os.Stdout)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists)
@@ -86,7 +86,7 @@ func TestFooHumans(t *testing.T) {
 		"-all-qualities",
 		"-humans",
 	)
-	createrole.Main(ctx, cfg, nil, nil, os.Stdout)
+	create.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, fooCfg, roleName, testExists) // because -domain "foo"
 	testRole(t, ctx, cfg, roleName, testExists)    // because -humans
@@ -98,7 +98,7 @@ func TestFooHumans(t *testing.T) {
 	)), roleName, testNotExists) // because no -all-domains or -domain "bar"
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, nil, nil, os.Stdout)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 	testRole(t, ctx, fooCfg, roleName, testNotExists)
@@ -123,7 +123,7 @@ func TestManagement(t *testing.T) {
 		"-management",
 		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
-	createrole.Main(ctx, cfg, nil, nil, os.Stdout)
+	create.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because no -domain, -environment, or -quality
 	testRole(t, ctx, cfg, roleName, testNotExists)                            // because no -admin or -humans
@@ -134,7 +134,7 @@ func TestManagement(t *testing.T) {
 	}, roleName, testNotExists)
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, nil, nil, os.Stdout)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, mgmtCfg, roleName, testNotExists)
 }
@@ -171,7 +171,7 @@ func TestSpecial(t *testing.T) {
 		"-special", naming.Network,
 		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
-	createrole.Main(ctx, cfg, nil, nil, os.Stdout)
+	create.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because no -all-*, -domain, -environment, or -quality
 	testRole(t, ctx, cfg, roleName, testNotExists)                            // because no -admin or -humans
@@ -179,7 +179,7 @@ func TestSpecial(t *testing.T) {
 	testRole(t, ctx, networkCfg, roleName, testExists)                        // because -special network
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, nil, nil, os.Stdout)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, deployCfg, roleName, testNotExists)
 	testRole(t, ctx, networkCfg, roleName, testNotExists)
@@ -203,7 +203,7 @@ func TestSubstrate(t *testing.T) {
 		"-substrate",
 		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
-	createrole.Main(ctx, cfg, nil, nil, os.Stdout)
+	create.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because no -all-*, -domain, -environment, or -quality
 	testRole(t, ctx, cfg, roleName, testExists)                               // because -substrate
@@ -214,7 +214,7 @@ func TestSubstrate(t *testing.T) {
 	}, roleName, testNotExists)
 
 	cmdutil.OverrideArgs("-delete", "-role", roleName)
-	deleterole.Main(ctx, cfg, nil, nil, os.Stdout)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 }
