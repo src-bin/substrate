@@ -37,6 +37,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	}
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
 
 	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
 	versionutil.WarnDowngrade(ctx, cfg)

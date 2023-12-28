@@ -51,6 +51,9 @@ func Command() *cobra.Command {
 
 func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
+
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	substrateCfg := awscfg.Must(cfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))
 

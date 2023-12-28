@@ -82,18 +82,7 @@ func Command() *cobra.Command {
 	return cmd
 }
 
-func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, args []string, w io.Writer) {
-	/*
-		flag.Usage = func() {
-			ui.Print("Usage: substrate assume-role -management|-special <special>|-substrate [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-			ui.Print("       substrate assume-role -domain <domain> -environment <environment> [-quality <quality>] [-role <role-name>] [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-			ui.Print("       substrate assume-role -number <number> -role <role-name> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-			ui.Print("       substrate assume-role -arn <role-arn> [-console] [-format <format>] [-quiet] [<command> [<argument> [...]]]")
-			flag.PrintDefaults()
-			ui.Print("  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment")
-		}
-		flag.Parse()
-	*/
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, args []string, _ io.Writer) {
 	if *environment != "" && *quality == "" {
 		*quality = cmdutil.QualityForEnvironment(*environment)
 	}

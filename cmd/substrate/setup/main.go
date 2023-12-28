@@ -105,6 +105,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
 
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
+
 	naming.Prefix()
 	ui.Must2(regions.Select())
 

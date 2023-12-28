@@ -27,6 +27,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 	flag.Parse()
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
 
 	ui.Printf("Substrate requires Terraform version %s", terraform.RequiredVersion())
 	v, err := terraform.InstalledVersion()

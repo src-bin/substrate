@@ -68,6 +68,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	))
 	ui.Printf("management identity: %s", mgmtCfg.MustGetCallerIdentity(ctx).Arn)
 
+	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
+	defer cfg.Telemetry().Wait(ctx)
+
 	substrateCfg, err := mgmtCfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour)
 	if err != nil {
 		substrateCfg, err = mgmtCfg.AssumeSubstrateRole(ctx, roles.Administrator, time.Hour)
