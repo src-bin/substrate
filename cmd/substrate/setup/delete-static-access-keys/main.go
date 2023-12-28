@@ -22,8 +22,8 @@ func Command() *cobra.Command {
 	return &cobra.Command{
 		Use:    "delete-static-access-keys",
 		Hidden: true,
-		Short:  "TODO deletestaticaccesskeys.Command().Short",
-		Long:   `TODO deletestaticaccesskeys.Command().Long`,
+		Short:  "delete the Substrate IAM user's static access keys",
+		Long:   ``,
 		Args:   cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

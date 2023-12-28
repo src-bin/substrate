@@ -32,8 +32,8 @@ var (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "credentials [--format <format>] [--force] [--no-open] [--quiet]",
-		Short: "TODO credentials.Command().Short",
-		Long:  `TODO credentials.Command().Long`,
+		Short: "mint temporary AWS credentials with the help of your IdP",
+		Long:  ``,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

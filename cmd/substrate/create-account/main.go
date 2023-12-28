@@ -15,8 +15,7 @@ func Command() *cobra.Command {
 	return &cobra.Command{
 		Use:    "create-account (deprecated)",
 		Hidden: true,
-		Short:  "TODO createaccount.Command().Short",
-		Long:   `TODO createaccount.Command().Long`,
+		Short:  "use `substrate account create`",
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

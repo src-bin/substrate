@@ -42,9 +42,9 @@ func Command() *cobra.Command {
                                 [--assume-role-policy <filename> [...]]
     [policy attachment flags]:  [--administrator-access|--read-only-access]
                                 [--policy-arn <arn> [...]] [--policy <filename> [...]]`,
-		Short: "TODO create.Command().Short",
-		Long:  `TODO create.Command().Long`,
-		Args:  cobra.ArbitraryArgs,
+		Short: "create or update an AWS IAM role in selected AWS accounts",
+		Long:  ``,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

@@ -34,8 +34,8 @@ func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: `list [--format <format>] [--number <number>] [--only-tags] [--refresh]
   substrate account list --format shell [--auto-approve|--no-apply] [--ignore-service-quotas] [--refresh]`,
-		Short: "TODO list.Command().Short",
-		Long:  `TODO list.Command().Long`,
+		Short: "list accounts in your AWS organization",
+		Long:  ``,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

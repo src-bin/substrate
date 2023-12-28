@@ -54,9 +54,12 @@ var (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "setup [--auto-approve|--no-apply] [--ignore-service-quotas]",
-		Short: "TODO update.Command().Short",
-		Long:  `TODO update.Command().Long`,
-		Args:  cobra.ArbitraryArgs,
+		Short: "setup Substrate in your AWS organization",
+		Long: "`substrate setup`" + ` finds or creates your AWS organization, finds or creates the
+AWS accounts and IAM principals Substrate uses to manage your organization, and
+configures your Intranet to interact with your IdP; it is idempotent and safe
+to run repeatedly`,
+		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

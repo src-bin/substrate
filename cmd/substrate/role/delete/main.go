@@ -26,9 +26,9 @@ var (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete --role <role> [--force] [--quiet]",
-		Short: "TODO create.Command().Short",
-		Long:  `TODO create.Command().Long`,
-		Args:  cobra.ArbitraryArgs,
+		Short: "delete an AWS IAM role from all AWS accounts",
+		Long:  ``,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

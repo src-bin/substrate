@@ -10,9 +10,8 @@ import (
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "account adopt|create|list|update",
-		Short: "TODO account.Command().Short",
-		Long:  `TODO account.Command().Long`,
+		Use:   "account",
+		Short: "manage AWS accounts",
 	}
 
 	cmd.AddCommand(adopt.Command())

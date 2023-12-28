@@ -32,9 +32,9 @@ var (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "adopt --number <number> --domain <domain> --environment <environment> [--quality <quality>]",
-		Short: "TODO adopt.Command().Short",
-		Long:  `TODO adopt.Command().Long`,
-		Args:  cobra.ArbitraryArgs,
+		Short: "adopt an AWS account in your organization into Substrate management",
+		Long:  ``,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},
@@ -47,7 +47,7 @@ func Command() *cobra.Command {
 			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
 		},
 	}
-	cmd.Flags().StringVar(number, "number", "", "account number of the AWS account to adopt into Substrate management (must already be in this AWS organization)")
+	cmd.Flags().StringVar(number, "number", "", "account number of the AWS account in your organization to adopt into Substrate management")
 	cmd.RegisterFlagCompletionFunc("number", cmdutil.NoCompletionFunc)
 	cmd.Flags().AddFlag(domainFlag)
 	cmd.RegisterFlagCompletionFunc(domainFlag.Name, domainCompletionFunc)

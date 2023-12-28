@@ -9,9 +9,8 @@ import (
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "role create|delete|list",
-		Short: "TODO role.Command().Short",
-		Long:  `TODO role.Command().Long`,
+		Use:   "role",
+		Short: "manage AWS IAM roles",
 	}
 
 	cmd.AddCommand(create.Command())

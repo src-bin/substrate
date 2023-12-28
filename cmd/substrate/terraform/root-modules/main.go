@@ -29,8 +29,8 @@ var format, formatFlag, formatCompletionFunc = cmdutil.FormatFlag(
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "root-modules [--format <format>] [--quiet]",
-		Short: "TODO rootmodules.Command().Short",
-		Long:  `TODO rootmodules.Command().Long`,
+		Short: "enumerate root Terraform module directories",
+		Long:  ``,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

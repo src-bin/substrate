@@ -29,9 +29,9 @@ var (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create --domain <domain> --environment <environment> [--quality <quality>] [--ignore-service-quotas]",
-		Short: "TODO create.Command().Short",
-		Long:  `TODO create.Command().Long`,
-		Args:  cobra.ArbitraryArgs,
+		Short: "create a new AWS account",
+		Long:  ``,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

@@ -103,8 +103,9 @@ func QualityFlag(usage string) (
 	return &f.quality, &pflag.Flag{
 		Name: "quality",
 		// Shorthand: "q", // taken by --quiet's shorthand which is less confusing and more idiomatic
-		Usage: usage,
-		Value: f,
+		Usage:    usage,
+		DefValue: f.quality,
+		Value:    f,
 	}, f.CompletionFunc
 }
 

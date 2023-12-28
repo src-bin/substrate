@@ -24,8 +24,8 @@ var format, formatFlag, formatCompletionFunc = cmdutil.FormatFlag(
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "whoami [--format <format>] [--quiet]",
-		Short: "TODO whoami.Command().Short",
-		Long:  `TODO whoami.Command().Long`,
+		Short: "print AWS identity in Substrate terms",
+		Long:  ``,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

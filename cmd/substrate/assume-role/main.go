@@ -41,10 +41,9 @@ func Command() *cobra.Command {
   substrate assume-role --management|--special <special>|--substrate [--role <role-name>] [--console] [--format <format>] [--quiet] [<command> [<argument> [...]]]
   substrate assume-role --number <number> --role <role-name> [--console] [--format <format>] [--quiet] [<command> [<argument> [...]]]
   substrate assume-role --arn <role-arn> [--console] [--format <format>] [--quiet] [<command> [<argument> [...]]]`,
-		Short: "TODO assumerole.Command().Short",
-		Long:  `TODO assumerole.Command().Long`,
-		// "  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment"
-		Args: cobra.ArbitraryArgs,
+		Short: "assume a role in another AWS account",
+		Long:  ``,
+		Args:  cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

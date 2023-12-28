@@ -56,9 +56,11 @@ func main() {
 	var versionFlag bool
 	rootCmd := &cobra.Command{
 		Use:   "substrate",
-		Short: "TODO rootCmd.Short",
-		Long:  `TODO rootCmd.Long`,
-		Args:  cobra.NoArgs,
+		Short: "Substrate: the right way to AWS",
+		Long: `Substrate: the right way to AWS
+
+<https://docs.substrate.tools/>`,
+		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			if versionFlag {
 				version.Print()
@@ -69,12 +71,11 @@ func main() {
 		CompletionOptions:     cobra.CompletionOptions{DisableDefaultCmd: true},
 		DisableFlagsInUseLine: true,
 	}
-	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "TODO versionFlag")
+	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "print Substrate version and exit")
 	rootCmd.AddCommand(&cobra.Command{
 		Use:    "shell-completion",
 		Hidden: true,
-		Short:  "TODO shellCompletionCmd.Short",
-		Long:   `TODO shellCompletionCmd.Long`,
+		Short:  "print shell completion program for the current shell",
 		Args:   cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			var shell string
@@ -101,8 +102,7 @@ func main() {
 	})
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
-		Short: "TODO versionCmd.Short",
-		Long:  `TODO versionCmd.Long`,
+		Short: "print Substrate version and exit",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			version.Print()

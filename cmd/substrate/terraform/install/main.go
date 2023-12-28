@@ -22,8 +22,8 @@ var yes, no = new(bool), new(bool)
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "install [--yes|--no]",
-		Short: "TODO install.Command().Short",
-		Long:  `TODO install.Command().Long`,
+		Short: "install the pinned version of Terraform locally",
+		Long:  ``,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

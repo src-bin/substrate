@@ -33,8 +33,8 @@ const (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cloudtrail",
-		Short: "TODO cloudtrail.Command().Short",
-		Long:  `TODO cloudtrail.Command().Long`,
+		Short: "setup CloudTrail and the Substrate-managed audit account",
+		Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

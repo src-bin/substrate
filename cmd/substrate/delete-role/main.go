@@ -15,8 +15,7 @@ func Command() *cobra.Command {
 	return &cobra.Command{
 		Use:    "delete-role (deprecated)",
 		Hidden: true,
-		Short:  "TODO deleterole.Command().Short",
-		Long:   `TODO deleterole.Command().Long`,
+		Short:  "use `substrate role delete`",
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

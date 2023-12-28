@@ -26,8 +26,8 @@ var yes, no = new(bool), new(bool)
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade [--yes|--no]",
-		Short: "TODO upgrade.Command().Short",
-		Long:  `TODO upgrade.Command().Long`,
+		Short: "upgrade the local Substrate binary",
+		Long:  ``,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

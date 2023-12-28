@@ -29,8 +29,7 @@ func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "intranet-zip [--base64sha256] [--format <format>]",
 		Hidden: true,
-		Short:  "TODO intranetzip.Command().Short",
-		Long:   `TODO intranetzip.Command().Long`,
+		Short:  "access the Intranet Lambda function's binary bundled with Substrate",
 		Args:   cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

@@ -28,9 +28,9 @@ var (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update --domain <domain> --environment <environment> [--quality <quality>] [--auto-approve|--no-apply]",
-		Short: "TODO update.Command().Short",
-		Long:  `TODO update.Command().Long`,
-		Args:  cobra.ArbitraryArgs,
+		Short: "update an existing AWS account and plan or apply its root Terraform modules",
+		Long:  ``,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

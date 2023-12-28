@@ -40,8 +40,8 @@ var (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list [--format <format>]",
-		Short: "TODO list.Command().Short",
-		Long:  `TODO list.Command().Long`,
+		Short: "list Substrate-managed IAM roles",
+		Long:  ``,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

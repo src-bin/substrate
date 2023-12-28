@@ -28,10 +28,9 @@ var (
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: `terraform --domain <domain> --environment <environment> [--quality <quality>] init|plan|apply|... [...]",
-  substrate terraform install|root-modules`,
-		Short: "TODO terraform.Command().Short",
-		Long:  `TODO terraform.Command().Long`,
+		Use:   "terraform --domain <domain> --environment <environment> [--quality <quality>] init|plan|apply|... [...]",
+		Short: "run Terraform in a specific AWS account",
+		Long:  ``,
 		Args:  cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))

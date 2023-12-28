@@ -27,9 +27,9 @@ var (
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "debugger [--console] [--shell <shell>]",
-		Short: "TODO debugger.Command().Short",
-		Long:  `TODO debugger.Command().Long`,
-		Args:  cobra.ArbitraryArgs,
+		Short: "run a shell with AWS credentials for debugging Substrate setup",
+		Long:  ``,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},
