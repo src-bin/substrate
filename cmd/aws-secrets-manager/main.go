@@ -2,33 +2,32 @@ package main
 
 import (
 	"context"
-	"flag"
+	"errors"
 	"time"
 
+	"github.com/spf13/pflag"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awssecretsmanager"
-	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
-	"github.com/src-bin/substrate/version"
 )
 
 func main() {
-	name := flag.String("name", "", "name (in the UI) or ID (in the API) of the secret in AWS Secrets Manager")
-	principals := cmdutil.StringSlice("principal", "principal ARN to be allowed to GetSecretValue (if any are provided, the secret's policy will be updated to allow exactly and only those principals given)")
-	stage := flag.String("stage", "", "identifier for this stage (or version) of the secret (to be provided when fetching it later)")
-	value := flag.String("value", "", "secret value to associate with -name (does not overwrite prior versions)") // XXX do this with a prompt instead!
-	flag.Usage = func() {
-		ui.Print("Usage: aws-secrets-manager -name <name> [-principal <principal> [...]] [-stage <stage>] [-value <value>]")
-		flag.PrintDefaults()
+	name := pflag.String("name", "", "name (in the UI) or ID (in the API) of the secret in AWS Secrets Manager")
+	principals := pflag.StringArray("principal", []string{}, "principal ARN to be allowed to GetSecretValue (if any are provided, the secret's policy will be updated to allow exactly and only those principals given)")
+	stage := pflag.String("stage", "", "identifier for this stage (or version) of the secret (to be provided when fetching it later)")
+	value := pflag.String("value", "", "secret value to associate with -name (does not overwrite prior versions)") // XXX do this with a prompt instead!
+	pflag.ErrHelp = errors.New("")
+	pflag.Usage = func() {
+		ui.Print("Usage: aws-secrets-manager --name <name> [--principal <principal> [...]] [--stage <stage>] [--value <value>]")
+		pflag.PrintDefaults()
 	}
-	flag.Parse()
-	version.Flag()
+	pflag.Parse()
 	if *name == "" {
-		ui.Fatal("-name is required")
+		ui.Fatal("--name is required")
 	}
 	if *stage == "" {
 		*stage = time.Now().Format(time.RFC3339)

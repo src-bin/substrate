@@ -1,7 +1,6 @@
 package cmdutil
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
@@ -118,34 +117,6 @@ func QuietFlag() *pflag.Flag {
 		DefValue:    "false",
 		NoOptDefVal: "true",
 	}
-}
-
-// TODO remove in favor of pflag.StringArray or pflag.StringSlice; I don't understand the difference yet.
-type StringSliceFlag []string
-
-func StringSlice(name, usage string) *StringSliceFlag {
-	ss := &StringSliceFlag{}
-	flag.Var(ss, name, usage)
-	return ss
-}
-func (ssf *StringSliceFlag) Len() int {
-	if ssf == nil || *ssf == nil {
-		return 0
-	}
-	return len(*ssf)
-}
-func (ssf *StringSliceFlag) Set(s string) error {
-	*ssf = append(*ssf, s)
-	return nil
-}
-func (ssf *StringSliceFlag) Slice() []string {
-	if ssf == nil || *ssf == nil {
-		return []string{}
-	}
-	return append([]string{}, *ssf...)
-}
-func (ssf *StringSliceFlag) String() string {
-	return strings.Join(*ssf, ", ")
 }
 
 type domainFlag struct {

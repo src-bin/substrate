@@ -2,38 +2,38 @@ package main
 
 import (
 	"context"
-	"flag"
+	"errors"
 	"fmt"
 	"log"
 	"sort"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/pflag"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsservicequotas"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/ui"
-	"github.com/src-bin/substrate/version"
 )
 
 func main() {
-	global := flag.Bool("global", false, "show or increase the service quota for a global AWS service")
-	allRegions := flag.Bool("all-regions", false, "show or increase the service quota in all AWS regions")
-	region := flag.String("region", "", "AWS region in which the service quota should be shown or increased")
-	listServices := flag.Bool("list-services", false, "list all services that have service limits to learn their -service-code values")
-	listQuotas := flag.Bool("list-quotas", false, "list all service quotes for -service-code to learn their -quota-code values")
-	quotaCode := flag.String("quota-code", "", "quota code to pass to AWS")
-	serviceCode := flag.String("service-code", "", "service code to pass to AWS")
-	requiredValue := flag.Float64("required-value", 0, "minimum required value for the service quota")
-	desiredValue := flag.Float64("desired-value", 0, "desired value for the service quota, used if the quota's current value is below -required-value")
-	flag.Usage = func() {
+	global := pflag.Bool("global", false, "show or increase the service quota for a global AWS service")
+	allRegions := pflag.Bool("all-regions", false, "show or increase the service quota in all AWS regions")
+	region := pflag.String("region", "", "AWS region in which the service quota should be shown or increased")
+	listServices := pflag.Bool("list-services", false, "list all services that have service limits to learn their -service-code values")
+	listQuotas := pflag.Bool("list-quotas", false, "list all service quotes for -service-code to learn their -quota-code values")
+	quotaCode := pflag.String("quota-code", "", "quota code to pass to AWS")
+	serviceCode := pflag.String("service-code", "", "service code to pass to AWS")
+	requiredValue := pflag.Float64("required-value", 0, "minimum required value for the service quota")
+	desiredValue := pflag.Float64("desired-value", 0, "desired value for the service quota, used if the quota's current value is below -required-value")
+	pflag.ErrHelp = errors.New("")
+	pflag.Usage = func() {
 		ui.Print("Usage: aws-service-quotas -global|-all-regions|-region <region> -list-services")
 		ui.Print("       aws-service-quotas -global|-all-regions|-region <region> -service-code <code> -list-quotas")
 		ui.Print("       aws-service-quotas -global|-all-regions|-region <region> -service-code <code> -quota-code <code> [-required-value <value> [-desired-value <value>]]")
-		flag.PrintDefaults()
+		pflag.PrintDefaults()
 	}
-	flag.Parse()
-	version.Flag()
+	pflag.Parse()
 	if !*global && !*allRegions && *region == "" || *global && *allRegions || *global && *region != "" || *allRegions && *region != "" {
 		log.Fatal("exactly one of -global, -all-regions, or a valid -region is required")
 	}
