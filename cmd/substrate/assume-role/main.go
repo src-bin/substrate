@@ -68,7 +68,7 @@ func Command() *cobra.Command {
 	cmd.Flags().AddFlag(qualityFlag)
 	cmd.RegisterFlagCompletionFunc(qualityFlag.Name, qualityCompletionFunc)
 	cmd.Flags().BoolVar(management, "management", false, "assume a role in the AWS organization's management account")
-	cmd.Flags().StringVar(special, "special", "", `name of a special AWS account in which to assume a role ("deploy" or "network")`)
+	cmd.Flags().StringVar(special, "special", "", `name of a special AWS account in which to assume a role ("audit", "deploy", or "network")`)
 	cmd.RegisterFlagCompletionFunc("special", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{"audit", "deploy", "network"}, cobra.ShellCompDirectiveNoFileComp
 	})
