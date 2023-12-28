@@ -18,6 +18,7 @@ import (
 	"github.com/src-bin/substrate/cmd/substrate/role"
 	"github.com/src-bin/substrate/cmd/substrate/roles"
 	"github.com/src-bin/substrate/cmd/substrate/setup"
+	"github.com/src-bin/substrate/cmd/substrate/terraform"
 	"github.com/src-bin/substrate/cmd/substrate/upgrade"
 	"github.com/src-bin/substrate/cmd/substrate/whoami"
 	"github.com/src-bin/substrate/cmdutil"
@@ -115,6 +116,7 @@ func main() {
 	rootCmd.AddCommand(intranetzip.Command())
 	rootCmd.AddCommand(role.Command())
 	rootCmd.AddCommand(setup.Command())
+	rootCmd.AddCommand(terraform.Command())
 	rootCmd.AddCommand(upgrade.Command())
 	rootCmd.AddCommand(whoami.Command())
 
@@ -124,7 +126,6 @@ func main() {
 	rootCmd.AddCommand(createrole.Command())
 	rootCmd.AddCommand(deleterole.Command())
 	rootCmd.AddCommand(roles.Command())
-	// TODO rootCmd.AddCommand(rootmodules.Command())
 
 	rootCmd.ExecuteContext(ctx)
 }

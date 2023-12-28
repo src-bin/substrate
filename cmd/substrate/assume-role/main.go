@@ -37,10 +37,14 @@ var (
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "assume-role [--format <format>] [--force] [--no-open] [--quiet]",
+		Use: `assume-role --domain <domain> --environment <environment> [--quality <quality>] [--role <role-name>] [--console] [--format <format>] [--quiet] [<command> [<argument> [...]]]
+  substrate assume-role --management|--special <special>|--substrate [--role <role-name>] [--console] [--format <format>] [--quiet] [<command> [<argument> [...]]]
+  substrate assume-role --number <number> --role <role-name> [--console] [--format <format>] [--quiet] [<command> [<argument> [...]]]
+  substrate assume-role --arn <role-arn> [--console] [--format <format>] [--quiet] [<command> [<argument> [...]]]`,
 		Short: "TODO assumerole.Command().Short",
 		Long:  `TODO assumerole.Command().Long`,
-		Args:  cobra.ArbitraryArgs,
+		// "  <command> [<argument> [...]]\n      command and optional arguments to invoke with the assumed role's credentials in its environment"
+		Args: cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			Main(cmdutil.Main(cmd, args))
 		},

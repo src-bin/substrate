@@ -2,12 +2,12 @@ package rootmodules
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
@@ -21,27 +21,39 @@ import (
 	"github.com/src-bin/substrate/versionutil"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	format := cmdutil.SerializationFormatFlag(
-		cmdutil.SerializationFormatText,
-		`"text" for plaintext or "json" for a JSON array`,
-	)
-	quiet := flag.Bool("quiet", false, "suppress status and diagnostic output")
-	flag.Usage = func() {
-		ui.Print("Usage: substrate root-modules [-format <format>] [-quiet]")
-		flag.PrintDefaults()
+var format, formatFlag, formatCompletionFunc = cmdutil.FormatFlag(
+	cmdutil.FormatText,
+	[]cmdutil.Format{cmdutil.FormatJSON, cmdutil.FormatText},
+)
+
+func Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "root-modules [--format <format>] [--quiet]",
+		Short: "TODO rootmodules.Command().Short",
+		Long:  `TODO rootmodules.Command().Long`,
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(cmdutil.Main(cmd, args))
+		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{"--format", "--quiet"}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
+		},
 	}
-	flag.Parse()
-	if *quiet {
-		ui.Quiet()
-	}
+	cmd.Flags().AddFlag(formatFlag)
+	cmd.RegisterFlagCompletionFunc(formatFlag.Name, formatCompletionFunc)
+	cmd.Flags().AddFlag(cmdutil.QuietFlag())
+	return cmd
+}
+
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
+
+	versionutil.WarnDowngrade(ctx, cfg)
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 	defer cfg.Telemetry().Wait(ctx)
 
 	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
-	versionutil.WarnDowngrade(ctx, cfg)
-
 	ui.Must(cfg.ClearCachedAccounts())
 	adminAccounts, serviceAccounts, _, _, _, _, _, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
@@ -142,15 +154,15 @@ func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
 		}
 	}
 
-	switch format.String() {
-	case cmdutil.SerializationFormatJSON:
+	switch *format {
+	case cmdutil.FormatJSON:
 		jsonutil.PrettyPrint(os.Stdout, rootModules)
-	case cmdutil.SerializationFormatText:
+	case cmdutil.FormatText:
 		for _, rootModule := range rootModules {
 			fmt.Println(rootModule)
 		}
 	default:
-		ui.Fatalf("-format %q not supported", format)
+		ui.Fatal(cmdutil.FormatFlagError(*format))
 	}
 
 }
