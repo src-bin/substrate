@@ -82,11 +82,12 @@ func NewEmptyEvent() *Event {
 }
 
 func NewEvent(ctx context.Context) (*Event, error) {
+	prefix, _ := naming.PrefixNoninteractive()
 	e := &Event{
 		Command:    contextutil.ValueString(ctx, contextutil.Command),
 		Subcommand: contextutil.ValueString(ctx, contextutil.Subcommand),
 		Version:    version.Version,
-		Prefix:     prefix(),
+		Prefix:     prefix,
 		OS:         runtime.GOOS,
 		wait:       make(chan struct{}),
 	}
@@ -235,18 +236,6 @@ func endpoint(ctx context.Context) string {
 		}
 	}
 	return Endpoint // without the feature flag, in the Intranet, or before the Intranet exists, submit telemetry directly
-}
-
-func prefix() string {
-	pathname, err := fileutil.PathnameInParents(naming.PrefixFilename)
-	if err != nil {
-		return ""
-	}
-	b, err := os.ReadFile(pathname)
-	if err != nil {
-		return ""
-	}
-	return strings.Trim(string(b), "\r\n")
 }
 
 func roleNameFromArn(roleArn string) (string, error) {

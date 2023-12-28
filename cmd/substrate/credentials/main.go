@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
+	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/randutil"
 	"github.com/src-bin/substrate/ui"
@@ -123,6 +124,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	defer cfg.Telemetry().Wait(ctx)
 
 	versionutil.WarnDowngrade(ctx, cfg)
+
+	if features.MacOSKeychain.Enabled() {
+		ui.Must(cmdutil.SetTPM(*creds))
+	}
 
 	// Print credentials in whatever format was requested.
 	cmdutil.PrintCredentials(*format, *creds)
