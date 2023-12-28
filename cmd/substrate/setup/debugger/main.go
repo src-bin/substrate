@@ -1,8 +1,7 @@
-package setupdebugger
+package debugger
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -11,23 +10,50 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/ui"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	console := flag.Bool("console", false, "open the AWS Console instead of executing a shell")
-	shell := flag.String("shell", "", "pathname of the shell to run instead of $SHELL")
-	flag.Usage = func() {
-		ui.Print("Usage: substrate setup-debugger [-console] [-shell <shell>]")
-		flag.PrintDefaults()
+var (
+	console = new(bool)
+	shell   = new(string)
+)
+
+func Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "debugger [--console] [--shell <shell>]",
+		Short: "TODO debugger.Command().Short",
+		Long:  `TODO debugger.Command().Long`,
+		Args:  cobra.ArbitraryArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(cmdutil.Main(cmd, args))
+		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{
+				"--console",
+				"--shell",
+			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
+		},
 	}
-	flag.Parse()
+	cmd.Flags().BoolVar(console, "console", false, "open the AWS Console instead of executing a shell")
+	cmd.Flags().StringVar(shell, "shell", "", "pathname of the shell to run instead of SHELL from the environment")
+	cmd.RegisterFlagCompletionFunc("shell", cmdutil.NoCompletionFunc)
+	return cmd
+}
+
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 	if *shell == "" {
 		*shell = os.Getenv("SHELL")
+	}
+	if *shell == "" {
+		ui.Print("SHELL wasn't in the environment; launching /bin/sh; override by setting SHELL or passing --shell")
+		*shell = "/bin/sh"
 	}
 
 	if callerIdentity, err := cfg.GetCallerIdentity(ctx); err == nil {

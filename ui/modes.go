@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"flag"
+	"github.com/spf13/pflag"
 )
 
 type InteractivityLevel int
@@ -31,18 +31,20 @@ func Interactivity() InteractivityLevel {
 	if *fullyInteractive && !*minimallyInteractive && !*nonInteractive {
 		return FullyInteractive
 	}
-	Fatal("can't mix -non-interactive, -minimally-interactive, and -fully-interactive")
+	Fatal("can't mix --non-interactive, --minimally-interactive, and --fully-interactive")
 	return 0
 }
 
-func InteractivityFlags() {
-	fullyInteractive = flag.Bool("fully-interactive", false, "fully interactive mode - all prompts and file editors")
-	minimallyInteractive = flag.Bool("minimally-interactive", false, "minimally interactive mode - only prompts with no cached responses (default)")
-	nonInteractive = flag.Bool("non-interactive", false, "non-interactive mode - no prompts or file editors")
+func InteractivityFlagSet() *pflag.FlagSet {
+	set := pflag.NewFlagSet("[interactivity flags]", pflag.ExitOnError)
+	set.BoolVar(fullyInteractive, "fully-interactive", false, "fully interactive mode - all prompts and file editors")
+	set.BoolVar(minimallyInteractive, "minimally-interactive", false, "minimally interactive mode - only prompts with no cached responses (default)")
+	set.BoolVar(nonInteractive, "non-interactive", false, "non-interactive mode - no prompts or file editors")
+	return set
 }
 
 func Quiet() {
 	op(opQuiet, "")
 }
 
-var fullyInteractive, minimallyInteractive, nonInteractive *bool
+var fullyInteractive, minimallyInteractive, nonInteractive = new(bool), new(bool), new(bool)

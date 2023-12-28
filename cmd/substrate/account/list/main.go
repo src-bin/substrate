@@ -11,7 +11,7 @@ import (
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsorgs"
-	setupcloudtrail "github.com/src-bin/substrate/cmd/substrate/setup-cloudtrail"
+	"github.com/src-bin/substrate/cmd/substrate/setup/cloudtrail"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tagging"
@@ -145,7 +145,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 		fmt.Printf("substrate setup%s%s%s\n", autoApproveFlag, ignoreServiceQuotasFlag, noApplyFlag)
 
-		if ok, err := ui.ConfirmFile(setupcloudtrail.ManageCloudTrailFilename); err != nil {
+		if ok, err := ui.ConfirmFile(cloudtrail.ManageCloudTrailFilename); err != nil {
 			ui.Fatal(err)
 		} else if ok {
 			fmt.Print("substrate setup-cloudtrail\n")

@@ -2,7 +2,6 @@ package setup
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
@@ -17,6 +17,10 @@ import (
 	"github.com/src-bin/substrate/awsram"
 	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/cmd/substrate/setup/cloudtrail"
+	"github.com/src-bin/substrate/cmd/substrate/setup/debugger"
+	deletestaticaccesskeys "github.com/src-bin/substrate/cmd/substrate/setup/delete-static-access-keys"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
@@ -42,18 +46,42 @@ const (
 	ServiceControlPolicyName = "SubstrateServiceControlPolicy"
 )
 
-var autoApprove, ignoreServiceQuotas, noApply *bool // shameful package variables to avoid rewriting bootstrap-{deploy,network}-account
+var (
+	autoApprove, noApply = new(bool), new(bool)
+	ignoreServiceQuotas  = new(bool)
+)
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	autoApprove = flag.Bool("auto-approve", false, "apply Terraform changes without waiting for confirmation")
-	ignoreServiceQuotas = flag.Bool("ignore-service-quotas", false, "ignore service quotas appearing to be exhausted and continue anyway")
-	noApply = flag.Bool("no-apply", false, "do not apply Terraform changes")
-	ui.InteractivityFlags()
-	flag.Usage = func() {
-		ui.Print("Usage: substrate setup [-auto-approve] [-ignore-service-quotas] [-no-apply]")
-		flag.PrintDefaults()
+func Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "setup [--auto-approve|--no-apply] [--ignore-service-quotas]",
+		Short: "TODO update.Command().Short",
+		Long:  `TODO update.Command().Long`,
+		Args:  cobra.ArbitraryArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(cmdutil.Main(cmd, args))
+		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{
+				"--auto-approve", "--no-apply",
+				"--ignore-service-quotas",
+				"--fully-interactive", "--minimally-interactive", "--non-interactive",
+			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
+		},
 	}
-	flag.Parse()
+	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "apply Terraform changes without waiting for confirmation")
+	cmd.Flags().BoolVar(noApply, "no-apply", false, "do not apply Terraform changes")
+	cmd.Flags().BoolVar(ignoreServiceQuotas, "ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
+	cmd.Flags().AddFlagSet(ui.InteractivityFlagSet())
+
+	cmd.AddCommand(cloudtrail.Command())
+	cmd.AddCommand(debugger.Command())
+	cmd.AddCommand(deletestaticaccesskeys.Command())
+
+	return cmd
+}
+
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 
 	if version.IsTrial() {
 		ui.Print("since this is a trial version of Substrate, it will post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.substrate.tools/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used; paying customers may opt out of this telemetry")

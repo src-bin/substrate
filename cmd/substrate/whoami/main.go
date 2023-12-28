@@ -32,7 +32,7 @@ func Command() *cobra.Command {
 		},
 		DisableFlagsInUseLine: true,
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{"--format", "--quiet"}, cobra.ShellCompDirectiveNoFileComp
+			return []string{"--format", "--quiet"}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
 		},
 	}
 	cmd.Flags().AddFlag(formatFlag)

@@ -1,19 +1,20 @@
-package setupcloudtrail
+package cloudtrail
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/spf13/cobra"
 	"github.com/src-bin/substrate/accounts"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscloudtrail"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awss3"
+	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/humans"
 	"github.com/src-bin/substrate/naming"
@@ -29,13 +30,26 @@ const (
 	TrailName                = "GlobalMultiRegionOrganizationTrail"
 )
 
-func Main(ctx context.Context, cfg *awscfg.Config, w io.Writer) {
-	ui.InteractivityFlags()
-	flag.Usage = func() {
-		ui.Print("Usage: substrate setup-cloudtrail")
-		flag.PrintDefaults()
+func Command() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cloudtrail",
+		Short: "TODO cloudtrail.Command().Short",
+		Long:  `TODO cloudtrail.Command().Long`,
+		Run: func(cmd *cobra.Command, args []string) {
+			Main(cmdutil.Main(cmd, args))
+		},
+		DisableFlagsInUseLine: true,
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{
+				"--fully-interactive", "--minimally-interactive", "--non-interactive",
+			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
+		},
 	}
-	flag.Parse()
+	cmd.Flags().AddFlagSet(ui.InteractivityFlagSet())
+	return cmd
+}
+
+func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	substrateCfg := awscfg.Must(cfg.AssumeSubstrateRole(ctx, roles.Substrate, time.Hour))
