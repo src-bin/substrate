@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/src-bin/substrate/awsiam/awsiamusers"
 	"github.com/src-bin/substrate/awsutil"
-	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/users"
@@ -127,7 +126,7 @@ func (c *Config) BootstrapCredentials(ctx context.Context) (callerIdentity *sts.
 	// that means for child processes like `terraform plan|apply` that tend
 	// today to end up jumping out of the management account during initial
 	// setup and from then on out of the Substrate account.
-	if err = cmdutil.Setenv(creds); err != nil {
+	if err = Setenv(creds); err != nil {
 		return
 	}
 

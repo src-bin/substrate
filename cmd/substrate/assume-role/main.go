@@ -238,7 +238,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, args []stri
 	// os.Setenv instead of exec.Cmd.Env because we also want to preserve
 	// other environment variables in case they're relevant to the command.
 	if len(args) > 0 {
-		ui.Must(cmdutil.Setenv(creds))
+		ui.Must(awscfg.Setenv(creds))
 
 		// Switch back to the original working directory before looking for the
 		// program to execute.

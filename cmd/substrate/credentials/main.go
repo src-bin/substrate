@@ -61,7 +61,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	if !*force {
 		if _, err := cfg.GetCallerIdentity(ctx); err == nil {
-			expiry, err := time.Parse(time.RFC3339, os.Getenv(cmdutil.SUBSTRATE_CREDENTIALS_EXPIRATION))
+			expiry, err := time.Parse(time.RFC3339, os.Getenv(awscfg.SUBSTRATE_CREDENTIALS_EXPIRATION))
 			if err != nil {
 				ui.Print("found valid credentials in the environment; exiting without minting new ones")
 				cfg.Telemetry().PostWait(ctx)
