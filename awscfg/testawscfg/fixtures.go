@@ -82,18 +82,23 @@ func fixture(accountId, repo string) func(string) (*awscfg.Config, func()) {
 			}
 		}
 
+		// AWS config in the src-bin account, which we'll use below to assume
+		// a role in the test account. This must happen before we change
+		// directories or we'll trip over the the credentials' and the
+		// directory's idea of the management account number not matching.
+		cfg := awscfg.Must(awscfg.NewConfig(ctx)).Regional(
+			"us-east-1", // the src-bin organization's default region, so IAM will have someplace to go
+		)
+
 		// Construct an AWS config that crosses from the src-bin organization
 		// into this test organization.
-		cfg := awscfg.Must(
-			awscfg.Must(awscfg.NewConfig(ctx)).Regional(
-				"us-east-1", // the src-bin organization's default region, so IAM will have someplace to go
-			).AssumeRole(
-				ctx,
-				accountId,
-				roleName,
-				time.Hour,
-			),
-		)
+		cfg = awscfg.Must(cfg.AssumeRole(
+			ctx,
+			accountId,
+			roleName,
+			time.Hour,
+		))
+		//log.Print(jsonutil.MustString(cfg.MustGetCallerIdentity(ctx)))
 
 		// Take note of the credentials currently in this process' environment
 		// before replacing them with credentials from the AWS config we just

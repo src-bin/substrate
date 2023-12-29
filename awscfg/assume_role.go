@@ -47,7 +47,6 @@ func (c *Config) AssumeManagementRole(
 
 	var mgmtAccountId string
 	if org, err := c.DescribeOrganization(ctx); err == nil {
-		//log.Print(jsonutil.MustString(org))
 		mgmtAccountId = aws.ToString(org.MasterAccountId)
 	} else if awsutil.ErrorCodeIs(err, AWSOrganizationsNotInUseException) {
 		mgmtAccountId = aws.ToString(callerIdentity.Account)
