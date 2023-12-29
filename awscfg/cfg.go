@@ -137,9 +137,11 @@ func (c *Config) DescribeOrganization(ctx context.Context) (*Organization, error
 	}
 
 	if pathname, err := fileutil.PathnameInParents(AccountsFilename); err == nil {
-		pathname = filepath.Join(filepath.Dir(pathname), CachedOrganizationFilename)
-		if err := jsonutil.Write(c.organization, pathname); err != nil {
-			ui.Print(err)
+		if err = EnsureManagementAccountIdMatchesDisk(aws.ToString(c.organization.MasterAccountId)); err == nil {
+			pathname = filepath.Join(filepath.Dir(pathname), CachedOrganizationFilename)
+			if err = jsonutil.Write(c.organization, pathname); err != nil {
+				ui.Print(err)
+			}
 		}
 	}
 
