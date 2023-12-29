@@ -111,54 +111,58 @@ func EnsureAPI(
 		}
 	*/
 
-	if _, err = client.UpdateStage(ctx, &apigatewayv2.UpdateStageInput{
-		AccessLogSettings: &types.AccessLogSettings{
-			DestinationArn: aws.String(fmt.Sprintf(
-				"arn:aws:logs:%s:%s:log-group:/aws/apigatewayv2/%s",
-				cfg.Region(),
-				cfg.MustAccountId(ctx),
-				name,
-			)),
-			//Format: aws.String(`$context.identity.sourceIp - - [$context.requestTime] "$context.httpMethod $context.routeKey $context.protocol" $context.status $context.responseLength $context.requestId`), // Apache common log format
-			Format: aws.String(jsonutil.MustOneLineString(map[string]string{
-				"accountId":                     "$context.accountId",
-				"apiId":                         "$context.apiId",
-				"authorizer.error":              "$context.authorizer.error",
-				"authorizer.principalId":        "$context.authorizer.principalId",
-				"awsEndpointRequestId":          "$context.awsEndpointRequestId",
-				"awsEndpointRequestId2":         "$context.awsEndpointRequestId2",
-				"customDomain.basePathMatched":  "$context.customDomain.basePathMatched",
-				"dataProcessed":                 "$context.dataProcessed",
-				"domainName":                    "$context.domainName",
-				"domainPrefix":                  "$context.domainPrefix",
-				"error.message":                 "$context.error.message",
-				"error.responseType":            "$context.error.responseType",
-				"httpMethod":                    "$context.httpMethod",
-				"integration.error":             "$context.integration.error",
-				"integrationErrorMessage":       "$context.integrationErrorMessage",
-				"integration.integrationStatus": "$context.integration.integrationStatus",
-				"integration.latency":           "$context.integration.latency",
-				"integrationLatency":            "$context.integrationLatency",
-				"integration.requestId":         "$context.integration.requestId",
-				"integration.status":            "$context.integration.status",
-				"integrationStatus":             "$context.integrationStatus",
-				"path":                          "$context.path",
-				"protocol":                      "$context.protocol",
-				"requestId":                     "$context.requestId",
-				"requestTime":                   "$context.requestTime",
-				"requestTimeEpoch":              "$context.requestTimeEpoch",
-				"responseLatency":               "$context.responseLatency",
-				"responseLength":                "$context.responseLength",
-				"routeKey":                      "$context.routeKey",
-				"stage":                         "$context.stage",
-				"status":                        "$context.status",
-			})), // almost everything per <https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-logging-variables.html>
-		},
-		ApiId:      aws.String(api.Id),
-		AutoDeploy: true,
-		StageName:  aws.String("$default"),
-	}); err != nil {
-		return nil, ui.StopErr(err)
+	for range awsutil.StandardJitteredExponentialBackoff() {
+		if _, err = client.UpdateStage(ctx, &apigatewayv2.UpdateStageInput{
+			AccessLogSettings: &types.AccessLogSettings{
+				DestinationArn: aws.String(fmt.Sprintf(
+					"arn:aws:logs:%s:%s:log-group:/aws/apigatewayv2/%s",
+					cfg.Region(),
+					cfg.MustAccountId(ctx),
+					name,
+				)),
+				//Format: aws.String(`$context.identity.sourceIp - - [$context.requestTime] "$context.httpMethod $context.routeKey $context.protocol" $context.status $context.responseLength $context.requestId`), // Apache common log format
+				Format: aws.String(jsonutil.MustOneLineString(map[string]string{
+					"accountId":                     "$context.accountId",
+					"apiId":                         "$context.apiId",
+					"authorizer.error":              "$context.authorizer.error",
+					"authorizer.principalId":        "$context.authorizer.principalId",
+					"awsEndpointRequestId":          "$context.awsEndpointRequestId",
+					"awsEndpointRequestId2":         "$context.awsEndpointRequestId2",
+					"customDomain.basePathMatched":  "$context.customDomain.basePathMatched",
+					"dataProcessed":                 "$context.dataProcessed",
+					"domainName":                    "$context.domainName",
+					"domainPrefix":                  "$context.domainPrefix",
+					"error.message":                 "$context.error.message",
+					"error.responseType":            "$context.error.responseType",
+					"httpMethod":                    "$context.httpMethod",
+					"integration.error":             "$context.integration.error",
+					"integrationErrorMessage":       "$context.integrationErrorMessage",
+					"integration.integrationStatus": "$context.integration.integrationStatus",
+					"integration.latency":           "$context.integration.latency",
+					"integrationLatency":            "$context.integrationLatency",
+					"integration.requestId":         "$context.integration.requestId",
+					"integration.status":            "$context.integration.status",
+					"integrationStatus":             "$context.integrationStatus",
+					"path":                          "$context.path",
+					"protocol":                      "$context.protocol",
+					"requestId":                     "$context.requestId",
+					"requestTime":                   "$context.requestTime",
+					"requestTimeEpoch":              "$context.requestTimeEpoch",
+					"responseLatency":               "$context.responseLatency",
+					"responseLength":                "$context.responseLength",
+					"routeKey":                      "$context.routeKey",
+					"stage":                         "$context.stage",
+					"status":                        "$context.status",
+				})), // almost everything per <https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-logging-variables.html>
+			},
+			ApiId:      aws.String(api.Id),
+			AutoDeploy: true,
+			StageName:  aws.String("$default"),
+		}); err == nil {
+			break
+		} else if !awsutil.ErrorCodeIs(err, ConflictException) {
+			return nil, ui.StopErr(err)
+		}
 	}
 
 	cert, err := awsacm.EnsureCertificate(ctx, cfg, dnsDomainName, []string{dnsDomainName}, zoneId)
