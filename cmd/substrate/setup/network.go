@@ -256,25 +256,6 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 			eq1.Environment, eq1.Quality, region1,
 		)
 
-		vpcs0, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region0), eq0.Environment, eq0.Quality)
-		ui.Must(err)
-		if len(vpcs0) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
-			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs0))
-		}
-		//ui.Debug(vpcs0[0])
-		vpcId0 := aws.ToString(vpcs0[0].VpcId)
-		vpcs1, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region1), eq1.Environment, eq1.Quality)
-		ui.Must(err)
-		if len(vpcs1) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
-			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs1))
-		}
-		//ui.Debug(vpcs1[0])
-		vpcId1 := aws.ToString(vpcs1[0].VpcId)
-		conn, err := awsec2.EnsureVPCPeeringConnection(ctx, networkCfg, region0, vpcId0, region1, vpcId1)
-		ui.Must(err)
-		//ui.Debug(conn)
-		// TODO regional route for public subnets and zonal routes for private subnets (even if there are more than three)
-
 		dirname := filepath.Join(
 			terraform.RootModulesDirname,
 			accounts.Network,
@@ -300,6 +281,25 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 				break
 			}
 		}
+
+		vpcs0, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region0), eq0.Environment, eq0.Quality)
+		ui.Must(err)
+		if len(vpcs0) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
+			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs0))
+		}
+		ui.Debug(vpcs0[0])
+		vpcId0 := aws.ToString(vpcs0[0].VpcId)
+		vpcs1, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region1), eq1.Environment, eq1.Quality)
+		ui.Must(err)
+		if len(vpcs1) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
+			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs1))
+		}
+		ui.Debug(vpcs1[0])
+		vpcId1 := aws.ToString(vpcs1[0].VpcId)
+		conn, err := awsec2.EnsureVPCPeeringConnection(ctx, networkCfg, region0, vpcId0, region1, vpcId1)
+		ui.Must(err)
+		ui.Debug(conn)
+		// TODO regional route for public subnets and zonal routes for private subnets (even if there are more than three)
 
 		/*
 					"accepter_environment":  terraform.Q(eq0.Environment),
