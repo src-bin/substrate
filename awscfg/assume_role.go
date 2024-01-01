@@ -158,6 +158,7 @@ func (c *Config) AssumeRole(
 		cfg:               c.cfg.Copy(),
 		deferredTelemetry: c.deferredTelemetry, // better twice than not at all
 		event:             c.event,
+		wd:                c.wd,
 	}
 
 	cfg.cfg.Credentials = aws.NewCredentialsCache(stscreds.NewAssumeRoleProvider(

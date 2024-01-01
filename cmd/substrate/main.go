@@ -56,7 +56,9 @@ func main() {
 		Long: `Substrate: the right way to AWS
 
 <https://docs.substrate.tools/>`,
-		Args: cobra.NoArgs,
+		Args:                  cobra.NoArgs,
+		CompletionOptions:     cobra.CompletionOptions{DisableDefaultCmd: true},
+		DisableFlagsInUseLine: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			if versionFlag {
 				version.Print()
@@ -64,8 +66,6 @@ func main() {
 				cmd.Help()
 			}
 		},
-		CompletionOptions:     cobra.CompletionOptions{DisableDefaultCmd: true},
-		DisableFlagsInUseLine: true,
 	}
 	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "print Substrate version and exit")
 	rootCmd.AddCommand(&cobra.Command{
