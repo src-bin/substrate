@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/ui"
 )
 
 // Test*AccountId give names to a bunch of otherwise inscrutable 12-digit
@@ -69,9 +70,26 @@ func fixture(accountId, repo string) func(string) (*awscfg.Config, func()) {
 			"test",
 		)
 
+		// AWS config in the src-bin account, which we'll use below to assume
+		// a role in the test account. This must happen before we change
+		// directories or we'll trip over the the credentials' and the
+		// directory's idea of the management account number not matching.
+		cfg := awscfg.Must(awscfg.NewConfig(ctx)).Regional(
+			"us-east-1", // the src-bin organization's default region, so IAM will have someplace to go
+		)
+
 		// Find the repo in the closest possible ancestor directory.
+		oldDirname, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
 		for {
 			if err := os.Chdir(repo); err == nil {
+				dirname, err := os.Getwd()
+				if err != nil {
+					panic(err)
+				}
+				ui.Printf("testawscfg fixture: cd %s", dirname)
 				break
 			}
 			if dirname, err := os.Getwd(); err == nil && dirname == "/" {
@@ -81,14 +99,6 @@ func fixture(accountId, repo string) func(string) (*awscfg.Config, func()) {
 				panic(err)
 			}
 		}
-
-		// AWS config in the src-bin account, which we'll use below to assume
-		// a role in the test account. This must happen before we change
-		// directories or we'll trip over the the credentials' and the
-		// directory's idea of the management account number not matching.
-		cfg := awscfg.Must(awscfg.NewConfig(ctx)).Regional(
-			"us-east-1", // the src-bin organization's default region, so IAM will have someplace to go
-		)
 
 		// Construct an AWS config that crosses from the src-bin organization
 		// into this test organization.
@@ -117,10 +127,13 @@ func fixture(accountId, repo string) func(string) (*awscfg.Config, func()) {
 		}
 
 		return cfg, func() {
-			var err error
-			if err = awscfg.Setenv(oldCreds); err != nil {
+			if err := awscfg.Setenv(oldCreds); err != nil {
 				panic(err)
 			}
+			if err := os.Chdir(oldDirname); err != nil {
+				panic(err)
+			}
+			ui.Printf("testawscfg fixture: cd %s", oldDirname)
 		}
 	}
 }

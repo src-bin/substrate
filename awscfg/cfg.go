@@ -41,6 +41,7 @@ type Config struct {
 	event                   *telemetry.Event
 	getCallerIdentityOutput *sts.GetCallerIdentityOutput // cache
 	organization            *Organization                // cache
+	wd                      string                       // detect os.Chdir to bust cache
 }
 
 func Must(cfg *Config, err error) *Config {
@@ -52,12 +53,13 @@ func Must(cfg *Config, err error) *Config {
 
 func NewConfig(ctx context.Context) (c *Config, err error) {
 	c = &Config{}
-	c.cfg, err = config.LoadDefaultConfig(ctx, defaultLoadOptions()...)
-	if err != nil {
+	if c.cfg, err = config.LoadDefaultConfig(ctx, defaultLoadOptions()...); err != nil {
 		return
 	}
-	c.event, err = telemetry.NewEvent(ctx)
-	if err != nil {
+	if c.event, err = telemetry.NewEvent(ctx); err != nil {
+		return
+	}
+	if c.wd, err = os.Getwd(); err != nil {
 		return
 	}
 
@@ -136,11 +138,13 @@ func (c *Config) DescribeOrganization(ctx context.Context) (*Organization, error
 		break
 	}
 
-	if pathname, err := fileutil.PathnameInParents(AccountsFilename); err == nil {
-		if err = EnsureManagementAccountIdMatchesDisk(aws.ToString(c.organization.MasterAccountId)); err == nil {
-			pathname = filepath.Join(filepath.Dir(pathname), CachedOrganizationFilename)
-			if err = jsonutil.Write(c.organization, pathname); err != nil {
-				ui.Print(err)
+	if wd, err := os.Getwd(); err == nil && c.wd == wd {
+		if pathname, err := fileutil.PathnameInParents(AccountsFilename); err == nil {
+			if err := EnsureManagementAccountIdMatchesDisk(aws.ToString(c.organization.MasterAccountId)); err == nil {
+				pathname := filepath.Join(filepath.Dir(pathname), CachedOrganizationFilename)
+				if err := jsonutil.Write(c.organization, pathname); err != nil {
+					ui.Print(err)
+				}
 			}
 		}
 	}
