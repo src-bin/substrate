@@ -82,6 +82,7 @@ func Command() *cobra.Command {
 	cmd.Flags().AddFlag(formatFlag)
 	cmd.RegisterFlagCompletionFunc(formatFlag.Name, formatCompletionFunc)
 	cmd.Flags().AddFlag(cmdutil.QuietFlag())
+	cmd.Flags().SetInterspersed(false)
 	return cmd
 }
 
