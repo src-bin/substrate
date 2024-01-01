@@ -113,7 +113,7 @@ func TestManagement(t *testing.T) {
 	cfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
-	_, serviceAccounts, _, _, deployAccount, _, networkAccount, err := accounts.Grouped(ctx, cfg)
+	_, serviceAccounts, _, auditAccount, deployAccount, _, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,6 +132,7 @@ func TestManagement(t *testing.T) {
 	testRole(t, ctx, cfg, roleName, testNotExists)                            // because no --substrate or --humans
 	testRole(t, ctx, mgmtCfg, roleName, testExists)                           // because --management
 	testRoleInAccounts(t, ctx, cfg, []*awsorgs.Account{
+		auditAccount,   // because no --special "audit"
 		deployAccount,  // because no --special "deploy"
 		networkAccount, // because no --special "network"
 	}, roleName, testNotExists)
@@ -148,6 +149,12 @@ func TestSpecial(t *testing.T) {
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
+	auditCfg := awscfg.Must(cfg.AssumeSpecialRole(
+		ctx,
+		naming.Audit,
+		roles.AuditAdministrator,
+		time.Hour,
+	))
 	deployCfg := awscfg.Must(cfg.AssumeSpecialRole(
 		ctx,
 		naming.Deploy,
@@ -165,12 +172,14 @@ func TestSpecial(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	testRole(t, ctx, auditCfg, roleName, testNotExists)
 	testRole(t, ctx, deployCfg, roleName, testNotExists)
 	testRole(t, ctx, networkCfg, roleName, testNotExists)
 
 	cmdutil.OverrideArgs(
 		create.Command(),
 		"--role", roleName,
+		"--special", naming.Audit,
 		"--special", naming.Deploy,
 		"--special", naming.Network,
 		"--aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
@@ -179,12 +188,14 @@ func TestSpecial(t *testing.T) {
 
 	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists) // because no --all-*, --domain, --environment, or --quality
 	testRole(t, ctx, cfg, roleName, testNotExists)                            // because no --substrate or --humans
+	testRole(t, ctx, auditCfg, roleName, testExists)                          // because --special audit
 	testRole(t, ctx, deployCfg, roleName, testExists)                         // because --special deploy
 	testRole(t, ctx, networkCfg, roleName, testExists)                        // because --special network
 
 	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
 	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
+	testRole(t, ctx, auditCfg, roleName, testNotExists)
 	testRole(t, ctx, deployCfg, roleName, testNotExists)
 	testRole(t, ctx, networkCfg, roleName, testNotExists)
 }
@@ -195,7 +206,7 @@ func TestSubstrate(t *testing.T) {
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
-	_, serviceAccounts, _, _, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
+	_, serviceAccounts, _, auditAccount, deployAccount, managementAccount, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,6 +225,7 @@ func TestSubstrate(t *testing.T) {
 	testRole(t, ctx, cfg, roleName, testExists)                               // because --substrate
 	testRoleInAccounts(t, ctx, cfg, []*awsorgs.Account{
 		managementAccount, // because no -management
+		auditAccount,      // because no -special "audit"
 		deployAccount,     // because no -special "deploy"
 		networkAccount,    // because no -special "network"
 	}, roleName, testNotExists)

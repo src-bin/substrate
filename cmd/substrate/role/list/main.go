@@ -80,13 +80,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		wg.Add(1)
 		go func(account *awscfg.Account) {
 			defer wg.Done()
-
-			// We can't assume an Administrator-like role in the audit account and
-			// we wouldn't find anything useful there if we did so don't bother.
-			if account.Tags[tagging.SubstrateSpecialAccount] == naming.Audit {
-				return
-			}
-
 			accountCfg := awscfg.Must(account.Config(ctx, cfg, account.AdministratorRoleName(), time.Hour))
 			roles, err := awsiam.ListRoles(ctx, accountCfg)
 			ui.Must(err)

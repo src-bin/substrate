@@ -11,9 +11,7 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmdutil"
-	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/versionutil"
 )
@@ -65,9 +63,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	ui.Must(err)
 	var found bool
 	for _, account := range allAccounts {
-		if account.Tags[tagging.SubstrateSpecialAccount] == naming.Audit || account.Tags[tagging.SubstrateType] == naming.Audit {
-			continue
-		}
 		if err := awsiam.DeleteRoleWithConfirmation(
 			ctx,
 			awscfg.Must(account.Config(
