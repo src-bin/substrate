@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscfg/testawscfg"
 	"github.com/src-bin/substrate/roles"
@@ -28,7 +27,7 @@ func TestNetworkTest2(t *testing.T) {
 }
 
 func init() {
-	autoApprove = aws.Bool(false)
-	ignoreServiceQuotas = aws.Bool(true)
-	noApply = aws.Bool(true)
+	*autoApprove = false
+	*ignoreServiceQuotas = true
+	*noApply = true
 }
