@@ -124,6 +124,7 @@ func (s *Selection) FlagSet(u SelectionFlagsUsage) *pflag.FlagSet {
 	if u.Numbers == "" {
 		panic("SelectionFlagsUsage.Numbers can't be empty")
 	}
+	s.Reset()
 	set := pflag.NewFlagSet("[account selection flags]", pflag.ExitOnError)
 	set.BoolVar(&s.AllDomains, "all-domains", false, u.AllDomains)
 	set.StringArrayVarP(&s.Domains, "domain", "d", []string{}, u.Domains)
@@ -288,6 +289,20 @@ func (s *Selection) Partition(ctx context.Context, cfg *awscfg.Config) (
 	}
 
 	return
+}
+
+func (s *Selection) Reset() {
+	s.AllDomains = false
+	s.Domains = []string{}
+	s.AllEnvironments = false
+	s.Environments = []string{}
+	s.AllQualities = false
+	s.Qualities = []string{}
+	s.Substrate = false
+	s.Humans = false
+	s.Management = false
+	s.Specials = []string{}
+	s.Numbers = []string{}
 }
 
 func (s *Selection) Sort() error {

@@ -45,6 +45,7 @@ func (p *ManagedAssumeRolePolicy) FlagSet(u ManagedAssumeRolePolicyFlagsUsage) *
 	if u.Filenames == "" {
 		panic("ManagedAssumeRolePolicyFlagsUsage.Filenames can't be empty")
 	}
+	p.Reset()
 	set := pflag.NewFlagSet("[assume-role policy flags]", pflag.ExitOnError)
 	set.BoolVar(&p.Humans, "humans", false, u.Humans)
 	set.StringArrayVar(&p.AWSServices, "aws-service", []string{}, u.AWSServices)
@@ -62,6 +63,13 @@ func (p *ManagedAssumeRolePolicy) GitHubActionsSubs() ([]string, error) {
 		subs[i] = fmt.Sprintf("repo:%s:*", repo)
 	}
 	return subs, nil
+}
+
+func (p *ManagedAssumeRolePolicy) Reset() {
+	p.Humans = false
+	p.AWSServices = []string{}
+	p.GitHubActions = []string{}
+	p.Filenames = []string{}
 }
 
 func (p *ManagedAssumeRolePolicy) Sort() {
@@ -128,12 +136,20 @@ func (a *ManagedPolicyAttachments) FlagSet(u ManagedPolicyAttachmentsFlagsUsage)
 	if u.Filenames == "" {
 		panic("ManagedPolicyAttachmentsFlagsUsage.Filenames can't be empty")
 	}
+	a.Reset()
 	set := pflag.NewFlagSet("[policy attachment flags]", pflag.ExitOnError)
 	set.BoolVar(&a.AdministratorAccess, "administrator-access", false, u.AdministratorAccess)
 	set.BoolVar(&a.ReadOnlyAccess, "read-only-access", false, u.ReadOnlyAccess)
 	set.StringArrayVar(&a.ARNs, "policy-arn", []string{}, u.ARNs)
 	set.StringArrayVar(&a.Filenames, "policy", []string{}, u.Filenames)
 	return set
+}
+
+func (a *ManagedPolicyAttachments) Reset() {
+	a.AdministratorAccess = false
+	a.ReadOnlyAccess = false
+	a.ARNs = []string{}
+	a.Filenames = []string{}
 }
 
 func (a *ManagedPolicyAttachments) Sort() {
