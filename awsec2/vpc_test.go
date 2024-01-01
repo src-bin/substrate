@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/src-bin/substrate/awscfg/testawscfg"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 )
@@ -46,5 +45,6 @@ func TestEnsureSecurityGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(jsonutil.MustString(securityGroup))
+	_ = securityGroup
+	// t.Log(jsonutil.MustString(securityGroup))
 }
