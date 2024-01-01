@@ -12,8 +12,8 @@ import (
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awscfg/testawscfg"
-	createrole "github.com/src-bin/substrate/cmd/substrate/create-role"
-	deleterole "github.com/src-bin/substrate/cmd/substrate/delete-role"
+	"github.com/src-bin/substrate/cmd/substrate/role/create"
+	"github.com/src-bin/substrate/cmd/substrate/role/delete"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/roles"
 )
@@ -48,11 +48,17 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 	cfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
 
-	cmdutil.OverrideArgs("-role", roleName, "-humans", "-special", accounts.Deploy, "-administrator-access")
-	createrole.Main(ctx, cfg, os.Stdout)
+	cmdutil.OverrideArgs(
+		create.Command(),
+		"--role", roleName,
+		"--humans",
+		"--special", accounts.Deploy,
+		"--administrator-access",
+	)
+	create.Main(ctx, cfg, nil, nil, os.Stdout)
 	defer func() {
-		cmdutil.OverrideArgs("-delete", "-role", roleName)
-		deleterole.Main(ctx, cfg, os.Stdout)
+		cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+		delete.Main(ctx, cfg, nil, nil, os.Stdout)
 	}()
 	time.Sleep(10 * time.Second) // give AWS IAM time to sort itself out
 

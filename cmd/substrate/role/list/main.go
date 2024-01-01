@@ -354,7 +354,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 				append(
 					append(
 						append(
-							[]string{fmt.Sprintf("substrate create-role -role %q", roleName)},
+							[]string{fmt.Sprintf("substrate role create --role %q", roleName)},
 							collated[roleName].Selection.Arguments()...,
 						),
 						collated[roleName].ManagedAssumeRolePolicy.Arguments()...,

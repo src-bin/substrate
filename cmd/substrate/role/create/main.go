@@ -95,7 +95,7 @@ func Command() *cobra.Command {
 
 func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 	if *roleName == "" {
-		ui.Fatal(`-role "..." is required`)
+		ui.Fatal(`--role "..." is required`)
 	}
 	if *roleName == roles.Administrator || *roleName == roles.Auditor {
 		ui.Fatalf("cannot manage %s roles with `substrate role create`", *roleName)
@@ -109,6 +109,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		selection.Humans = true
 	}
 	//log.Printf("%+v", selection)
+	//log.Print(jsonutil.MustString(selection))
 
 	go cfg.Telemetry().Post(ctx) // post earlier, finish earlier
 	defer cfg.Telemetry().Wait(ctx)
@@ -176,7 +177,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// managing this role so we'll use EnsureRoleWithPolicy.
 	adminPrincipals := &policies.Principal{AWS: []string{}} // TODO turn into a singular substratePrincipal when removing admin accounts
 	if selection.Humans {
-		ui.Spinf("finding or creating the %s role in your Substrate and admin account(s) for humans to assume via your IdP", *roleName)
+		ui.Spinf("finding or creating the %s role in your Substrate account for humans to assume via your IdP", *roleName)
 
 		for _, account := range append(adminAccounts, substrateAccount) {
 			if account == nil { // substrateAccount will be nil until they've run `substrate setup`

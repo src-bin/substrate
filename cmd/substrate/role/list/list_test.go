@@ -27,14 +27,15 @@ func TestEC2(t *testing.T) {
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
 	cmdutil.OverrideArgs(
-		"-role", roleName,
-		"-special", naming.Deploy,
-		"-humans", // TODO what's a better test, with this or without it?
-		"-aws-service", "ec2.amazonaws.com",
+		create.Command(),
+		"--role", roleName,
+		"--special", naming.Deploy,
+		"--humans", // TODO what's a better test, with this or without it?
+		"--aws-service", "ec2.amazonaws.com",
 	)
 	create.Main(ctx, cfg, nil, nil, os.Stdout)
 
-	cmdutil.OverrideArgs("-format", "json")
+	cmdutil.OverrideArgs(Command(), "--format", "json")
 	Main(ctx, cfg, nil, nil, stdout)
 
 	actual := stdout.String()
@@ -49,7 +50,6 @@ func TestEC2(t *testing.T) {
 			"AllQualities": false,
 			"Qualities": null,
 			"Substrate": false,
-			"Admin": false,
 			"Management": false,
 			"Specials": [
 				"deploy"
@@ -78,23 +78,23 @@ func TestEC2(t *testing.T) {
 ]
 `
 	if actual != expected {
-		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+		t.Errorf("`substrate role list --format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
 	stdout.Reset()
 
-	cmdutil.OverrideArgs("-format", "shell")
+	cmdutil.OverrideArgs(Command(), "--format", "shell")
 	Main(ctx, cfg, nil, nil, stdout)
 
 	actual = stdout.String()
 	expected = `set -e -x
-substrate create-role -role "TestEC2" -special "deploy" -humans -aws-service "ec2.amazonaws.com"
+substrate role create --role "TestEC2" --special "deploy" --humans --aws-service "ec2.amazonaws.com"
 `
 	if actual != expected {
-		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+		t.Errorf("`substrate role list --format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
-	cmdutil.OverrideArgs("-delete", "-role", roleName)
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
 	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
@@ -111,23 +111,24 @@ func TestEverything(t *testing.T) {
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
 	cmdutil.OverrideArgs(
-		"-role", roleName,
-		"-domain", "foo",
-		"-domain", "bar",
-		"-environment", "staging",
-		"-substrate",
-		"-management",
-		"-special", "deploy",
-		"-special", "network",
-		"-humans",
-		"-aws-service", "ecs.amazonaws.com",
-		"-aws-service", "lambda.amazonaws.com",
-		"-github-actions", "src-bin/src-bin",
-		"-github-actions", "src-bin/substrate",
-		"-assume-role-policy", "policies/TestEverything.assume-role-policy.json",
-		"-administrator-access",
-		"-policy-arn", "arn:aws:iam::aws:policy/job-function/Billing",
-		"-policy", "policies/TestEverything.policy.json",
+		create.Command(),
+		"--role", roleName,
+		"--domain", "foo",
+		"--domain", "bar",
+		"--environment", "staging",
+		"--substrate",
+		"--management",
+		"--special", "deploy",
+		"--special", "network",
+		"--humans",
+		"--aws-service", "ecs.amazonaws.com",
+		"--aws-service", "lambda.amazonaws.com",
+		"--github-actions", "src-bin/src-bin",
+		"--github-actions", "src-bin/substrate",
+		"--assume-role-policy", "policies/TestEverything.assume-role-policy.json",
+		"--administrator-access",
+		"--policy-arn", "arn:aws:iam::aws:policy/job-function/Billing",
+		"--policy", "policies/TestEverything.policy.json",
 	)
 	create.Main(ctx, cfg, nil, nil, os.Stdout)
 
@@ -138,7 +139,7 @@ func TestEverything(t *testing.T) {
 		time.Hour,
 	)), roleName, testNotExists) // because no -domain "baz"
 
-	cmdutil.OverrideArgs("-format", "json")
+	cmdutil.OverrideArgs(Command(), "--format", "json")
 	Main(ctx, cfg, nil, nil, stdout)
 
 	actual := stdout.String()
@@ -158,7 +159,6 @@ func TestEverything(t *testing.T) {
 			"AllQualities": true,
 			"Qualities": null,
 			"Substrate": true,
-			"Admin": false,
 			"Management": true,
 			"Specials": [
 				"deploy",
@@ -202,23 +202,23 @@ func TestEverything(t *testing.T) {
 ]
 `
 	if actual != expected {
-		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+		t.Errorf("`substrate role list --format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
 	stdout.Reset()
 
-	cmdutil.OverrideArgs("-format", "shell")
+	cmdutil.OverrideArgs(Command(), "--format", "shell")
 	Main(ctx, cfg, nil, nil, stdout)
 
 	actual = stdout.String()
 	expected = `set -e -x
-substrate create-role -role "TestEverything" -domain "bar" -domain "foo" -environment "staging" -all-qualities -substrate -management -special "deploy" -special "network" -humans -aws-service "ecs.amazonaws.com" -aws-service "lambda.amazonaws.com" -github-actions "src-bin/src-bin" -github-actions "src-bin/substrate" -assume-role-policy "policies/TestEverything.assume-role-policy.json" -administrator-access -policy-arn "arn:aws:iam::aws:policy/job-function/Billing" -policy "policies/TestEverything.policy.json"
+substrate role create --role "TestEverything" --domain "bar" --domain "foo" --environment "staging" --all-qualities --substrate --management --special "deploy" --special "network" --humans --aws-service "ecs.amazonaws.com" --aws-service "lambda.amazonaws.com" --github-actions "src-bin/src-bin" --github-actions "src-bin/substrate" --assume-role-policy "policies/TestEverything.assume-role-policy.json" --administrator-access --policy-arn "arn:aws:iam::aws:policy/job-function/Billing" --policy "policies/TestEverything.policy.json"
 `
 	if actual != expected {
-		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+		t.Errorf("`substrate role list --format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
-	cmdutil.OverrideArgs("-delete", "-role", roleName)
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
 	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
@@ -235,13 +235,14 @@ func TestZero(t *testing.T) {
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
 	cmdutil.OverrideArgs(
-		"-role", roleName,
-		"-special", naming.Deploy,
-		"-aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
+		create.Command(),
+		"--role", roleName,
+		"--special", naming.Deploy, // as close to zero as possible, at least
+		"--aws-service", "sts.amazonaws.com", // dummy assume-role policy flag
 	)
 	create.Main(ctx, cfg, nil, nil, os.Stdout)
 
-	cmdutil.OverrideArgs("-format", "json")
+	cmdutil.OverrideArgs(Command(), "--format", "json")
 	Main(ctx, cfg, nil, nil, stdout)
 
 	actual := stdout.String()
@@ -256,7 +257,6 @@ func TestZero(t *testing.T) {
 			"AllQualities": false,
 			"Qualities": null,
 			"Substrate": false,
-			"Admin": false,
 			"Management": false,
 			"Specials": [
 				"deploy"
@@ -284,23 +284,23 @@ func TestZero(t *testing.T) {
 ]
 `
 	if actual != expected {
-		t.Errorf("`substrate roles -format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+		t.Errorf("`substrate role list --format json` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
 	stdout.Reset()
 
-	cmdutil.OverrideArgs("-format", "shell")
+	cmdutil.OverrideArgs(Command(), "--format", "shell")
 	Main(ctx, cfg, nil, nil, stdout)
 
 	actual = stdout.String()
 	expected = `set -e -x
-substrate create-role -role "TestZero" -special "deploy" -aws-service "sts.amazonaws.com"
+substrate role create --role "TestZero" --special "deploy" --aws-service "sts.amazonaws.com"
 `
 	if actual != expected {
-		t.Errorf("`substrate roles -format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
+		t.Errorf("`substrate role list --format shell` output is wrong\nactual: %s\nexpected: %s", actual, expected) // TODO pass actual and expected to diff(1)
 	}
 
-	cmdutil.OverrideArgs("-delete", "-role", roleName)
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
 	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
