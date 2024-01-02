@@ -430,12 +430,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// definitely been created.
 	ui.Spin("pre-creating IAM roles for circular references in assume-role policies")
 	mgmtPrincipals := []string{
-		roles.ARN(mgmtAccountId, roles.Substrate), // allow this role to assume itself
+		//roles.ARN(mgmtAccountId, roles.Substrate), // allow this role to assume itself
 		aws.ToString(mgmtUser.Arn),
 		aws.ToString(substrateUser.Arn),
 	}
 	substratePrincipals := []string{
-		roles.ARN(substrateAccountId, roles.Substrate), // allow this role to assume itself
+		//roles.ARN(substrateAccountId, roles.Substrate), // allow this role to assume itself
 		aws.ToString(mgmtUser.Arn),
 		aws.ToString(substrateUser.Arn),
 	}
@@ -593,7 +593,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 				policies.AssumeRolePolicyDocument(&policies.Principal{
 					AWS: []string{
 						roles.ARN(substrateAccountId, roles.Administrator),
-						roles.ARN(deployCfg.MustAccountId(ctx), roles.DeployAdministrator), // allow this role to assume itself
+						//roles.ARN(deployCfg.MustAccountId(ctx), roles.DeployAdministrator), // allow this role to assume itself
 						mgmtRole.ARN,
 						substrateRole.ARN,
 						aws.ToString(mgmtUser.Arn),
@@ -630,7 +630,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				AWS: []string{
 					roles.ARN(substrateAccountId, roles.Administrator),
-					roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator), // allow this role to assume itself
+					//roles.ARN(networkCfg.MustAccountId(ctx), roles.NetworkAdministrator), // allow this role to assume itself
 					mgmtRole.ARN,
 					substrateRole.ARN,
 					aws.ToString(mgmtUser.Arn),
@@ -661,7 +661,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 			policies.AssumeRolePolicyDocument(&policies.Principal{
 				AWS: []string{
 					roles.ARN(substrateAccountId, roles.Administrator),
-					roles.ARN(mgmtAccountId, roles.OrganizationAdministrator), // allow this role to assume itself
+					//roles.ARN(mgmtAccountId, roles.OrganizationAdministrator), // allow this role to assume itself
 					mgmtRole.ARN,
 					substrateRole.ARN,
 					aws.ToString(mgmtUser.Arn),
