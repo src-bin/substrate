@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/keybase/go-keychain"
+	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/ui"
 )
@@ -70,7 +71,7 @@ func SetenvFromTPM(subcommand string) error {
 			if creds.Expires.Before(time.Now()) {
 				continue
 			}
-			if err := Setenv(creds); err != nil {
+			if err := awscfg.Setenv(creds); err != nil {
 				return err
 			}
 			if subcommand == "credentials" || subcommand == "whoami" {
