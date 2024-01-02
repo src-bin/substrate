@@ -2,21 +2,68 @@ package awsec2
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
 type (
+	RouteTable    = types.RouteTable
 	SecurityGroup = types.SecurityGroup
 	Subnet        = types.Subnet
 	VPC           = types.Vpc
 )
+
+func DescribeRouteTables(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	vpcId string,
+) (public *RouteTable, private []RouteTable, err error) {
+	var out *ec2.DescribeRouteTablesOutput
+	if out, err = cfg.EC2().DescribeRouteTables(ctx, &ec2.DescribeRouteTablesInput{
+		Filters: []types.Filter{{
+			Name:   aws.String("vpc-id"),
+			Values: []string{vpcId},
+		}},
+		MaxResults: aws.Int32(5), // any more than 4 will be an error
+	}); err != nil {
+		return
+	}
+	if len(out.RouteTables) > 4 {
+		err = fmt.Errorf("found too many routing tables in %s", vpcId)
+		return
+	}
+	for _, rt := range out.RouteTables {
+		//ui.Debug(rt)
+		count := 0
+		for _, assoc := range rt.Associations {
+			if aws.ToBool(assoc.Main) {
+				continue
+			}
+			if assoc.SubnetId != nil {
+				count++
+			}
+		}
+		switch count {
+		case 1:
+			private = append(private, rt)
+		case 3:
+			publicValue := rt
+			public = &publicValue
+		default:
+			ui.Print("found unexpected routing table ", jsonutil.MustOneLineString(rt))
+		}
+	}
+	return
+}
 
 func DescribeSecurityGroups(
 	ctx context.Context,

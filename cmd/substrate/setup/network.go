@@ -242,15 +242,17 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 		)
 	}
 	networkCfg := awscfg.Must(mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour))
-	for _, region := range regions.Selected() {
-		ui.Debug(awsec2.DescribeVPCPeeringConnections(ctx, networkCfg.Regional(region)))
-	}
+	/*
+		for _, region := range regions.Selected() {
+			ui.Debug(awsec2.DescribeVPCPeeringConnections(ctx, networkCfg.Regional(region)))
+		}
+	*/
 	peeringConnections, err := networks.EnumeratePeeringConnections()
 	ui.Must(err)
 	for _, pc := range peeringConnections.Slice() {
 		eq0, eq1, region0, region1 := pc.Ends()
 
-		ui.Printf(
+		ui.Spinf(
 			"configuring VPC peering between %s %s %s and %s %s %s",
 			eq0.Environment, eq0.Quality, region0,
 			eq1.Environment, eq1.Quality, region1,
@@ -287,41 +289,94 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 		if len(vpcs0) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
 			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs0))
 		}
-		ui.Debug(vpcs0[0])
-		vpcId0 := aws.ToString(vpcs0[0].VpcId)
+		vpc0 := vpcs0[0]
+		vpcId0 := aws.ToString(vpc0.VpcId)
+		//ui.Debug(vpc0)
 		vpcs1, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region1), eq1.Environment, eq1.Quality)
 		ui.Must(err)
 		if len(vpcs1) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
 			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs1))
 		}
-		ui.Debug(vpcs1[0])
-		vpcId1 := aws.ToString(vpcs1[0].VpcId)
+		vpc1 := vpcs1[0]
+		vpcId1 := aws.ToString(vpc1.VpcId)
+		//ui.Debug(vpc1)
 		conn, err := awsec2.EnsureVPCPeeringConnection(ctx, networkCfg, region0, vpcId0, region1, vpcId1)
 		ui.Must(err)
-		ui.Debug(conn)
-		// TODO regional route for public subnets and zonal routes for private subnets (even if there are more than three)
+		//ui.Debug(conn)
+		ui.Spinf("routing traffic from %s to %s", vpcId0, vpcId1)
+		public0, private0, err := awsec2.DescribeRouteTables(ctx, networkCfg.Regional(region0), vpcId0)
+		ui.Must(err)
+		//ui.Debug(public0, private0)
+		ui.Must(awsec2.EnsureVPCPeeringRouteIPv4(
+			ctx,
+			networkCfg.Regional(region0),
+			aws.ToString(public0.RouteTableId),
+			aws.ToString(vpc1.CidrBlockAssociationSet[0].CidrBlock), // TODO support multiple CIDR prefix associations per VPC
+			aws.ToString(conn.VpcPeeringConnectionId),
+		))
+		ui.Must(awsec2.EnsureVPCPeeringRouteIPv6(
+			ctx,
+			networkCfg.Regional(region0),
+			aws.ToString(public0.RouteTableId),
+			aws.ToString(vpc1.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock), // TODO support multiple CIDR prefix associations per VPC
+			aws.ToString(conn.VpcPeeringConnectionId),
+		))
+		for _, rt := range private0 {
+			ui.Must(awsec2.EnsureVPCPeeringRouteIPv4(
+				ctx,
+				networkCfg.Regional(region0),
+				aws.ToString(rt.RouteTableId),
+				aws.ToString(vpc1.CidrBlockAssociationSet[0].CidrBlock), // TODO support multiple CIDR prefix associations per VPC
+				aws.ToString(conn.VpcPeeringConnectionId),
+			))
+			ui.Must(awsec2.EnsureVPCPeeringRouteIPv6(
+				ctx,
+				networkCfg.Regional(region0),
+				aws.ToString(rt.RouteTableId),
+				aws.ToString(vpc1.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock), // TODO support multiple CIDR prefix associations per VPC
+				aws.ToString(conn.VpcPeeringConnectionId),
+			))
+		}
+		ui.Stop("ok")
+		ui.Spinf("routing traffic in reverse from %s to %s", vpcId1, vpcId0)
+		public1, private1, err := awsec2.DescribeRouteTables(ctx, networkCfg.Regional(region1), vpcId1)
+		ui.Must(err)
+		//ui.Debug(public1, private1)
+		ui.Must(awsec2.EnsureVPCPeeringRouteIPv4(
+			ctx,
+			networkCfg.Regional(region1),
+			aws.ToString(public1.RouteTableId),
+			aws.ToString(vpc0.CidrBlockAssociationSet[0].CidrBlock), // TODO support multiple CIDR prefix associations per VPC
+			aws.ToString(conn.VpcPeeringConnectionId),
+		))
+		ui.Must(awsec2.EnsureVPCPeeringRouteIPv6(
+			ctx,
+			networkCfg.Regional(region1),
+			aws.ToString(public1.RouteTableId),
+			aws.ToString(vpc0.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock), // TODO support multiple CIDR prefix associations per VPC
+			aws.ToString(conn.VpcPeeringConnectionId),
+		))
+		for _, rt := range private1 {
+			ui.Must(awsec2.EnsureVPCPeeringRouteIPv4(
+				ctx,
+				networkCfg.Regional(region1),
+				aws.ToString(rt.RouteTableId),
+				aws.ToString(vpc0.CidrBlockAssociationSet[0].CidrBlock), // TODO support multiple CIDR prefix associations per VPC
+				aws.ToString(conn.VpcPeeringConnectionId),
+			))
+			ui.Must(awsec2.EnsureVPCPeeringRouteIPv6(
+				ctx,
+				networkCfg.Regional(region1),
+				aws.ToString(rt.RouteTableId),
+				aws.ToString(vpc0.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock), // TODO support multiple CIDR prefix associations per VPC
+				aws.ToString(conn.VpcPeeringConnectionId),
+			))
+		}
+		ui.Stop("ok")
 
-		/*
-					"accepter_environment":  terraform.Q(eq0.Environment),
-					"accepter_quality":      terraform.Q(eq0.Quality),
-					"requester_environment": terraform.Q(eq1.Environment),
-					"requester_quality":     terraform.Q(eq1.Quality),
-			accepterProvider := terraform.ProviderFor(
-				region1,
-				roles.ARN(accountId, roles.NetworkAdministrator),
-			)
-			requesterProvider := terraform.ProviderFor(
-				region0,
-				roles.ARN(accountId, roles.NetworkAdministrator),
-			)
-
-			// The choice of region0 here is arbitrary.  Only one side
-			// can store the Terraform state and region0 wins.
-			ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region0))
-		*/
-
+		ui.Stop("ok")
 	}
-	// TODO remove the peering state files from S3
+	// TODO remove the peering state files from S3 (on the region0 side)
 }
 
 func vpcAccoutrements(

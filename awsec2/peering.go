@@ -15,7 +15,10 @@ import (
 	"github.com/src-bin/substrate/version"
 )
 
-const InvalidParameterValue = "InvalidParameterValue"
+const (
+	InvalidParameterValue = "InvalidParameterValue"
+	RouteAlreadyExists    = "RouteAlreadyExists"
+)
 
 type VPCPeeringConnection = types.VpcPeeringConnection
 
@@ -93,6 +96,42 @@ func EnsureVPCPeeringConnection(
 	}
 	ui.StopErr(err)
 	return
+}
+
+func EnsureVPCPeeringRouteIPv4(
+	ctx context.Context,
+	cfg *awscfg.Config, // must be in the network account and in the right region
+	routeTableId, cidrPrefix, vpcPeeringConnectionId string,
+) error {
+	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, cidrPrefix, vpcPeeringConnectionId)
+	_, err := cfg.EC2().CreateRoute(ctx, &ec2.CreateRouteInput{
+		DestinationCidrBlock:   aws.String(cidrPrefix),
+		RouteTableId:           aws.String(routeTableId),
+		VpcPeeringConnectionId: aws.String(vpcPeeringConnectionId),
+	})
+	if awsutil.ErrorCodeIs(err, RouteAlreadyExists) { // TODO confirm whether this detects destination gateway mismatches
+		ui.Stop("exists")
+		return nil
+	}
+	return ui.StopErr(err)
+}
+
+func EnsureVPCPeeringRouteIPv6(
+	ctx context.Context,
+	cfg *awscfg.Config, // must be in the network account and in the right region
+	routeTableId, cidrPrefix, vpcPeeringConnectionId string,
+) error {
+	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, cidrPrefix, vpcPeeringConnectionId)
+	_, err := cfg.EC2().CreateRoute(ctx, &ec2.CreateRouteInput{
+		DestinationIpv6CidrBlock: aws.String(cidrPrefix),
+		RouteTableId:             aws.String(routeTableId),
+		VpcPeeringConnectionId:   aws.String(vpcPeeringConnectionId),
+	})
+	if awsutil.ErrorCodeIs(err, RouteAlreadyExists) { // TODO confirm whether this detects destination gateway mismatches
+		ui.Stop("exists")
+		return nil
+	}
+	return ui.StopErr(err)
 }
 
 func describeVPCPeeringConnections(
