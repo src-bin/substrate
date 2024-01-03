@@ -57,6 +57,9 @@ func (cmp Comparison) String() string {
 
 // PreventDowngrade prevents explicit version number downgrades.
 func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
+	if v := strings.TrimSuffix(version.Version, "-dirty"); len(v) > 3 && v[len(v)-3] != '.' { // this is not a tagged build
+		return
+	}
 	taggedVersion, ok := TaggedVersion(ctx, cfg)
 	if !ok {
 		return
