@@ -45,14 +45,6 @@ func CreateRole(
 	if err != nil {
 		return nil, err
 	}
-	if os.Getenv("SUBSTRATE_DEBUG_AWS_IAM_ASSUME_ROLE_POLICIES") != "" {
-		ui.Printf(
-			"assume-role policy document for %s in account number %s: %s",
-			roleName,
-			cfg.MustAccountId(ctx),
-			docJSON,
-		)
-	}
 	out, err := cfg.IAM().CreateRole(ctx, &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(docJSON),
 		MaxSessionDuration:       aws.Int32(43200),
@@ -64,6 +56,14 @@ func CreateRole(
 		return nil, err
 	}
 	//log.Printf("%+v", out)
+	if os.Getenv("SUBSTRATE_DEBUG_AWS_IAM_ASSUME_ROLE_POLICIES") != "" {
+		ui.Printf(
+			"assume-role policy document for creating %s in account number %s: %s",
+			roleName,
+			cfg.MustAccountId(ctx),
+			docJSON,
+		)
+	}
 	time.Sleep(10e9) // give IAM time to become consistent (TODO do it gracefully)
 	return roleFromAPI(ctx, cfg, out.Role)
 }
@@ -236,6 +236,14 @@ func EnsureRole(
 	docJSON, err := assumeRolePolicyDoc.Marshal()
 	if err != nil {
 		return nil, ui.StopErr(err)
+	}
+	if os.Getenv("SUBSTRATE_DEBUG_AWS_IAM_ASSUME_ROLE_POLICIES") != "" {
+		ui.Printf(
+			"assume-role policy document for updating %s in account number %s: %s",
+			roleName,
+			cfg.MustAccountId(ctx),
+			docJSON,
+		)
 	}
 	if _, err := client.UpdateAssumeRolePolicy(ctx, &iam.UpdateAssumeRolePolicyInput{
 		PolicyDocument: aws.String(docJSON),
