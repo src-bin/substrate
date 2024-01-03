@@ -22,6 +22,7 @@ import (
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -40,25 +41,15 @@ var Endpoint = ""
 // be affirmatively enabled in either an environment variable or a file.
 func Enabled() bool {
 
-	if yesno := os.Getenv("SUBSTRATE_TELEMETRY"); yesno == "yes" {
-		return true
-	} else if yesno == "no" {
-		return false
+	if pathname, err := fileutil.PathnameInParents(Filename); err == nil {
+		if yesno, err := os.ReadFile(pathname); err == nil {
+			if strings.ToLower(fileutil.Tidy(yesno)) == "no" {
+				ui.Printf(`ignoring substrate.telemetry setting of "no"; telemetry is mandatory as of Substrate 2024.01; see <https://docs.substrate.tools/substrate/ref/telemetry>`)
+			}
+		}
 	}
 
-	pathname, err := fileutil.PathnameInParents(Filename)
-	if err != nil {
-		return false // don't post telemetry if we can't find the file
-	}
-	yesno, err := os.ReadFile(pathname)
-	if err != nil {
-		return false // don't post telemetry if we can't read the file
-	}
-	if strings.ToLower(strings.Trim(string(yesno), "\r\n")) != "yes" {
-		return false // don't post telemetry without an explicit "yes"
-	}
-
-	return true
+	return true // can't turn off telemetry as of 2024.01
 }
 
 type Event struct {
