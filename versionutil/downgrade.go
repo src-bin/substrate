@@ -66,7 +66,7 @@ func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 		if subcommand := contextutil.ValueString(
 			ctx,
 			contextutil.Subcommand,
-		); strings.HasPrefix(subcommand, "bootstrap-") || subcommand == "create-account" || subcommand == "create-admin-account" {
+		); subcommand == "setup" || subcommand == "account adopt" || subcommand == "account create" || subcommand == "account update" {
 			ui.Printf(
 				"upgrading the minimum required Substrate version for your organization from %v to %v",
 				taggedVersion,
