@@ -28,6 +28,7 @@ func RunTerraform(
 		dirname := filepath.Join(terraform.RootModulesDirname, domain, environment, quality, regions.Global)
 
 		ui.Must(terraform.Init(dirname))
+		ui.Must(terraform.ProvidersLock(dirname))
 
 		if noApply {
 			ui.Must(terraform.Plan(dirname))
@@ -39,6 +40,7 @@ func RunTerraform(
 		dirname := filepath.Join(terraform.RootModulesDirname, domain, environment, quality, region)
 
 		ui.Must(terraform.Init(dirname))
+		ui.Must(terraform.ProvidersLock(dirname))
 
 		// Remove network sharing and tagging from Terraform because Substrate
 		// handles that directly now.

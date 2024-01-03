@@ -84,6 +84,18 @@ func Plan(dirname string) error {
 	return err
 }
 
+func ProvidersLock(dirname string) error {
+	ui.Printf("checksumming Terraform providers for all platforms in %s", dirname)
+	return execdlp(
+		dirname,
+		"terraform", "providers", "lock",
+		"-platform=darwin_amd64",
+		"-platform=darwin_arm64",
+		"-platform=linux_amd64",
+		"-platform=linux_amd64",
+	)
+}
+
 func ShortInstalledVersion() (string, error) {
 	version, err := InstalledVersion()
 	if err != nil {
