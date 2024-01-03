@@ -443,8 +443,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		mgmtPrincipals = append(mgmtPrincipals, administratorRole.ARN)
 		substratePrincipals = append(substratePrincipals, administratorRole.ARN)
 	}
+	if mgmtRole, err := awsiam.GetRole(ctx, mgmtCfg, roles.Substrate); err == nil {
+		mgmtPrincipals = append(mgmtPrincipals, mgmtRole.ARN)
+		substratePrincipals = append(substratePrincipals, mgmtRole.ARN)
+	}
 	if substrateRole, err := awsiam.GetRole(ctx, substrateCfg, roles.Substrate); err == nil {
 		mgmtPrincipals = append(mgmtPrincipals, substrateRole.ARN)
+		substratePrincipals = append(substratePrincipals, substrateRole.ARN)
 	}
 	mgmtRole, err := awsiam.EnsureRole(ctx, mgmtCfg, roles.Substrate, policies.AssumeRolePolicyDocument(&policies.Principal{
 		AWS: mgmtPrincipals,
@@ -480,7 +485,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		roles.Substrate,
 		policies.AssumeRolePolicyDocument(&policies.Principal{AWS: []string{
 			administratorRole.ARN,
-			roles.ARN(mgmtAccountId, roles.Substrate), // allow this role to assume itself
+			mgmtRole.ARN, // allow this role to assume itself
 			substrateRole.ARN,
 			aws.ToString(mgmtUser.Arn),
 			aws.ToString(substrateUser.Arn),
@@ -491,9 +496,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	//log.Print(jsonutil.MustString(mgmtRole))
 	substrateAssumeRolePolicy := policies.AssumeRolePolicyDocument(&policies.Principal{
 		AWS: []string{
-			roles.ARN(substrateAccountId, roles.Administrator),
+			administratorRole.ARN,
 			mgmtRole.ARN,
-			roles.ARN(substrateAccountId, roles.Substrate), // allow this role to assume itself
+			substrateRole.ARN, // allow this role to assume itself
 			aws.ToString(mgmtUser.Arn),
 			aws.ToString(substrateUser.Arn),
 		},
