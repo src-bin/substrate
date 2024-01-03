@@ -31,7 +31,7 @@ func AdministratorAssumeRolePolicy(ctx context.Context, cfg *awscfg.Config) (*po
 	return policies.Merge(
 		policies.AssumeRolePolicyDocument(&policies.Principal{
 			AWS: []string{
-				//roles.ARN(aws.ToString(substrateAccount.Id), roles.Administrator), // FIXME we do actually need this but can't add it on the first run
+				roles.ARN(aws.ToString(substrateAccount.Id), roles.Administrator),
 				roles.ARN(aws.ToString(mgmtAccount.Id), roles.Substrate),
 				roles.ARN(aws.ToString(substrateAccount.Id), roles.Substrate),
 				users.ARN(aws.ToString(mgmtAccount.Id), users.Substrate),
@@ -69,7 +69,7 @@ func AuditorAssumeRolePolicy(ctx context.Context, cfg *awscfg.Config) (*policies
 		policies.AssumeRolePolicyDocument(&policies.Principal{
 			AWS: []string{
 				roles.ARN(aws.ToString(substrateAccount.Id), roles.Administrator),
-				//roles.ARN(aws.ToString(substrateAccount.Id), roles.Auditor), // FIXME we do actually need this but can't add it on the first run
+				roles.ARN(aws.ToString(substrateAccount.Id), roles.Auditor),
 				roles.ARN(aws.ToString(mgmtAccount.Id), roles.Substrate),
 				roles.ARN(aws.ToString(substrateAccount.Id), roles.Substrate),
 				users.ARN(aws.ToString(mgmtAccount.Id), users.Substrate),
