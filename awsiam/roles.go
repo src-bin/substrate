@@ -204,7 +204,16 @@ func EnsureRole(
 		ctx,
 		cfg,
 		roleName,
-		assumeRolePolicyDoc,
+
+		// Though it's often desirable for a role to be able to assume itself,
+		// it's impossible to create a role that immediately possesses that
+		// privilege, since the assume-role policy is resolved before the role
+		// has an ARN. Thus, we create all roles with useless but harmless
+		// assume-role policy before updating it to the real thing.
+		policies.AssumeRolePolicyDocument(&policies.Principal{
+			Service: []string{"sts.amazonaws.com"},
+		}),
+
 		// TODO permissionsBoundaryPolicyARN,
 	)
 	if awsutil.ErrorCodeIs(err, EntityAlreadyExists) {
