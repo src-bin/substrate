@@ -109,6 +109,8 @@ func StateRm(dirname string, address string) (err error) {
 		s := stderr.String()
 		if strings.Contains(s, "Invalid target address") { // the "Error:" has a bunch of escape codes surrounding it
 			err = nil
+		} else if strings.Contains(s, "No state file was found!") {
+			err = nil
 		} else {
 			fmt.Fprint(os.Stderr, s)
 		}
