@@ -62,6 +62,7 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 	if c.wd, err = os.Getwd(); err != nil {
 		return
 	}
+	//ui.PrintfWithCaller("c.wd: %s", c.wd)
 
 	f := func(ctx context.Context) error {
 		chOrg, chErr := make(chan *Organization), make(chan error)
@@ -87,12 +88,12 @@ func NewConfig(ctx context.Context) (c *Config, err error) {
 		if err := c.event.SetInitialRoleName(aws.ToString(callerIdentity.Arn)); err != nil {
 			return err
 		}
-		//log.Printf("%+v", c.event)
+		//ui.PrintfWithCaller("%+v", c.event)
 		return nil
 	}
 	ctx1s, _ := context.WithTimeout(ctx, time.Second)
 	if err := f(ctx1s); err != nil {
-		//log.Print(err)
+		//ui.PrintWithCaller(err)
 		c.deferredTelemetry = f
 	}
 
