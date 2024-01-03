@@ -78,8 +78,6 @@ func EnsureVPCPeeringConnection(
 			ui.StopErr(err)
 			return
 		}
-		ui.Debug(conns)
-		ui.Print(err)
 		if len(conns) != 1 {
 			err = fmt.Errorf("expected 1 VPC peering connection but found %s", jsonutil.MustString(conns))
 			ui.StopErr(err)
@@ -128,7 +126,7 @@ func EnsureVPCPeeringRouteIPv6(
 		VpcPeeringConnectionId:   aws.String(vpcPeeringConnectionId),
 	})
 	if awsutil.ErrorCodeIs(err, RouteAlreadyExists) { // TODO confirm whether this detects destination gateway mismatches
-		ui.Stop("exists")
+		ui.Stop("route already exists")
 		return nil
 	}
 	return ui.StopErr(err)
