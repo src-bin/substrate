@@ -186,6 +186,9 @@ func DetachRolePolicy(
 		PolicyArn: aws.String(policyARN),
 		RoleName:  aws.String(roleName),
 	})
+	if awsutil.ErrorCodeIs(err, NoSuchEntity) {
+		err = nil
+	}
 	return err
 }
 
