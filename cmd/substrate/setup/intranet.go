@@ -21,7 +21,6 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/telemetry"
 	"github.com/src-bin/substrate/terraform"
 	"github.com/src-bin/substrate/ui"
 )
@@ -206,7 +205,6 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 			"prefix":                             terraform.Q(naming.Prefix()),
 			"selected_regions":                   terraform.QSlice(regions.Selected()),
 			"stage_name":                         terraform.Q(quality),
-			"telemetry":                          terraform.Bool(telemetry.Enabled()),
 		}
 		if hostname != "" {
 			arguments["okta_hostname"] = terraform.Q(hostname)

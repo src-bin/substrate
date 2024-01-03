@@ -26,7 +26,6 @@ import (
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/telemetry"
 	"github.com/src-bin/substrate/ui"
 )
 
@@ -140,12 +139,6 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 	// once again after. On first runs, the Lambda function will be partially
 	// configured before the CloudFront distribution is created and then
 	// reconfigured to include the CloudFront distribution's DNS domain name.
-	var telemetryYesNo string
-	if telemetry.Enabled() {
-		telemetryYesNo = "yes"
-	} else {
-		telemetryYesNo = "no"
-	}
 	environment := map[string]string{
 		"AZURE_AD_TENANT_ID":                 tenantId,
 		"OAUTH_OIDC_CLIENT_ID":               clientId,
@@ -153,7 +146,6 @@ func intranet2(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDo
 		"OKTA_HOSTNAME":                      hostname,
 		"SELECTED_REGIONS":                   strings.Join(regions.Selected(), ","),
 		"SUBSTRATE_PREFIX":                   naming.Prefix(),
-		"SUBSTRATE_TELEMETRY":                telemetryYesNo,
 	}
 	if distribution, err := awscloudfront.GetDistributionByName(ctx, substrateCfg, naming.Substrate); err == nil {
 		environment["DNS_DOMAIN_NAME"] = distribution.DomainName

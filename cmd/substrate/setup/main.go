@@ -86,11 +86,6 @@ to run repeatedly`,
 
 func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
 
-	ui.Must2(ui.ConfirmFile(
-		telemetry.Filename,
-		"can Substrate post non-sensitive and non-personally identifying telemetry (documented in more detail at <https://docs.substrate.tools/substrate/ref/telemetry>) to Source & Binary to better understand how Substrate is being used? (yes/no)",
-	))
-
 	//ui.Debug(cfg.MustGetCallerIdentity(ctx))
 	regions.Default()
 	ui.Must2(cfg.BootstrapCredentials(ctx)) // get from anywhere to IAM credentials so we can assume roles
@@ -861,6 +856,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
 	ui.Must(accounts.CheatSheet(ctx, mgmtCfg))
+
+	if yesno, err := os.ReadFile(telemetry.Filename); err == nil {
+		if strings.ToLower(fileutil.Tidy(yesno)) == "no" {
+			ui.Print("")
+			ui.Printf(`ignoring substrate.telemetry setting of "no"; telemetry is mandatory as of Substrate 2024.01; see <https://docs.substrate.tools/substrate/ref/telemetry>`)
+		}
+	}
 
 	ui.Print("")
 	ui.Print("setup complete!")

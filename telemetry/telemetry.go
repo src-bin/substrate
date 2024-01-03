@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -19,10 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/features"
-	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
-	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -36,21 +33,6 @@ const Filename = "substrate.telemetry"
 //
 // The actual value is set at build time.
 var Endpoint = ""
-
-// Enabled returns true if telemetry is enabled and false otherwise. It must
-// be affirmatively enabled in either an environment variable or a file.
-func Enabled() bool {
-
-	if pathname, err := fileutil.PathnameInParents(Filename); err == nil {
-		if yesno, err := os.ReadFile(pathname); err == nil {
-			if strings.ToLower(fileutil.Tidy(yesno)) == "no" {
-				ui.Printf(`ignoring substrate.telemetry setting of "no"; telemetry is mandatory as of Substrate 2024.01; see <https://docs.substrate.tools/substrate/ref/telemetry>`)
-			}
-		}
-	}
-
-	return true // can't turn off telemetry as of 2024.01
-}
 
 type Event struct {
 	Command, Subcommand              string // e.g. "substrate" and "assume-role" or "substrate-intranet" and "InstanceFactory"
@@ -121,10 +103,6 @@ func (e *Event) Post(ctx context.Context) error {
 		//defer func() { recover() }() // allow closing e.wait multiple times
 		e.once.Do(func() { close(e.wait) })
 	}()
-
-	if !Enabled() {
-		return nil
-	}
 
 	e.mu.Lock()
 	defer e.mu.Unlock()
