@@ -148,7 +148,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		if ok, err := ui.ConfirmFile(cloudtrail.ManageCloudTrailFilename); err != nil {
 			ui.Fatal(err)
 		} else if ok {
-			fmt.Print("substrate setup-cloudtrail\n")
+			fmt.Print("substrate setup cloudtrail\n")
 		}
 
 		for _, account := range serviceAccounts {
