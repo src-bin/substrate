@@ -459,7 +459,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	//log.Print(jsonutil.MustString(mgmtRole))
 	substratePrincipals = append(substratePrincipals, mgmtRole.ARN)
 	substrateRole, err := awsiam.EnsureRole(ctx, substrateCfg, roles.Substrate, policies.AssumeRolePolicyDocument(&policies.Principal{
-		AWS: substratePrincipals,
+		AWS:     substratePrincipals,
+		Service: []string{"apigateway.amazonaws.com", "lambda.amazonaws.com"},
 	}))
 	ui.Must(err)
 	ui.Must(awsiam.AttachRolePolicy(ctx, substrateCfg, substrateRole.Name, policies.AdministratorAccess))
