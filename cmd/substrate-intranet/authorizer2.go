@@ -15,7 +15,7 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-func authorizer2(
+func authorizer(
 	cfg *awscfg.Config,
 	oc *oauthoidc.Client,
 ) func(

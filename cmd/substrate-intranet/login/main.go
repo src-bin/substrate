@@ -41,7 +41,7 @@ func errorResponse(err error, extras ...interface{}) *events.APIGatewayV2HTTPRes
 	}
 }
 
-func Main2(
+func Main(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	oc *oauthoidc.Client,

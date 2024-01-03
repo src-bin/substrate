@@ -24,7 +24,7 @@ import (
 	"github.com/src-bin/substrate/tagging"
 )
 
-func Main2(
+func Main(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	oc *oauthoidc.Client,

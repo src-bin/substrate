@@ -17,9 +17,8 @@ import (
 	"github.com/src-bin/substrate/ui"
 )
 
-//go:generate go run ../../tools/dispatch-map/main.go .
 //go:generate go run ../../tools/dispatch-map/main.go -function JavaScript -o dispatch-map-js.go .
-//go:generate go run ../../tools/dispatch-map/main.go -function Main2 -o dispatch-map-main.go .
+//go:generate go run ../../tools/dispatch-map/main.go -function Main -o dispatch-map-main.go .
 
 func main() {
 	ctx := contextutil.WithValues(context.Background(), "substrate-intranet", "", "")
@@ -51,7 +50,7 @@ func main() {
 	}
 
 	lambda.Start(&Mux{
-		Authorizer: authorizer2(cfg, oc),
+		Authorizer: authorizer(cfg, oc),
 		Handler: func(ctx context.Context, event *events.APIGatewayV2HTTPRequest) (*events.APIGatewayV2HTTPResponse, error) {
 			var principalId string
 			if event.RequestContext.Authorizer != nil {
@@ -72,7 +71,7 @@ func main() {
 				if k == "" {
 					k = "index"
 				}
-				if m, ok := DispatchMapMain2.Map[k]; ok && m.Func != nil { // TODO handle nested routes here, too
+				if m, ok := DispatchMapMain.Map[k]; ok && m.Func != nil { // TODO handle nested routes here, too, if you want to
 					return m.Func(ctx, cfg, oc.Copy(), event)
 				}
 			}

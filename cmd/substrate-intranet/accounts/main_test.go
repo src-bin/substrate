@@ -22,7 +22,7 @@ func TestAccountsConsole12hAdministrator(t *testing.T) {
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
-	resp, err := Main2(ctx, cfg, nil /* oc */, request(
+	resp, err := Main(ctx, cfg, nil /* oc */, request(
 		roles.Administrator,       // start as Administrator in the admin account
 		roles.DeployAdministrator, // assume DeployAdministrator in the deploy account
 	))
@@ -62,7 +62,7 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 	}()
 	time.Sleep(10 * time.Second) // give AWS IAM time to sort itself out
 
-	resp, err := Main2(ctx, cfg, nil /* oc */, request(
+	resp, err := Main(ctx, cfg, nil /* oc */, request(
 		roleName, // start as TestDeveloper in the admin account
 		roleName, // assume TestDeveloper in the deploy account
 	))
@@ -86,7 +86,7 @@ func TestAccountsConsoleDenied(t *testing.T) {
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
-	resp, err := Main2(ctx, cfg, nil /* oc */, request(
+	resp, err := Main(ctx, cfg, nil /* oc */, request(
 		roles.Auditor,             // start as Auditor in the admin account
 		roles.DeployAdministrator, // assume DeployAdministrator in the deploy account, which will fail
 	))

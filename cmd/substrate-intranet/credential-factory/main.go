@@ -33,7 +33,7 @@ const (
 	TagValueFormat = "%s %s expiry %s"    // duplicated in tools/garbage-credential-factory-tags/main.go
 )
 
-func Main2(
+func Main(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	oc *oauthoidc.Client,

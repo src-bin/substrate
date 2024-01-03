@@ -32,7 +32,7 @@ func JavaScript(
 	return lambdautil.Static("application/javascript; charset=utf-8", javascript)
 }
 
-func Main2(
+func Main(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	oc *oauthoidc.Client,

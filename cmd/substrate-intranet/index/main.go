@@ -10,7 +10,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/src-bin/substrate/awsapigatewayv2"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/lambdautil"
@@ -33,63 +32,6 @@ var unlistedPaths = []string{
 }
 
 func Main(
-	ctx context.Context,
-	cfg *awscfg.Config,
-	oc *oauthoidc.Client,
-	event *events.APIGatewayProxyRequest,
-) (*events.APIGatewayProxyResponse, error) {
-
-	var debug string
-	if _, ok := event.QueryStringParameters["debug"]; ok {
-		b, err := json.MarshalIndent(event, "", "\t")
-		if err != nil {
-			return nil, err
-		}
-		debug += string(b) + "\n" + strings.Join(os.Environ(), "\n") + "\n"
-	}
-
-	out, err := cfg.APIGateway().GetResources(ctx, &apigateway.GetResourcesInput{
-		Limit:     aws.Int32(500),
-		RestApiId: aws.String(event.RequestContext.APIID),
-	})
-	if err != nil {
-		return nil, err
-	}
-	paths := make([]string, 0)
-	for _, item := range out.Items {
-		path := aws.ToString(item.Path)
-		if strings.Contains(path, "{") {
-			continue
-		}
-		if strings.Count(path, "/") >= 3 {
-			continue
-		}
-		if i := sort.SearchStrings(unlistedPaths, path); i < len(unlistedPaths) && unlistedPaths[i] == path {
-			continue
-		}
-		paths = append(paths, path)
-	}
-	sort.Strings(paths)
-
-	body, err := lambdautil.RenderHTML(indexTemplate(), struct {
-		Debug string
-		Paths []string
-	}{
-		Debug: debug,
-		Paths: paths,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &events.APIGatewayProxyResponse{
-		Body:       body,
-		Headers:    map[string]string{"Content-Type": "text/html; charset=utf-8"},
-		StatusCode: http.StatusOK,
-	}, nil
-}
-
-func Main2(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	oc *oauthoidc.Client,
