@@ -5,7 +5,7 @@ func IntranetGlobalModule() *Directory {
 	return &Directory{
 		ConfigurationAliases: []ProviderAlias{UsEast1ProviderAlias},
 		Files:                intranetGlobalTemplate(),
-		RemoveFiles:          []string{"outputs.tf"}, // TODO add "main.tf" to this list in 2024.01
+		RemoveFiles:          []string{"main.tf", "outputs.tf"},
 	}
 }
 

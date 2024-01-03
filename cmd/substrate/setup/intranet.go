@@ -167,7 +167,7 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		// Remove a select few resources from Terraform state so that they
 		// aren't destroyed when Terraform runs with the matching resource
 		// definitions removed.
-		// ui.Must(terraform.StateRm(dirname, "module.intranet.aws_iam_instance_profile.admin")) // TODO uncomment in 2024.01
+		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_iam_instance_profile.admin"))
 
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
