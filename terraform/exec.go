@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/src-bin/substrate/ui"
 )
@@ -86,6 +87,7 @@ func Plan(dirname string) error {
 
 func ProvidersLock(dirname string) error {
 	ui.Printf("checksumming Terraform providers for all platforms in %s", dirname)
+	defer func(t time.Time) { ui.PrintWithCaller(time.Since(t)) }(time.Now())
 	return execdlp(
 		dirname,
 		"terraform", "providers", "lock",
