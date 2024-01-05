@@ -178,17 +178,17 @@ func (c *Config) SetCredentials(
 
 // WaitUntilCredentialsWork waits in a sleeping loop until the configured
 // credentials (whether provided via SetCredentials or discovered in
-// environment variables or an IAM instance profile) work, which it tests
-// using both sts:GetCallerIdentity and organizations:DescribeOrganization.
-// This seems silly but IAM is an eventually consistent global service so
-// it's not guaranteed that newly created credentials will work immediately.
-// In fact, even just testing via sts:GetCallerIdentity is demonstrably not
-// good enough as `substrate bootstrap-management-account`, when run with
-// root credentials, will fail a significant fraction of the time because,
-// though sts:GetCallerIdentity succeeded, the credentials haven't yet become
-// visible to other services. Thus, organizations:DescribeOrganization was
-// chosen as a second test to ensure the credentials really, actually work.
-// Typically when this has to wait it waits about five seconds.
+// environment variables or an IAM instance profile) work, which it tests using
+// both sts:GetCallerIdentity and organizations:DescribeOrganization. This
+// seems silly but IAM is an eventually consistent global service so it's not
+// guaranteed that newly created credentials will work immediately. In fact,
+// even just testing via sts:GetCallerIdentity is demonstrably not good enough
+// as `substrate setup`, when run with root credentials, will fail a
+// significant fraction of the time because, though sts:GetCallerIdentity
+// succeeded, the credentials haven't yet become visible to other services.
+// Thus, organizations:DescribeOrganization was chosen as a second test to
+// ensure the credentials really, actually work. Typically when this has to
+// wait it waits about five seconds.
 func (c *Config) WaitUntilCredentialsWork(ctx context.Context) (
 	callerIdentity *sts.GetCallerIdentityOutput,
 	err error,

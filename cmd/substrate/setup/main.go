@@ -289,8 +289,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	// Ensure service control policies are enabled and that Substrate's is
 	// attached and up-to-date. This is pretty basic and may eventually be
-	// expanded into `substrate create-scp|scps` commands; there's also an
-	// opportunity in managing tagging policies that requires more research.
+	// expanded into `substrate scp create|delete|list` commands; there's also
+	// an opportunity in managing tagging policies that requires more research.
 	ui.Spin("configuring your organization's service control policy")
 	statements := []policies.Statement{
 
@@ -358,7 +358,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	ui.Must(awsram.EnableSharingWithAwsOrganization(ctx, mgmtCfg))
 	ui.Stop("ok")
 
-	// Find or create the Substrate account, upgrading an admin account if
+	// Find or create the Substrate account, upgrading an old admin account if
 	// that's all we can find. Tag it in the new style to close off the era of
 	// `substrate bootstrap-*` and `substrate create-admin-account` for good.
 	ui.Spin("finding the Substrate account")
@@ -881,8 +881,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	ui.Print(terraform.AWSProviderVersionConstraintFilename)
 	ui.Print("")
 	ui.Print("next steps:")
-	ui.Print("- run `substrate setup-cloudtrail` to setup CloudTrail logging to S3 for all accounts in all regions")
-	ui.Print("- run `substrate create-account` to create service accounts to host your infrastructure")
+	ui.Print("- run `substrate setup cloudtrail` to setup CloudTrail logging to S3 for all accounts in all regions")
+	ui.Print("- run `substrate account create` to create service accounts to host and isolate your infrastructure")
 	ui.Printf("- use `eval $(substrate credentials)` or <https://%s/credential-factory> to mint short-lived AWS access keys", dnsDomainName)
 	switch idpName {
 	case oauthoidc.AzureAD:
@@ -896,6 +896,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		ui.Print("  (see <https://docs.substrate.tools/substrate/bootstrapping/integrating-your-identity-provider/okta> for details)")
 	}
 	ui.Print("- refer to the Substrate documentation at <https://docs.substrate.tools/substrate/>")
-	ui.Print("- email <help@src-bin.com> or mention us in Slack for support")
+	ui.Print("- email <help@src-bin.com> for support")
 
 }

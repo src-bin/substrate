@@ -127,9 +127,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	ui.Printf("root-modules/%s/%s/%s/", *domain, *environment, *quality)
 	ui.Print("")
 	ui.Printf(
-		"then, write Terraform code in modules/%s/ to define your infrastructure and run `substrate update-account` to apply it",
+		"then, write Terraform code in modules/%s/ to define your infrastructure and run `substrate account update`, `substrate terraform`, or plain `terraform` to apply it",
 		*domain,
 	)
-	ui.Print("or, run `substrate create-account` again to create other service accounts")
+	ui.Print("or, run `substrate account create` again to create other service accounts")
 
 }

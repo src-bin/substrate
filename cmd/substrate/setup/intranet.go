@@ -31,8 +31,8 @@ const (
 )
 
 // intranet configures the Intranet in the Substrate account and returns the
-// DNS domain name where it's being served. This is, at present, mostly a crib
-// from `substrate create-admin-account`.
+// DNS domain name where it's being served. This is entirely deprecated in
+// favor of intranet2 and is slowly being dismantled and removed.
 func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDomainName string, idpName oauthoidc.Provider) {
 	substrateAccountId := substrateCfg.MustAccountId(ctx)
 	networkCfg := awscfg.Must(mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour))

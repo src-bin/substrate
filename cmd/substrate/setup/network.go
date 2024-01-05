@@ -287,7 +287,7 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 
 		vpcs0, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region0), eq0.Environment, eq0.Quality)
 		ui.Must(err)
-		if len(vpcs0) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
+		if len(vpcs0) != 1 { // TODO support sharing many VPCs when we introduce `substrate network create|delete|list`
 			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs0))
 		}
 		vpc0 := vpcs0[0]
@@ -295,7 +295,7 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 		//ui.Debug(vpc0)
 		vpcs1, err := awsec2.DescribeVPCs(ctx, networkCfg.Regional(region1), eq1.Environment, eq1.Quality)
 		ui.Must(err)
-		if len(vpcs1) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
+		if len(vpcs1) != 1 { // TODO support sharing many VPCs when we introduce `substrate network create|delete|list`
 			ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs1))
 		}
 		vpc1 := vpcs1[0]

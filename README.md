@@ -16,7 +16,7 @@ Here's what you need to do Substrate development:
 * Git
 * The version of Go specified in `go.mod`
 * `GOBIN` set (explicitly or implicitly - verify with `go env GOBIN`) to a writeable directory on your `PATH`
-* Terraform (by running `substrate terraform`, among other options)
+* Terraform (by running `substrate terraform install`, among other options)
 
 Here's how to build and install `substrate` locally:
 

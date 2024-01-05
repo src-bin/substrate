@@ -43,7 +43,7 @@ func ShareVPC(
 	// Find the VPC and subnets to share.
 	vpcs, err := awsec2.DescribeVPCs(ctx, networkCfg, environment, quality)
 	ui.Must(err)
-	if len(vpcs) != 1 { // TODO support sharing many VPCs when we introduce `substrate create-network` and friends
+	if len(vpcs) != 1 { // TODO support sharing many VPCs when we introduce `substrate network create|delete|list`
 		ui.Fatalf("expected 1 VPC but found %s", jsonutil.MustString(vpcs))
 	}
 	vpc := vpcs[0]

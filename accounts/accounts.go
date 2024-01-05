@@ -29,10 +29,10 @@ const (
 
 func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 
-	// TODO If we run `substrate accounts` in any directory except exactly the
+	// TODO If we run `substrate account list` in any directory except exactly the
 	// Substrate repository, this litters extra substrate.accounts.txt files
 	// all over the place. We should either stop writing this file entirely
-	// (which might require making `substrate accounts` a lot faster) or use
+	// (which might require making `substrate account list` a lot faster) or use
 	// PathnameInParents to ensure we write to the correct directory.
 	f, err := os.Create(CheatSheetFilename)
 	if err != nil {
