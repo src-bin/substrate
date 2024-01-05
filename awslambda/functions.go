@@ -62,13 +62,13 @@ func EnsureFunction(
 			return
 		}
 		ui.Spinf("updating the %s Lambda function's code", name)
-		err = UpdateFunctionCode(ctx, cfg, name, code)
+		for range awsutil.StandardJitteredExponentialBackoff() {
+			err = UpdateFunctionCode(ctx, cfg, name, code)
+			if !awsutil.ErrorCodeIs(err, ResourceConflictException) {
+				break
+			}
+		}
 	}
-	if err != nil {
-		ui.StopErr(err)
-		return
-	}
-
 	ui.StopErr(err)
 	return
 }
