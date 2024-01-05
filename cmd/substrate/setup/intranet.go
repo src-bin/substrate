@@ -164,11 +164,6 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		file.Add(module)
 		ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
 
-		// Remove a select few resources from Terraform state so that they
-		// aren't destroyed when Terraform runs with the matching resource
-		// definitions removed.
-		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_iam_instance_profile.admin"))
-
 		providersFile := terraform.NewFile()
 		providersFile.Add(terraform.ProviderFor(
 			region,
@@ -185,6 +180,11 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 
 		ui.Must(terraform.Init(dirname))
 		ui.Must(terraform.ProvidersLock(dirname))
+
+		// Remove a select few resources from Terraform state so that they
+		// aren't destroyed when Terraform runs with the matching resource
+		// definitions removed.
+		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_iam_instance_profile.admin"))
 
 		if *noApply {
 			err = terraform.Plan(dirname)
