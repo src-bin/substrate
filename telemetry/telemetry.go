@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/src-bin/substrate/contextutil"
 	"github.com/src-bin/substrate/features"
+	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/version"
@@ -205,6 +206,10 @@ func endpoint(ctx context.Context) string {
 		}
 	}
 	return Endpoint // without the feature flag, in the Intranet, or before the Intranet exists, submit telemetry directly
+}
+
+func init() {
+	fileutil.Remove(Filename)
 }
 
 func roleNameFromArn(roleArn string) (string, error) {
