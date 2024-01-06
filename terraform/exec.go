@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/src-bin/substrate/ui"
 )
@@ -87,15 +86,17 @@ func Plan(dirname string) error {
 
 func ProvidersLock(dirname string) error {
 	ui.Printf("checksumming Terraform providers for all platforms in %s", dirname)
-	defer func(t time.Time) { ui.PrintWithCaller(time.Since(t)) }(time.Now())
-	return execdlp(
+	if err := execdlp(
 		dirname,
 		"terraform", "providers", "lock",
 		"-platform=darwin_amd64",
 		"-platform=darwin_arm64",
 		"-platform=linux_amd64",
 		"-platform=linux_amd64",
-	)
+	); err != nil {
+		ui.PrintWithCaller(err)
+	}
+	return nil
 }
 
 func ShortInstalledVersion() (string, error) {

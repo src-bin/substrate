@@ -1,4 +1,4 @@
-# partially managed by Substrate; do not edit the archive, aws, or external providers by hand
+# partially managed by Substrate; do not edit the aws or external providers by hand
 
 terraform {
   required_providers {
