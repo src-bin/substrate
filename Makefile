@@ -44,22 +44,28 @@ install:
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.DefaultRequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 
 release: release-darwin release-linux
+ifndef CODEBUILD_BUILD_ID
+	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
+endif
 
 release-darwin:
+ifndef S3_BUCKET
+	@echo S3_BUCKET is required in the environment for \`make release-darwin\`
+	@false
+endif
 ifdef CODEBUILD_BUILD_ID
 	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-amd64.tar.gz
 	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-arm64.tar.gz
 else
 	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
+	aws s3 cp substrate-$(VERSION)-darwin-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
+	aws s3 cp substrate-$(VERSION)-darwin-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
 endif
 
 release-linux:
 	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
-ifndef CODEBUILD_BUILD_ID
-	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
-endif
 
 tarball:
 	rm -f -r substrate-$(VERSION)-$(GOOS)-$(GOARCH) # makes debugging easier
