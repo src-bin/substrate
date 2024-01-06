@@ -24,6 +24,9 @@ func TestEC2(t *testing.T) {
 	defer restore()
 	stdout := &strings.Builder{}
 
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
+
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
 	cmdutil.OverrideArgs(
@@ -107,6 +110,9 @@ func TestEverything(t *testing.T) {
 	cfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
 	stdout := &strings.Builder{}
+
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
@@ -231,6 +237,9 @@ func TestZero(t *testing.T) {
 	cfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
 	stdout := &strings.Builder{}
+
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 

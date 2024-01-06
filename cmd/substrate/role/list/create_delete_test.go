@@ -31,6 +31,9 @@ func TestFooBarBazQuux(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
+
 	testRoleInAccounts(t, ctx, cfg, serviceAccounts, roleName, testNotExists)
 
 	cmdutil.OverrideArgs(
@@ -77,6 +80,9 @@ func TestFooHumans(t *testing.T) {
 		time.Hour,
 	))
 
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
+
 	testRole(t, ctx, cfg, roleName, testNotExists)
 	testRole(t, ctx, fooCfg, roleName, testNotExists)
 
@@ -117,6 +123,9 @@ func TestManagement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, mgmtCfg, roleName, testNotExists)
 
@@ -172,6 +181,9 @@ func TestSpecial(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
+
 	testRole(t, ctx, auditCfg, roleName, testNotExists)
 	testRole(t, ctx, deployCfg, roleName, testNotExists)
 	testRole(t, ctx, networkCfg, roleName, testNotExists)
@@ -210,6 +222,9 @@ func TestSubstrate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
+	delete.Main(ctx, cfg, nil, nil, os.Stdout)
 
 	testRole(t, ctx, cfg, roleName, testNotExists)
 
