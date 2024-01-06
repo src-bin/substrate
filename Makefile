@@ -46,16 +46,20 @@ install:
 release: release-darwin release-linux
 
 release-darwin:
+ifdef CODEBUILD_BUILD_ID
+	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-amd64.tar.gz
+	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-arm64.tar.gz
+else
 	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
+endif
 
 release-linux:
-ifndef CODEBUILD_BUILD_ID
-	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
-	@false
-endif
 	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
+ifndef CODEBUILD_BUILD_ID
+	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
+endif
 
 tarball:
 	rm -f -r substrate-$(VERSION)-$(GOOS)-$(GOARCH) # makes debugging easier
