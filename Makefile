@@ -43,14 +43,18 @@ go-generate-intranet:
 install:
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.DefaultRequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 
-release:
+release: release-darwin release-linux
+
+release-darwin:
+	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
+	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
+
+release-linux:
 ifndef CODEBUILD_BUILD_ID
 	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
 	@false
 endif
-	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
 	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION)
-	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
 
 tarball:
@@ -72,4 +76,4 @@ test:
 uninstall:
 	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
 
-.PHONY: all clean deps install release tarball test uninstall
+.PHONY: all clean deps install release release-darwin release-linux tarball test uninstall
