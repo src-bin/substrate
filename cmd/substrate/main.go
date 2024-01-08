@@ -23,6 +23,7 @@ import (
 	"github.com/src-bin/substrate/cmd/substrate/whoami"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/contextutil"
+	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
@@ -48,6 +49,10 @@ func main() {
 		subcommand,
 		u.Username,
 	)
+
+	if features.MacOSKeychain.Enabled() {
+		ui.Must(cmdutil.SetenvFromTPM())
+	}
 
 	var versionFlag bool
 	rootCmd := &cobra.Command{
