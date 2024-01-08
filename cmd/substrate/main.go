@@ -51,7 +51,7 @@ func main() {
 	)
 
 	if features.MacOSKeychain.Enabled() {
-		ui.Must(cmdutil.SetenvFromTPM())
+		ui.Must(cmdutil.SetenvFromTPM(subcommand))
 	}
 
 	var versionFlag bool
