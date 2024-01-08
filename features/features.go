@@ -7,6 +7,6 @@ package features
 const (
 	DelegatedOrganizationAdministration feature = "DelegatedOrganizationAdministration"
 	IdentityCenter                      feature = "IdentityCenter"
-	MacOSKeychain                       feature = "MacOSKeychain"
+	IgnoreMacOSKeychain                 feature = "IgnoreMacOSKeychain"
 	ProxyTelemetry                      feature = "ProxyTelemetry"
 )

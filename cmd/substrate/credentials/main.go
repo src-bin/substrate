@@ -125,7 +125,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	versionutil.WarnDowngrade(ctx, cfg)
 
-	if features.MacOSKeychain.Enabled() {
+	if !features.IgnoreMacOSKeychain.Enabled() {
 		ui.Must(cmdutil.SetTPM(*creds))
 	}
 

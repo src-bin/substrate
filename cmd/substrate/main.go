@@ -50,7 +50,7 @@ func main() {
 		u.Username,
 	)
 
-	if features.MacOSKeychain.Enabled() {
+	if !features.IgnoreMacOSKeychain.Enabled() {
 		ui.Must(cmdutil.SetenvFromTPM(subcommand))
 	}
 
