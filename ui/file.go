@@ -27,6 +27,9 @@ func ConfirmFile(pathname string, args ...interface{}) (bool, error) {
 		}
 		Printf("invalid yes/no %q read from %s", yesno, pathname)
 	}
+	if len(args) == 0 {
+		return false, nil
+	}
 	ok, err := Confirm(args...)
 	if err != nil {
 		return false, err
@@ -106,6 +109,9 @@ func PromptFile(pathname string, args ...interface{}) (string, error) {
 	b, err := os.ReadFile(pathname)
 	s := strings.Trim(string(b), "\r\n")
 	if err != nil {
+		if len(args) == 0 {
+			return s, nil
+		}
 		s, err = Prompt(args...)
 		if err != nil {
 			return "", err
