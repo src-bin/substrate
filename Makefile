@@ -2,6 +2,10 @@
 # SHA. In either case, annotate builds from dirty work trees.
 VERSION ?= $(shell git describe --exact-match --tags HEAD 2>/dev/null || git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
 
+# Though we're no longer using the commit SHA in release tarball filenames,
+# it's still useful to have the commit in the binary.
+COMMIT = $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
+
 ifndef CODEBUILD_BUILD_ID
 ENDPOINT := https://src-bin.org/telemetry/
 else
@@ -38,10 +42,10 @@ go-generate:
 	go generate -x ./... # the rest of the go:generate directives
 
 go-generate-intranet:
-	env GOARCH=arm64 GOOS=linux go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.DefaultRequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o cmd/substrate/intranet-zip/bootstrap ./cmd/substrate-intranet
+	env GOARCH=arm64 GOOS=linux go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.DefaultRequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o cmd/substrate/intranet-zip/bootstrap ./cmd/substrate-intranet
 
 install:
-	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.DefaultRequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
+	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.DefaultRequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 
 release: release-darwin release-linux
 ifndef CODEBUILD_BUILD_ID
