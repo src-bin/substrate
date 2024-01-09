@@ -52,18 +52,29 @@ ifndef CODEBUILD_BUILD_ID
 	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
 endif
 
-release-darwin:
+release-darwin: release-darwin-amd64 release-darwin-arm64
+
+release-darwin-amd64:
 ifndef S3_BUCKET
-	@echo S3_BUCKET is required in the environment for \`make release-darwin\`
+	@echo S3_BUCKET is required in the environment for \`make release-darwin-amd64\`
 	@false
 endif
 ifdef CODEBUILD_BUILD_ID
 	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-amd64.tar.gz
-	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-arm64.tar.gz
 else
 	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
-	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
 	aws s3 cp substrate-$(VERSION)-darwin-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
+endif
+
+release-darwin-arm64:
+ifndef S3_BUCKET
+	@echo S3_BUCKET is required in the environment for \`make release-darwin-arm64\`
+	@false
+endif
+ifdef CODEBUILD_BUILD_ID
+	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-arm64.tar.gz
+else
+	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
 	aws s3 cp substrate-$(VERSION)-darwin-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
 endif
 
