@@ -62,7 +62,7 @@ phases:
       - sh "tools/tweet-codebuild.sh"
 artifacts:
   files:
-    - substrate-*-*-*-*.tar.gz
+    - substrate-*.tar.gz
     - substrate.version
     - upgrade/*
 ...
