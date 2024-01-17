@@ -116,17 +116,12 @@ func main() {
 		log.Fatal(err)
 	}
 	version := strings.TrimSpace(string(content))
-	out, err := exec.Command("git", "show", "--format=%h", "--no-patch").Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	commit := strings.TrimSpace(string(out))
 	var filenames []string
 	for _, goOS := range []string{"darwin", "linux"} {
 		for _, goArch := range []string{"amd64", "arm64"} {
 			filenames = append(filenames, fmt.Sprintf(
-				"substrate-%s-%s-%s-%s.tar.gz",
-				version, commit, goOS, goArch,
+				"substrate-%s-%s-%s.tar.gz",
+				version, goOS, goArch,
 			))
 		}
 	}
