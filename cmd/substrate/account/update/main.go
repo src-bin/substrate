@@ -23,11 +23,12 @@ var (
 	environment, environmentFlag, environmentCompletionFunc = cmdutil.EnvironmentFlag("environment of the AWS account to update")
 	quality, qualityFlag, qualityCompletionFunc             = cmdutil.QualityFlag("quality of the AWS account to update")
 	autoApprove, noApply                                    = new(bool), new(bool)
+	providersLock                                           = new(bool)
 )
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "update --domain <domain> --environment <environment> [--quality <quality>] [--auto-approve|--no-apply]",
+		Use:   "update --domain <domain> --environment <environment> [--quality <quality>] [--auto-approve|--no-apply] [--providers-lock]",
 		Short: "update an existing AWS account and plan or apply its root Terraform modules",
 		Long:  ``,
 		Args:  cobra.NoArgs,
@@ -39,6 +40,7 @@ func Command() *cobra.Command {
 			return []string{
 				"--domain", "--environment", "--quality",
 				"--auto-approve", "--no-apply",
+				"--providers-lock",
 			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
 		},
 	}
@@ -50,6 +52,7 @@ func Command() *cobra.Command {
 	cmd.RegisterFlagCompletionFunc(qualityFlag.Name, qualityCompletionFunc)
 	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	cmd.Flags().BoolVar(noApply, "no-apply", false, "do not apply Terraform changes")
+	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "run `terraform providers lock` during Terraform initialization")
 	return cmd
 }
 
@@ -103,6 +106,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	accounts.SetupIAM(ctx, mgmtCfg, networkCfg, substrateCfg, accountCfg, *domain, *environment, *quality)
 
 	accounts.SetupTerraform(ctx, mgmtCfg, networkCfg, accountCfg, *domain, *environment, *quality)
-	accounts.RunTerraform(*domain, *environment, *quality, *autoApprove, *noApply)
+	accounts.RunTerraform(*domain, *environment, *quality, *autoApprove, *noApply, *providersLock)
 
 }

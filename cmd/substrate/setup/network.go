@@ -219,7 +219,9 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 			ui.Must(terraform.Fmt(dirname))
 
 			ui.Must(terraform.Init(dirname))
-			ui.Must(terraform.ProvidersLock(dirname))
+			if *providersLock {
+				ui.Must(terraform.ProvidersLock(dirname))
+			}
 
 			if *noApply {
 				err = terraform.Plan(dirname)

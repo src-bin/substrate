@@ -179,7 +179,9 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		ui.Must(terraform.Fmt(dirname))
 
 		ui.Must(terraform.Init(dirname))
-		ui.Must(terraform.ProvidersLock(dirname))
+		if *providersLock {
+			ui.Must(terraform.ProvidersLock(dirname))
+		}
 
 		// Remove a select few resources from Terraform state so that they
 		// aren't destroyed when Terraform runs with the matching resource
@@ -243,7 +245,9 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 		ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region))
 
 		ui.Must(terraform.Init(dirname))
-		ui.Must(terraform.ProvidersLock(dirname))
+		if *providersLock {
+			ui.Must(terraform.ProvidersLock(dirname))
+		}
 
 		// Remove a select few resources from Terraform state so that they
 		// aren't destroyed when Terraform runs with the matching resource

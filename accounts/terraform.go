@@ -18,6 +18,7 @@ import (
 func RunTerraform(
 	domain, environment, quality string,
 	autoApprove, noApply bool,
+	providersLock bool,
 ) {
 	if !autoApprove && !noApply {
 		ui.Print("this tool can affect every AWS region in rapid succession")
@@ -28,7 +29,9 @@ func RunTerraform(
 		dirname := filepath.Join(terraform.RootModulesDirname, domain, environment, quality, regions.Global)
 
 		ui.Must(terraform.Init(dirname))
-		ui.Must(terraform.ProvidersLock(dirname))
+		if providersLock {
+			ui.Must(terraform.ProvidersLock(dirname))
+		}
 
 		if noApply {
 			ui.Must(terraform.Plan(dirname))
@@ -40,7 +43,9 @@ func RunTerraform(
 		dirname := filepath.Join(terraform.RootModulesDirname, domain, environment, quality, region)
 
 		ui.Must(terraform.Init(dirname))
-		ui.Must(terraform.ProvidersLock(dirname))
+		if providersLock {
+			ui.Must(terraform.ProvidersLock(dirname))
+		}
 
 		// Remove network sharing and tagging from Terraform because Substrate
 		// handles that directly now.

@@ -30,4 +30,5 @@ func init() {
 	*autoApprove = false
 	*ignoreServiceQuotas = true
 	*noApply = true
+	*providersLock = false
 }

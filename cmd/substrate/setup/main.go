@@ -48,12 +48,13 @@ const (
 
 var (
 	autoApprove, noApply = new(bool), new(bool)
+	providersLock        = new(bool)
 	ignoreServiceQuotas  = new(bool)
 )
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "setup [--auto-approve|--no-apply] [--ignore-service-quotas]",
+		Use:   "setup [--auto-approve|--no-apply] [--providers-lock] [--ignore-service-quotas]",
 		Short: "setup Substrate in your AWS organization",
 		Long: "`substrate setup`" + ` finds or creates your AWS organization, finds or creates the
 AWS accounts and IAM principals Substrate uses to manage your organization, and
@@ -67,6 +68,7 @@ to run repeatedly`,
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 			return []string{
 				"--auto-approve", "--no-apply",
+				"--providers-lock",
 				"--ignore-service-quotas",
 				"--fully-interactive", "--minimally-interactive", "--non-interactive",
 			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
@@ -74,6 +76,7 @@ to run repeatedly`,
 	}
 	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "apply Terraform changes without waiting for confirmation")
 	cmd.Flags().BoolVar(noApply, "no-apply", false, "do not apply Terraform changes")
+	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "run `terraform providers lock` during Terraform initialization")
 	cmd.Flags().BoolVar(ignoreServiceQuotas, "ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	cmd.Flags().AddFlagSet(ui.InteractivityFlagSet())
 
