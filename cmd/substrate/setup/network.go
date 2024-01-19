@@ -95,30 +95,7 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 				Region:      region,
 			})
 			ui.Must(err)
-			//log.Printf("%+v", net)
 			ui.Stop(n.IPv4)
-
-			dirname := filepath.Join(terraform.RootModulesDirname, accounts.Network, eq.Environment, eq.Quality, region)
-
-			file := terraform.NewFile()
-			org := terraform.Organization{
-				Label: terraform.Q("current"),
-			}
-			file.Add(org)
-			tags := terraform.Tags{
-				Environment: eq.Environment,
-				Name:        fmt.Sprintf("%s-%s", eq.Environment, eq.Quality),
-				Quality:     eq.Quality,
-				Region:      region,
-			}
-			vpc := terraform.VPC{
-				CidrBlock: terraform.Q(n.IPv4.String()),
-				Label:     terraform.Label(tags),
-				Tags:      tags,
-			}
-			file.Add(vpc)
-			vpcAccoutrements(ctx, cfg, natGateways, region, org, vpc, file)
-			ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
 
 		}
 	}
@@ -222,6 +199,23 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 			if *providersLock {
 				ui.Must(terraform.ProvidersLock(dirname))
 			}
+
+			org := terraform.Organization{
+				Label: terraform.Q("current"),
+			}
+			ui.Must(terraform.StateRm(dirname, org.Ref().Value()))
+			tags := terraform.Tags{
+				Environment: eq.Environment,
+				Name:        fmt.Sprintf("%s-%s", eq.Environment, eq.Quality),
+				Quality:     eq.Quality,
+				Region:      region,
+			}
+			vpc := terraform.VPC{
+				Label: terraform.Label(tags),
+				Tags:  tags,
+			}
+			ui.Must(terraform.StateRm(dirname, vpc.Ref().Value()))
+			vpcAccoutrements(ctx, cfg, natGateways, region, org, vpc, dirname)
 
 			if *noApply {
 				err = terraform.Plan(dirname)
@@ -389,7 +383,7 @@ func vpcAccoutrements(
 	region string,
 	org terraform.Organization,
 	vpc terraform.VPC,
-	file *terraform.File,
+	dirname string,
 ) {
 	hasPrivateSubnets := vpc.Tags.Environment != "admin"
 
@@ -405,19 +399,19 @@ func vpcAccoutrements(
 		Tags:  vpc.Tags,
 		VpcId: terraform.U(vpc.Ref(), ".id"),
 	}
-	file.Add(igw)
-	file.Add(terraform.Route{
+	ui.Must(terraform.StateRm(dirname, igw.Ref().Value()))
+	ui.Must(terraform.StateRm(dirname, terraform.Route{
 		DestinationIPv4:   terraform.Q("0.0.0.0/0"),
 		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
 		Label:             terraform.Label(vpc.Tags, "public-internet-ipv4"),
 		RouteTableId:      terraform.U(vpc.Ref(), ".default_route_table_id"),
-	})
-	file.Add(terraform.Route{
+	}.Ref().Value()))
+	ui.Must(terraform.StateRm(dirname, terraform.Route{
 		DestinationIPv6:   terraform.Q("::/0"),
 		InternetGatewayId: terraform.U(igw.Ref(), ".id"),
 		Label:             terraform.Label(vpc.Tags, "public-internet-ipv6"),
 		RouteTableId:      terraform.U(vpc.Ref(), ".default_route_table_id"),
-	})
+	}.Ref().Value()))
 
 	// IPv6 Egress-Only Internet Gateway for the private subnets.  (The IPv4
 	// NAT Gateway comes later because it's per-subnet.  That is also where
@@ -428,7 +422,7 @@ func vpcAccoutrements(
 		VpcId: terraform.U(vpc.Ref(), ".id"),
 	}
 	if hasPrivateSubnets {
-		file.Add(egw)
+		ui.Must(terraform.StateRm(dirname, egw.Ref().Value()))
 	}
 
 	// VPC Endpoint for S3, the one VPC Endpoint everyone's all but guaranteed to need.
@@ -474,14 +468,14 @@ func vpcAccoutrements(
 		}
 		s.Tags.Connectivity = "public"
 		s.Tags.Name = vpc.Tags.Name + "-public-" + az
-		file.Add(s)
+		ui.Must(terraform.StateRm(dirname, s.Ref().Value()))
 
 		// Explicitly associate the public subnets with the main routing table.
-		file.Add(terraform.RouteTableAssociation{
+		ui.Must(terraform.StateRm(dirname, terraform.RouteTableAssociation{
 			Label:        s.Label,
 			RouteTableId: terraform.U(vpc.Ref(), ".default_route_table_id"),
 			SubnetId:     terraform.U(s.Ref(), ".id"),
-		})
+		}.Ref().Value()))
 
 		if !hasPrivateSubnets {
 			continue
@@ -502,7 +496,7 @@ func vpcAccoutrements(
 		}
 		s.Tags.Connectivity = "private"
 		s.Tags.Name = vpc.Tags.Name + "-private-" + az
-		file.Add(s)
+		ui.Must(terraform.StateRm(dirname, s.Ref().Value()))
 
 		// Private subnets need their own routing tables to keep their NAT
 		// Gateway traffic zonal.  The VPC Endpoint we created for S3 needs
@@ -512,12 +506,12 @@ func vpcAccoutrements(
 			Tags:  s.Tags,
 			VpcId: terraform.U(vpc.Ref(), ".id"),
 		}
-		file.Add(rt)
-		file.Add(terraform.RouteTableAssociation{
+		ui.Must(terraform.StateRm(dirname, rt.Ref().Value()))
+		ui.Must(terraform.StateRm(dirname, terraform.RouteTableAssociation{
 			Label:        s.Label,
 			RouteTableId: terraform.U(rt.Ref(), ".id"),
 			SubnetId:     terraform.U(s.Ref(), ".id"),
-		})
+		}.Ref().Value()))
 		vpce.RouteTableIds = append(vpce.RouteTableIds, terraform.U(rt.Ref(), ".id"))
 
 		// NAT Gateway for this private subnet.
@@ -528,7 +522,7 @@ func vpcAccoutrements(
 			Tags:               tags,
 		}
 		eip.Tags.Name = vpc.Tags.Name + "-nat-gateway-" + az
-		file.Add(eip)
+		ui.Must(terraform.StateRm(dirname, eip.Ref().Value()))
 		ngw := terraform.NATGateway{
 			Commented: !natGateways,
 			Label:     terraform.Label(tags),
@@ -536,27 +530,29 @@ func vpcAccoutrements(
 			Tags:      tags,
 		}
 		ngw.Tags.Name = vpc.Tags.Name + "-" + az
-		file.Add(ngw)
-		file.Add(terraform.Route{
-			Commented:       !natGateways,
-			DestinationIPv4: terraform.Q("0.0.0.0/0"),
-			Label:           terraform.Label(tags),
-			NATGatewayId:    terraform.U(ngw.Ref(), ".id"),
-			RouteTableId:    terraform.U(rt.Ref(), ".id"),
-		})
+		if natGateways {
+			ui.Must(terraform.StateRm(dirname, ngw.Ref().Value()))
+			ui.Must(terraform.StateRm(dirname, terraform.Route{
+				Commented:       !natGateways,
+				DestinationIPv4: terraform.Q("0.0.0.0/0"),
+				Label:           terraform.Label(tags),
+				NATGatewayId:    terraform.U(ngw.Ref(), ".id"),
+				RouteTableId:    terraform.U(rt.Ref(), ".id"),
+			}.Ref().Value()))
+		}
 
 		// Associate the VPC's Egress-Only Internet Gateway for IPv6 traffic.
-		file.Add(terraform.Route{
+		ui.Must(terraform.StateRm(dirname, terraform.Route{
 			DestinationIPv6:             terraform.Q("::/0"),
 			EgressOnlyInternetGatewayId: terraform.U(egw.Ref(), ".id"),
 			Label:                       terraform.Label(s.Tags, "private-internet-ipv6"),
 			RouteTableId:                terraform.U(rt.Ref(), ".id"),
-		})
+		}.Ref().Value()))
 
 	}
 
 	// Now that all the route tables have been associated with the S3 VPC
 	// Endpoint, add it to the file.
-	file.Add(vpce)
+	ui.Must(terraform.StateRm(dirname, vpce.Ref().Value()))
 
 }
