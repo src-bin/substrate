@@ -113,7 +113,7 @@ func StateList(dirname string) error {
 }
 
 func StateRm(dirname string, address string) (err error) {
-	ui.Spinf("removing %s", address)
+	ui.Spinf("removing %s from Terraform state", address)
 	cmd := exec.Command("terraform", "state", "rm", address)
 	cmd.Dir = dirname
 	cmd.Stdin = nil  // /dev/null
