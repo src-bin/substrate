@@ -810,8 +810,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// if the account exists.
 	deploy(ctx, mgmtCfg)
 
+	// Configure the standard networks, one for the Substrate account and one
+	// for each environment-quality pair, all in the network account and shared
+	// with all the right service accounts.
+	network2(ctx, mgmtCfg)
+
 	// Generate, plan, and apply the legacy network account's Terraform code,
-	// if the account exists.
+	// if the account exists. This no longer contains any generated _resources_
+	// but still might contain resources that customers added themselves.
 	network(ctx, mgmtCfg)
 
 	// Configure the Intranet in the Substrate account.
