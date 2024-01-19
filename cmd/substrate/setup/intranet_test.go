@@ -16,7 +16,7 @@ func TestIntranet2Test1(t *testing.T) {
 	substrateCfg, restore := testawscfg.Test1(roles.Administrator)
 	defer restore()
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
-	dnsDomainName, idpName := intranet2(ctx, mgmtCfg, substrateCfg)
+	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
 	if dnsDomainName != "src-bin-test1.net" {
 		t.Fatalf(`%q != "src-bin-test1.net"`, dnsDomainName)
 	}
@@ -31,7 +31,7 @@ func TestIntranet2Test2(t *testing.T) {
 	substrateCfg, restore := testawscfg.Test2(roles.Administrator)
 	defer restore()
 	mgmtCfg := awscfg.Must(substrateCfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
-	dnsDomainName, idpName := intranet2(ctx, mgmtCfg, substrateCfg)
+	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
 	if dnsDomainName != "src-bin-test2.net" {
 		t.Fatalf(`%q != "src-bin-test2.net"`, dnsDomainName)
 	}
