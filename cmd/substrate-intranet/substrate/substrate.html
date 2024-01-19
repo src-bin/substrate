@@ -6,8 +6,7 @@
 {{template "nav"}}
 <h1>Substrate</h1>
 {{- if .UpgradeVersion}}
-<p>You're running Substrate {{.Version}} which is out of date. Substrate {{.UpgradeVersion}} is the next version.</p>
-<p>Run <code>substrate upgrade</code> or download the appropriate tarball to upgrade locally, then run <code>substrate create-admin-account</code> to upgrade your Intranet.</p>
+<p>You're running Substrate {{.Version}} which is out of date. Substrate {{.UpgradeVersion}} is the next version. <a href="/substrate/upgrade">Upgrade!</a></p>
 {{- else}}
 <p>You're running Substrate {{.Version}}, which is the latest version.</p>
 {{- end}}

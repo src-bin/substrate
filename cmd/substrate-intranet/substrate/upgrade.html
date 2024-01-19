@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Upgrade Substrate</title>
+<body>
+{{template "nav"}}
+<h1>Upgrade Substrate</h1>
+{{- if .UpgradeVersion}}
+<p>You're running Substrate {{.Version}} which is out of date. Substrate {{.UpgradeVersion}} is the next version.</p>
+<form method="POST">
+<ol>
+{{- with .Credentials}}
+<li><p>Before beginning the upgrade, copy these temporary AWS credentials and keep them until the upgrade has completed successfully. They'll speed up recovery in case of failure.<br><big><kbd>&nbsp;export AWS_ACCESS_KEY_ID="{{.AccessKeyID}}" AWS_SECRET_ACCESS_KEY="{{.SecretAccessKey}}" AWS_SESSION_TOKEN="{{.SessionToken}}"</kbd></big></p></li>
+{{- end}}
+<li><p><input type="submit" value="Upgrade to Substrate {{.UpgradeVersion}}"></p></li>
+</ol>
+</form>
+<p>To instead upgrade from a local terminal session, run <code>substrate upgrade</code>, then run <code>substrate setup</code> to complete the upgrade.</p>
+{{- else}}
+<p>You're running Substrate {{.Version}}, which is the latest version.</p>
+{{- end}}
+</body>
+</html>
