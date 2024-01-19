@@ -51,7 +51,7 @@ func SetenvFromTPM(subcommand string) error {
 
 	prefix, err := naming.PrefixNoninteractive()
 	if err != nil {
-		return err
+		return nil // ignore per <https://src-bin.slack.com/archives/C012D80C3EG/p1705015067856159> and fall back to missing-environment helper
 	}
 	query.SetAccount(prefix)
 
