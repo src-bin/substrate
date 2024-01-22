@@ -174,7 +174,6 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 	// this requires knowing the quality associated with the VPC created for
 	// the Substrate account (from when it was called the admin account and
 	// we had aspirations of supporting multiple of them).
-	quality := substrateAccountQuality(awsorgs.Must(awsorgs.DescribeAccount(ctx, mgmtCfg, substrateCfg.MustAccountId(ctx))))
 	for _, region := range regions.Selected() {
 		ui.Spinf("configuring the Substrate-managed Intranet in %s", region)
 		cfg := substrateCfg.Regional(region)
