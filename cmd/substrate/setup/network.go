@@ -43,24 +43,6 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 	}
 	accountId := cfg.MustAccountId(ctx)
 
-	// Configure the allocator for admin networks to use 192.168.0.0/16 and
-	// 21-bit subnet masks which yields 2,048 IP addresses per VPC and 32
-	// possible VPCs while keeping a tidy source IP address range for granting
-	// SSH and other administrative access safely and easily.
-	adminNetDoc, err := networks.ReadDocument(networks.AdminFilename, networks.RFC1918_192_168_0_0_16, 21)
-	ui.Must(err)
-	//log.Printf("%+v", adminNetDoc)
-
-	// Configure the allocator for normal (environment, quality) networks to use
-	// 10.0.0.0/8 and 18-bit subnet masks which yields 16,384 IP addresses per
-	// VPC and 1,024 possible VPCs.
-	netDoc, err := networks.ReadDocument(networks.Filename, networks.RFC1918_10_0_0_0_8, 18)
-	ui.Must(err)
-	//log.Printf("%+v", netDoc)
-
-	veqpDoc, err := veqp.ReadDocument()
-	ui.Must(err)
-
 	// This is a little awkward to duplicate from Main but it's expedient and
 	// leaves our options open for how we do NAT Gateways when we get rid of
 	// all these local files eventually.
@@ -70,10 +52,25 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 	)
 	ui.Must(err)
 
-	// Write (or rewrite) Terraform resources that create the various
-	// (environment, quality) networks.  Networks in the admin environment will
-	// be created in the 192.168.0.0/16 CIDR block managed by adminNetDoc.
+	// Assign CIDR prefixes to the various networks.
+	//
+	// Substrate (formerly admin) networks are allocated from 192.168.0.0/16
+	// and use 21-bit subnet masks which yields 2,048 IP addresses per VPC and
+	// 32 possible VPCs while keeping a tidy source IP address range for
+	// granting SSH and other administrative access safely and easily.
+	//
+	// Service account (environment, quality) networks are allocated from
+	// 10.0.0.0/8 and use 18-bit subnet masks which yields 16,384 IP addresses
+	// per VPC and 1,024 possible VPCs.
 	ui.Printf("configuring networks for every environment and quality in %d regions", len(regions.Selected()))
+	adminNetDoc, err := networks.ReadDocument(networks.AdminFilename, networks.RFC1918_192_168_0_0_16, 21)
+	ui.Must(err)
+	//log.Printf("%+v", adminNetDoc)
+	netDoc, err := networks.ReadDocument(networks.Filename, networks.RFC1918_10_0_0_0_8, 18)
+	ui.Must(err)
+	//log.Printf("%+v", netDoc)
+	veqpDoc, err := veqp.ReadDocument()
+	ui.Must(err)
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region := range regions.Selected() {
 			ui.Spinf(
@@ -96,7 +93,6 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 			})
 			ui.Must(err)
 			ui.Stop(n.IPv4)
-
 		}
 	}
 
@@ -167,13 +163,22 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 
 	// Define networks for each environment and quality.  No peering yet as
 	// it's difficult to reason about before all networks are created.
-	if !*autoApprove && !*noApply {
-		ui.Print("this tool can affect multiple environments and qualities in rapid succession")
-		ui.Print("for safety's sake, it will pause for confirmation before proceeding with each enviornment and quality")
-	}
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region := range regions.Selected() {
 			dirname := filepath.Join(terraform.RootModulesDirname, accounts.Network, eq.Environment, eq.Quality, region)
+
+			file := terraform.NewFile()
+			org := terraform.Organization{
+				Label: terraform.Q("current"),
+			}
+			file.Add(org)
+			tags := terraform.Tags{
+				Environment: eq.Environment,
+				Name:        fmt.Sprintf("%s-%s", eq.Environment, eq.Quality),
+				Quality:     eq.Quality,
+				Region:      region,
+			}
+			ui.Must(file.Write(filepath.Join(dirname, "main.tf")))
 
 			providersFile := terraform.NewFile()
 
@@ -200,16 +205,6 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 				ui.Must(terraform.ProvidersLock(dirname))
 			}
 
-			org := terraform.Organization{
-				Label: terraform.Q("current"),
-			}
-			ui.Must(terraform.StateRm(dirname, org.Ref().Value()))
-			tags := terraform.Tags{
-				Environment: eq.Environment,
-				Name:        fmt.Sprintf("%s-%s", eq.Environment, eq.Quality),
-				Quality:     eq.Quality,
-				Region:      region,
-			}
 			vpc := terraform.VPC{
 				Label: terraform.Label(tags),
 				Tags:  tags,
