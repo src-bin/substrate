@@ -567,11 +567,13 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	))
 	ui.Stop("ok")
 
-	// Find or create the {Deploy,Network,Organization}Administrator roles and
-	// matching Auditor roles. Don't bother creating the deploy account if we
-	// can't find it; we'll use the Substrate account for that. Create the
-	// network account if it doesn't already exist. And, of course, the
-	// management account must already exist because we're in an organization.
+	// Find or create the {Audit,Deploy,Network,Organization}Administrator
+	// roles and matching Auditor roles. Don't bother creating the audit or
+	// deploy accounts if we can't find them. (The audit account may be
+	// created later. The deploy account's former purposes are being taken on
+	// by the Substrate account.) Create the network account if it doesn't
+	// already exist. The management account must already exist because we're
+	// in an organization.
 	ui.Spin("configuring additional administrative IAM roles")
 	extraAdministrator, err := policies.ExtraAdministratorAssumeRolePolicy()
 	ui.Must(err)
@@ -580,6 +582,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		auditCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Audit, roles.OrganizationAccountAccessRole, time.Hour)
 	}
 	if err == nil {
+		ui.Must2(awsorgs.EnsureSpecialAccount(ctx, mgmtCfg, accounts.Audit))
 		ui.Must(humans.EnsureAuditAccountRoles(ctx, mgmtCfg, substrateCfg, auditCfg))
 	} else {
 		ui.Print(" could not assume the AuditAdministrator role; continuing without managing roles and policies in the audit account")
@@ -589,6 +592,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		deployCfg, err = mgmtCfg.AssumeSpecialRole(ctx, accounts.Deploy, roles.OrganizationAccountAccessRole, time.Hour)
 	}
 	if err == nil {
+		ui.Must2(awsorgs.EnsureSpecialAccount(ctx, mgmtCfg, accounts.Deploy))
 		deployRole, err := awsiam.EnsureRole(
 			ctx,
 			deployCfg,

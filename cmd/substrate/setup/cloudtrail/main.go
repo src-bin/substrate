@@ -76,7 +76,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 			ui.Must(err)
 			ui.Spin("adopting your existing audit account")
 			ui.Must(awsorgs.Tag(ctx, mgmtCfg, auditAccountId, tagging.Map{
-				// not tagging.Manager: tagging.Substrate because that's kind of a lie in this case
+				tagging.Manager:                 tagging.Substrate,
 				tagging.SubstrateSpecialAccount: accounts.Audit,
 				tagging.SubstrateType:           accounts.Audit,
 			})) // this also ensures the account is in the organization
