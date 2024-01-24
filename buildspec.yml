@@ -54,7 +54,8 @@ phases:
       # Build the binaries and tarballs.
       - make release
 
-      # Write a tree of upgrade breadcrumbs.
+      # Write HTML for the /download page and a tree of upgrade breadcrumbs.
+      - sh "tools/download-html.sh"
       - sh "tools/upgrades.sh"
 
     finally:
@@ -63,6 +64,7 @@ phases:
 artifacts:
   files:
     - substrate-*.tar.gz
+    - substrate.download.html
     - substrate.version
     - upgrade/*
 ...
