@@ -579,6 +579,7 @@ func stateRmVPC(
 		tags := terraform.Tags{
 			AvailabilityZone: az,
 			Environment:      tags.Environment,
+			Name:             fmt.Sprintf("%s-%s", tags.Environment, tags.Quality),
 			Quality:          tags.Quality,
 			Region:           region,
 			Special:          tags.Special,
