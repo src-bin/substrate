@@ -12,7 +12,6 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/jsonutil"
-	"github.com/src-bin/substrate/networks"
 	"github.com/src-bin/substrate/regions"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/terraform"
@@ -55,7 +54,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	cfg = awscfg.Must(cfg.OrganizationReader(ctx))
 	ui.Must(cfg.ClearCachedAccounts())
-	adminAccounts, serviceAccounts, _, _, _, _, _, err := accounts.Grouped(ctx, cfg)
+	adminAccounts, serviceAccounts, substrateAccount, _, deployAccount, _, networkAccount, err := accounts.Grouped(ctx, cfg)
 	if err != nil {
 		ui.Fatal(err)
 	}
@@ -66,52 +65,38 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// mentioned in this program's output.
 
 	// Deploy account.
-	rootModules = append(rootModules, filepath.Join(
-		terraform.RootModulesDirname,
-		accounts.Deploy,
-		regions.Global,
-	))
-	for _, region := range regions.Selected() {
+	if deployAccount != nil {
 		rootModules = append(rootModules, filepath.Join(
 			terraform.RootModulesDirname,
 			accounts.Deploy,
-			region,
+			regions.Global,
 		))
-	}
-
-	// Network account.
-	veqpDoc, err := veqp.ReadDocument()
-	if err != nil {
-		ui.Fatal(err)
-	}
-	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region := range regions.Selected() {
 			rootModules = append(rootModules, filepath.Join(
 				terraform.RootModulesDirname,
-				accounts.Network,
-				eq.Environment,
-				eq.Quality,
+				accounts.Deploy,
 				region,
 			))
 		}
 	}
-	peeringConnections, err := networks.EnumeratePeeringConnections()
-	if err != nil {
-		ui.Fatal(err)
-	}
-	for _, pc := range peeringConnections.Slice() {
-		eq0, eq1, region0, region1 := pc.Ends()
-		rootModules = append(rootModules, filepath.Join(
-			terraform.RootModulesDirname,
-			accounts.Network,
-			"peering",
-			eq0.Environment,
-			eq1.Environment,
-			eq0.Quality,
-			eq1.Quality,
-			region0,
-			region1,
-		))
+
+	// Network account.
+	if networkAccount != nil {
+		veqpDoc, err := veqp.ReadDocument()
+		if err != nil {
+			ui.Fatal(err)
+		}
+		for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
+			for _, region := range regions.Selected() {
+				rootModules = append(rootModules, filepath.Join(
+					terraform.RootModulesDirname,
+					accounts.Network,
+					eq.Environment,
+					eq.Quality,
+					region,
+				))
+			}
+		}
 	}
 
 	// Admin accounts and the Substrate account that's taking their place.
@@ -130,6 +115,20 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 				region,
 			))
 		}
+	}
+	rootModules = append(rootModules, filepath.Join(
+		terraform.RootModulesDirname,
+		accounts.Admin,
+		substrateAccount.Tags[tagging.Quality],
+		regions.Global,
+	))
+	for _, region := range regions.Selected() {
+		rootModules = append(rootModules, filepath.Join(
+			terraform.RootModulesDirname,
+			accounts.Admin,
+			substrateAccount.Tags[tagging.Quality],
+			region,
+		))
 	}
 
 	for _, account := range serviceAccounts {
