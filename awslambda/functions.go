@@ -2,6 +2,8 @@ package awslambda
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -70,6 +72,28 @@ func EnsureFunction(
 		}
 	}
 	ui.StopErr(err)
+	return
+}
+
+func InvokeAsync(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	name string,
+	payload any,
+) (err error) {
+	in := &lambda.InvokeInput{
+		InvocationType: types.InvocationTypeEvent,
+	}
+	if in.Payload, err = json.Marshal(payload); err != nil {
+		return
+	}
+	var out *lambda.InvokeOutput
+	if out, err = cfg.Lambda().Invoke(ctx, in); err != nil {
+		return
+	}
+	if out.FunctionError != nil {
+		err = errors.New(aws.ToString(out.FunctionError))
+	}
 	return
 }
 
