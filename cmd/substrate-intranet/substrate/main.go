@@ -13,6 +13,7 @@ import (
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsiam"
+	"github.com/src-bin/substrate/features"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/oauthoidc"
 	"github.com/src-bin/substrate/version"
@@ -29,7 +30,9 @@ func Main(
 	case "/substrate":
 		return index(ctx, cfg, oc, event)
 	case "/substrate/upgrade":
-		return upgrade(ctx, cfg, oc, event)
+		if features.UpgradeButton.Enabled() {
+			return upgrade(ctx, cfg, oc, event)
+		}
 	}
 	return &events.APIGatewayV2HTTPResponse{
 		Body:       fmt.Sprintf("%s not found\n", event.RawPath),
@@ -62,10 +65,12 @@ func index(
 
 	body, err := lambdautil.RenderHTML(html, struct {
 		Version, UpgradeVersion string
+		UpgradeButton           bool
 		DownloadURLs            []*url.URL
 	}{
 		Version:        version.Version,
 		UpgradeVersion: upgradeVersion,
+		UpgradeButton:  features.UpgradeButton.Enabled(),
 		DownloadURLs:   downloadURLs,
 	})
 	if err != nil {

@@ -9,4 +9,5 @@ const (
 	IdentityCenter                      feature = "IdentityCenter"
 	IgnoreMacOSKeychain                 feature = "IgnoreMacOSKeychain"
 	ProxyTelemetry                      feature = "ProxyTelemetry"
+	UpgradeButton                       feature = "UpgradeButton"
 )
