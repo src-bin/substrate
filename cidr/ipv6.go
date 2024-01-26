@@ -5,14 +5,15 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/src-bin/substrate/ui"
 )
 
 type IPv6 [17]uint8
 
-func MustParseIPv6(s string) IPv6 {
-	ipv6, err := ParseIPv6(s)
+func MustIPv6(ipv6 IPv6, err error) IPv6 {
 	if err != nil {
-		panic(err)
+		ui.Fatal(err)
 	}
 	return ipv6
 }

@@ -18,7 +18,7 @@ func TestParseIPv6(t *testing.T) {
 }
 
 func TestSubnetIPv6(t *testing.T) {
-	ipv6 := MustParseIPv6("2600:1f13:31a:3600::/56")
+	ipv6 := MustIPv6(ParseIPv6("2600:1f13:31a:3600::/56"))
 
 	// In a network with only public subnets, this one's wasted. In a network
 	// with public and private subnets, this one's further divided into the

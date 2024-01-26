@@ -18,7 +18,7 @@ func TestParseIPv4(t *testing.T) {
 }
 
 func TestSubnetIPv4(t *testing.T) {
-	ipv4 := MustParseIPv4("10.0.0.0/18")
+	ipv4 := MustIPv4(ParseIPv4("10.0.0.0/18"))
 
 	// In a network with only public subnets, this one's wasted. In a network
 	// with public and private subnets, this one's further divided into the

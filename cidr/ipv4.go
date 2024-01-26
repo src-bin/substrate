@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/src-bin/substrate/ui"
 )
 
 type IPv4 [5]int // not uint8 because we do math that would wrap
@@ -20,10 +22,9 @@ func FirstIPv4(rfc1918 IPv4, prefixLength int) IPv4 {
 	return rfc1918
 }
 
-func MustParseIPv4(s string) IPv4 {
-	ipv4, err := ParseIPv4(s)
+func MustIPv4(ipv4 IPv4, err error) IPv4 {
 	if err != nil {
-		panic(err)
+		ui.Fatal(err)
 	}
 	return ipv4
 }
