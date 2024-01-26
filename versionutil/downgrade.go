@@ -57,14 +57,20 @@ func (cmp Comparison) String() string {
 
 // PreventDowngrade prevents explicit version number downgrades.
 func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
-	if v := strings.TrimSuffix(version.Version, "-dirty"); len(v) > 3 && v[len(v)-3] != '.' { // this is not a tagged build
+
+	if isUntaggedVersion(version.Version) {
 		return
 	}
-	taggedVersion, ok := TaggedVersion(ctx, cfg)
+
+	organizationVersion, ok := OrganizationVersion(ctx, cfg)
 	if !ok {
 		return
 	}
-	switch Compare(taggedVersion, version.Version) {
+	if isUntaggedVersion(organizationVersion) {
+		return
+	}
+
+	switch Compare(organizationVersion, version.Version) {
 	case Less:
 		if subcommand := contextutil.ValueString(
 			ctx,
@@ -72,14 +78,14 @@ func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 		); subcommand == "setup" || subcommand == "account adopt" || subcommand == "account create" || subcommand == "account update" {
 			ui.Printf(
 				"upgrading the minimum required Substrate version for your organization from %v to %v",
-				taggedVersion,
+				organizationVersion,
 				version.Version,
 			)
 		}
 	case Greater:
 		ui.Printf(
 			"your organization requires at least Substrate %v; exiting because this is Substrate %v",
-			taggedVersion,
+			organizationVersion,
 			version.Version,
 		)
 		ui.Print("you should run `substrate upgrade`")
@@ -87,10 +93,10 @@ func PreventDowngrade(ctx context.Context, cfg *awscfg.Config) {
 	}
 }
 
-// TaggedVersion returns the SubstrateVersion tag from the calling account
-// and true if that value is meaningful (i.e. non-empty). It returns the
-// empty string and false if for whatever reason it can't read the tag.
-func TaggedVersion(ctx context.Context, cfg *awscfg.Config) (string, bool) {
+// OrganizationVersion returns the SubstrateVersion tag from the calling
+// account and true if that value is meaningful (i.e. non-empty). It returns
+// the empty string and false if for whatever reason it can't read the tag.
+func OrganizationVersion(ctx context.Context, cfg *awscfg.Config) (string, bool) {
 
 	// If this is a test suite run, return early so that preventing downgrades
 	// is never the reason a test suite fails.
@@ -112,11 +118,30 @@ func TaggedVersion(ctx context.Context, cfg *awscfg.Config) (string, bool) {
 }
 
 func WarnDowngrade(ctx context.Context, cfg *awscfg.Config) {
-	taggedVersion, ok := TaggedVersion(ctx, cfg)
+
+	if isUntaggedVersion(version.Version) {
+		return
+	}
+
+	organizationVersion, ok := OrganizationVersion(ctx, cfg)
 	if !ok {
 		return
 	}
-	if Compare(taggedVersion, version.Version) == Greater {
-		ui.Printf("your organization has upgraded to Substrate %v; you should run `substrate upgrade`", taggedVersion)
+	if isUntaggedVersion(organizationVersion) {
+		return
 	}
+
+	if Compare(organizationVersion, version.Version) == Greater {
+		ui.Printf("your organization has upgraded to Substrate %v; you should run `substrate upgrade`", organizationVersion)
+	}
+}
+
+func isUntaggedVersion(v string) bool {
+	if v == "1970.01" { // this is not even a build
+		return true
+	}
+	if v = strings.TrimSuffix(v, "-dirty"); len(v) > 3 && v[len(v)-3] != '.' { // this is not a tagged build
+		return true
+	}
+	return false
 }
