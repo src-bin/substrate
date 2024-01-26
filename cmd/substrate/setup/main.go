@@ -260,6 +260,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// effort until we encounter billing-only organizations in the real world
 	// that are trying to adopt Substrate.
 
+	// Enable all the types of organization-wide policies.
+	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.AISERVICES_OPT_OUT_POLICY))
+	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.BACKUP_POLICY))
+	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.SERVICE_CONTROL_POLICY))
+	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.TAG_POLICY))
+
 	// Maybe ask them about enforcing the use of IMDSv2. However, if their
 	// existing service control policy requires that they use IMDSv2, don't
 	// even offer the opportunity to allow the less secure configuration.
@@ -267,7 +273,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// to delete the substrate.enforce-imdsv2 file in order to change this
 	// configuration; to do that you also need to delete (or edit) the
 	// service control policy.
-	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.SERVICE_CONTROL_POLICY))
 	if !fileutil.Exists(EnforceIMDSv2Filename) {
 		ui.Spin("scoping out your organization's service control policies")
 		policySummaries, err := awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)

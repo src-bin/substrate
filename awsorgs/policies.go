@@ -20,12 +20,15 @@ type (
 )
 
 const (
-	ConcurrentModificationException               = "ConcurrentModificationException"
-	DuplicatePolicyAttachmentException            = "DuplicatePolicyAttachmentException"
-	DuplicatePolicyException                      = "DuplicatePolicyException"
-	PolicyTypeAlreadyEnabledException             = "PolicyTypeAlreadyEnabledException"
-	SERVICE_CONTROL_POLICY             PolicyType = "SERVICE_CONTROL_POLICY"
-	TAG_POLICY                         PolicyType = "TAG_POLICY"
+	ConcurrentModificationException    = "ConcurrentModificationException"
+	DuplicatePolicyAttachmentException = "DuplicatePolicyAttachmentException"
+	DuplicatePolicyException           = "DuplicatePolicyException"
+	PolicyTypeAlreadyEnabledException  = "PolicyTypeAlreadyEnabledException"
+
+	AISERVICES_OPT_OUT_POLICY PolicyType = "AISERVICES_OPT_OUT_POLICY"
+	BACKUP_POLICY             PolicyType = "BACKUP_POLICY"
+	SERVICE_CONTROL_POLICY    PolicyType = "SERVICE_CONTROL_POLICY"
+	TAG_POLICY                PolicyType = "TAG_POLICY"
 )
 
 func DescribePolicy(
