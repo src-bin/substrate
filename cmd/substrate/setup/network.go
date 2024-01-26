@@ -13,6 +13,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsec2"
 	"github.com/src-bin/substrate/awsservicequotas"
+	"github.com/src-bin/substrate/cidr"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/networks"
@@ -26,17 +27,61 @@ import (
 func ensureVPC(
 	ctx context.Context,
 	cfg *awscfg.Config,
-	environment, quality, region string,
+	environment, quality string,
+	cidrPrefixIPv4 cidr.IPv4,
 	natGateways bool,
 ) {
+
+	vpc, err := awsec2.EnsureVPC(ctx, cfg, environment, quality, cidrPrefixIPv4)
+	ui.Must(err)
+	ui.Debug(vpc)
+	cidrPrefixIPv6, err := cidr.ParseIPv6(aws.ToString(vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))
+	ui.Must(err)
+
+	azs, err := availabilityzones.Select(ctx, cfg, cfg.Region(), availabilityzones.NumberPerNetwork) // FIXME this will break if an AZ is added after Substrate is setup in a region
+	ui.Must(err)
+	ui.Debug(azs)
+
+	hasPrivateSubnets := environment != "admin"
+	ui.Debug(hasPrivateSubnets)
+
+	// Decide how many additional bits to use for each public subnet's CIDR
+	// prefix. Private subnets, if a network has them, always use two. The
+	// layout when there are private subnets is as follows:
+	//
+	//   |    -    | public | public | public |
+	//   |               private              |
+	//   |               private              |
+	//   |               private              |
+	//
+	// If the CIDR prefix length is 18 then this results in three public /22
+	// subnets and three private /20 subnets. The very first /22 is wasted. If
+	// there are no private subnets then the public subnets are /20 and the
+	// first /20 is wasted.
+	bits := 2
+	if hasPrivateSubnets {
+		bits = 4
+	}
+
+	// Three public and maybe three private subnets, too. One wasted subnet
+	// at the beginning.
+	for i, az := range azs {
+		ui.Debug(az)
+		ui.Debug(cidrPrefixIPv4.SubnetIPv4(bits, i+1))
+		ui.Debug(cidrPrefixIPv6.SubnetIPv6(8, i+1))
+		if hasPrivateSubnets {
+			ui.Debug(cidrPrefixIPv4.SubnetIPv4(2, i+1))
+			ui.Debug(cidrPrefixIPv6.SubnetIPv6(8, i+0x81)) // to shift past the one wasted and three public subnets
+		}
+	}
+
+	// Accept the default Network ACL until we need to do otherwise.
+
+	// TODO manage the default security group to ensure it has no rules.
+
+	// Accept the default DHCP option set until we need to do otherwise.
+
 	/*
-	   hasPrivateSubnets := environment != "admin"
-
-	   // Accept the default Network ACL until we need to do otherwise.
-
-	   // TODO manage the default security group to ensure it has no rules.
-
-	   // Accept the default DHCP option set until we need to do otherwise.
 
 	   // IPv4 and IPv6 Internet Gateways for the public subnets.
 
@@ -251,10 +296,10 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 	// 10.0.0.0/8 and use 18-bit subnet masks which yields 16,384 IP addresses
 	// per VPC and 1,024 possible VPCs.
 	ui.Printf("configuring networks for every environment and quality in %d regions", len(regions.Selected()))
-	adminNetDoc, err := networks.ReadDocument(networks.AdminFilename, networks.RFC1918_192_168_0_0_16, 21)
+	adminNetDoc, err := networks.ReadDocument(networks.AdminFilename, cidr.RFC1918_192_168_0_0_16, 21)
 	ui.Must(err)
 	//log.Printf("%+v", adminNetDoc)
-	netDoc, err := networks.ReadDocument(networks.Filename, networks.RFC1918_10_0_0_0_8, 18)
+	netDoc, err := networks.ReadDocument(networks.Filename, cidr.RFC1918_10_0_0_0_8, 18)
 	ui.Must(err)
 	//log.Printf("%+v", netDoc)
 	veqpDoc, err := veqp.ReadDocument()
@@ -353,8 +398,26 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 	// it's difficult to reason about before all networks are created.
 	for _, eq := range veqpDoc.ValidEnvironmentQualityPairs {
 		for _, region := range regions.Selected() {
-			ensureVPC(ctx, cfg, eq.Environment, eq.Quality, region, natGateways)
+
+			var doc *networks.Document
+			if eq.Environment == "admin" {
+				doc = adminNetDoc
+			} else {
+				doc = netDoc
+			}
+			n := doc.Find(&networks.Network{
+				// TODO maybe support an alternative tagging regime for the Instance Factory's VPC
+				Environment: eq.Environment,
+				Quality:     eq.Quality,
+				Region:      region,
+			})
+			if n == nil {
+				ui.Fatal("couldn't find assigned CIDR prefix for %s %s in %s", eq.Environment, eq.Quality, region)
+			}
+			ensureVPC(ctx, cfg.Regional(region), eq.Environment, eq.Quality, n.IPv4, natGateways)
+
 			terraformVPC(ctx, mgmtCfg, cfg, eq.Environment, eq.Quality, region, natGateways)
+
 		}
 	}
 

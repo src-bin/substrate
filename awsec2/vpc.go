@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/cidr"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
@@ -21,6 +22,56 @@ type (
 	Subnet        = types.Subnet
 	VPC           = types.Vpc
 )
+
+func CreateVPC(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	environment, quality string, // TODO maybe support an alternative tagging regime for the Instance Factory's VPC
+	cidrPrefix cidr.IPv4,
+) (*VPC, error) {
+	client := cfg.EC2()
+	out, err := client.CreateVpc(ctx, &ec2.CreateVpcInput{
+		AmazonProvidedIpv6CidrBlock: aws.Bool(true),
+		CidrBlock:                   aws.String(cidrPrefix.String()),
+		TagSpecifications: []types.TagSpecification{
+			{
+				ResourceType: types.ResourceTypeVpc,
+				Tags: tagStructs(tagging.Map{
+					tagging.Environment:      environment,
+					tagging.Manager:          tagging.Substrate,
+					tagging.Name:             fmt.Sprintf("%s-%s", environment, quality),
+					tagging.Quality:          quality,
+					tagging.SubstrateVersion: version.Version,
+				}),
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if _, err := client.ModifyVpcAttribute(ctx, &ec2.ModifyVpcAttributeInput{
+		EnableDnsSupport: &types.AttributeBooleanValue{Value: aws.Bool(true)}, // must come first, by itself
+		VpcId:            out.Vpc.VpcId,
+	}); err != nil {
+		return nil, err
+	}
+	if _, err := client.ModifyVpcAttribute(ctx, &ec2.ModifyVpcAttributeInput{
+		EnableDnsHostnames: &types.AttributeBooleanValue{Value: aws.Bool(true)}, // must come second, also by itself
+		VpcId:              out.Vpc.VpcId,
+	}); err != nil {
+		return nil, err
+	}
+	return out.Vpc, nil
+}
+
+func DeleteVPC(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	vpcId string,
+) error {
+	_, err := cfg.EC2().DeleteVpc(ctx, &ec2.DeleteVpcInput{VpcId: aws.String(vpcId)})
+	return err
+}
 
 func DescribeRouteTables(
 	ctx context.Context,
@@ -85,7 +136,6 @@ func DescribeSecurityGroups(
 	if err != nil {
 		return nil, err
 	}
-	//log.Print(out)
 	return out.SecurityGroups, nil
 }
 
@@ -103,7 +153,6 @@ func DescribeSubnets(
 	if err != nil {
 		return nil, err
 	}
-	//log.Print(out)
 	return out.Subnets, nil
 }
 
@@ -127,7 +176,6 @@ func DescribeVPCs(
 	if err != nil {
 		return nil, err
 	}
-	//log.Print(out)
 	return out.Vpcs, nil
 }
 
@@ -215,6 +263,41 @@ func EnsureSecurityGroup(
 		return nil, err
 	}
 	return &securityGroups[0], nil
+}
+
+func EnsureVPC(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	environment, quality string, // TODO maybe support an alternative tagging regime for the Instance Factory's VPC
+	cidrPrefix cidr.IPv4,
+) (*VPC, error) {
+	vpcs, err := DescribeVPCs(ctx, cfg, environment, quality)
+	if err != nil {
+		return nil, err
+	}
+	if len(vpcs) == 0 {
+		return CreateVPC(ctx, cfg, environment, quality, cidrPrefix)
+	}
+	if len(vpcs) != 1 { // TODO support sharing many VPCs when we introduce `substrate network create|delete|list`
+		return nil, fmt.Errorf("expected 1 VPC but found %s", jsonutil.MustString(vpcs))
+	}
+	if aws.ToString(vpcs[0].CidrBlock) != cidrPrefix.String() {
+		return nil, fmt.Errorf(
+			"expected VPC with CIDR prefix %s but found CIDR prefix %s",
+			aws.ToString(vpcs[0].CidrBlock),
+			cidrPrefix.String(),
+		)
+	}
+	if err := CreateTags(ctx, cfg, []string{aws.ToString(vpcs[0].VpcId)}, tagging.Map{
+		tagging.Environment:      environment,
+		tagging.Manager:          tagging.Substrate,
+		tagging.Name:             fmt.Sprintf("%s-%s", environment, quality),
+		tagging.Quality:          quality,
+		tagging.SubstrateVersion: version.Version,
+	}); err != nil {
+		return nil, err
+	}
+	return &vpcs[0], nil
 }
 
 func portAuthorized[T int | int32](ports []int, port T) bool {
