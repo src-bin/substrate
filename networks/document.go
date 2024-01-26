@@ -7,9 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"sort"
-	"strconv"
-	"strings"
 
+	"github.com/src-bin/substrate/cidr"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/version"
 )
@@ -23,12 +22,12 @@ type Document struct {
 	Admonition           jsonutil.Admonition `json:"#"`
 	IPv4SubnetMaskLength int                 // must be in range [16, 24]
 	Networks             []*Network
-	RFC1918              IPv4
+	RFC1918              cidr.IPv4
 	SubstrateVersion     jsonutil.SubstrateVersion
 	filename             string
 }
 
-func ReadDocument(filename string, rfc1918 IPv4, subnetMaskLength int) (*Document, error) {
+func ReadDocument(filename string, rfc1918 cidr.IPv4, subnetMaskLength int) (*Document, error) {
 	b, err := os.ReadFile(filename)
 	if errors.Is(err, fs.ErrNotExist) {
 		b = []byte("{}")
@@ -44,7 +43,7 @@ func ReadDocument(filename string, rfc1918 IPv4, subnetMaskLength int) (*Documen
 
 	// If d.SubstrateVersion != version.Version, migrate here.
 
-	zero := IPv4{0, 0, 0, 0, 0}
+	zero := cidr.IPv4{0, 0, 0, 0, 0}
 	if d.RFC1918 == zero {
 		d.RFC1918 = rfc1918
 	}
@@ -107,7 +106,7 @@ func (d *Document) Write() error {
 
 func (d *Document) next(n *Network) (*Network, error) {
 	if len(d.Networks) == 0 {
-		n.IPv4 = FirstIPv4(d.RFC1918, d.IPv4SubnetMaskLength)
+		n.IPv4 = cidr.FirstIPv4(d.RFC1918, d.IPv4SubnetMaskLength)
 		d.Networks = append(d.Networks, n)
 		return n, nil
 	}
@@ -119,7 +118,7 @@ func (d *Document) next(n *Network) (*Network, error) {
 	// entries. If there's a long prefix that's not aligned with its length
 	// (unlikely thought it would be for someone to manually add that), we'll
 	// happily produce nonsensical entries with octets greater than 255.
-	n.IPv4, err = NextIPv4(d.Networks[len(d.Networks)-1].IPv4)
+	n.IPv4, err = cidr.NextIPv4(d.Networks[len(d.Networks)-1].IPv4)
 
 	if err != nil {
 		return nil, err
@@ -128,70 +127,10 @@ func (d *Document) next(n *Network) (*Network, error) {
 	return n, d.Write()
 }
 
-type IPv4 [5]int
-
-var (
-	RFC1918_10_0_0_0_8     = IPv4{10, 0, 0, 0, 8}
-	RFC1918_172_16_0_0_12  = IPv4{172, 16, 0, 0, 12}
-	RFC1918_192_168_0_0_16 = IPv4{192, 168, 0, 0, 16}
-)
-
-func FirstIPv4(rfc1918 IPv4, subnetMaskLength int) IPv4 {
-	rfc1918[4] = subnetMaskLength
-	return rfc1918
-}
-
-func NextIPv4(ipv4 IPv4) (IPv4, error) {
-	if ipv4[4] < 16 || ipv4[4] > 24 {
-		return ipv4, fmt.Errorf("subnet mask %d outside range [16, 24]", ipv4[4])
-	}
-	ipv4[3] = 0
-	ipv4[2] = ipv4[2] + (1 << (24 - ipv4[4])) // this is why IPv4SubnetMaskLength must be in [16, 24]
-	if ipv4[2] == 256 {
-		if ipv4[0] == 192 {
-			return ipv4, errors.New("ran out of networks in 192.168.0.0/16")
-		}
-		ipv4[2] = 0
-		ipv4[1] = ipv4[1] + 1
-	}
-	if ipv4[0] == 10 && ipv4[1] == 256 {
-		return ipv4, errors.New("ran out of networks in 10.0.0.0/8")
-	}
-	if ipv4[0] == 172 && ipv4[1] == 32 {
-		return ipv4, errors.New("ran out of networks in 172.16.0.0/12")
-	}
-	return ipv4, nil
-}
-
-func (ipv4 IPv4) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf("%#v", ipv4.String())), nil
-}
-
-func (ipv4 IPv4) String() string {
-	return fmt.Sprintf("%d.%d.%d.%d/%d", ipv4[0], ipv4[1], ipv4[2], ipv4[3], ipv4[4])
-}
-
-func (ipv4 *IPv4) UnmarshalJSON(b []byte) (err error) {
-	fields := strings.FieldsFunc(
-		strings.Trim(string(b), `"`),
-		func(r rune) bool { return r == '.' || r == '/' },
-	)
-	if len(fields) != len(ipv4) {
-		return fmt.Errorf("malformed IPv4 %s", string(b))
-	}
-	for i := 0; i < len(ipv4); i++ {
-		ipv4[i], err = strconv.Atoi(fields[i])
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 type Network struct {
 	Region                        string
 	Environment, Quality, Special string `json:",omitempty"`
-	IPv4                          IPv4
+	IPv4                          cidr.IPv4
 	IPv6                          string `json:",omitempty"`
 	VPC                           string `json:",omitempty"`
 }
