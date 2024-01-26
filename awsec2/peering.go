@@ -101,42 +101,6 @@ func EnsureVPCPeeringConnection(
 	return
 }
 
-func EnsureVPCPeeringRouteIPv4(
-	ctx context.Context,
-	cfg *awscfg.Config, // must be in the network account and in the right region
-	routeTableId, cidrPrefix, vpcPeeringConnectionId string,
-) error {
-	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, cidrPrefix, vpcPeeringConnectionId)
-	_, err := cfg.EC2().CreateRoute(ctx, &ec2.CreateRouteInput{
-		DestinationCidrBlock:   aws.String(cidrPrefix),
-		RouteTableId:           aws.String(routeTableId),
-		VpcPeeringConnectionId: aws.String(vpcPeeringConnectionId),
-	})
-	if awsutil.ErrorCodeIs(err, RouteAlreadyExists) { // TODO confirm whether this detects destination gateway mismatches
-		ui.Stop("route already exists")
-		return nil
-	}
-	return ui.StopErr(err)
-}
-
-func EnsureVPCPeeringRouteIPv6(
-	ctx context.Context,
-	cfg *awscfg.Config, // must be in the network account and in the right region
-	routeTableId, cidrPrefix, vpcPeeringConnectionId string,
-) error {
-	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, cidrPrefix, vpcPeeringConnectionId)
-	_, err := cfg.EC2().CreateRoute(ctx, &ec2.CreateRouteInput{
-		DestinationIpv6CidrBlock: aws.String(cidrPrefix),
-		RouteTableId:             aws.String(routeTableId),
-		VpcPeeringConnectionId:   aws.String(vpcPeeringConnectionId),
-	})
-	if awsutil.ErrorCodeIs(err, RouteAlreadyExists) { // TODO confirm whether this detects destination gateway mismatches
-		ui.Stop("route already exists")
-		return nil
-	}
-	return ui.StopErr(err)
-}
-
 func describeVPCPeeringConnection(
 	ctx context.Context,
 	cfg *awscfg.Config,
