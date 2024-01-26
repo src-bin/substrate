@@ -152,7 +152,6 @@ func ensureRoute(ctx context.Context, cfg *awscfg.Config, routeTableId string, i
 	in.RouteTableId = aws.String(routeTableId)
 	_, err := cfg.EC2().CreateRoute(ctx, in)
 	if awsutil.ErrorCodeIs(err, RouteAlreadyExists) { // TODO confirm whether this detects destination gateway mismatches
-		ui.Print("(route already exists)") // XXX don't commit this; it doesn't matter
 		err = nil
 	}
 	return err
