@@ -93,9 +93,10 @@ func init() {
 					if spinner != "" {
 						if isTerminal {
 							fmt.Fprint(stderr, "\r", indent, s, dots, ".\n") // final dot to cover the spinner
-						} else {
+						} else if s != "" {
 							fmt.Fprint(stderr, "\n")
 						}
+						fmt.Fprint(stderr, " ")
 						dots, s = "", ""
 					}
 
