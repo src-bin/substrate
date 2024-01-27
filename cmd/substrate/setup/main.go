@@ -247,12 +247,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	//log.Printf("%+v", org)
 
 	// Tag the management account in the new style.
+	ui.Spin("tagging the organization's management account")
 	mgmtAccountId := mgmtCfg.MustAccountId(ctx)
 	ui.Must(awsorgs.Tag(ctx, mgmtCfg, mgmtAccountId, tagging.Map{
 		tagging.Manager:          tagging.Substrate,
 		tagging.SubstrateType:    accounts.Management,
 		tagging.SubstrateVersion: version.Version,
 	}))
+	ui.Stop("ok")
 
 	// EnableAllFeatures, which is complicated but necessary in case an
 	// organization was created as merely a consolidated billing organization.
@@ -261,10 +263,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// that are trying to adopt Substrate.
 
 	// Enable all the types of organization-wide policies.
+	ui.Spin("enabling all AWS Organizations policy types")
 	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.AISERVICES_OPT_OUT_POLICY))
 	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.BACKUP_POLICY))
 	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.SERVICE_CONTROL_POLICY))
 	ui.Must(awsorgs.EnablePolicyType(ctx, mgmtCfg, awsorgs.TAG_POLICY))
+	ui.Stop("ok")
 
 	// Maybe ask them about enforcing the use of IMDSv2. However, if their
 	// existing service control policy requires that they use IMDSv2, don't
