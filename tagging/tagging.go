@@ -32,3 +32,13 @@ const (
 )
 
 type Map map[string]string
+
+func Merge(maps ...Map) Map {
+	m := make(Map)
+	for i := 0; i < len(maps); i++ {
+		for k, v := range maps[i] {
+			m[k] = v
+		}
+	}
+	return m
+}
