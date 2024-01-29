@@ -74,8 +74,8 @@ func EnsureSubnet(
 	cfg *awscfg.Config,
 	vpcId string,
 	az string,
-	cidrPrefixIPv4 cidr.IPv4,
-	cidrPrefixIPv6 cidr.IPv6,
+	ipv4 cidr.IPv4,
+	ipv6 cidr.IPv6,
 	tags tagging.Map,
 ) (*Subnet, error) {
 	client := cfg.EC2()
@@ -88,8 +88,8 @@ func EnsureSubnet(
 
 	out, err := client.CreateSubnet(ctx, &ec2.CreateSubnetInput{
 		AvailabilityZone: aws.String(az),
-		CidrBlock:        aws.String(cidrPrefixIPv4.String()),
-		Ipv6CidrBlock:    aws.String(cidrPrefixIPv6.String()),
+		CidrBlock:        aws.String(ipv4.String()),
+		Ipv6CidrBlock:    aws.String(ipv6.String()),
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeSubnet,
@@ -107,7 +107,7 @@ func EnsureSubnet(
 			return nil, err2
 		}
 		for _, s := range subnets {
-			if aws.ToString(s.CidrBlock) == cidrPrefixIPv4.String() && aws.ToString(s.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock) == cidrPrefixIPv6.String() {
+			if aws.ToString(s.CidrBlock) == ipv4.String() && aws.ToString(s.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock) == ipv6.String() {
 				subnet = &s
 				err = nil
 				if err := CreateTags(ctx, cfg, []string{aws.ToString(subnet.SubnetId)}, tags); err != nil {

@@ -68,12 +68,12 @@ func EnsureEgressOnlyInternetGatewayRouteIPv6(
 	ctx context.Context,
 	cfg *awscfg.Config, // must be in the network account and in the right region
 	routeTableId string,
-	cidrPrefixIPv6 cidr.IPv6,
+	ipv6 cidr.IPv6,
 	egressOnlyInternetGatewayId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, cidrPrefixIPv6, egressOnlyInternetGatewayId)
+	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv6, egressOnlyInternetGatewayId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
-		DestinationIpv6CidrBlock:    aws.String(cidrPrefixIPv6.String()),
+		DestinationIpv6CidrBlock:    aws.String(ipv6.String()),
 		EgressOnlyInternetGatewayId: aws.String(egressOnlyInternetGatewayId),
 	})
 }
@@ -82,12 +82,12 @@ func EnsureInternetGatewayRouteIPv4(
 	ctx context.Context,
 	cfg *awscfg.Config, // must be in the network account and in the right region
 	routeTableId string,
-	cidrPrefixIPv4 cidr.IPv4,
+	ipv4 cidr.IPv4,
 	internetGatewayId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, cidrPrefixIPv4, internetGatewayId)
+	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv4, internetGatewayId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
-		DestinationCidrBlock: aws.String(cidrPrefixIPv4.String()),
+		DestinationCidrBlock: aws.String(ipv4.String()),
 		GatewayId:            aws.String(internetGatewayId),
 	})
 }
@@ -96,12 +96,12 @@ func EnsureInternetGatewayRouteIPv6(
 	ctx context.Context,
 	cfg *awscfg.Config, // must be in the network account and in the right region
 	routeTableId string,
-	cidrPrefixIPv6 cidr.IPv6,
+	ipv6 cidr.IPv6,
 	internetGatewayId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, cidrPrefixIPv6, internetGatewayId)
+	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv6, internetGatewayId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
-		DestinationIpv6CidrBlock: aws.String(cidrPrefixIPv6.String()),
+		DestinationIpv6CidrBlock: aws.String(ipv6.String()),
 		GatewayId:                aws.String(internetGatewayId),
 	})
 }
@@ -110,12 +110,12 @@ func EnsureNATGatewayRouteIPv4(
 	ctx context.Context,
 	cfg *awscfg.Config, // must be in the network account and in the right region
 	routeTableId string,
-	cidrPrefixIPv4 cidr.IPv4,
+	ipv4 cidr.IPv4,
 	natGatewayId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, cidrPrefixIPv4, natGatewayId)
+	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv4, natGatewayId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
-		DestinationCidrBlock: aws.String(cidrPrefixIPv4.String()),
+		DestinationCidrBlock: aws.String(ipv4.String()),
 		NatGatewayId:         aws.String(natGatewayId),
 	})
 }
@@ -124,12 +124,12 @@ func EnsureVPCPeeringRouteIPv4(
 	ctx context.Context,
 	cfg *awscfg.Config, // must be in the network account and in the right region
 	routeTableId string,
-	cidrPrefixIPv4 cidr.IPv4,
+	ipv4 cidr.IPv4,
 	vpcPeeringConnectionId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, cidrPrefixIPv4, vpcPeeringConnectionId)
+	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv4, vpcPeeringConnectionId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
-		DestinationCidrBlock:   aws.String(cidrPrefixIPv4.String()),
+		DestinationCidrBlock:   aws.String(ipv4.String()),
 		VpcPeeringConnectionId: aws.String(vpcPeeringConnectionId),
 	})
 }
@@ -138,12 +138,12 @@ func EnsureVPCPeeringRouteIPv6(
 	ctx context.Context,
 	cfg *awscfg.Config, // must be in the network account and in the right region
 	routeTableId string,
-	cidrPrefixIPv6 cidr.IPv6,
+	ipv6 cidr.IPv6,
 	vpcPeeringConnectionId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, cidrPrefixIPv6, vpcPeeringConnectionId)
+	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv6, vpcPeeringConnectionId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
-		DestinationIpv6CidrBlock: aws.String(cidrPrefixIPv6.String()),
+		DestinationIpv6CidrBlock: aws.String(ipv6.String()),
 		VpcPeeringConnectionId:   aws.String(vpcPeeringConnectionId),
 	})
 }

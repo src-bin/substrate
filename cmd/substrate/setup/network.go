@@ -30,17 +30,17 @@ func ensureVPC(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	environment, quality string,
-	cidrPrefixIPv4 cidr.IPv4,
+	ipv4 cidr.IPv4,
 	natGateways bool,
 ) {
 
 	ui.Spinf("finding or creating the %s %s VPC in %s", environment, quality, cfg.Region())
-	vpc, err := awsec2.EnsureVPC(ctx, cfg, environment, quality, cidrPrefixIPv4, nil)
+	vpc, err := awsec2.EnsureVPC(ctx, cfg, environment, quality, ipv4, nil)
 	ui.Must(err)
 	//ui.Debug(vpc)
 	vpcId := aws.ToString(vpc.VpcId)
-	cidrPrefixIPv6 := cidr.MustIPv6(cidr.ParseIPv6(aws.ToString(vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)))
-	ui.Stopf("%s %s %s", vpcId, cidrPrefixIPv4, cidrPrefixIPv6)
+	ipv6 := cidr.MustIPv6(cidr.ParseIPv6(aws.ToString(vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)))
+	ui.Stopf("%s %s %s", vpcId, ipv4, ipv6)
 
 	azs, err := availabilityzones.Select(ctx, cfg, cfg.Region(), availabilityzones.NumberPerNetwork)
 	ui.Must(err)
@@ -82,8 +82,8 @@ func ensureVPC(
 			cfg,
 			vpcId,
 			az,
-			cidr.MustIPv4(cidrPrefixIPv4.SubnetIPv4(bits, i+1)),
-			cidr.MustIPv6(cidrPrefixIPv6.SubnetIPv6(8, i+1)),
+			cidr.MustIPv4(ipv4.SubnetIPv4(bits, i+1)),
+			cidr.MustIPv6(ipv6.SubnetIPv6(8, i+1)),
 			tagging.Map{
 				tagging.Connectivity: "public",
 				tagging.Environment:  environment,
@@ -99,13 +99,16 @@ func ensureVPC(
 
 		if hasPrivateSubnets {
 			ui.Spinf("finding or creating a private subnet in %s", az)
+			subnetIPv4 := cidr.MustIPv4(ipv4.SubnetIPv4(2, i+1))
+			subnetIPv6 := cidr.MustIPv6(ipv6.SubnetIPv6(8, i+0x81)) // to shift past the one wasted and three public subnets
+
 			privateSubnet, err := awsec2.EnsureSubnet(
 				ctx,
 				cfg,
 				vpcId,
 				az,
-				cidr.MustIPv4(cidrPrefixIPv4.SubnetIPv4(2, i+1)),
-				cidr.MustIPv6(cidrPrefixIPv6.SubnetIPv6(8, i+0x81)), // to shift past the one wasted and three public subnets
+				subnetIPv4,
+				subnetIPv6,
 				tagging.Map{
 					tagging.Connectivity: "private",
 					tagging.Environment:  environment,
