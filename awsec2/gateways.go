@@ -251,5 +251,19 @@ func EnsureNATGateway(
 		}
 	}
 
+	// Wait for the NAT Gateway to become available. Trying to route to one
+	// that's still pending results in InvalidNatGatewayID.NotFound (wiich is
+	// a confusing error) from CreateRoute.
+	for range awsutil.StandardJitteredExponentialBackoff() {
+		ngw, err := DescribeNATGateway(ctx, cfg, publicSubnetId)
+		if err != nil {
+			return nil, err
+		}
+		//ui.Debug(ngw)
+		if ngw.State == types.NatGatewayStateAvailable {
+			break
+		}
+	}
+
 	return ngw, nil
 }
