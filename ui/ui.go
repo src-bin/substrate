@@ -55,16 +55,6 @@ func Fatalf(format string, args ...interface{}) {
 	op(opFatal, fmt.Sprint(withCaller(fmt.Sprintf(format, args...))...))
 }
 
-func Must(err error) {
-	if err != nil {
-		op(opFatal, fmt.Sprint(withCaller(helpful(err))...))
-	}
-}
-
-func Must2(_ any, err error) {
-	Must(err)
-}
-
 func Print(args ...interface{}) {
 	args = dereference(args)
 	op(opPrint, fmt.Sprint(args...))

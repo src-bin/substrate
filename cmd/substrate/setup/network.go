@@ -35,16 +35,16 @@ func ensureVPC(
 ) {
 
 	ui.Spinf("finding or creating the %s %s VPC in %s", environment, quality, cfg.Region())
-	vpc, err := awsec2.EnsureVPC(ctx, cfg, environment, quality, ipv4, nil)
-	ui.Must(err)
+	vpc := ui.Must2(awsec2.EnsureVPC(ctx, cfg, environment, quality, ipv4, nil))
 	//ui.Debug(vpc)
 	vpcId := aws.ToString(vpc.VpcId)
-	ipv6 := cidr.MustIPv6(cidr.ParseIPv6(aws.ToString(vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)))
+	ipv6 := ui.Must2(cidr.ParseIPv6(aws.ToString(vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)))
+	// TODO remove all rules from the default security group
 	ui.Stopf("%s %s %s", vpcId, ipv4, ipv6)
 
-	azs, err := availabilityzones.Select(ctx, cfg, cfg.Region(), availabilityzones.NumberPerNetwork)
-	ui.Must(err)
+	azs := ui.Must2(availabilityzones.Select(ctx, cfg, cfg.Region(), availabilityzones.NumberPerNetwork))
 	ui.Printf("using availability zones %s", strings.Join(azs, ", "))
+	// TODO DescribeSubnets first and use those AZs because this selection will change if an AZ is added after Substrate is setup in a region
 
 	// Decide how many additional bits to use for each public subnet's CIDR
 	// prefix. Private subnets, if a network has them, always use two. The
@@ -77,32 +77,32 @@ func ensureVPC(
 	for i, az := range azs {
 
 		ui.Spinf("finding or creating a public subnet in %s", az)
-		publicSubnet, err := awsec2.EnsureSubnet(
+		publicSubnet := ui.Must2(awsec2.EnsureSubnet(
 			ctx,
 			cfg,
 			vpcId,
 			az,
-			cidr.MustIPv4(ipv4.SubnetIPv4(bits, i+1)),
-			cidr.MustIPv6(ipv6.SubnetIPv6(8, i+1)),
+			ui.Must2(ipv4.SubnetIPv4(bits, i+1)),
+			ui.Must2(ipv6.SubnetIPv6(8, i+1)),
 			tagging.Map{
 				tagging.Connectivity: "public",
 				tagging.Environment:  environment,
 				tagging.Name:         fmt.Sprintf("%s-%s-public-%s", environment, quality, az),
 				tagging.Quality:      quality,
 			},
-		)
-		ui.Must(err)
-		ui.Stopf("%s %s %s", publicSubnet.SubnetId, publicSubnet.CidrBlock, publicSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
+		))
+		publicSubnetId := aws.ToString(publicSubnet.SubnetId)
+		ui.Stopf("%s %s %s", publicSubnetId, publicSubnet.CidrBlock, publicSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 		//ui.Debug(publicSubnet)
 
 		// TODO routes to InternetGateway
 
 		if hasPrivateSubnets {
 			ui.Spinf("finding or creating a private subnet in %s", az)
-			subnetIPv4 := cidr.MustIPv4(ipv4.SubnetIPv4(2, i+1))
-			subnetIPv6 := cidr.MustIPv6(ipv6.SubnetIPv6(8, i+0x81)) // to shift past the one wasted and three public subnets
+			subnetIPv4 := ui.Must2(ipv4.SubnetIPv4(2, i+1))
+			subnetIPv6 := ui.Must2(ipv6.SubnetIPv6(8, i+0x81)) // to shift past the one wasted and three public subnets
 
-			privateSubnet, err := awsec2.EnsureSubnet(
+			privateSubnet := ui.Must2(awsec2.EnsureSubnet(
 				ctx,
 				cfg,
 				vpcId,
@@ -115,10 +115,9 @@ func ensureVPC(
 					tagging.Name:         fmt.Sprintf("%s-%s-private-%s", environment, quality, az),
 					tagging.Quality:      quality,
 				},
-			)
-			ui.Must(err)
-			// TODO maybe CreateRouteTable AssociateRouteTable
-			ui.Stopf("%s %s %s", privateSubnet.SubnetId, privateSubnet.CidrBlock, privateSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
+			))
+			privateSubnetId := aws.ToString(privateSubnet.SubnetId)
+			ui.Stopf("%s %s %s", privateSubnetId, privateSubnet.CidrBlock, privateSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 			//ui.Debug(privateSubnet)
 
 			if natGateways {
@@ -511,14 +510,14 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 			ctx,
 			networkCfg.Regional(region0),
 			aws.ToString(public0.RouteTableId),
-			cidr.MustIPv4(cidr.ParseIPv4(aws.ToString(vpc1.CidrBlockAssociationSet[0].CidrBlock))),
+			ui.Must2(cidr.ParseIPv4(aws.ToString(vpc1.CidrBlockAssociationSet[0].CidrBlock))),
 			aws.ToString(conn.VpcPeeringConnectionId),
 		))
 		ui.Must(awsec2.EnsureVPCPeeringRouteIPv6(
 			ctx,
 			networkCfg.Regional(region0),
 			aws.ToString(public0.RouteTableId),
-			cidr.MustIPv6(cidr.ParseIPv6(aws.ToString(vpc1.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))),
+			ui.Must2(cidr.ParseIPv6(aws.ToString(vpc1.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))),
 			aws.ToString(conn.VpcPeeringConnectionId),
 		))
 		for _, rt := range private0 {
@@ -526,14 +525,14 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 				ctx,
 				networkCfg.Regional(region0),
 				aws.ToString(rt.RouteTableId),
-				cidr.MustIPv4(cidr.ParseIPv4(aws.ToString(vpc1.CidrBlockAssociationSet[0].CidrBlock))),
+				ui.Must2(cidr.ParseIPv4(aws.ToString(vpc1.CidrBlockAssociationSet[0].CidrBlock))),
 				aws.ToString(conn.VpcPeeringConnectionId),
 			))
 			ui.Must(awsec2.EnsureVPCPeeringRouteIPv6(
 				ctx,
 				networkCfg.Regional(region0),
 				aws.ToString(rt.RouteTableId),
-				cidr.MustIPv6(cidr.ParseIPv6(aws.ToString(vpc1.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))),
+				ui.Must2(cidr.ParseIPv6(aws.ToString(vpc1.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))),
 				aws.ToString(conn.VpcPeeringConnectionId),
 			))
 		}
@@ -546,14 +545,14 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 			ctx,
 			networkCfg.Regional(region1),
 			aws.ToString(public1.RouteTableId),
-			cidr.MustIPv4(cidr.ParseIPv4(aws.ToString(vpc0.CidrBlockAssociationSet[0].CidrBlock))),
+			ui.Must2(cidr.ParseIPv4(aws.ToString(vpc0.CidrBlockAssociationSet[0].CidrBlock))),
 			aws.ToString(conn.VpcPeeringConnectionId),
 		))
 		ui.Must(awsec2.EnsureVPCPeeringRouteIPv6(
 			ctx,
 			networkCfg.Regional(region1),
 			aws.ToString(public1.RouteTableId),
-			cidr.MustIPv6(cidr.ParseIPv6(aws.ToString(vpc0.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))),
+			ui.Must2(cidr.ParseIPv6(aws.ToString(vpc0.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))),
 			aws.ToString(conn.VpcPeeringConnectionId),
 		))
 		for _, rt := range private1 {
@@ -561,14 +560,14 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 				ctx,
 				networkCfg.Regional(region1),
 				aws.ToString(rt.RouteTableId),
-				cidr.MustIPv4(cidr.ParseIPv4(aws.ToString(vpc0.CidrBlockAssociationSet[0].CidrBlock))),
+				ui.Must2(cidr.ParseIPv4(aws.ToString(vpc0.CidrBlockAssociationSet[0].CidrBlock))),
 				aws.ToString(conn.VpcPeeringConnectionId),
 			))
 			ui.Must(awsec2.EnsureVPCPeeringRouteIPv6(
 				ctx,
 				networkCfg.Regional(region1),
 				aws.ToString(rt.RouteTableId),
-				cidr.MustIPv6(cidr.ParseIPv6(aws.ToString(vpc0.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))),
+				ui.Must2(cidr.ParseIPv6(aws.ToString(vpc0.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock))),
 				aws.ToString(conn.VpcPeeringConnectionId),
 			))
 		}

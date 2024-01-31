@@ -11,6 +11,7 @@ import (
 	"github.com/src-bin/substrate/cidr"
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
+	"github.com/src-bin/substrate/ui"
 )
 
 func TestCreateDeleteVPC(t *testing.T) {
@@ -29,7 +30,7 @@ func TestCreateDeleteVPC(t *testing.T) {
 		}
 	}
 
-	vpc, err := EnsureVPC(ctx, cfg, "test", "test", cidr.MustParseIPv4("10.0.0.0/16"), nil)
+	vpc, err := EnsureVPC(ctx, cfg, "test", "test", ui.Must2(cidr.ParseIPv4("10.0.0.0/16")), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +67,7 @@ func TestEnsureVPC(t *testing.T) {
 	defer restore()
 	cfg = awscfg.Must(cfg.AssumeSpecialRole(ctx, naming.Network, roles.NetworkAdministrator, time.Hour)).Regional("us-west-2")
 
-	vpc, err := EnsureVPC(ctx, cfg, "staging", "default", cidr.MustParseIPv4("10.0.0.0/18"), nil)
+	vpc, err := EnsureVPC(ctx, cfg, "staging", "default", ui.Must2(cidr.ParseIPv4("10.0.0.0/18")), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
