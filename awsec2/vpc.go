@@ -159,7 +159,7 @@ func EnsureVPC(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	environment, quality string,
-	cidrPrefix cidr.IPv4,
+	ipv4 cidr.IPv4,
 	tags tagging.Map,
 ) (*VPC, error) {
 	tags = tagging.Merge(tagging.Map{
@@ -176,16 +176,16 @@ func EnsureVPC(
 	}
 
 	if len(vpcs) == 0 {
-		return createVPC(ctx, cfg, environment, quality, cidrPrefix, tags)
+		return createVPC(ctx, cfg, environment, quality, ipv4, tags)
 	}
 	if len(vpcs) != 1 { // TODO support sharing many VPCs when we introduce `substrate network create|delete|list`
 		return nil, fmt.Errorf("expected 1 VPC but found %s", jsonutil.MustString(vpcs))
 	}
-	if aws.ToString(vpcs[0].CidrBlock) != cidrPrefix.String() {
+	if aws.ToString(vpcs[0].CidrBlock) != ipv4.String() {
 		return nil, fmt.Errorf(
 			"expected VPC with CIDR prefix %s but found CIDR prefix %s",
 			aws.ToString(vpcs[0].CidrBlock),
-			cidrPrefix.String(),
+			ipv4.String(),
 		)
 	}
 
@@ -200,13 +200,13 @@ func createVPC(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	environment, quality string,
-	cidrPrefix cidr.IPv4,
+	ipv4 cidr.IPv4,
 	tags tagging.Map,
 ) (*VPC, error) {
 	client := cfg.EC2()
 	out, err := client.CreateVpc(ctx, &ec2.CreateVpcInput{
 		AmazonProvidedIpv6CidrBlock: aws.Bool(true),
-		CidrBlock:                   aws.String(cidrPrefix.String()),
+		CidrBlock:                   aws.String(ipv4.String()),
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeVpc,
@@ -217,6 +217,7 @@ func createVPC(
 	if err != nil {
 		return nil, err
 	}
+
 	if _, err := client.ModifyVpcAttribute(ctx, &ec2.ModifyVpcAttributeInput{
 		EnableDnsSupport: &types.AttributeBooleanValue{Value: aws.Bool(true)}, // must come first, by itself
 		VpcId:            out.Vpc.VpcId,

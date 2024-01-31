@@ -85,8 +85,8 @@ func ensureVPC(
 	ui.Must(err)
 	//ui.Debug(publicRouteTable != nil, len(privateRouteTables))
 	for i, az := range azs {
-
 		ui.Spinf("finding or creating a public subnet in %s", az)
+
 		publicSubnet := ui.Must2(awsec2.EnsureSubnet(
 			ctx,
 			cfg,
@@ -102,7 +102,6 @@ func ensureVPC(
 			},
 		))
 		publicSubnetId := aws.ToString(publicSubnet.SubnetId)
-		ui.Stopf("%s %s %s", publicSubnetId, publicSubnet.CidrBlock, publicSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 		//ui.Debug(publicSubnet)
 
 		ui.Must(awsec2.EnsureInternetGatewayRouteIPv4(
@@ -119,6 +118,8 @@ func ensureVPC(
 			ui.Must2(cidr.ParseIPv6("::/0")),
 			aws.ToString(igw.InternetGatewayId),
 		))
+
+		ui.Stopf("%s %s %s", publicSubnetId, publicSubnet.CidrBlock, publicSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 
 		if hasPrivateSubnets {
 			ui.Spinf("finding or creating a private subnet in %s", az)
@@ -140,7 +141,6 @@ func ensureVPC(
 				},
 			))
 			privateSubnetId := aws.ToString(privateSubnet.SubnetId)
-			ui.Stopf("%s %s %s", privateSubnetId, privateSubnet.CidrBlock, privateSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 			//ui.Debug(privateSubnet)
 
 			if privateRouteTables[privateSubnetId] == nil {
@@ -186,6 +186,7 @@ func ensureVPC(
 				aws.ToString(eoigw.EgressOnlyInternetGatewayId),
 			))
 
+			ui.Stopf("%s %s %s", privateSubnetId, privateSubnet.CidrBlock, privateSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 		}
 
 	}
