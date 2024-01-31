@@ -46,6 +46,24 @@ func DescribeSubnets(
 	return out.Subnets, nil
 }
 
+func DescribeVPC(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	environment, quality string, // TODO maybe support an alternative tagging regime for the Instance Factory's VPC
+) (*VPC, error) {
+	vpcs, err := DescribeVPCs(ctx, cfg, environment, quality)
+	if err != nil {
+		return nil, err
+	}
+	if len(vpcs) > 1 { // TODO support sharing many VPCs when we introduce `substrate network create|delete|list`
+		return nil, fmt.Errorf("expected 1 VPC but found %s", jsonutil.MustString(vpcs))
+	}
+	if len(vpcs) == 1 {
+		return &vpcs[0], nil
+	}
+	return nil, nil
+}
+
 func DescribeVPCs(
 	ctx context.Context,
 	cfg *awscfg.Config,
@@ -170,30 +188,44 @@ func EnsureVPC(
 		tagging.SubstrateVersion: version.Version,
 	}, tags)
 
-	vpcs, err := DescribeVPCs(ctx, cfg, environment, quality)
+	vpc, err := DescribeVPC(ctx, cfg, environment, quality)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(vpcs) == 0 {
-		return createVPC(ctx, cfg, environment, quality, ipv4, tags)
+	if vpc == nil {
+		vpc, err = createVPC(ctx, cfg, environment, quality, ipv4, tags)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if len(vpcs) != 1 { // TODO support sharing many VPCs when we introduce `substrate network create|delete|list`
-		return nil, fmt.Errorf("expected 1 VPC but found %s", jsonutil.MustString(vpcs))
-	}
-	if aws.ToString(vpcs[0].CidrBlock) != ipv4.String() {
+
+	if aws.ToString(vpc.CidrBlock) != ipv4.String() {
 		return nil, fmt.Errorf(
 			"expected VPC with CIDR prefix %s but found CIDR prefix %s",
-			aws.ToString(vpcs[0].CidrBlock),
+			aws.ToString(vpc.CidrBlock),
 			ipv4.String(),
 		)
 	}
 
-	if err := CreateTags(ctx, cfg, []string{aws.ToString(vpcs[0].VpcId)}, tags); err != nil {
+	if err := CreateTags(ctx, cfg, []string{aws.ToString(vpc.VpcId)}, tags); err != nil {
 		return nil, err
 	}
 
-	return &vpcs[0], nil
+	for range awsutil.StandardJitteredExponentialBackoff() {
+		vpc, err = DescribeVPC(ctx, cfg, environment, quality)
+		if err != nil {
+			return nil, err
+		}
+		if len(vpc.Ipv6CidrBlockAssociationSet) == 1 {
+			s := vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlockState
+			if s != nil && s.State == types.VpcCidrBlockStateCodeAssociated {
+				break
+			}
+		}
+	}
+
+	return vpc, nil
 }
 
 func createVPC(
@@ -217,7 +249,6 @@ func createVPC(
 	if err != nil {
 		return nil, err
 	}
-
 	if _, err := client.ModifyVpcAttribute(ctx, &ec2.ModifyVpcAttributeInput{
 		EnableDnsSupport: &types.AttributeBooleanValue{Value: aws.Bool(true)}, // must come first, by itself
 		VpcId:            out.Vpc.VpcId,
