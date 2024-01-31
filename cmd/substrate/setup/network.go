@@ -159,7 +159,23 @@ func ensureVPC(
 			}
 
 			if natGateways {
-				// TODO maybe an EIP and NAT Gateway in publicSubnet with a route to it here
+				ngw := ui.Must2(awsec2.EnsureNATGateway(
+					ctx,
+					cfg,
+					aws.ToString(publicSubnet.SubnetId),
+					tagging.Map{
+						tagging.Environment: environment,
+						tagging.Name:        fmt.Sprintf("%s-%s", environment, quality),
+						tagging.Quality:     quality,
+					},
+				))
+				ui.Must(awsec2.EnsureNATGatewayRouteIPv4(
+					ctx,
+					cfg,
+					aws.ToString(privateRouteTables[privateSubnetId].RouteTableId),
+					ui.Must2(cidr.ParseIPv4("0.0.0.0/0")),
+					aws.ToString(ngw.NatGatewayId),
+				))
 			}
 
 			ui.Must(awsec2.EnsureEgressOnlyInternetGatewayRouteIPv6(
