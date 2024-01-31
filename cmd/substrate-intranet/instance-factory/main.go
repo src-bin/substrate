@@ -17,6 +17,7 @@ import (
 	"github.com/src-bin/substrate/authorizerutil"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsec2"
+	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/lambdautil"
 	"github.com/src-bin/substrate/naming"
@@ -303,7 +304,16 @@ func Main(
 		imageId = aws.ToString(image.ImageId)
 	}
 
-	// Next decide where to situate the instance in the network.
+	// Make sure there's an IAM instance profile for the user's IAM role.
+	if _, err := awsiam.EnsureInstanceProfile(
+		ctx,
+		cfg,
+		fmt.Sprint(event.RequestContext.Authorizer.Lambda[authorizerutil.RoleName]),
+	); err != nil {
+		return nil, err
+	}
+
+	// Decide where to situate the instance in the network.
 	substrateAccount, err := cfg.FindSubstrateAccount(ctx)
 	if err != nil {
 		return nil, err
