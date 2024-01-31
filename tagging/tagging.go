@@ -10,7 +10,8 @@ const (
 
 	Manager = "Manager"
 
-	Name = "Name"
+	Name  = "Name"
+	Owner = "Owner"
 
 	Region           = "Region"           // only used by VPCs and subnets; probably unnecessary
 	AvailabilityZone = "AvailabilityZone" // only used by subnets
