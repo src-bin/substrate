@@ -65,7 +65,11 @@ func ensureVPC(
 		bits = 4
 	}
 
-	// TODO InternetGateway
+	igw := ui.Must2(awsec2.EnsureInternetGateway(ctx, cfg, vpcId, tagging.Map{
+		tagging.Environment: environment,
+		tagging.Name:        fmt.Sprintf("%s-%s", environment, quality),
+		tagging.Quality:     quality,
+	}))
 	if hasPrivateSubnets {
 		// TODO EgressOnlyInternetGateway
 	}
@@ -96,7 +100,20 @@ func ensureVPC(
 		ui.Stopf("%s %s %s", publicSubnetId, publicSubnet.CidrBlock, publicSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 		//ui.Debug(publicSubnet)
 
-		// TODO routes to InternetGateway
+		ui.Must(awsec2.EnsureInternetGatewayRouteIPv4(
+			ctx,
+			cfg,
+			aws.ToString(publicRouteTable.RouteTableId),
+			ui.Must2(cidr.ParseIPv4("0.0.0.0/0")),
+			aws.ToString(igw.InternetGatewayId),
+		))
+		ui.Must(awsec2.EnsureInternetGatewayRouteIPv6(
+			ctx,
+			cfg,
+			aws.ToString(publicRouteTable.RouteTableId),
+			ui.Must2(cidr.ParseIPv6("::/0")),
+			aws.ToString(igw.InternetGatewayId),
+		))
 
 		if hasPrivateSubnets {
 			ui.Spinf("finding or creating a private subnet in %s", az)
