@@ -70,8 +70,13 @@ func ensureVPC(
 		tagging.Name:        fmt.Sprintf("%s-%s", environment, quality),
 		tagging.Quality:     quality,
 	}))
+	var eoigw *awsec2.EgressOnlyInternetGateway
 	if hasPrivateSubnets {
-		// TODO EgressOnlyInternetGateway
+		eoigw = ui.Must2(awsec2.EnsureEgressOnlyInternetGateway(ctx, cfg, vpcId, tagging.Map{
+			tagging.Environment: environment,
+			tagging.Name:        fmt.Sprintf("%s-%s", environment, quality),
+			tagging.Quality:     quality,
+		}))
 	}
 
 	// Three public and maybe three private subnets, too. One wasted subnet
@@ -157,7 +162,14 @@ func ensureVPC(
 				// TODO maybe an EIP and NAT Gateway in publicSubnet with a route to it here
 			}
 
-			// TODO route to EgressOnlyInternetGateway
+			ui.Must(awsec2.EnsureEgressOnlyInternetGatewayRouteIPv6(
+				ctx,
+				cfg,
+				aws.ToString(privateRouteTables[aws.ToString(privateSubnet.SubnetId)].RouteTableId),
+				ui.Must2(cidr.ParseIPv6("::/0")),
+				aws.ToString(eoigw.EgressOnlyInternetGatewayId),
+			))
+
 		}
 
 	}
