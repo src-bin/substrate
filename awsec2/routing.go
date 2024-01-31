@@ -33,7 +33,7 @@ func CreateRouteTable(
 	out, err := client.CreateRouteTable(ctx, &ec2.CreateRouteTableInput{
 		TagSpecifications: []types.TagSpecification{
 			{
-				ResourceType: types.ResourceTypeEgressOnlyInternetGateway,
+				ResourceType: types.ResourceTypeRouteTable,
 				Tags:         tagStructs(tags),
 			},
 		},
