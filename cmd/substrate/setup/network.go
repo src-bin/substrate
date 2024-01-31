@@ -70,9 +70,9 @@ func ensureVPC(
 		tagging.Name:        fmt.Sprintf("%s-%s", environment, quality),
 		tagging.Quality:     quality,
 	}))
-	var eoigw *awsec2.EgressOnlyInternetGateway
+	var eigw *awsec2.EgressOnlyInternetGateway
 	if hasPrivateSubnets {
-		eoigw = ui.Must2(awsec2.EnsureEgressOnlyInternetGateway(ctx, cfg, vpcId, tagging.Map{
+		eigw = ui.Must2(awsec2.EnsureEgressOnlyInternetGateway(ctx, cfg, vpcId, tagging.Map{
 			tagging.Environment: environment,
 			tagging.Name:        fmt.Sprintf("%s-%s", environment, quality),
 			tagging.Quality:     quality,
@@ -183,7 +183,7 @@ func ensureVPC(
 				cfg,
 				aws.ToString(privateRouteTables[aws.ToString(privateSubnet.SubnetId)].RouteTableId),
 				ui.Must2(cidr.ParseIPv6("::/0")),
-				aws.ToString(eoigw.EgressOnlyInternetGatewayId),
+				aws.ToString(eigw.EgressOnlyInternetGatewayId),
 			))
 
 			ui.Stopf("%s %s %s", privateSubnetId, privateSubnet.CidrBlock, privateSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)

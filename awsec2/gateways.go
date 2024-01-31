@@ -19,14 +19,14 @@ type (
 )
 
 func DescribeEgressOnlyInternetGateway(ctx context.Context, cfg *awscfg.Config, vpcId string) (*EgressOnlyInternetGateway, error) {
-	eoigws, err := DescribeEgressOnlyInternetGateways(ctx, cfg)
+	eigws, err := DescribeEgressOnlyInternetGateways(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
-	for _, eoigw := range eoigws {
-		for _, attachment := range eoigw.Attachments {
+	for _, eigw := range eigws {
+		for _, attachment := range eigw.Attachments {
 			if aws.ToString(attachment.VpcId) == vpcId {
-				v := eoigw // no aliasing loop variables / don't leak the whole slice
+				v := eigw // no aliasing loop variables / don't leak the whole slice
 				//ui.Debug(v)
 				return &v, nil
 			}
@@ -130,12 +130,12 @@ func EnsureEgressOnlyInternetGateway(
 		tagging.SubstrateVersion: version.Version,
 	}, tags)
 
-	eoigw, err := DescribeEgressOnlyInternetGateway(ctx, cfg, vpcId)
+	eigw, err := DescribeEgressOnlyInternetGateway(ctx, cfg, vpcId)
 	if err != nil {
 		return nil, err
 	}
 
-	if eoigw == nil {
+	if eigw == nil {
 		out, err := client.CreateEgressOnlyInternetGateway(ctx, &ec2.CreateEgressOnlyInternetGatewayInput{
 			TagSpecifications: []types.TagSpecification{
 				{
@@ -148,14 +148,14 @@ func EnsureEgressOnlyInternetGateway(
 		if err != nil {
 			return nil, err
 		}
-		eoigw = out.EgressOnlyInternetGateway
+		eigw = out.EgressOnlyInternetGateway
 	} else {
-		if err := CreateTags(ctx, cfg, []string{aws.ToString(eoigw.EgressOnlyInternetGatewayId)}, tags); err != nil {
+		if err := CreateTags(ctx, cfg, []string{aws.ToString(eigw.EgressOnlyInternetGatewayId)}, tags); err != nil {
 			return nil, err
 		}
 	}
 
-	return eoigw, nil
+	return eigw, nil
 }
 
 func EnsureInternetGateway(
