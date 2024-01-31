@@ -87,6 +87,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		ui.Fatalf("--environment %q --quality %q is not a valid environment and quality pair in your organization", *environment, *quality)
 	}
 
+	cmdutil.PrintRoot()
+
 	mgmtCfg := awscfg.Must(cfg.AssumeManagementRole(ctx, roles.Substrate, time.Hour))
 	versionutil.PreventDowngrade(ctx, mgmtCfg)
 

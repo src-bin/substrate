@@ -88,6 +88,7 @@ to run repeatedly`,
 }
 
 func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string, _ io.Writer) {
+	cmdutil.PrintRoot()
 
 	//ui.Debug(cfg.MustGetCallerIdentity(ctx))
 	regions.Default()
