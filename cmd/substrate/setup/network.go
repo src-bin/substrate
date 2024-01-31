@@ -868,9 +868,9 @@ func terraformVPC(
 		ui.Must(terraform.ProvidersLock(dirname))
 	}
 
-	//ui.Must(terraform.StateList(dirname))                           // XXX
+	//ui.Must(terraform.StateList(dirname))
 	stateRmVPC(ctx, networkCfg, tags, region, natGateways, dirname) // TODO remove in 2024.03 or later
-	//ui.Must(terraform.StateList(dirname))                           // XXX
+	//ui.Must(terraform.StateList(dirname))
 
 	if *runTerraform {
 		if *noApply {
