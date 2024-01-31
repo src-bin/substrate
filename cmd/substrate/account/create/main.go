@@ -118,6 +118,8 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	accounts.SetupIAM(ctx, mgmtCfg, networkCfg, substrateCfg, accountCfg, *domain, *environment, *quality)
 
+	// TODO delete the default VPC in every region using accountCfg
+
 	accounts.SetupTerraform(ctx, mgmtCfg, networkCfg, accountCfg, *domain, *environment, *quality)
 
 	ui.Print("next, commit the following files to version control:")

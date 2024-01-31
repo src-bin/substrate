@@ -405,6 +405,8 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 	ui.Must(adminNetDoc.Write())
 	ui.Must(netDoc.Write())
 
+	// TODO delete the default VPC in every region to free up some quota
+
 	// Ensure the VPCs-per-region service quota and a few others aren't going to get in the way.
 	var deadline time.Time
 	if *ignoreServiceQuotas {
