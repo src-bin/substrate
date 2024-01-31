@@ -159,10 +159,11 @@ func ensureVPC(
 			}
 
 			if natGateways {
+				ui.Spin("finding or creating the NAT Gateway in %s (in %s for %s)", az, publicSubnetId, privateSubnetId)
 				ngw := ui.Must2(awsec2.EnsureNATGateway(
 					ctx,
 					cfg,
-					aws.ToString(publicSubnet.SubnetId),
+					publicSubnetId,
 					tagging.Map{
 						tagging.Environment: environment,
 						tagging.Name:        fmt.Sprintf("%s-%s", environment, quality),
@@ -176,6 +177,17 @@ func ensureVPC(
 					ui.Must2(cidr.ParseIPv4("0.0.0.0/0")),
 					aws.ToString(ngw.NatGatewayId),
 				))
+				ui.Stop(ngw.NatGatewayId)
+			} else {
+				ui.Spin("deleting the NAT Gateway, if it exists, in %s", az)
+				ui.Must(awsec2.DeleteRouteIPv4(
+					ctx,
+					cfg,
+					aws.ToString(privateRouteTables[privateSubnetId].RouteTableId),
+					ui.Must2(cidr.ParseIPv4("0.0.0.0/0")),
+				))
+				ui.Must(awsec2.DeleteNATGateway(ctx, cfg, publicSubnetId))
+				ui.Stop("ok")
 			}
 
 			ui.Must(awsec2.EnsureEgressOnlyInternetGatewayRouteIPv6(

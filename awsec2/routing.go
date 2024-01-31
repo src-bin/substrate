@@ -52,6 +52,23 @@ func CreateRouteTable(
 	return out.RouteTable, nil
 }
 
+func DeleteRouteIPv4(
+	ctx context.Context,
+	cfg *awscfg.Config, // must be in the network account and in the right region
+	routeTableId string,
+	ipv4 cidr.IPv4,
+) error {
+	ui.Printf("dropping route for traffic from %s to %s", routeTableId, ipv4)
+	_, err := cfg.EC2().DeleteRoute(ctx, &ec2.DeleteRouteInput{
+		DestinationCidrBlock: aws.String(ipv4.String()),
+		RouteTableId:         aws.String(routeTableId),
+	})
+	if awsutil.ErrorCodeIs(err, "InvalidRoute.NotFound") {
+		err = nil
+	}
+	return err
+}
+
 func DescribeRouteTables(
 	ctx context.Context,
 	cfg *awscfg.Config,

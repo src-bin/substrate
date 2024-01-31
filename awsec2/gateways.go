@@ -18,6 +18,29 @@ type (
 	NATGateway                = types.NatGateway
 )
 
+func DeleteNATGateway(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	publicSubnetId string,
+) error {
+
+	ngw, err := DescribeNATGateway(ctx, cfg, publicSubnetId)
+	if err != nil {
+		return err
+	}
+	if _, err := cfg.EC2().DeleteNatGateway(ctx, &ec2.DeleteNatGatewayInput{
+		NatGatewayId: ngw.NatGatewayId,
+	}); err != nil {
+		return err
+	}
+
+	if err := DeleteEIP(ctx, cfg, publicSubnetId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func DescribeEgressOnlyInternetGateway(ctx context.Context, cfg *awscfg.Config, vpcId string) (*EgressOnlyInternetGateway, error) {
 	eigws, err := DescribeEgressOnlyInternetGateways(ctx, cfg)
 	if err != nil {

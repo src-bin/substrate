@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/version"
@@ -15,6 +16,32 @@ import (
 
 type EIP struct {
 	AllocationId, IPv4 string
+	privateIPv4        *string
+}
+
+func DeleteEIP(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	ownerTagValue string, // like a secondary index for this EIP
+) (err error) {
+	var eip *EIP
+	for range awsutil.StandardJitteredExponentialBackoff() {
+		eip, err = DescribeEIP(ctx, cfg, ownerTagValue)
+		if err != nil {
+			return
+		}
+		if eip == nil {
+			return
+		}
+		//ui.Debug(eip)
+		if eip.privateIPv4 == nil {
+			break
+		}
+	}
+	_, err = cfg.EC2().ReleaseAddress(ctx, &ec2.ReleaseAddressInput{
+		AllocationId: aws.String(eip.AllocationId),
+	})
+	return
 }
 
 func DescribeEIP(
@@ -40,6 +67,7 @@ func DescribeEIP(
 	return &EIP{
 		AllocationId: aws.ToString(out.Addresses[0].AllocationId),
 		IPv4:         aws.ToString(out.Addresses[0].PublicIp),
+		privateIPv4:  out.Addresses[0].PrivateIpAddress,
 	}, nil
 }
 
