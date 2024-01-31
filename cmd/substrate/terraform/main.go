@@ -105,6 +105,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, args []stri
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *substrate {
 		ui.Fatal(`can't mix --domain "..." --environment "..." --quality "..." with --substrate`)
 	}
+	if *quality == "" && *substrate {
+		ui.Fatal(`--quality "..." is required with --substrate`)
+	}
 	if *special != "" && *substrate {
 		ui.Fatal(`can't mix --special "..." with --substrate`)
 	}
