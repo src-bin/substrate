@@ -10,7 +10,6 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cidr"
-	"github.com/src-bin/substrate/jsonutil"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -79,23 +78,13 @@ func DescribeRouteTables(
 	private = make(map[string]*RouteTable)
 	for _, rt := range out.RouteTables {
 		//ui.Debug(rt)
-		count := 0
+		v := rt // no aliasing loop variables / don't leak the whole slice
 		for _, assoc := range rt.Associations {
 			if aws.ToBool(assoc.Main) {
-				continue
+				public = &v
+			} else {
+				private[aws.ToString(assoc.SubnetId)] = &v
 			}
-			if assoc.SubnetId != nil {
-				count++
-			}
-		}
-		v := rt // no aliasing loop variables / don't leak the whole slice
-		switch count {
-		case 1:
-			private[aws.ToString(rt.Associations[0].SubnetId)] = &v
-		case 3:
-			public = &v
-		default:
-			ui.Print("found unexpected routing table ", jsonutil.MustOneLineString(rt))
 		}
 	}
 	return
