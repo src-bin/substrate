@@ -47,9 +47,9 @@ const (
 )
 
 var (
-	autoApprove, noApply = new(bool), new(bool)
-	providersLock        = new(bool)
-	ignoreServiceQuotas  = new(bool)
+	runTerraform, autoApprove, noApply = new(bool), new(bool), new(bool)
+	providersLock                      = new(bool)
+	ignoreServiceQuotas                = new(bool)
 )
 
 func Command() *cobra.Command {
@@ -67,15 +67,16 @@ to run repeatedly`,
 		DisableFlagsInUseLine: true,
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 			return []string{
-				"--auto-approve", "--no-apply",
+				"--terraform", "--auto-approve", "--no-apply",
 				"--providers-lock",
 				"--ignore-service-quotas",
 				"--fully-interactive", "--minimally-interactive", "--non-interactive",
 			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
 		},
 	}
-	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "apply Terraform changes without waiting for confirmation")
-	cmd.Flags().BoolVar(noApply, "no-apply", false, "do not apply Terraform changes")
+	cmd.Flags().BoolVar(runTerraform, "terraform", false, "initialize and plan or apply Terraform in the special deploy and network accounts")
+	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "with --terraform, apply Terraform changes without waiting for confirmation")
+	cmd.Flags().BoolVar(noApply, "no-apply", false, "with --terraform, plan but do not apply Terraform changes")
 	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "run `terraform providers lock` during Terraform initialization")
 	cmd.Flags().BoolVar(ignoreServiceQuotas, "ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	cmd.Flags().AddFlagSet(ui.InteractivityFlagSet())

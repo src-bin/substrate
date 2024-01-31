@@ -175,16 +175,17 @@ func deploy(ctx context.Context, mgmtCfg *awscfg.Config) {
 
 		ui.Must(terraform.Fmt(dirname))
 
-		ui.Must(terraform.Init(dirname))
-		if *providersLock {
-			ui.Must(terraform.ProvidersLock(dirname))
-		}
+		if *runTerraform {
+			ui.Must(terraform.Init(dirname))
+			if *providersLock {
+				ui.Must(terraform.ProvidersLock(dirname))
+			}
 
-		if *noApply {
-			err = terraform.Plan(dirname)
-		} else {
-			err = terraform.Apply(dirname, *autoApprove)
+			if *noApply {
+				ui.Must(terraform.Plan(dirname))
+			} else {
+				ui.Must(terraform.Apply(dirname, *autoApprove))
+			}
 		}
-		ui.Must(err)
 	}
 }

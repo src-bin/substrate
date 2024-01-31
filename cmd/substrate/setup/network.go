@@ -796,20 +796,22 @@ func terraformVPC(
 
 	ui.Must(terraform.Fmt(dirname))
 
+	// TODO wrap this in if *runTerraform, too, when we're able to delete
+	// stateRmVPC in 2024.03 or later.
 	ui.Must(terraform.Init(dirname))
 	if *providersLock {
 		ui.Must(terraform.ProvidersLock(dirname))
 	}
 
-	ui.Must(terraform.StateList(dirname)) // XXX
-	stateRmVPC(ctx, networkCfg, tags, region, natGateways, dirname)
-	ui.Must(terraform.StateList(dirname)) // XXX
+	//ui.Must(terraform.StateList(dirname))                           // XXX
+	stateRmVPC(ctx, networkCfg, tags, region, natGateways, dirname) // TODO remove in 2024.03 or later
+	//ui.Must(terraform.StateList(dirname))                           // XXX
 
-	var err error
-	if *noApply {
-		err = terraform.Plan(dirname)
-	} else {
-		err = terraform.Apply(dirname, *autoApprove)
+	if *runTerraform {
+		if *noApply {
+			ui.Must(terraform.Plan(dirname))
+		} else {
+			ui.Must(terraform.Apply(dirname, *autoApprove))
+		}
 	}
-	ui.Must(err)
 }
