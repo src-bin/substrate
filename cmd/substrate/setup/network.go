@@ -74,6 +74,7 @@ func ensureVPC(
 	// at the beginning.
 	publicRouteTable, privateRouteTables, err := awsec2.DescribeRouteTables(ctx, cfg, vpcId)
 	ui.Must(err)
+	//ui.Debug(publicRouteTable != nil, len(privateRouteTables))
 	for i, az := range azs {
 
 		ui.Spinf("finding or creating a public subnet in %s", az)
@@ -120,6 +121,21 @@ func ensureVPC(
 			ui.Stopf("%s %s %s", privateSubnetId, privateSubnet.CidrBlock, privateSubnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
 			//ui.Debug(privateSubnet)
 
+			if privateRouteTables[privateSubnetId] == nil {
+				privateRouteTables[privateSubnetId] = ui.Must2(awsec2.CreateRouteTable(
+					ctx,
+					cfg,
+					vpcId,
+					privateSubnetId,
+					tagging.Map{
+						tagging.Connectivity: "private",
+						tagging.Environment:  environment,
+						tagging.Name:         fmt.Sprintf("%s-%s-private-%s", environment, quality, az),
+						tagging.Quality:      quality,
+					},
+				))
+			}
+
 			if natGateways {
 				// TODO maybe an EIP and NAT Gateway in publicSubnet with a route to it here
 			}
@@ -130,6 +146,8 @@ func ensureVPC(
 	}
 	publicRouteTable, privateRouteTables, err = awsec2.DescribeRouteTables(ctx, cfg, vpcId)
 	ui.Must(err)
+	//ui.Debug(publicRouteTable)
+	//ui.Debug(privateRouteTables)
 
 	// TODO VPC Endpoints for DynamoDB and S3 with all route tables
 

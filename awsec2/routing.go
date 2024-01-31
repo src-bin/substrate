@@ -11,10 +11,47 @@ import (
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cidr"
 	"github.com/src-bin/substrate/jsonutil"
+	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/version"
 )
 
 type RouteTable = types.RouteTable
+
+func CreateRouteTable(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	vpcId, subnetId string,
+	tags tagging.Map,
+) (*RouteTable, error) {
+	client := cfg.EC2()
+	tags = tagging.Merge(tagging.Map{
+		tagging.Manager:          tagging.Substrate,
+		tagging.SubstrateVersion: version.Version,
+	}, tags)
+
+	out, err := client.CreateRouteTable(ctx, &ec2.CreateRouteTableInput{
+		TagSpecifications: []types.TagSpecification{
+			{
+				ResourceType: types.ResourceTypeEgressOnlyInternetGateway,
+				Tags:         tagStructs(tags),
+			},
+		},
+		VpcId: aws.String(vpcId),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := client.AssociateRouteTable(ctx, &ec2.AssociateRouteTableInput{
+		RouteTableId: out.RouteTable.RouteTableId,
+		SubnetId:     aws.String(subnetId),
+	}); err != nil {
+		return nil, err
+	}
+
+	return out.RouteTable, nil
+}
 
 func DescribeRouteTables(
 	ctx context.Context,
@@ -22,7 +59,7 @@ func DescribeRouteTables(
 	vpcId string,
 ) (
 	public *RouteTable,
-	private map[string]RouteTable, // subnetId to RouteTable
+	private map[string]*RouteTable, // subnetId to RouteTable
 	err error,
 ) {
 	var out *ec2.DescribeRouteTablesOutput
@@ -39,7 +76,7 @@ func DescribeRouteTables(
 		err = fmt.Errorf("found too many routing tables in %s", vpcId)
 		return
 	}
-	private = make(map[string]RouteTable)
+	private = make(map[string]*RouteTable)
 	for _, rt := range out.RouteTables {
 		//ui.Debug(rt)
 		count := 0
@@ -51,12 +88,12 @@ func DescribeRouteTables(
 				count++
 			}
 		}
+		v := rt // no aliasing loop variables / don't leak the whole slice
 		switch count {
 		case 1:
-			private[aws.ToString(rt.Associations[0].SubnetId)] = rt
+			private[aws.ToString(rt.Associations[0].SubnetId)] = &v
 		case 3:
-			publicValue := rt // no aliasing loop variables!
-			public = &publicValue
+			public = &v
 		default:
 			ui.Print("found unexpected routing table ", jsonutil.MustOneLineString(rt))
 		}
