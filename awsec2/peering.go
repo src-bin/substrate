@@ -91,6 +91,11 @@ func EnsureVPCPeeringConnection(
 	//ui.Debug(conn)
 
 	// Accept pending connections, whether created or found.
+	// TODO Figure out why it appears (in the AWS Console) that connections
+	// TODO _actually_ ending up in the accepted state takes a long, long time.
+	// TODO It seems like it takes O(1 hour), which is just too long, though
+	// TODO packets may flow sooner than the AWS Console reports that the peers
+	// TODO are established.
 	if conn.Status != nil && conn.Status.Code == types.VpcPeeringConnectionStateReasonCodePendingAcceptance {
 		_, err = cfg.Regional(aws.ToString(conn.AccepterVpcInfo.Region)).EC2().AcceptVpcPeeringConnection(ctx, &ec2.AcceptVpcPeeringConnectionInput{
 			VpcPeeringConnectionId: conn.VpcPeeringConnectionId,
