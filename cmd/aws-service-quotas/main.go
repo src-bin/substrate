@@ -83,7 +83,7 @@ func main() {
 
 	if *listQuotas {
 		if *serviceCode == "" {
-			log.Fatal("-service-code is required with -list-quotas")
+			log.Fatal("--service-code is required with -list-quotas")
 		}
 		for _, region := range regionSlice {
 			quotas, err := awsservicequotas.ListServiceQuotas(
@@ -102,7 +102,7 @@ func main() {
 	}
 
 	if *quotaCode == "" || *serviceCode == "" {
-		log.Fatal("-quota-code and -service-code are required without -list-services or -list-quotas")
+		log.Fatal("--quota-code and --service-code are required without --list-services or --list-quotas")
 	}
 	if *requiredValue > 0 {
 		if *allRegions {

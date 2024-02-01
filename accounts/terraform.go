@@ -61,7 +61,7 @@ func RunTerraform(
 	}
 
 	if noApply {
-		ui.Print("-no-apply given so not invoking `terraform apply`")
+		ui.Print("--no-apply given so not invoking `terraform apply`")
 	}
 }
 

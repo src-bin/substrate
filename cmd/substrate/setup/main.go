@@ -818,7 +818,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		[]byte(fmt.Sprintln(terraform.AWSProviderVersionConstraint())),
 	))
 	if *noApply {
-		ui.Print("-no-apply given so not invoking `terraform apply`")
+		ui.Print("--no-apply given so not invoking `terraform apply`")
 	}
 
 	// Generate, plan, and apply the legacy deploy account's Terraform code,
