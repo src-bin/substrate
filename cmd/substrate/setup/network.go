@@ -179,7 +179,7 @@ func ensureVPC(
 				))
 				ui.Stop(ngw.NatGatewayId)
 			} else {
-				ui.Spin("deleting the NAT Gateway, if it exists, in %s", az)
+				ui.Spinf("deleting the NAT Gateway, if it exists, in %s", az)
 				ui.Must(awsec2.DeleteRouteIPv4(
 					ctx,
 					cfg,
@@ -211,7 +211,7 @@ func ensureVPC(
 		routeTableIds = append(routeTableIds, aws.ToString(rt.RouteTableId))
 	}
 
-	ui.Spin("creating gateway VPC Endpoints for DynamoDB and S3 (these are free)")
+	ui.Spin("finding or creating gateway VPC Endpoints for DynamoDB and S3 (these are free)")
 	for _, serviceName := range []string{
 		fmt.Sprintf("com.amazonaws.%s.dynamodb", cfg.Region()),
 		fmt.Sprintf("com.amazonaws.%s.s3", cfg.Region()),
