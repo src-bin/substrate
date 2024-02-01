@@ -28,6 +28,9 @@ func DeleteNATGateway(
 	if err != nil {
 		return err
 	}
+	if ngw == nil {
+		return nil
+	}
 	if _, err := cfg.EC2().DeleteNatGateway(ctx, &ec2.DeleteNatGatewayInput{
 		NatGatewayId: ngw.NatGatewayId,
 	}); err != nil {
