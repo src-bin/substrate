@@ -286,7 +286,7 @@ func EnsureNATGateway(
 			return nil, err
 		}
 		//ui.Debug(ngw)
-		if ngw.State == types.NatGatewayStateAvailable {
+		if ngw != nil && ngw.State == types.NatGatewayStateAvailable {
 			break
 		}
 	}
