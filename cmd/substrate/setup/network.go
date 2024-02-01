@@ -206,7 +206,30 @@ func ensureVPC(
 	ui.Must(err)
 	//ui.Debug(publicRouteTable)
 	//ui.Debug(privateRouteTables)
+	routeTableIds := []string{aws.ToString(publicRouteTable.RouteTableId)}
+	for _, rt := range privateRouteTables {
+		routeTableIds = append(routeTableIds, aws.ToString(rt.RouteTableId))
+	}
 
+	ui.Spin("creating gateway VPC Endpoints for DynamoDB and S3 (these are free)")
+	for _, serviceName := range []string{
+		fmt.Sprintf("com.amazonaws.%s.dynamodb", cfg.Region()),
+		fmt.Sprintf("com.amazonaws.%s.s3", cfg.Region()),
+	} {
+		ui.Must(awsec2.EnsureGatewayVPCEndpoint(
+			ctx,
+			cfg,
+			vpcId,
+			routeTableIds,
+			serviceName,
+			tagging.Map{
+				tagging.Environment: environment,
+				tagging.Name:        fmt.Sprintf("%s-%s", environment, quality),
+				tagging.Quality:     quality,
+			},
+		))
+	}
+	ui.Stop("ok")
 
 }
 
