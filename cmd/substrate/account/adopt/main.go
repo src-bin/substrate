@@ -105,6 +105,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		ui.Printf("%s is already being managed by Substrate", account)
 		os.Exit(1)
 	}
+	ui.Must(mgmtCfg.ClearCachedAccounts())
 
 	mgmtCfg.Telemetry().FinalAccountId = aws.ToString(account.Id)
 	mgmtCfg.Telemetry().FinalRoleName = roles.Administrator
