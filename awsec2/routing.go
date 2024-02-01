@@ -58,7 +58,7 @@ func DeleteRouteIPv4(
 	routeTableId string,
 	ipv4 cidr.IPv4,
 ) error {
-	ui.Printf("dropping route for traffic from %s to %s", routeTableId, ipv4)
+	ui.Spinf("dropping route for traffic from %s to %s", routeTableId, ipv4)
 	_, err := cfg.EC2().DeleteRoute(ctx, &ec2.DeleteRouteInput{
 		DestinationCidrBlock: aws.String(ipv4.String()),
 		RouteTableId:         aws.String(routeTableId),
@@ -66,7 +66,7 @@ func DeleteRouteIPv4(
 	if awsutil.ErrorCodeIs(err, "InvalidRoute.NotFound") {
 		err = nil
 	}
-	return err
+	return ui.StopErr(err)
 }
 
 func DescribeRouteTables(
@@ -114,7 +114,7 @@ func EnsureEgressOnlyInternetGatewayRouteIPv6(
 	ipv6 cidr.IPv6,
 	egressOnlyInternetGatewayId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv6, egressOnlyInternetGatewayId)
+	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, ipv6, egressOnlyInternetGatewayId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
 		DestinationIpv6CidrBlock:    aws.String(ipv6.String()),
 		EgressOnlyInternetGatewayId: aws.String(egressOnlyInternetGatewayId),
@@ -128,7 +128,7 @@ func EnsureInternetGatewayRouteIPv4(
 	ipv4 cidr.IPv4,
 	internetGatewayId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv4, internetGatewayId)
+	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, ipv4, internetGatewayId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
 		DestinationCidrBlock: aws.String(ipv4.String()),
 		GatewayId:            aws.String(internetGatewayId),
@@ -142,7 +142,7 @@ func EnsureInternetGatewayRouteIPv6(
 	ipv6 cidr.IPv6,
 	internetGatewayId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv6, internetGatewayId)
+	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, ipv6, internetGatewayId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
 		DestinationIpv6CidrBlock: aws.String(ipv6.String()),
 		GatewayId:                aws.String(internetGatewayId),
@@ -156,7 +156,7 @@ func EnsureNATGatewayRouteIPv4(
 	ipv4 cidr.IPv4,
 	natGatewayId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv4, natGatewayId)
+	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, ipv4, natGatewayId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
 		DestinationCidrBlock: aws.String(ipv4.String()),
 		NatGatewayId:         aws.String(natGatewayId),
@@ -170,7 +170,7 @@ func EnsureVPCPeeringRouteIPv4(
 	ipv4 cidr.IPv4,
 	vpcPeeringConnectionId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv4, vpcPeeringConnectionId)
+	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, ipv4, vpcPeeringConnectionId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
 		DestinationCidrBlock:   aws.String(ipv4.String()),
 		VpcPeeringConnectionId: aws.String(vpcPeeringConnectionId),
@@ -184,7 +184,7 @@ func EnsureVPCPeeringRouteIPv6(
 	ipv6 cidr.IPv6,
 	vpcPeeringConnectionId string,
 ) error {
-	ui.Printf("routing traffic from %s to %s via %s", routeTableId, ipv6, vpcPeeringConnectionId)
+	ui.Spinf("routing traffic from %s to %s via %s", routeTableId, ipv6, vpcPeeringConnectionId)
 	return ensureRoute(ctx, cfg, routeTableId, &ec2.CreateRouteInput{
 		DestinationIpv6CidrBlock: aws.String(ipv6.String()),
 		VpcPeeringConnectionId:   aws.String(vpcPeeringConnectionId),
@@ -197,5 +197,5 @@ func ensureRoute(ctx context.Context, cfg *awscfg.Config, routeTableId string, i
 	if awsutil.ErrorCodeIs(err, RouteAlreadyExists) { // TODO confirm whether this detects destination gateway mismatches
 		err = nil
 	}
-	return err
+	return ui.StopErr(err)
 }
