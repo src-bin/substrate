@@ -159,7 +159,7 @@ func ensureVPC(
 			}
 
 			if natGateways {
-				ui.Spin("finding or creating the NAT Gateway in %s (in %s for %s)", az, publicSubnetId, privateSubnetId)
+				ui.Spinf("finding or creating the NAT Gateway in %s (in %s for %s)", az, publicSubnetId, privateSubnetId)
 				ngw := ui.Must2(awsec2.EnsureNATGateway(
 					ctx,
 					cfg,
