@@ -43,6 +43,13 @@ func (err AccountNotFound) Error() string {
 
 type CreateAccountStatus = types.CreateAccountStatus
 
+func CloseAccount(ctx context.Context, cfg *awscfg.Config, accountId string) error {
+	_, err := cfg.Organizations().CloseAccount(ctx, &organizations.CloseAccountInput{
+		AccountId: aws.String(accountId),
+	})
+	return err
+}
+
 // DescribeAccount fetches an account from the AWS Organizations API and
 // augments it with its tags. The *Config must be in the management account.
 func DescribeAccount(ctx context.Context, cfg *awscfg.Config, accountId string) (*Account, error) {
