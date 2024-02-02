@@ -27,7 +27,7 @@ func TestInternetGateway(t *testing.T) {
 	}
 	vpcId := aws.ToString(vpcs[0].VpcId)
 
-	if _, err := EnsureInternetGateway(ctx, cfg, vpcId); err != nil {
+	if _, err := EnsureInternetGateway(ctx, cfg, vpcId, nil); err != nil {
 		t.Fatal(err)
 	}
 }
