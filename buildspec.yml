@@ -55,8 +55,8 @@ phases:
       - make release
 
       # Write HTML for the /download page and a tree of upgrade breadcrumbs.
-      - sh "tools/download-html.sh"
       - sh "tools/upgrades.sh"
+      - sh "tools/download-html.sh"
 
     finally:
       - go run "tools/slack-codebuild/main.go" "pre_build"
