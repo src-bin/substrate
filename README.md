@@ -1,7 +1,7 @@
 Substrate
 =========
 
-Substrate is an opinionated suite of tools that manage secure, reliable, and compliant cloud infrastructure in AWS.
+Substrate is a command-line tool that helps teams build and operate secure, compliant, isolated AWS infrastructure. It's the right way to use AWS for startups and small teams.
 
 Full documentation is available at <https://docs.substrate.tools/>.
 
