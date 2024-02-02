@@ -12,12 +12,17 @@ import (
 	"github.com/src-bin/substrate/awsacm"
 	"github.com/src-bin/substrate/awscfg"
 	"github.com/src-bin/substrate/awsroute53"
+	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
-const HostedZoneId = "Z2FDTNDATAQYW2" // CloudFront's zone ID in Route 53 for use when creating ALIAS records
+const (
+	HostedZoneId = "Z2FDTNDATAQYW2" // CloudFront's zone ID in Route 53 for use when creating ALIAS records
+
+	PreconditionFailed = "PreconditionFailed"
+)
 
 type Distribution struct { // just the fields we want out of types.Distribution and types.DistributionSummary
 	ARN, Comment, DomainName, Id string
@@ -171,12 +176,16 @@ func EnsureDistribution(
 			return nil, ui.StopErr(err)
 		}
 		distributionConfig.CallerReference = out.DistributionConfig.CallerReference
-		if _, err := client.UpdateDistribution(ctx, &cloudfront.UpdateDistributionInput{
-			DistributionConfig: distributionConfig,
-			Id:                 d.Id,
-			IfMatch:            out.ETag,
-		}); err != nil {
-			return nil, ui.StopErr(err)
+		for range awsutil.StandardJitteredExponentialBackoff() {
+			if _, err := client.UpdateDistribution(ctx, &cloudfront.UpdateDistributionInput{
+				DistributionConfig: distributionConfig,
+				Id:                 d.Id,
+				IfMatch:            out.ETag,
+			}); err == nil {
+				break
+			} else if !awsutil.ErrorCodeIs(err, PreconditionFailed) {
+				return nil, ui.StopErr(err)
+			}
 		}
 		if err := changeResourceRecordSets(ctx, cfg, subjectAlternativeNames, zoneId, d.DomainName); err != nil {
 			return nil, ui.StopErr(err)
