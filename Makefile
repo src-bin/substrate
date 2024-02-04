@@ -27,6 +27,7 @@ clean:
 	rm -f cmd/substrate/intranet-zip/substrate-intranet.zip
 	rm -f -r substrate-*-*-*
 	rm -f substrate-*-*-*.tar.gz
+	rm -f substrate.download.html
 	rm -f substrate.version
 	rm -f terraform/peering-connection.go
 	rm -f -r upgrade
