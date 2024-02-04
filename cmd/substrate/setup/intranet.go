@@ -54,7 +54,7 @@ func intranet(ctx context.Context, mgmtCfg, substrateCfg *awscfg.Config) (dnsDom
 	networkCfg := awscfg.Must(mgmtCfg.AssumeSpecialRole(ctx, accounts.Network, roles.NetworkAdministrator, time.Hour))
 	roleARN := roles.ARN(substrateAccountId, roles.Substrate)
 
-	quality := substrateAccountQuality(awsorgs.Must(awsorgs.DescribeAccount(ctx, mgmtCfg, substrateAccountId)))
+	quality := ui.Must2(awsorgs.Must(awsorgs.DescribeAccount(ctx, mgmtCfg, substrateAccountId)).Quality())
 
 	// Make arrangements for a hosted zone to appear in this account so that
 	// the Intranet can configure itself. It's possible to do this entirely

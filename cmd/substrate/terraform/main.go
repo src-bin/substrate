@@ -105,9 +105,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, args []stri
 	if (*domain != "" || *environment != "" /* || *quality != "" */) && *substrate {
 		ui.Fatal(`can't mix --domain "..." --environment "..." --quality "..." with --substrate`)
 	}
-	if *quality == "" && *substrate {
-		ui.Fatal(`--quality "..." is required with --substrate`)
-	}
 	if *special != "" && *substrate {
 		ui.Fatal(`can't mix --special "..." with --substrate`)
 	}
@@ -134,6 +131,10 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, args []stri
 			ui.Fatalf("--special %q is invalid", special)
 		}
 	} else if *substrate {
+		if *quality == "" {
+			substrateAccount := ui.Must2(cfg.FindSubstrateAccount(ctx))
+			*quality = ui.Must2(substrateAccount.Quality())
+		}
 		dirname = filepath.Join(dirname, naming.Admin, *quality)
 	}
 	if *global {

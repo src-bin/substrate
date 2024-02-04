@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -11,6 +12,7 @@ import (
 	"github.com/src-bin/substrate/naming"
 	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/ui"
 )
 
 type Account struct {
@@ -53,6 +55,27 @@ func (a *Account) Config(
 	duration time.Duration,
 ) (*Config, error) {
 	return cfg.AssumeRole(ctx, aws.ToString(a.Id), roleName, duration)
+}
+
+func (a *Account) Quality() (quality string, err error) {
+	quality = a.Tags[tagging.Quality]
+	if quality != "" {
+		return
+	}
+	var qualities []string
+	qualities, err = naming.Qualities()
+	if err != nil {
+		return
+	}
+	quality = qualities[0]
+	if len(qualities) > 1 {
+		ui.Printf(
+			"found multiple qualities %s; choosing %s for your Substrate account (this is temporary and inconsequential)",
+			strings.Join(qualities, ", "),
+			quality,
+		)
+	}
+	return
 }
 
 func (a *Account) MarshalJSON() ([]byte, error) {
