@@ -41,7 +41,7 @@ func Main(
 	paths := make([]string, 0)
 	for _, route := range routes {
 		path := aws.ToString(route.RouteKey)
-		if strings.HasPrefix(path, "GET ") {
+		if strings.HasPrefix(path, "ANY ") || strings.HasPrefix(path, "GET ") { // don't list POST-only routes because what would we POST?
 			path = path[4:]
 		} else {
 			continue // unlists "$default", which is most of the Substrate-managed Intranet
