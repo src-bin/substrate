@@ -73,7 +73,3 @@ func Main(
 		StatusCode: http.StatusOK,
 	}, nil
 }
-
-func init() {
-	sort.Strings(unlistedPaths)
-}
