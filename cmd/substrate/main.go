@@ -50,10 +50,6 @@ func main() {
 		u.Username,
 	)
 
-	if !features.IgnoreMacOSKeychain.Enabled() {
-		ui.Must(cmdutil.SetenvFromTPM(subcommand))
-	}
-
 	var versionFlag bool
 	rootCmd := &cobra.Command{
 		Use:   "substrate",
@@ -64,6 +60,16 @@ func main() {
 		Args:                  cobra.NoArgs,
 		CompletionOptions:     cobra.CompletionOptions{DisableDefaultCmd: true},
 		DisableFlagsInUseLine: true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			switch name := cmd.Name(); name {
+			case "substrate": // the main binary; we don't know if it needs credentials
+			case "intranet-zip", "shell-completion", "upgrade", "version": // these commands definitely don't, though
+			default:
+				if !features.IgnoreMacOSKeychain.Enabled() {
+					ui.Must(cmdutil.SetenvFromTPM(subcommand))
+				}
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			if versionFlag {
 				version.Print()
