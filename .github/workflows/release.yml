@@ -16,6 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-13, macos-14, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     env:
       SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
     permissions:
