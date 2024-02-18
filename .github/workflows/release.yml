@@ -1,0 +1,50 @@
+---
+name: Substrate release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Release
+    strategy:
+      matrix:
+        os: [macos-13, macos-14, ubuntu-latest]
+    env:
+      SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
+          aws-region: us-east-1
+
+      - name: Report on runtime environment
+        run: |
+          set -x
+          pwd
+          ls -l
+          env
+          uname -a
+          aws sts get-caller-identity
+
+      #- name: Slack
+      #  run: |
+      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "$SLACK_WEBHOOK_URL"
+
+...
