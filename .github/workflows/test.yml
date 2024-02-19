@@ -43,7 +43,7 @@ jobs:
           make
           git diff --exit-code
           make install
-          substrate terraform install
+          substrate terraform install --yes
           make test
 
       #- run: |
