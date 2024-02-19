@@ -31,13 +31,17 @@ jobs:
           lfs: true
 
       - uses: actions/checkout@v4
-        repository: src-bin/test1
+        with:
+          repository: src-bin/test1
       - uses: actions/checkout@v4
-        repository: src-bin/test2
+        with:
+          repository: src-bin/test2
       - uses: actions/checkout@v4
-        repository: src-bin/test4
+        with:
+          repository: src-bin/test4
       - uses: actions/checkout@v4
-        repository: src-bin/test8
+        with:
+          repository: src-bin/test8
 
       - run: |
           pwd
