@@ -1,0 +1,51 @@
+---
+name: Substrate Test
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+
+    runs-on: ubuntu-latest
+
+    env:
+      SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
+
+    permissions:
+      id-token: write # for aws-actions/configure-aws-credentials
+      contents: read
+
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
+          aws-region: us-east-1
+
+      - run: |
+          make
+          git diff --exit-code
+          make install
+          substrate terraform install
+          make test
+
+      #- run: |
+      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "$SLACK_WEBHOOK_URL"
+
+...

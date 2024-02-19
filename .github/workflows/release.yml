@@ -1,42 +1,48 @@
 ---
-name: Substrate release
+name: Substrate Release
 
 on:
-  push:
-    branches:
-      - main
+  #push:
+  #  branches:
+  #    - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  release:
-    name: Release
+  macos-release:
+    name: macOS Release
+
     strategy:
       matrix:
-        os: [macos-13, macos-14, ubuntu-latest]
+        os: [macos-13, macos-14]
+
     runs-on: ${{ matrix.os }}
+
     env:
       SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
+
     permissions:
-      id-token: write
+      id-token: write # for aws-actions/configure-aws-credentials
       contents: read
+
     steps:
 
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           lfs: true
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
           aws-region: us-east-1
 
-      - name: Report on runtime environment
-        run: |
+      - run: |
           set -x
           pwd
           ls -l
@@ -44,8 +50,47 @@ jobs:
           uname -a
           aws sts get-caller-identity
 
-      #- name: Slack
-      #  run: |
+      #- run: |
+      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "$SLACK_WEBHOOK_URL"
+
+  release:
+    name: Release
+
+    needs: [macos-release, test]
+
+    runs-on: ubuntu-latest
+
+    env:
+      SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
+
+    permissions:
+      id-token: write # for aws-actions/configure-aws-credentials
+      contents: read
+
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
+          aws-region: us-east-1
+
+      - run: |
+          set -x
+          pwd
+          ls -l
+          env
+          uname -a
+          aws sts get-caller-identity
+
+      #- run: |
       #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "$SLACK_WEBHOOK_URL"
 
 ...
