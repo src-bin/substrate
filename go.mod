@@ -1,6 +1,6 @@
 module github.com/src-bin/substrate
 
-go 1.21
+go 1.22
 
 require (
 	github.com/aws/aws-lambda-go v1.36.0
