@@ -61,6 +61,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      GOBIN: $HOME/.local/bin
       SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
 
     permissions:
