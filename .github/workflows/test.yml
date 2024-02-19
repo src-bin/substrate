@@ -32,15 +32,19 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
+          path: test1
           repository: src-bin/test1
       - uses: actions/checkout@v4
         with:
+          path: test2
           repository: src-bin/test2
       - uses: actions/checkout@v4
         with:
+          path: test4
           repository: src-bin/test4
       - uses: actions/checkout@v4
         with:
+          path: test8
           repository: src-bin/test8
 
       - run: |
