@@ -18,7 +18,6 @@ jobs:
 
     env:
       GOBIN: $HOME/.local/bin
-      SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
 
     permissions:
       id-token: write # for aws-actions/configure-aws-credentials
@@ -34,18 +33,22 @@ jobs:
         with:
           path: test1
           repository: src-bin/test1
+          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
       - uses: actions/checkout@v4
         with:
           path: test2
           repository: src-bin/test2
+          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
       - uses: actions/checkout@v4
         with:
           path: test4
           repository: src-bin/test4
+          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
       - uses: actions/checkout@v4
         with:
           path: test8
           repository: src-bin/test8
+          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
 
       - run: |
           pwd
@@ -68,6 +71,6 @@ jobs:
           make test
 
       #- run: |
-      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "$SLACK_WEBHOOK_URL"
+      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "${{ secrets.SLACK_WEBHOOK_URL }}"
 
 ...
