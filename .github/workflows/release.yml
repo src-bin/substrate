@@ -48,7 +48,7 @@ jobs:
           aws sts get-caller-identity
 
       #- run: |
-      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "$SLACK_WEBHOOK_URL"
+      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "${{ secrets.SLACK_WEBHOOK_URL }}"
 
   release:
     name: Release
@@ -59,7 +59,6 @@ jobs:
 
     env:
       GOBIN: $HOME/.local/bin
-      SLACK_WEBHOOK_URL: https://hooks.slack.com/services/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
 
     permissions:
       id-token: write # for aws-actions/configure-aws-credentials
