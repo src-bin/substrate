@@ -71,6 +71,10 @@ jobs:
           substrate terraform install --yes
           #make test
 
+  notify:
+    if: always()
+    needs: [test]
+    steps:
       - uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |
