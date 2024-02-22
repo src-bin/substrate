@@ -26,78 +26,67 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - uses: actions/checkout@v4
-        with:
-          path: test1
-          repository: src-bin/test1
-          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          path: test2
-          repository: src-bin/test2
-          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          path: test4
-          repository: src-bin/test4
-          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-        with:
-          path: test8
-          repository: src-bin/test8
-          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
-
-      - run: |
-          pwd
-          ls ..
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
-          aws-region: us-east-1
-
-      - run: |
-          make
-          git diff --exit-code
-          make install
-          substrate terraform install --yes
-          #make test
+#      - uses: actions/checkout@v4
+#        with:
+#          lfs: true
+#
+#      - uses: actions/checkout@v4
+#        with:
+#          path: test1
+#          repository: src-bin/test1
+#          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
+#      - uses: actions/checkout@v4
+#        with:
+#          path: test2
+#          repository: src-bin/test2
+#          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
+#      - uses: actions/checkout@v4
+#        with:
+#          path: test4
+#          repository: src-bin/test4
+#          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
+#      - uses: actions/checkout@v4
+#        with:
+#          path: test8
+#          repository: src-bin/test8
+#          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
+#
+#      - uses: actions/setup-go@v5
+#        with:
+#          go-version-file: go.mod
+#
+#      - uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
+#          aws-region: us-east-1
+#
+#      - run: |
+#          make
+#          git diff --exit-code
+#          make install
+#          substrate terraform install --yes
+#          #make test
 
       - if: always()
         uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |
             {
-              "blocks": [
-                {
-                  "text": {
-                    "text": "Substrate Test: ${{ job.status }}",
-                    "type": "plain_text"
-                  },
-                  "type": "header"
-                },
-                {
-                  "text": {
-                    "text": "Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\nChanges: ${{ github.event.compare }}",
-                    "type": "mrkdwn"
-                  },
-                  "type": "section"
-                }
+              "attachments": [
+                "blocks": [
+                  {
+                    "text": {
+                      "text": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions Log for run ${{ github.run_id }}>\n<${{ github.event.compare }}|Compare changes on ${{ github.ref_name }}>",
+                      "type": "mrkdwn"
+                    },
+                    "type": "section"
+                  }
+                ],
+                "color": "${{ job.status == 'success' && 'good' || job.status == 'failure' && 'danger' || 'warning' }}"
               ],
-              "text": "Substrate Test: *${{ job.status }}*\nLog: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\nChanges: ${{ github.event.compare }}"
+              "text": "Substrate Test: *${{ job.status }}*"
             }
         env:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-
-      #- run: |
-      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "${{ secrets.SLACK_WEBHOOK_URL }}"
 
 ...
