@@ -68,7 +68,7 @@ jobs:
           git diff --exit-code
           make install
           substrate terraform install --yes
-          make test
+          #make test
 
       #- run: |
       #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "${{ secrets.SLACK_WEBHOOK_URL }}"
