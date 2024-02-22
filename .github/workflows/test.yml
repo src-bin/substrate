@@ -72,7 +72,7 @@ jobs:
         with:
           payload: |
             {
-              "attachments": [
+              "attachments": {
                 "blocks": [
                   {
                     "text": {
@@ -83,7 +83,7 @@ jobs:
                   }
                 ],
                 "color": "${{ job.status == 'success' && 'good' || job.status == 'failure' && 'danger' || 'warning' }}"
-              ],
+              },
               "text": "Substrate Test: *${{ job.status }}*"
             }
         env:
