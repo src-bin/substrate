@@ -64,13 +64,28 @@ jobs:
           aws-region: us-east-1
 
       - run: |
+          false
           make
           git diff --exit-code
           make install
           substrate terraform install --yes
           #make test
 
-      #- run: |
-      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "${{ secrets.SLACK_WEBHOOK_URL }}"
+      - uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "GitHub Actions / Substrate Test: ${{ job.status }}\n${{ github.event.head_commit.id }}\n${{ github.event.head_commit.url }}\n${{ github.event.ref }}",
+              "blocks": [{
+                "text": {
+                  "text": "GitHub Actions / Substrate Test: ${{ job.status }}\n${{ github.event.head_commit.id }}\n${{ github.event.head_commit.url }}\n${{ github.event.ref }}",
+                  "type": "mrkdwn",
+                },
+                "type": "section",
+              }],
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
 ...
