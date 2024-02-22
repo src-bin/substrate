@@ -65,12 +65,11 @@ jobs:
           aws-region: us-east-1
 
       - run: |
-          false
           make
           git diff --exit-code
           make install
           substrate terraform install --yes
-          #make test
+          make test
 
       - if: always()
         uses: slackapi/slack-github-action@v1.25.0
