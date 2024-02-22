@@ -86,7 +86,7 @@ jobs:
                 },
                 {
                   "text": {
-                    "text": "Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\nChanges: ${{ github.event.compare }}"
+                    "text": "Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\nChanges: ${{ github.event.compare }}",
                     "type": "mrkdwn"
                   },
                   "type": "section"
@@ -96,5 +96,8 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      #- run: |
+      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "${{ secrets.SLACK_WEBHOOK_URL }}"
 
 ...
