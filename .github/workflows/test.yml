@@ -75,7 +75,7 @@ jobs:
               "blocks": [
                 {
                   "text": {
-                    "text": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions Log for run ${{ github.run_id }}>\n<${{ github.event.compare }}|Compare changes on ${{ github.ref_name }}>",
+                    "text": "Substrate Test: *${{ job.status }}*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions Log for run ${{ github.run_id }}>\n<${{ github.event.compare }}|Compare changes on ${{ github.ref_name }}>",
                     "type": "mrkdwn"
                   },
                   "type": "section"
