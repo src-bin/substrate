@@ -18,6 +18,7 @@ jobs:
 
     env:
       GOBIN: $HOME/.local/bin
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     permissions:
       id-token: write # for aws-actions/configure-aws-credentials
@@ -71,27 +72,14 @@ jobs:
           substrate terraform install --yes
           #make test
 
-  slack:
-    name: Slack
-    if: always()
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: slackapi/slack-github-action@v1.25.0
+      - if: always()
+        uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |
             {
-              "text": "GitHub Actions / Substrate Test: ${{ job.status }}\n${{ github.event.head_commit.id }}\n${{ github.event.head_commit.url }}\n${{ github.event.ref }}",
-              "blocks": [{
-                "text": {
-                  "text": "GitHub Actions / Substrate Test: ${{ job.status }}\n${{ github.event.head_commit.id }}\n${{ github.event.head_commit.url }}\n${{ github.event.ref }}",
-                  "type": "mrkdwn",
-                },
-                "type": "section",
-              }],
+              "text": "*GitHub Actions / Substrate Test:* ${{ job.status }}\n*Log:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n*Changes:* ${{ github.event.compare }}"
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
 ...
