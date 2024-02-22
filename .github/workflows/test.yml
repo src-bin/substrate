@@ -71,9 +71,11 @@ jobs:
           substrate terraform install --yes
           #make test
 
-  notify:
+  slack:
+    name: Slack
     if: always()
     needs: [test]
+    runs-on: ubuntu-latest
     steps:
       - uses: slackapi/slack-github-action@v1.25.0
         with:
