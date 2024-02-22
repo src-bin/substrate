@@ -72,7 +72,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "Substrate Test: *${{ job.status }}* (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions log> <${{ github.event.compare }}|compare changes on ${{ github.ref_name }}>)",
+              "text": "Substrate Test: *${{ job.status }}* (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions log> <${{ github.event.compare }}|compare changes on ${{ github.ref_name }}>)"
             }
         env:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
