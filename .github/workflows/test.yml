@@ -76,7 +76,23 @@ jobs:
         with:
           payload: |
             {
-              "text": "*GitHub Actions / Substrate Test:* ${{ job.status }}\n*Log:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n*Changes:* ${{ github.event.compare }}"
+              "blocks": [
+                {
+                  "text": {
+                    "text": "Substrate Test: ${{ job.status }}",
+                    "type": "plain_text"
+                  },
+                  "type": "header"
+                },
+                {
+                  "text": {
+                    "text": "Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\nChanges: ${{ github.event.compare }}"
+                    "type": "mrkdwn"
+                  },
+                  "type": "section"
+                }
+              ],
+              "text": "Substrate Test: *${{ job.status }}*\nLog: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\nChanges: ${{ github.event.compare }}"
             }
         env:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
