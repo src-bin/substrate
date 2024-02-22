@@ -26,46 +26,46 @@ jobs:
 
     steps:
 
-#      - uses: actions/checkout@v4
-#        with:
-#          lfs: true
-#
-#      - uses: actions/checkout@v4
-#        with:
-#          path: test1
-#          repository: src-bin/test1
-#          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
-#      - uses: actions/checkout@v4
-#        with:
-#          path: test2
-#          repository: src-bin/test2
-#          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
-#      - uses: actions/checkout@v4
-#        with:
-#          path: test4
-#          repository: src-bin/test4
-#          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
-#      - uses: actions/checkout@v4
-#        with:
-#          path: test8
-#          repository: src-bin/test8
-#          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
-#
-#      - uses: actions/setup-go@v5
-#        with:
-#          go-version-file: go.mod
-#
-#      - uses: aws-actions/configure-aws-credentials@v4
-#        with:
-#          role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
-#          aws-region: us-east-1
-#
-#      - run: |
-#          make
-#          git diff --exit-code
-#          make install
-#          substrate terraform install --yes
-#          #make test
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/checkout@v4
+        with:
+          path: test1
+          repository: src-bin/test1
+          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          path: test2
+          repository: src-bin/test2
+          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          path: test4
+          repository: src-bin/test4
+          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          path: test8
+          repository: src-bin/test8
+          token: ${{ secrets.TEST_REPO_GITHUB_TOKEN }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
+          aws-region: us-east-1
+
+      - run: |
+          make
+          git diff --exit-code
+          make install
+          substrate terraform install --yes
+          make test
 
       - if: always()
         uses: slackapi/slack-github-action@v1.25.0
