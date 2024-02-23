@@ -2,9 +2,9 @@
 name: Substrate Release
 
 on:
-  #push:
-  #  branches:
-  #    - main
+  push:
+    tags:
+      - *
   workflow_dispatch:
 
 permissions:
