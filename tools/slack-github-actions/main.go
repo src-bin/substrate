@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
 
 	// Figure out if this is a tagged release or not. We can skip a bunch of
 	// Slack messages for untagged releases to be generally less spammy.
