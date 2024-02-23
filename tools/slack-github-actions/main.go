@@ -8,95 +8,14 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"strings"
 	"text/template"
-	"time"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
-
-const codebuildLogMaxLen = 1500 // maximum Slack message length is theoretically 40,000 characters but empirically it seems a lot lower to avoid splitting
-
-func codebuildLog(ctx context.Context) string {
-
-	time.Sleep(10 * time.Second) // give CloudWatch Logs time to catch up with reality
-
-	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	out, err := cloudwatchlogs.NewFromConfig(cfg).GetLogEvents(ctx, &cloudwatchlogs.GetLogEventsInput{
-		LogGroupName:  aws.String("CodeBuild/substrate"), // to match src-bin/modules/build/regional
-		LogStreamName: aws.String(os.Getenv("CODEBUILD_LOG_PATH")),
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	var b strings.Builder
-	for _, e := range out.Events {
-		b.WriteString(aws.ToString(e.Message))
-	}
-	s := b.String()
-	if len(s) < codebuildLogMaxLen {
-		return s
-	}
-	if i := strings.Index(s, "FAIL"); i != -1 {
-		if i < codebuildLogMaxLen { // a prefix of the log contains a failure
-			return s[:codebuildLogMaxLen]
-		}
-		if len(s) >= i+codebuildLogMaxLen/4 { // a middle chunk contains a failure
-			return s[i-3*codebuildLogMaxLen/4 : i+codebuildLogMaxLen/4]
-		}
-	}
-	return s[len(s)-codebuildLogMaxLen:] // the end either contains a failure or is otherwise most likely to be interesting
-}
 
 func main() {
 	ctx := context.Background()
-
-	buildURL := (&url.URL{
-		Scheme: "https",
-		Host:   "src-bin.net",
-		Path:   "/accounts",
-		RawQuery: url.Values{
-			"next":   []string{os.Getenv("CODEBUILD_BUILD_URL")},
-			"number": []string{"412086678291"},
-			"role":   []string{"Administrator"},
-		}.Encode(),
-	}).String()
-
-	// If the build's failing, report it to Slack.
-	if os.Getenv("CODEBUILD_BUILD_SUCCEEDING") != "1" {
-		slack(map[string]string{"text": fmt.Sprintf(
-			"Substrate build has failed!\n"+
-				"\n"+
-				"Source tree: https://github.com/src-bin/substrate/tree/%s\n"+
-				"\n"+
-				"Build log: %s\n"+
-				"\n"+
-				"```\n%s```\n",
-			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
-			buildURL,
-			codebuildLog(ctx),
-		)})
-		return
-	}
-
-	// If it's succeeding but it's still early, sit tight. Yes, "pre_build" is
-	// our last build step, because it's simplest to keep things linear and the
-	// "pre_build" phase will skip uploading assets when it fails, which is how
-	// we get our only-actually-release-tagged-builds behavior.
-	if os.Args[1] != "pre_build" {
-		return
-	}
-
-	// But if the build's succeeding and this is the end, shout it from the
-	// various rooftops.
 
 	// Figure out if this is a tagged release or not. We can skip a bunch of
 	// Slack messages for untagged releases to be generally less spammy.
@@ -153,24 +72,21 @@ func main() {
 				"https://src-bin.com/{{.}}\n"+
 				"{{end -}}\n"+
 				"\n"+
-				"These tarballs will be deleted on the next `make -C release clean`\n",
-			struct {
-				Filenames []string
-				Version   string
-			}{filenames, version},
-		)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	if !taggedRelease {
-		text += fmt.Sprintf(
-			"\n"+
-				"Source tree: https://github.com/src-bin/substrate/tree/%s\n"+
+				"These tarballs will be deleted on the next `make -C release clean`\n"+
 				"\n"+
-				"Build log: %s\n",
-			os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION"),
-			buildURL,
+				"<{{.ServerURL}}/{{.Repo}}/actions/runs/{{.RunId}}|GitHub Actions log> / <{{.ServerURL}}/{{.Repo}}/tree/{{.SHA}}|source tree>",
+			struct {
+				Filenames                   []string
+				Version                     string
+				ServerURL, Repo, RunId, SHA string
+			}{
+				filenames,
+				version,
+				os.Getenv("GITHUB_SERVER_URL"),
+				os.Getenv("GITHUB_REPOSITORY"),
+				os.Getenv("GITHUB_RUN_ID"),
+				os.Getenv("GITHUB_SHA"),
+			},
 		)
 	}
 
@@ -181,7 +97,7 @@ func main() {
 	// For tagged builds, announce the release directly to customer channels
 	// found in the environment.
 	if taggedRelease {
-		for _, channel := range split(os.Getenv("CUSTOMER_CHANNELS")) {
+		for _, channel := range split(os.Getenv("CHANNELS")) {
 			slack(map[string]string{"channel": strings.TrimSpace(channel), "text": text})
 		}
 	}

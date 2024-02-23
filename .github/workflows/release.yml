@@ -47,9 +47,6 @@ jobs:
           uname -a
           aws sts get-caller-identity
 
-      #- run: |
-      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "${{ secrets.SLACK_WEBHOOK_URL }}"
-
   release:
     name: Release
 
@@ -58,7 +55,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      #CHANNELS: "${{ secrets.CHANNELS }}"
+      CHANNELS: "#random"
       GOBIN: $HOME/.local/bin
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     permissions:
       id-token: write # for aws-actions/configure-aws-credentials
@@ -86,8 +86,10 @@ jobs:
           env
           uname -a
           aws sts get-caller-identity
+          false
 
-      #- run: |
-      #    curl --data-urlencode 'payload={"text": "Released <https://github.com/src-bin/substrate/tree/'"$GITHUB_SHA"'|'"$GITHUB_SHA"'>"}' -s "${{ secrets.SLACK_WEBHOOK_URL }}"
+      - if: always()
+        run: |
+          go run "tools/slack-codebuild/main.go" "${{ job.status }}"
 
 ...
