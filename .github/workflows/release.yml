@@ -3,6 +3,8 @@ name: Substrate Release
 
 on:
   push:
+    branches:
+      - "*"
     tags:
       - "*"
   workflow_dispatch:
