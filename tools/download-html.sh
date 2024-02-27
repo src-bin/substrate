@@ -1,6 +1,9 @@
 set -e -x
 
-VERSION="$(cat "substrate.version")"
+VERSION="$(cat "substrate.version" || :)"
+if [ -z "$VERSION" ]
+then exit 0 # nothing to do for untagged versions
+fi
 
 cat >"substrate.download.html" <<EOF
 <table border="0" cellpadding="0" cellspacing="16">
