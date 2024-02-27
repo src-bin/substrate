@@ -38,6 +38,16 @@ jobs:
 
       - run: false # make release
 
+      - if: always()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Substrate Release macOS ${{ runner.arch }}: *${{ job.status }}* — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions log> / <${{ github.event.compare }}|compare changes on ${{ github.ref_name }}>"
+            }
+        env:
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
   release:
     name: Release
 
@@ -67,6 +77,16 @@ jobs:
           aws-region: us-east-1
 
       - run: make release
+
+      - if: always()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Substrate Release Linux: *${{ job.status }}* — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions log> / <${{ github.event.compare }}|compare changes on ${{ github.ref_name }}>"
+            }
+        env:
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - if: always()
         run: |
