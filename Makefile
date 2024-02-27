@@ -58,9 +58,9 @@ ifndef S3_BUCKET
 endif
 	sh tools/upgrades.sh
 	sh tools/download-html.sh
-	[ -f substrate.version ] && aws s3 cp substrate.version s3://$(S3_BUCKET)/substrate/
-	[ -f substrate.download.html ] && aws s3 cp substrate.download.html s3://$(S3_BUCKET)/substrate/
-	[ -f upgrade ] && aws s3 cp --recursive upgrade s3://$(S3_BUCKET)/substrate/
+	[ -f substrate.version ] && aws s3 cp substrate.version s3://$(S3_BUCKET)/substrate/ || :
+	[ -f substrate.download.html ] && aws s3 cp substrate.download.html s3://$(S3_BUCKET)/substrate/ || :
+	[ -f upgrade ] && aws s3 cp --recursive upgrade s3://$(S3_BUCKET)/substrate/ || :
 
 release-darwin: release-darwin-amd64 release-darwin-arm64
 
