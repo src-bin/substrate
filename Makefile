@@ -98,7 +98,7 @@ endif
 	aws s3 cp substrate-$(VERSION)-linux-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
 	aws s3 cp substrate-$(VERSION)-linux-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
 
-tarball:
+tarball: all
 	rm -f -r substrate-$(VERSION)-$(GOOS)-$(GOARCH) # makes debugging easier
 	mkdir substrate-$(VERSION)-$(GOOS)-$(GOARCH)
 	mkdir substrate-$(VERSION)-$(GOOS)-$(GOARCH)/bin
