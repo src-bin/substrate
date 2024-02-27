@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -29,6 +31,9 @@ func main() {
 
 	// Gather all the raw materials for formatting release announcements.
 	content, err := os.ReadFile("substrate.version")
+	if errors.Is(err, fs.ErrNotExist) {
+		content, err = exec.Command("git", "show", "--format=%h", "--no-patch").Output()
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
