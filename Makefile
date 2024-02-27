@@ -58,8 +58,10 @@ ifndef S3_BUCKET
 endif
 	sh tools/upgrades.sh
 	sh tools/download-html.sh
+ifneq ($(VERSION), $(COMMIT))
 	aws s3 cp substrate.version s3://$(S3_BUCKET)/substrate/
 	aws s3 cp substrate.download.html s3://$(S3_BUCKET)/substrate/
+endif
 	aws s3 cp --recursive upgrades s3://$(S3_BUCKET)/substrate/
 
 release-darwin: release-darwin-amd64 release-darwin-arm64
@@ -95,10 +97,8 @@ ifndef S3_BUCKET
 endif
 	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
-ifneq ($(VERSION), $(COMMIT))
 	aws s3 cp substrate-$(VERSION)-linux-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
 	aws s3 cp substrate-$(VERSION)-linux-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
-endif
 
 tarball:
 	rm -f -r substrate-$(VERSION)-$(GOOS)-$(GOARCH) # makes debugging easier
