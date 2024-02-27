@@ -44,6 +44,8 @@ jobs:
 
       - run: xcode-select -p
       - run: go get ./...
+      - run: make
+      - run: make install
 
       - run: make release
 
