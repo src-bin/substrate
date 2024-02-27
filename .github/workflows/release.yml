@@ -73,6 +73,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0 # fetch everything; required by tools/upgrades.sh
           lfs: true
 
       - uses: actions/setup-go@v5
