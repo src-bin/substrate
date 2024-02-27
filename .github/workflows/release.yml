@@ -43,9 +43,9 @@ jobs:
           aws-region: us-east-1
 
       #- run: xcode-select -p
-      - run: go get ./...
-      #- run: make
-      #- run: GOBIN=. make install
+      #- run: go get ./...
+      - run: make
+      - run: GOBIN=. make install
 
       - run: make release
 
