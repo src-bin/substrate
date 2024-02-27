@@ -36,13 +36,7 @@ jobs:
           role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
           aws-region: us-east-1
 
-      - run: |
-          set -x
-          pwd
-          ls -l
-          env
-          uname -a
-          aws sts get-caller-identity
+      - run: false # make release
 
   release:
     name: Release
