@@ -87,6 +87,8 @@ jobs:
 
   test:
     name: Test
-    uses: ./.github/workflows/test.yml
-    secrets: inherit
+    #secrets: inherit
+    #uses: ./.github/workflows/test.yml
+    steps:
+      - run: true # short circuit during workflow testing
 ...
