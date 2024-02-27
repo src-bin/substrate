@@ -49,7 +49,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "Substrate Release macOS ${{ runner.arch }}: *${{ job.status }}* — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions log>"
+              "text": "Substrate Release macOS ${{ runner.arch == 'X64' && 'amd64' || runner.arch == 'ARM64' && 'arm64' || 'unknown' }}: *${{ job.status }}* — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions log>"
             }
         env:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
