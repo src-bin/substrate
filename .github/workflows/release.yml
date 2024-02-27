@@ -42,6 +42,7 @@ jobs:
           role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
           aws-region: us-east-1
 
+      - run: make
       - run: make release-darwin-${{ runner.arch == 'X64' && 'amd64' || runner.arch == 'ARM64' && 'arm64' || 'unknown' }}
 
       - if: always()
