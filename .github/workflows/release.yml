@@ -42,10 +42,11 @@ jobs:
           role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
           aws-region: us-east-1
 
-      #- run: xcode-select -p
-      #- run: go get ./...
-      - run: make
-      - run: GOBIN=. make install
+      # Switch to a newer Xcode that has both Intel and ARM CoreFoundation,
+      # which is necessary for the Keychain bindings to build.
+      # <https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md>
+      # <https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md>
+      - run: xcode-select -s /Applications/Xcode_15.2.app
 
       - run: make release
 
