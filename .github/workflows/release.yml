@@ -19,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-13]
+        os: [macos-13, macos-14]
 
     runs-on: ${{ matrix.os }}
 
@@ -42,13 +42,7 @@ jobs:
           role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
           aws-region: us-east-1
 
-      # Switch to a newer Xcode that has both Intel and ARM CoreFoundation,
-      # which is necessary for the Keychain bindings to build.
-      # <https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md>
-      # <https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md>
-      - run: sudo xcode-select -s /Applications/Xcode_15.2.app
-
-      - run: make release
+      - run: make release-darwin-${{ runner.arch == "X64" && "amd64" || runner.arch == "ARM64" && "arm64" || "unknown" }}
 
       - if: always()
         uses: slackapi/slack-github-action@v1.25.0
