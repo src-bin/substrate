@@ -97,7 +97,7 @@ jobs:
 
       - if: always()
         run: |
-          go run "tools/slack-codebuild/main.go" "${{ job.status }}"
+          go run "tools/slack-github-actions/main.go" "${{ job.status }}"
 
   test:
     name: Test
