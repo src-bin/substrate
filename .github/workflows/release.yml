@@ -83,6 +83,7 @@ jobs:
           role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
           aws-region: us-east-1
 
+      - run: make
       - run: make release
 
       - if: always()
