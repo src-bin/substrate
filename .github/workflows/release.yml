@@ -22,6 +22,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
@@ -62,6 +63,7 @@ jobs:
       #CHANNELS: "${{ secrets.CHANNELS }}"
       CHANNELS: "#random"
       GOBIN: $HOME/.local/bin
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
