@@ -61,12 +61,11 @@ jobs:
           role-to-assume: arn:aws:iam::412086678291:role/GitHubActions
           aws-region: us-east-1
 
-      - run: |
-          make
-          git diff --exit-code
-          make install
-          substrate terraform install --yes
-          make test
+      - run: make
+      - run: git diff --exit-code
+      - run: make install
+      - run: substrate terraform install --yes
+      - run: make test
 
       - if: always()
         uses: slackapi/slack-github-action@v1.25.0
