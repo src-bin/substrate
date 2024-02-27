@@ -81,7 +81,6 @@ ifndef S3_BUCKET
 	@echo S3_BUCKET is required in the environment for \`make release-darwin-arm64\`
 	@false
 endif
-RUNNER_OS
 ifeq ($(RUNNER_OS), Linux)
 	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-arm64.tar.gz
 else
