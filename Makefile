@@ -58,9 +58,9 @@ ifndef S3_BUCKET
 endif
 	sh tools/upgrades.sh
 	sh tools/download-html.sh
-	[ -f substrate.version ] && aws s3 cp substrate.version s3://$(S3_BUCKET)/substrate/ || :
-	[ -f substrate.download.html ] && aws s3 cp substrate.download.html s3://$(S3_BUCKET)/substrate/ || :
-	[ -f upgrade ] && aws s3 cp --recursive upgrade s3://$(S3_BUCKET)/substrate/ || :
+	[ -f substrate.version ] && aws s3 cp --quiet substrate.version s3://$(S3_BUCKET)/substrate/ || :
+	[ -f substrate.download.html ] && aws s3 cp --quiet substrate.download.html s3://$(S3_BUCKET)/substrate/ || :
+	[ -f upgrade ] && aws s3 cp --quiet --recursive upgrade s3://$(S3_BUCKET)/substrate/ || :
 
 release-darwin: release-darwin-amd64 release-darwin-arm64
 
@@ -73,7 +73,7 @@ ifeq ($(RUNNER_OS), Linux)
 	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-amd64.tar.gz
 else
 	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
-	aws s3 cp substrate-$(VERSION)-darwin-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
+	aws s3 cp --quiet substrate-$(VERSION)-darwin-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
 endif
 
 release-darwin-arm64:
@@ -85,7 +85,7 @@ ifeq ($(RUNNER_OS), Linux)
 	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-arm64.tar.gz
 else
 	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
-	aws s3 cp substrate-$(VERSION)-darwin-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
+	aws s3 cp --quiet substrate-$(VERSION)-darwin-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
 endif
 
 release-linux:
@@ -95,8 +95,8 @@ ifndef S3_BUCKET
 endif
 	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
-	aws s3 cp substrate-$(VERSION)-linux-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
-	aws s3 cp substrate-$(VERSION)-linux-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
+	aws s3 cp --quiet substrate-$(VERSION)-linux-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
+	aws s3 cp --quiet substrate-$(VERSION)-linux-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
 
 tarball:
 	rm -f -r substrate-$(VERSION)-$(GOOS)-$(GOARCH) # makes debugging easier
