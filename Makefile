@@ -6,7 +6,7 @@ VERSION ?= $(shell git describe --exact-match --tags HEAD 2>/dev/null || git sho
 # it's still useful to have the commit in the binary.
 COMMIT = $(shell git show --format=%h --no-patch)$(shell git diff --quiet || echo \-dirty)
 
-ifndef CODEBUILD_BUILD_ID
+ifndef GITHUB_ACTIONS
 ENDPOINT := https://src-bin.org/telemetry/
 else
 ENDPOINT := https://src-bin.com/telemetry/
@@ -49,9 +49,18 @@ install:
 	find ./cmd -maxdepth 1 -mindepth 1 -not -name substrate-intranet -type d | xargs -n1 basename | xargs -I___ go build -ldflags "-X github.com/src-bin/substrate/telemetry.Endpoint=$(ENDPOINT) -X github.com/src-bin/substrate/terraform.DefaultRequiredVersion=$(shell cat terraform.version) -X github.com/src-bin/substrate/version.Commit=$(COMMIT) -X github.com/src-bin/substrate/version.Version=$(VERSION)" -o $(shell go env GOBIN)/___ ./cmd/___
 
 release: release-darwin release-linux
-ifndef CODEBUILD_BUILD_ID
+ifndef GITHUB_ACTIONS
 	@echo you probably meant to \`make -C release\` in src-bin/, not \`make release\` in substrate/
 endif
+ifndef S3_BUCKET
+	@echo S3_BUCKET is required in the environment for \`make release-darwin-amd64\`
+	@false
+endif
+	sh tools/upgrades.sh
+	sh tools/download-html.sh
+	aws s3 cp substrate.version s3://$(S3_BUCKET)/substrate/
+	aws s3 cp substrate.download.html s3://$(S3_BUCKET)/substrate/
+	aws s3 cp --recursive upgrades s3://$(S3_BUCKET)/substrate/
 
 release-darwin: release-darwin-amd64 release-darwin-arm64
 
@@ -60,7 +69,7 @@ ifndef S3_BUCKET
 	@echo S3_BUCKET is required in the environment for \`make release-darwin-amd64\`
 	@false
 endif
-ifdef CODEBUILD_BUILD_ID
+ifeq ($(RUNNER_OS), Linux)
 	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-amd64.tar.gz
 else
 	make tarball GOARCH=amd64 GOOS=darwin VERSION=$(VERSION)
@@ -72,7 +81,8 @@ ifndef S3_BUCKET
 	@echo S3_BUCKET is required in the environment for \`make release-darwin-arm64\`
 	@false
 endif
-ifdef CODEBUILD_BUILD_ID
+RUNNER_OS
+ifeq ($(RUNNER_OS), Linux)
 	aws s3 ls s3://$(S3_BUCKET)/substrate/substrate-$(VERSION)-darwin-arm64.tar.gz
 else
 	make tarball GOARCH=arm64 GOOS=darwin VERSION=$(VERSION)
@@ -80,8 +90,14 @@ else
 endif
 
 release-linux:
+ifndef S3_BUCKET
+	@echo S3_BUCKET is required in the environment for \`make release-linux\`
+	@false
+endif
 	make tarball GOARCH=amd64 GOOS=linux VERSION=$(VERSION)
 	make tarball GOARCH=arm64 GOOS=linux VERSION=$(VERSION)
+	aws s3 cp substrate-$(VERSION)-linux-amd64.tar.gz s3://$(S3_BUCKET)/substrate/
+	aws s3 cp substrate-$(VERSION)-linux-arm64.tar.gz s3://$(S3_BUCKET)/substrate/
 
 tarball:
 	rm -f -r substrate-$(VERSION)-$(GOOS)-$(GOARCH) # makes debugging easier
@@ -102,4 +118,4 @@ test:
 uninstall:
 	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
 
-.PHONY: all clean deps install release release-darwin release-linux tarball test uninstall
+.PHONY: all clean deps go-generate go-generate-intranet install release release-darwin release-darwin-amd64 release-darwin-arm64 release-linux tarball test uninstall
