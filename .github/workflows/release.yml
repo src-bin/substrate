@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  id-token: write # for aws-actions/configure-aws-credentials
   contents: read
 
 jobs:
@@ -19,10 +20,6 @@ jobs:
         os: [macos-13, macos-14]
 
     runs-on: ${{ matrix.os }}
-
-    permissions:
-      id-token: write # for aws-actions/configure-aws-credentials
-      contents: read
 
     steps:
 
@@ -59,10 +56,6 @@ jobs:
       CHANNELS: "#random"
       GOBIN: $HOME/.local/bin
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-    permissions:
-      id-token: write # for aws-actions/configure-aws-credentials
-      contents: read
 
     steps:
 

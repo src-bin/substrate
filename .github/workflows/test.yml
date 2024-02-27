@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  id-token: write # for aws-actions/configure-aws-credentials
   contents: read
 
 jobs:
@@ -20,10 +21,6 @@ jobs:
     env:
       GOBIN: $HOME/.local/bin
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-    permissions:
-      id-token: write # for aws-actions/configure-aws-credentials
-      contents: read
 
     steps:
 
