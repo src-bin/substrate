@@ -86,6 +86,7 @@ jobs:
           go run "tools/slack-codebuild/main.go" "${{ job.status }}"
 
   test:
+    name: Test
     uses: ./.github/workflows/test.yml
     secrets: inherit
 ...
