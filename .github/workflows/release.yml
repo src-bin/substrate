@@ -82,6 +82,7 @@ jobs:
     name: Test
     #secrets: inherit
     #uses: ./.github/workflows/test.yml
+    runs-on: ubuntu-latest
     steps:
       - run: true # short circuit during workflow testing
 ...
