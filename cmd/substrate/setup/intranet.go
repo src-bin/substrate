@@ -375,17 +375,17 @@ function handler(event) {
 
 		ui.Must(terraform.Fmt(dirname))
 
-		ui.Must(terraform.Init(dirname))
-		if *providersLock {
-			ui.Must(terraform.ProvidersLock(dirname))
+		if *runTerraform {
+			ui.Must(terraform.Init(dirname))
+			if *providersLock {
+				ui.Must(terraform.ProvidersLock(dirname))
+			}
+			if *noApply {
+				ui.Must(terraform.Plan(dirname))
+			} else {
+				ui.Must(terraform.Apply(dirname, *autoApprove))
+			}
 		}
-
-		if *noApply {
-			err = terraform.Plan(dirname)
-		} else {
-			err = terraform.Apply(dirname, *autoApprove)
-		}
-		ui.Must(err)
 	}
 	for _, region := range regions.Selected() {
 		dirname := filepath.Join(terraform.RootModulesDirname, Domain, quality, region) // TODO "substrate" instead of Domain and quality if we're starting from scratch; still modules/intranet; prime it with useful data sources
