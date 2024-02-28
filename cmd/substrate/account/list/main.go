@@ -24,16 +24,16 @@ var (
 		cmdutil.FormatText,
 		[]cmdutil.Format{cmdutil.FormatJSON, cmdutil.FormatShell, cmdutil.FormatText},
 	)
-	number                                    = new(string)
-	onlyTags                                  = new(bool)
-	refresh                                   = new(bool)
-	autoApprove, noApply, ignoreServiceQuotas = new(bool), new(bool), new(bool)
+	number                                                  = new(string)
+	onlyTags                                                = new(bool)
+	refresh                                                 = new(bool)
+	runTerraform, autoApprove, noApply, ignoreServiceQuotas = new(bool), new(bool), new(bool), new(bool)
 )
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: `list [--format <format>] [--number <number>] [--only-tags] [--refresh]
-  substrate account list --format shell [--auto-approve|--no-apply] [--ignore-service-quotas] [--refresh]`,
+  substrate account list --format shell [--refresh] [--terraform [--auto-approve|--no-apply]] [--ignore-service-quotas]`,
 		Short: "list accounts in your AWS organization",
 		Long:  ``,
 		Args:  cobra.NoArgs,
@@ -46,7 +46,7 @@ func Command() *cobra.Command {
 				"--format",
 				"--number", "--only-tags",
 				"--refresh",
-				"--auto-approve", "--no-apply", "--ignore-service-quotas",
+				"--terraform", "--auto-approve", "--no-apply", "--ignore-service-quotas",
 			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
 		},
 	}
@@ -56,6 +56,7 @@ func Command() *cobra.Command {
 	cmd.RegisterFlagCompletionFunc("number", cmdutil.NoCompletionFunc)
 	cmd.Flags().BoolVar(onlyTags, "only-tags", false, "with --format json and --number <number>, output only the tags on the account")
 	cmd.Flags().BoolVar(refresh, "refresh", false, "clear Substrate's local cache of AWS accounts and refresh it from the AWS Organizations API")
+	cmd.Flags().BoolVar(runTerraform, "terraform", false, "with --format shell, add the --terraform flag to all generated commands that accept it")
 	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "with --format shell, add the --auto-approve flag to all the generated commands that accept it")
 	cmd.Flags().BoolVar(noApply, "no-apply", false, "with --format shell, add the --no-apply flag to all the generated commands that accept it")
 	cmd.Flags().BoolVar(ignoreServiceQuotas, "ignore-service-quotas", false, "with --format shell, add the --ignore-service-quotas flag to all the generated commands that accept it")
@@ -130,20 +131,23 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		}, adminAccounts...), serviceAccounts...))
 
 	case cmdutil.FormatShell:
-		var autoApproveFlag, ignoreServiceQuotasFlag, noApplyFlag string
+		var runTerraformFlag, autoApproveFlag, noApplyFlag, ignoreServiceQuotasFlag string
+		if *runTerraform {
+			runTerraformFlag = " --terraform" // leading space to format pleasingly both ways
+		}
 		if *autoApprove {
 			autoApproveFlag = " --auto-approve" // leading space to format pleasingly both ways
-		}
-		if *ignoreServiceQuotas {
-			ignoreServiceQuotasFlag = " --ignore-service-quotas" // leading space to format pleasingly both ways
 		}
 		if *noApply {
 			noApplyFlag = " --no-apply" // leading space to format pleasingly both ways
 		}
+		if *ignoreServiceQuotas {
+			ignoreServiceQuotasFlag = " --ignore-service-quotas" // leading space to format pleasingly both ways
+		}
 
 		fmt.Println("set -e -x")
 
-		fmt.Printf("substrate setup%s%s%s\n", autoApproveFlag, ignoreServiceQuotasFlag, noApplyFlag)
+		fmt.Printf("substrate setup%s%s%s%s\n", runTerraformFlag, autoApproveFlag, noApplyFlag, ignoreServiceQuotasFlag)
 
 		if ok, err := ui.ConfirmFile(cloudtrail.ManageCloudTrailFilename); err != nil {
 			ui.Fatal(err)
@@ -156,13 +160,14 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 				continue
 			}
 			fmt.Printf(
-				"substrate account update%s%s%s --domain %q --environment %q --quality %q\n",
-				autoApproveFlag,
-				ignoreServiceQuotasFlag,
-				noApplyFlag,
+				"substrate account update --domain %q --environment %q --quality %q%s%s%s%s\n",
 				account.Tags[tagging.Domain],
 				account.Tags[tagging.Environment],
 				account.Tags[tagging.Quality],
+				runTerraformFlag,
+				autoApproveFlag,
+				noApplyFlag,
+				ignoreServiceQuotasFlag,
 			)
 		}
 

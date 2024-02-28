@@ -22,13 +22,12 @@ var (
 	domain, domainFlag, domainCompletionFunc                = cmdutil.DomainFlag("domain of the AWS account to update")
 	environment, environmentFlag, environmentCompletionFunc = cmdutil.EnvironmentFlag("environment of the AWS account to update")
 	quality, qualityFlag, qualityCompletionFunc             = cmdutil.QualityFlag("quality of the AWS account to update")
-	autoApprove, noApply                                    = new(bool), new(bool)
-	providersLock                                           = new(bool)
+	runTerraform, autoApprove, noApply, providersLock       = new(bool), new(bool), new(bool), new(bool)
 )
 
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "update --domain <domain> --environment <environment> [--quality <quality>] [--auto-approve|--no-apply] [--providers-lock]",
+		Use:   "update --domain <domain> --environment <environment> [--quality <quality>] [--terraform [--auto-approve|--no-apply] [--providers-lock]]",
 		Short: "update an existing AWS account and plan or apply its root Terraform modules",
 		Long:  ``,
 		Args:  cobra.NoArgs,
@@ -39,8 +38,7 @@ func Command() *cobra.Command {
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 			return []string{
 				"--domain", "--environment", "--quality",
-				"--auto-approve", "--no-apply",
-				"--providers-lock",
+				"--terraform", "--auto-approve", "--no-apply", "--providers-lock",
 			}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveKeepOrder
 		},
 	}
@@ -50,9 +48,10 @@ func Command() *cobra.Command {
 	cmd.RegisterFlagCompletionFunc(environmentFlag.Name, environmentCompletionFunc)
 	cmd.Flags().AddFlag(qualityFlag)
 	cmd.RegisterFlagCompletionFunc(qualityFlag.Name, qualityCompletionFunc)
-	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "apply Terraform changes without waiting for confirmation")
-	cmd.Flags().BoolVar(noApply, "no-apply", false, "do not apply Terraform changes")
-	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "run `terraform providers lock` during Terraform initialization")
+	cmd.Flags().BoolVar(runTerraform, "terraform", false, "initialize and plan or apply Terraform in the account")
+	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "with --terraform, apply Terraform changes without waiting for confirmation")
+	cmd.Flags().BoolVar(noApply, "no-apply", false, "with --terraform, plan but do not apply Terraform changes")
+	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "with --terraform, run `terraform providers lock` during Terraform initialization")
 	return cmd
 }
 
@@ -107,7 +106,9 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	accounts.SetupIAM(ctx, mgmtCfg, networkCfg, substrateCfg, accountCfg, *domain, *environment, *quality)
 
-	accounts.SetupTerraform(ctx, mgmtCfg, networkCfg, accountCfg, *domain, *environment, *quality)
-	accounts.RunTerraform(*domain, *environment, *quality, *autoApprove, *noApply, *providersLock)
+	accounts.SetupTerraform(ctx, mgmtCfg, networkCfg, accountCfg, *domain, *environment, *quality) // shares the VPC, too
+	if *runTerraform {
+		accounts.RunTerraform(*domain, *environment, *quality, *autoApprove, *noApply, *providersLock)
+	}
 
 }

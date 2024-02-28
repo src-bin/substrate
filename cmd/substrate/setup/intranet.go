@@ -463,12 +463,13 @@ function handler(event) {
 		// handles that directly now.
 		networks.StateRm(dirname, Domain, Environment, quality, region)
 
-		if *noApply {
-			err = terraform.Plan(dirname)
-		} else {
-			err = terraform.Apply(dirname, *autoApprove)
+		if *runTerraform {
+			if *noApply {
+				ui.Must(terraform.Plan(dirname))
+			} else {
+				ui.Must(terraform.Apply(dirname, *autoApprove))
+			}
 		}
-		ui.Must(err)
 	}
 
 	return
