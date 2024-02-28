@@ -16,7 +16,7 @@ import (
 const (
 	AWSProviderVersionConstraintFilename = "terraform-aws.version-constraint"
 
-	DefaultAWSProviderVersionConstraint = "~> 4.67"
+	DefaultAWSProviderVersionConstraint = "~> 5.35"
 
 	RequiredVersionFilename = "terraform.version"
 
