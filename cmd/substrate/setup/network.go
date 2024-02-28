@@ -257,7 +257,7 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 	// all these local files eventually.
 	natGateways, err := ui.ConfirmFile(
 		networks.NATGatewaysFilename,
-		`do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; answering "yes" costs about $100 per month per region per environment/quality pair)`,
+		`do you want to provision NAT Gateways for IPv4 traffic from your private subnets to the Internet? (yes/no; answering "yes" costs about $108 per month per region per environment/quality pair)`,
 	)
 	ui.Must(err)
 
