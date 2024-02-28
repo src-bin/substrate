@@ -564,12 +564,14 @@ func terraformVPC(
 		Label: terraform.Q("current"),
 	}
 	file.Add(org)
-	tags := terraform.Tags{
-		Environment: environment,
-		Name:        fmt.Sprintf("%s-%s", environment, quality),
-		Quality:     quality,
-		Region:      region,
-	}
+	/*
+		tags := terraform.Tags{
+			Environment: environment,
+			Name:        fmt.Sprintf("%s-%s", environment, quality),
+			Quality:     quality,
+			Region:      region,
+		}
+	*/
 	// TODO data.aws_vpc.main? data.aws_vpc.shared? data.aws_vpc.vpc?
 	// TODO data.aws_subnet
 	// TODO data.aws_route_table
