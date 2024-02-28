@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -30,7 +31,11 @@ func Destroy(dirname string, autoApprove bool) error {
 
 func Fmt(dirname string) error {
 	ui.Printf("formatting Terraform source files in %s", dirname)
-	return execdlp(dirname, "terraform", "fmt")
+	err := execdlp(dirname, "terraform", "fmt")
+	if errors.Is(err, exec.ErrNotFound) {
+		return nil
+	}
+	return err
 }
 
 func Init(dirname string) error {
