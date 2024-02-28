@@ -65,6 +65,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 			if err != nil {
 				ui.Print("found valid credentials in the environment; exiting without minting new ones")
 				cfg.Telemetry().PostWait(ctx)
+				cmdutil.PrintCredentials(*format, awscfg.Getenv())
 				return
 			}
 			if time.Now().Add(6 * time.Hour).Before(expiry) {
@@ -74,6 +75,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 					int(hours),
 				)
 				cfg.Telemetry().PostWait(ctx)
+				cmdutil.PrintCredentials(*format, awscfg.Getenv())
 				return
 			}
 		}

@@ -14,6 +14,13 @@ const (
 	SUBSTRATE_CREDENTIALS_EXPIRATION = "SUBSTRATE_CREDENTIALS_EXPIRATION"
 )
 
+func Getenv() (creds aws.Credentials) {
+	creds.AccessKeyID = os.Getenv(AWS_ACCESS_KEY_ID)
+	creds.SecretAccessKey = os.Getenv(AWS_SECRET_ACCESS_KEY)
+	creds.SessionToken = os.Getenv(AWS_SESSION_TOKEN)
+	return
+}
+
 func Setenv(creds aws.Credentials) (err error) {
 	if err = os.Setenv(AWS_ACCESS_KEY_ID, creds.AccessKeyID); err != nil {
 		return
