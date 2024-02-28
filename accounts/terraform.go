@@ -47,10 +47,6 @@ func RunTerraform(
 			ui.Must(terraform.ProvidersLock(dirname))
 		}
 
-		// Remove network sharing and tagging from Terraform because Substrate
-		// handles that directly now.
-		networks.StateRm(dirname, domain, environment, quality, region)
-
 		if noApply {
 			if err := terraform.Plan(dirname); err != nil {
 				ui.Print(err) // allow these plans to fail and keep going to accommodate folks who keep certain regions' networks destroyed

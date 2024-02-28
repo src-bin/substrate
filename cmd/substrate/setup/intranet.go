@@ -380,11 +380,6 @@ function handler(event) {
 			ui.Must(terraform.ProvidersLock(dirname))
 		}
 
-		// Remove a select few resources from Terraform state so that they
-		// aren't destroyed when Terraform runs with the matching resource
-		// definitions removed.
-		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_iam_instance_profile.admin"))
-
 		if *noApply {
 			err = terraform.Plan(dirname)
 		} else {
@@ -441,29 +436,11 @@ function handler(event) {
 
 		ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region))
 
-		ui.Must(terraform.Init(dirname))
-		if *providersLock {
-			ui.Must(terraform.ProvidersLock(dirname))
-		}
-
-		// Remove a select few resources from Terraform state so that they
-		// aren't destroyed when Terraform runs with the matching resource
-		// definitions removed.
-		if region == "us-east-1" {
-			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_acm_certificate.intranet"))
-			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_acm_certificate_validation.intranet"))
-			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_route53_record.intranet"))
-			ui.Must(terraform.StateRm(dirname, "module.intranet.aws_route53_record.validation"))
-		}
-		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group.instance-factory"))
-		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group_rule.instance-factory-egress"))
-		ui.Must(terraform.StateRm(dirname, "module.intranet.aws_security_group_rule.instance-factory-ssh-ingress"))
-
-		// Remove network sharing and tagging from Terraform because Substrate
-		// handles that directly now.
-		networks.StateRm(dirname, Domain, Environment, quality, region)
-
 		if *runTerraform {
+			ui.Must(terraform.Init(dirname))
+			if *providersLock {
+				ui.Must(terraform.ProvidersLock(dirname))
+			}
 			if *noApply {
 				ui.Must(terraform.Plan(dirname))
 			} else {
