@@ -2,9 +2,9 @@
 name: Substrate Test
 
 on:
-  #push:
-  #  branches:
-  #    - "*"
+  push:
+    branches:
+      - "*"
   workflow_call:
   workflow_dispatch:
 
