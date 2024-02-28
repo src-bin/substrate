@@ -436,6 +436,8 @@ function handler(event) {
 
 		ui.Must(terraform.Root(ctx, mgmtCfg, dirname, region))
 
+		ui.Must(terraform.Fmt(dirname))
+
 		if *runTerraform {
 			ui.Must(terraform.Init(dirname))
 			if *providersLock {
