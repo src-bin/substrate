@@ -15,7 +15,6 @@ import (
 	"github.com/src-bin/substrate/awsiam"
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awsram"
-	"github.com/src-bin/substrate/awssecretsmanager"
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/cmd/substrate/setup/cloudtrail"
 	"github.com/src-bin/substrate/cmd/substrate/setup/debugger"
@@ -833,23 +832,6 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	// Configure the Intranet in the Substrate account.
 	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
-
-	// Clean up resources that we don't need anymore after the transition to
-	// `substrate setup`, the Substrate user/role, etc.
-	ui.Spin("cleaning up CredentialFactory IAM user that's no longer used")
-	if err = awsiam.DeleteAllAccessKeys(ctx, substrateCfg, users.CredentialFactory, 0); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
-		err = nil
-	}
-	ui.Must(err)
-	if err = awsiam.DeleteUser(ctx, substrateCfg, users.CredentialFactory); awsutil.ErrorCodeIs(err, awsiam.NoSuchEntity) {
-		err = nil
-	}
-	ui.Must(err)
-	for _, region := range regions.Selected() {
-		ui.Must(awssecretsmanager.DeleteSecret(ctx, substrateCfg.Regional(region), "CredentialFactoryAccessKey"))
-	}
-	ui.Stop("ok")
-	// (There will be more here in the coming months.)
 
 	// If we find an IAM Identity Center installation, take it under our wing.
 	if features.IdentityCenter.Enabled() {
