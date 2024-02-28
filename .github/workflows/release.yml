@@ -3,8 +3,6 @@ name: Substrate Release
 
 on:
   push:
-    branches:
-      - "*"
     tags:
       - "*"
   workflow_dispatch:
@@ -63,8 +61,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      #CHANNELS: "${{ secrets.CHANNELS }}"
-      CHANNELS: "#random"
+      CHANNELS: "${{ secrets.CHANNELS }}"
       GOBIN: $HOME/.local/bin
       S3_BUCKET: ${{ secrets.S3_BUCKET }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -104,9 +101,6 @@ jobs:
 
   test:
     name: Test
-    #secrets: inherit
-    #uses: ./.github/workflows/test.yml
-    runs-on: ubuntu-latest
-    steps:
-      - run: true # short circuit during workflow testing
+    secrets: inherit
+    uses: ./.github/workflows/test.yml
 ...
