@@ -21,16 +21,15 @@ type Document struct {
 }
 
 func ReadDocument() (*Document, error) {
+	var b []byte
 	pathname, err := fileutil.PathnameInParents(Filename)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		b, err = os.ReadFile(pathname)
 	}
-	b, err := os.ReadFile(pathname)
 	if errors.Is(err, fs.ErrNotExist) {
 		b = []byte("{}")
 		err = nil
-	}
-	if err != nil {
+	} else if err != nil {
 		return nil, err
 	}
 	d := &Document{}
