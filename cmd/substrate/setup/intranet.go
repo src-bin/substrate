@@ -258,11 +258,11 @@ function handler(event) {
 
 		try {
 			if (Date.now() > parseInt(event.request.cookies.exp.value)*1000) {
-				event.request.cookies = {};
+				event.request.cookies = {hd: event.request.cookies.hd};
 			}
 		} catch (e) {
 			//console.log(e);
-			event.request.cookies = {};
+			event.request.cookies = {hd: event.request.cookies.hd};
 		}
 
 		if (!event.request.cookies.a && event.request.uri !== "/credential-factory/fetch" && event.request.uri !== "/login") {
