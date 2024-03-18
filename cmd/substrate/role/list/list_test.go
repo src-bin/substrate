@@ -18,6 +18,7 @@ import (
 
 func TestEC2(t *testing.T) {
 	const roleName = "TestEC2"
+	defer time.Sleep(time.Second)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
@@ -105,6 +106,7 @@ substrate role create --role "TestEC2" --special "deploy" --humans --aws-service
 
 func TestEverything(t *testing.T) {
 	const roleName = "TestEverything"
+	defer time.Sleep(time.Second)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
@@ -232,6 +234,7 @@ substrate role create --role "TestEverything" --domain "bar" --domain "foo" --en
 
 func TestZero(t *testing.T) {
 	const roleName = "TestZero"
+	defer time.Sleep(time.Second)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)

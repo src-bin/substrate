@@ -22,6 +22,7 @@ import (
 
 func TestFooBarBazQuux(t *testing.T) {
 	const roleName = "TestFooBarBazQuux"
+	defer time.Sleep(time.Second)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
@@ -69,6 +70,7 @@ func TestFooHumans(t *testing.T) {
 		environment = "staging"
 		quality     = "default"
 	)
+	defer time.Sleep(time.Second)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
@@ -114,6 +116,7 @@ func TestFooHumans(t *testing.T) {
 
 func TestManagement(t *testing.T) {
 	const roleName = "TestMgmt"
+	defer time.Sleep(time.Second)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
@@ -154,6 +157,7 @@ func TestManagement(t *testing.T) {
 
 func TestSpecial(t *testing.T) {
 	const roleName = "TestSpecial"
+	defer time.Sleep(time.Second)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
@@ -214,6 +218,7 @@ func TestSpecial(t *testing.T) {
 
 func TestSubstrate(t *testing.T) {
 	const roleName = "TestSubstrate"
+	defer time.Sleep(time.Second)
 	defer cmdutil.RestoreArgs()
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
