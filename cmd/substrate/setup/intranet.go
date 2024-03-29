@@ -293,7 +293,7 @@ function handler(event) {
 		`,
 		fmt.Sprintf("https://apigatewayv2.%s", dnsDomainName),
 	)
-	ui.Must(err)
+	ui.Must(err) // TODO catch the "account must be verified to use CloudFront" error and guide them through that support case
 	ui.Must(awsroute53.DeleteResourceRecordSets(ctx, substrateCfg, aws.ToString(zone.Id), func(record awsroute53.ResourceRecordSet) bool {
 		recordName, preview := aws.ToString(record.Name), fmt.Sprintf("preview.%s.", dnsDomainName)
 		return recordName == preview || strings.HasSuffix(recordName, "."+preview)
