@@ -31,7 +31,7 @@ func EnsureResourceShare(
 ) (*ResourceShare, error) {
 	client := cfg.RAM()
 	if rs, err := GetResourceShare(ctx, cfg, name); err == nil { // check first because...
-		return rs, nil
+		return rs, nil // TODO ensure resourceARNs and only resourceARNs are in the share
 	} else if err != nil {
 		if _, ok := err.(NotFound); !ok {
 			return nil, err
