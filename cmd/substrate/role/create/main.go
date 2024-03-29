@@ -346,12 +346,12 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 			if managedPolicyAttachments.AdministratorAccess {
 				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, policies.AdministratorAccess))
 			} else {
-				ui.Must(DetachRolePolicy(ctx, accountCfg, *roleName, policies.AdministratorAccess))
+				ui.Must(awsiam.DetachRolePolicy(ctx, accountCfg, *roleName, policies.AdministratorAccess))
 			}
 			if managedPolicyAttachments.ReadOnlyAccess {
 				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, policies.ReadOnlyAccess))
 			} else {
-				ui.Must(DetachRolePolicy(ctx, accountCfg, *roleName, policies.ReadOnlyAccess))
+				ui.Must(awsiam.DetachRolePolicy(ctx, accountCfg, *roleName, policies.ReadOnlyAccess))
 			}
 			if managedPolicyAttachments.AdministratorAccess || managedPolicyAttachments.ReadOnlyAccess {
 				ui.Stop("ok")
