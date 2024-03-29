@@ -37,7 +37,7 @@ func PrintRoot() {
 // was before a prior call to Chdir. It panics if Chdir hasn't been called.
 func UndoChdir() error {
 	if oldpwd == "" {
-		panic("UndoChdir called before Chdir or MustChdir")
+		panic("UndoChdir called before Chdir")
 	}
 	err := os.Chdir(oldpwd)
 	oldpwd = ""
