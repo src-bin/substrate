@@ -258,7 +258,11 @@ function handler(event) {
 
 		try {
 			if (Date.now() > parseInt(event.request.cookies.exp.value)*1000) {
-				event.request.cookies = {hd: event.request.cookies.hd};
+				if (event.request.cookies.hd) {
+					event.request.cookies = {hd: event.request.cookies.hd};
+				} else {
+					event.request.cookies = {};
+				}
 			}
 		} catch (e) {
 			//console.log(e);
