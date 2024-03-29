@@ -336,16 +336,27 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		// in admin/Substrate accounts but not that they should have all the
 		// same permissions in those accounts that they have elsewhere.
 		if is := account.Tags[tagging.Domain] == naming.Admin || account.Tags[tagging.SubstrateType] == naming.Substrate; is && selection.Substrate || !is {
+
 			if managedPolicyAttachments.AdministratorAccess {
 				ui.Spinf("attaching the AdministratorAccess policy to the %s role in %s", *roleName, account)
-				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, policies.AdministratorAccess))
-				ui.Stopf("ok")
 			}
 			if managedPolicyAttachments.ReadOnlyAccess {
 				ui.Spinf("attaching the ReadOnlyAccess policy to the %s role in %s", *roleName, account)
-				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, policies.ReadOnlyAccess))
-				ui.Stopf("ok")
 			}
+			if managedPolicyAttachments.AdministratorAccess {
+				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, policies.AdministratorAccess))
+			} else {
+				ui.Must(DetachRolePolicy(ctx, accountCfg, *roleName, policies.AdministratorAccess))
+			}
+			if managedPolicyAttachments.ReadOnlyAccess {
+				ui.Must(awsiam.AttachRolePolicy(ctx, accountCfg, *roleName, policies.ReadOnlyAccess))
+			} else {
+				ui.Must(DetachRolePolicy(ctx, accountCfg, *roleName, policies.ReadOnlyAccess))
+			}
+			if managedPolicyAttachments.AdministratorAccess || managedPolicyAttachments.ReadOnlyAccess {
+				ui.Stop("ok")
+			}
+
 			if len(managedPolicyAttachments.ARNs) > 0 {
 				ui.Spinf("attaching AWS-managed policies to the %s role in %s", *roleName, account)
 				for _, arn := range managedPolicyAttachments.ARNs {
@@ -353,6 +364,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 				}
 				ui.Stopf("ok")
 			}
+
 			if len(managedPolicyAttachments.Filenames) > 0 {
 				ui.Spinf("merging custom policies into the %s role in %s", *roleName, account)
 				policy := minimalPolicy
@@ -364,6 +376,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 				ui.Must(awsiam.PutRolePolicy(ctx, accountCfg, *roleName, awsiam.SubstrateManaged, policy))
 				ui.Stopf("ok")
 			}
+
 		}
 
 	}
