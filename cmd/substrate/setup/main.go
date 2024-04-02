@@ -856,6 +856,16 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
+	//
+	// We clear the cache of accounts and their tags here because this might
+	// be a Substrate upgrade and we want the version numbers rendered to be
+	// correct. It's OK that this makes setup slightly slower because it
+	// already takes some serious time.
+	//
+	// We do not clear the cache of accounts every time we call CheatSheet
+	// because that makes `substrate account list` slow and that annoys people
+	// very much.
+	ui.Must(mgmtCfg.ClearCachedAccounts())
 	ui.Must(accounts.CheatSheet(ctx, mgmtCfg))
 
 	if yesno, err := os.ReadFile(telemetry.Filename); err == nil {
