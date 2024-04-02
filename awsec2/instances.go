@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	Amazon       = "amazon"
-	AmazonLinux2 = "amzn2-ami-*-gp2" // TODO should this be updated to say gp3 or ...?
+	AmazonLinuxAMINamePattern = "al2023-ami-*"
+	AmazonLinuxAMIOwner       = "137112412989"
 
 	ARM    = types.ArchitectureTypeArm64
 	X86_64 = types.ArchitectureTypeX8664
@@ -107,17 +107,17 @@ func ImportKeyPair(
 	return out, nil
 }
 
-func LatestAmazonLinux2AMI(
+func LatestAmazonLinuxAMI(
 	ctx context.Context,
 	cfg *awscfg.Config,
 	arch ArchitectureType,
 ) (*Image, error) {
-	images, err := DescribeImages(ctx, cfg, arch, AmazonLinux2, Amazon)
+	images, err := DescribeImages(ctx, cfg, arch, AmazonLinuxAMINamePattern, AmazonLinuxAMIOwner)
 	if err != nil {
 		return nil, err
 	}
 	if len(images) == 0 {
-		return nil, fmt.Errorf("Amazon Linux 2 AMI for %s not found", arch)
+		return nil, fmt.Errorf("Amazon Linux AMI for %s not found", arch)
 	}
 	sort.Slice(images, func(i, j int) bool {
 		return aws.ToString(images[j].CreationDate) < aws.ToString(images[i].CreationDate) // descending

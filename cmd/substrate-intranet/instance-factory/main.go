@@ -297,7 +297,7 @@ func Main(
 	if launchTemplate != nil && launchTemplate.LaunchTemplateData.ImageId != nil {
 		imageId = aws.ToString(launchTemplate.LaunchTemplateData.ImageId)
 	} else {
-		image, err := awsec2.LatestAmazonLinux2AMI(ctx, cfg, arch)
+		image, err := awsec2.LatestAmazonLinuxAMI(ctx, cfg, arch)
 		if err != nil {
 			return nil, err
 		}
