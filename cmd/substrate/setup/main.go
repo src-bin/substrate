@@ -279,7 +279,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	// service control policy.
 	if !fileutil.Exists(EnforceIMDSv2Filename) {
 		ui.Spin("scoping out your organization's service control policies")
-		policySummaries, err := awsorgs.ListPolicies(ctx, cfg, awsorgs.SERVICE_CONTROL_POLICY)
+		policySummaries, err := awsorgs.ListPolicies(ctx, mgmtCfg, awsorgs.SERVICE_CONTROL_POLICY)
 		ui.Must(err)
 		for _, policySummary := range policySummaries {
 			if aws.ToString(policySummary.Name) == ServiceControlPolicyName {
