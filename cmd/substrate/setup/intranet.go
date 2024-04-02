@@ -258,15 +258,14 @@ function handler(event) {
 
 		try {
 			if (Date.now() > parseInt(event.request.cookies.exp.value)*1000) {
-				if (event.request.cookies.hd) {
-					event.request.cookies = {hd: event.request.cookies.hd};
-				} else {
-					event.request.cookies = {};
-				}
+				delete event.request.cookies.a;
+				delete event.request.cookies.exp;
+				delete event.request.cookies.id;
 			}
 		} catch (e) {
-			//console.log(e);
-			event.request.cookies = {hd: event.request.cookies.hd};
+			delete event.request.cookies.a;
+			delete event.request.cookies.exp;
+			delete event.request.cookies.id;
 		}
 
 		if (!event.request.cookies.a && event.request.uri !== "/credential-factory/fetch" && event.request.uri !== "/login") {
