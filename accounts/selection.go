@@ -327,6 +327,19 @@ func (s *Selection) String() string {
 }
 
 func (s *Selection) Validate() error {
+	if !s.AllDomains &&
+		len(s.Domains) == 0 &&
+		!s.AllEnvironments &&
+		len(s.Environments) == 0 &&
+		!s.AllQualities &&
+		len(s.Qualities) == 0 &&
+		!s.Substrate &&
+		!s.Humans &&
+		!s.Management &&
+		len(s.Specials) == 0 &&
+		len(s.Numbers) == 0 {
+		return SelectionError("at least one account selection flag is required")
+	}
 
 	// If no explicit --quality was given and we only have one quality,
 	// imply --all-qualities.

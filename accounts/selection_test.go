@@ -31,6 +31,13 @@ func TestSelectionAllService(t *testing.T) {
 	assertSlice(t, accountIds, []string{"306228446141", "509660714689", "765683503745", "832411437665"})
 }
 
+func TestSelectionEmpty(t *testing.T) {
+	selection := Selection{}
+	if err := selection.Validate(); err == nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSelectionFoo(t *testing.T) {
 	ctx := context.Background()
 	cfg, restore := testawscfg.Test1(roles.Administrator)
