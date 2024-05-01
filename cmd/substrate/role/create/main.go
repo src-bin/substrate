@@ -366,16 +366,18 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 			}
 
 			if len(managedPolicyAttachments.Filenames) > 0 {
-				ui.Spinf("merging custom policies into the %s role in %s", *roleName, account)
-				policy := minimalPolicy
-				for _, filename := range managedPolicyAttachments.Filenames {
-					var filePolicy policies.Document
-					ui.Must(jsonutil.Read(filename, &filePolicy))
-					policy = policies.Merge(policy, &filePolicy)
-				}
-				ui.Must(awsiam.PutRolePolicy(ctx, accountCfg, *roleName, awsiam.SubstrateManaged, policy))
-				ui.Stopf("ok")
+				ui.Spinf("merging custom policies for the %s role in %s", *roleName, account)
+			} else {
+				ui.Spinf("setting Substrate's minimal custom policy for the %s role in %s", *roleName, account)
 			}
+			policy := minimalPolicy
+			for _, filename := range managedPolicyAttachments.Filenames {
+				var filePolicy policies.Document
+				ui.Must(jsonutil.Read(filename, &filePolicy))
+				policy = policies.Merge(policy, &filePolicy)
+			}
+			ui.Must(awsiam.PutRolePolicy(ctx, accountCfg, *roleName, awsiam.SubstrateManaged, policy))
+			ui.Stopf("ok")
 
 		}
 
