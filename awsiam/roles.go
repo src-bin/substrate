@@ -182,6 +182,7 @@ func DetachRolePolicy(
 	cfg *awscfg.Config,
 	roleName, policyARN string,
 ) error {
+	ui.Spinf("detaching %s from the %s IAM role", policyARN, roleName)
 	_, err := cfg.IAM().DetachRolePolicy(ctx, &iam.DetachRolePolicyInput{
 		PolicyArn: aws.String(policyARN),
 		RoleName:  aws.String(roleName),
@@ -189,7 +190,7 @@ func DetachRolePolicy(
 	if awsutil.ErrorCodeIs(err, NoSuchEntity) {
 		err = nil
 	}
-	return err
+	return ui.StopErr(err)
 }
 
 func EnsureRole(
