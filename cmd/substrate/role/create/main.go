@@ -3,6 +3,7 @@ package create
 import (
 	"context"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -357,6 +358,17 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 				ui.Stop("ok")
 			}
 
+			attachedARNs := ui.Must2(awsiam.ListAttachedRolePolicies(ctx, accountCfg, *roleName))
+			managedPolicyAttachments.Sort()
+			arns := managedPolicyAttachments.ARNs // just to shorten its name in the loop below
+			for _, arn := range attachedARNs {
+				if arn == policies.AdministratorAccess || arn == policies.ReadOnlyAccess {
+					continue // these two specific policies are handled just above
+				}
+				if i := sort.SearchStrings(arns, arn); i == len(arns) || arns[i] != arn { // <https://pkg.go.dev/sort#Search>
+					ui.Must(awsiam.DetachRolePolicy(ctx, accountCfg, *roleName, arn))
+				}
+			}
 			if len(managedPolicyAttachments.ARNs) > 0 {
 				ui.Spinf("attaching AWS-managed policies to the %s role in %s", *roleName, account)
 				for _, arn := range managedPolicyAttachments.ARNs {
