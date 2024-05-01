@@ -355,6 +355,32 @@ func ListAttachedRolePolicies(
 	return arns, nil
 }
 
+func ListRolePolicies(
+	ctx context.Context,
+	cfg *awscfg.Config,
+	roleName string,
+) ([]string, error) {
+	var (
+		names  []string
+		marker *string
+	)
+	for {
+		out, err := cfg.IAM().ListRolePolicies(ctx, &iam.ListRolePoliciesInput{
+			Marker:   marker,
+			RoleName: aws.String(roleName),
+		})
+		if err != nil {
+			return nil, err
+		}
+		names = append(names, out.PolicyNames...)
+		if !out.IsTruncated {
+			break
+		}
+		marker = out.Marker
+	}
+	return names, nil
+}
+
 func ListRoles(ctx context.Context, cfg *awscfg.Config) ([]*Role, error) {
 	var (
 		roles  []*Role
