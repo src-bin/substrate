@@ -60,9 +60,7 @@ endif
 	sh tools/download-html.sh
 	[ -f substrate.version ] && aws s3 cp --quiet substrate.version s3://$(S3_BUCKET)/substrate/ || :
 	[ -f substrate.download.html ] && aws s3 cp --quiet substrate.download.html s3://$(S3_BUCKET)/substrate/ || :
-	ls -1 upgrade
-	cat upgrade/*
-	[ -f upgrade ] && aws s3 cp --recursive upgrade s3://$(S3_BUCKET)/substrate/ || :
+	[ -d upgrade ] && aws s3 cp --recursive upgrade s3://$(S3_BUCKET)/substrate/ || :
 
 release-darwin: release-darwin-amd64 release-darwin-arm64
 
