@@ -59,6 +59,7 @@ func TestAccountsConsole12hDeveloper(t *testing.T) {
 	defer func() {
 		cmdutil.OverrideArgs(delete.Command(), "--force", "--role", roleName)
 		delete.Main(ctx, cfg, nil, nil, os.Stdout)
+		time.Sleep(10 * time.Second) // give AWS IAM time to sort itself out
 	}()
 	time.Sleep(10 * time.Second) // give AWS IAM time to sort itself out
 
