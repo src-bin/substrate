@@ -470,7 +470,12 @@ func network(ctx context.Context, mgmtCfg *awscfg.Config) {
 		vpc1 := vpcs1[0]
 		vpcId1 := aws.ToString(vpc1.VpcId)
 		//ui.Debug(vpc1)
-		conn, err := awsec2.EnsureVPCPeeringConnection(ctx, networkCfg, region0, vpcId0, region1, vpcId1)
+		conn, err := awsec2.EnsureVPCPeeringConnection(
+			ctx,
+			networkCfg,
+			eq0.Environment, eq0.Quality, region0, vpcId0,
+			eq1.Environment, eq1.Quality, region1, vpcId1,
+		)
 		ui.Must(err)
 		//ui.Debug(conn)
 		ui.Spinf("routing traffic from %s to %s", vpcId0, vpcId1)

@@ -33,7 +33,8 @@ func DescribeVPCPeeringConnections(
 func EnsureVPCPeeringConnection(
 	ctx context.Context,
 	cfg *awscfg.Config, // must be in the network account
-	region0, vpcId0, region1, vpcId1 string,
+	environment0, quality0, region0, vpcId0 string,
+	environment1, quality1, region1, vpcId1 string,
 ) (conn *VPCPeeringConnection, err error) {
 	ui.Spinf("peering %s in %s with %s in %s", vpcId0, region0, vpcId1, region1)
 	cfg = cfg.Regional(region0)
@@ -42,6 +43,14 @@ func EnsureVPCPeeringConnection(
 		{
 			Key:   aws.String(tagging.Manager),
 			Value: aws.String(tagging.Substrate),
+		},
+		{
+			Key: aws.String(tagging.Name),
+			Value: aws.String(fmt.Sprintf(
+				"%s-%s-%s-%s-%s-%s",
+				environment0, quality0, region0,
+				environment1, quality1, region1,
+			)),
 		},
 		{
 			Key:   aws.String(tagging.SubstrateVersion),
@@ -82,12 +91,12 @@ func EnsureVPCPeeringConnection(
 			if conn, err = describeVPCPeeringConnection(ctx, cfg, vpcId0, vpcId1); err != nil {
 				return nil, err
 			}
-			_, err = client.CreateTags(ctx, &ec2.CreateTagsInput{
-				Resources: []string{aws.ToString(conn.VpcPeeringConnectionId)},
-				Tags:      tags,
-			})
 		}
 	}
+	ui.Must2(client.CreateTags(ctx, &ec2.CreateTagsInput{
+		Resources: []string{aws.ToString(conn.VpcPeeringConnectionId)},
+		Tags:      tags,
+	}))
 	//ui.Debug(conn)
 
 	// Accept pending connections, whether created or found.
