@@ -12,6 +12,9 @@ else
 ENDPOINT := https://src-bin.com/telemetry/
 endif
 
+PKG ?= ...
+RUN ?= .
+
 all: go-generate
 	# TODO go vet ...
 
@@ -112,7 +115,7 @@ tarball:
 
 test:
 	go clean -testcache
-	go test -race -timeout 0 -v ./...
+	go test -race -run $(RUN) -timeout 0 -v ./$(PKG)
 
 uninstall:
 	find ./cmd -maxdepth 1 -mindepth 1 -type d -printf $(shell go env GOBIN)/%P\\n | xargs rm -f
