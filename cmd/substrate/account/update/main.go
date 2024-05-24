@@ -51,7 +51,7 @@ func Command() *cobra.Command {
 	cmd.Flags().BoolVar(runTerraform, "terraform", false, "initialize and plan or apply Terraform in the account")
 	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "with --terraform, apply Terraform changes without waiting for confirmation")
 	cmd.Flags().BoolVar(noApply, "no-apply", false, "with --terraform, plan but do not apply Terraform changes")
-	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "with --terraform, run `terraform providers lock` during Terraform initialization")
+	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "with --terraform, run terraform providers lock during Terraform initialization")
 	return cmd
 }
 

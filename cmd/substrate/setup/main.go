@@ -75,7 +75,7 @@ to run repeatedly`,
 	cmd.Flags().BoolVar(runTerraform, "terraform", false, "initialize and plan or apply Terraform in the special deploy and network accounts")
 	cmd.Flags().BoolVar(autoApprove, "auto-approve", false, "with --terraform, apply Terraform changes without waiting for confirmation")
 	cmd.Flags().BoolVar(noApply, "no-apply", false, "with --terraform, plan but do not apply Terraform changes")
-	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "with --terraform, run `terraform providers lock` during Terraform initialization")
+	cmd.Flags().BoolVar(providersLock, "providers-lock", false, "with --terraform, run terraform providers lock during Terraform initialization")
 	cmd.Flags().BoolVar(ignoreServiceQuotas, "ignore-service-quotas", false, "ignore the appearance of any service quota being exhausted and continue anyway")
 	cmd.Flags().AddFlagSet(ui.InteractivityFlagSet())
 
