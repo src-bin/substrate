@@ -21,7 +21,6 @@ import (
 	deletestaticaccesskeys "github.com/src-bin/substrate/cmd/substrate/setup/delete-static-access-keys"
 	"github.com/src-bin/substrate/cmdutil"
 	"github.com/src-bin/substrate/features"
-	"github.com/src-bin/substrate/federation"
 	"github.com/src-bin/substrate/fileutil"
 	"github.com/src-bin/substrate/humans"
 	"github.com/src-bin/substrate/naming"
@@ -835,23 +834,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 
 	// If we find an IAM Identity Center installation, take it under our wing.
 	if features.IdentityCenter.Enabled() {
-		if !sso(ctx, mgmtCfg) {
-			ui.Print("")
-			ui.Print("no AWS IAM Identity Center configuration found")
-			creds, err := mgmtCfg.Retrieve(ctx)
-			ui.Must(err)
-			ui.Print("if you want Substrate to manage AWS IAM Identity Center, follow these steps:")
-			consoleSigninURL, err := federation.ConsoleSigninURL(
-				creds,
-				"https://console.aws.amazon.com/singlesignon/home", // destination
-				nil,
-			)
-			ui.Must(err)
-			ui.Printf("1. open the AWS Console in your management account <%s>", consoleSigninURL)
-			ui.Print(`2. click "Enable" and follow the prompts to setup IAM Identity Center (because there's no API to do so)`)
-			ui.Printf("3. repeat step 2 for all your regions (%s)", strings.Join(regions.Selected(), " "))
-			ui.Print("4. re-run `substrate setup`")
-		}
+		sso(ctx, mgmtCfg)
 	}
 
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
