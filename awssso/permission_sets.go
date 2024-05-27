@@ -22,8 +22,9 @@ func EnsurePermissionSet(
 	ctx context.Context,
 	mgmtCfg *awscfg.Config,
 	instance *Instance,
-	name, policyARN string,
-	policyDoc *policies.Document,
+	name string,
+	awsManagedPolicyARNs, customerManagedPolicyNames []string,
+	inlinePolicyDoc *policies.Document,
 ) (*PermissionSet, error) {
 	client := mgmtCfg.Regional(instance.Region).SSOAdmin()
 	tags := []types.Tag{
@@ -69,8 +70,46 @@ func EnsurePermissionSet(
 		return nil, err
 	}
 	ui.Debug(permissionSet)
-	// TODO attach policyARN
-	// TODO attach non-nil policyDoc
+
+	for _, awsManagedPolicyARN := range awsManagedPolicyARNs {
+		if _, err := client.AttachManagedPolicyToPermissionSet(ctx, &ssoadmin.AttachManagedPolicyToPermissionSetInput{
+			InstanceArn:      instance.InstanceArn,
+			ManagedPolicyArn: aws.String(awsManagedPolicyARN),
+			PermissionSetArn: permissionSet.PermissionSetArn,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, customerManagedPolicyName := range customerManagedPolicyNames {
+		if _, err := client.AttachCustomerManagedPolicyReferenceToPermissionSet(
+			ctx,
+			&ssoadmin.AttachCustomerManagedPolicyReferenceToPermissionSetInput{
+				CustomerManagedPolicyReference: &types.CustomerManagedPolicyReference{
+					Name: aws.String(customerManagedPolicyName),
+				},
+				InstanceArn:      instance.InstanceArn,
+				PermissionSetArn: permissionSet.PermissionSetArn,
+			},
+		); err != nil {
+			return nil, err
+		}
+	}
+
+	if inlinePolicyDoc != nil {
+		inlinePolicy, err := inlinePolicyDoc.Marshal()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := client.PutInlinePolicyToPermissionSet(ctx, &ssoadmin.PutInlinePolicyToPermissionSetInput{
+			InlinePolicy:     aws.String(inlinePolicy),
+			InstanceArn:      instance.InstanceArn,
+			PermissionSetArn: permissionSet.PermissionSetArn,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
 	return permissionSet, nil
 }
 

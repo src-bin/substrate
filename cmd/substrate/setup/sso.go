@@ -76,8 +76,24 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 	accounts, err := mgmtCfg.ListAccounts(ctx)
 	ui.Must(err)
 
-	ui.Must2(awssso.EnsurePermissionSet(ctx, mgmtCfg, instance, roles.Administrator, policies.AdministratorAccess, nil))
-	ui.Must2(awssso.EnsurePermissionSet(ctx, mgmtCfg, instance, roles.Auditor, policies.ReadOnlyAccess, policies.DenySensitiveReads))
+	ui.Must2(awssso.EnsurePermissionSet(
+		ctx,
+		mgmtCfg,
+		instance,
+		roles.Administrator,
+		[]string{policies.AdministratorAccess},
+		nil,
+		nil,
+	))
+	ui.Must2(awssso.EnsurePermissionSet(
+		ctx,
+		mgmtCfg,
+		instance,
+		roles.Auditor,
+		[]string{policies.ReadOnlyAccess},
+		[]string{policies.DenySensitiveReadsName},
+		nil,
+	))
 
 	permissionSets, err := awssso.ListPermissionSets(ctx, mgmtCfg, instance)
 	ui.Must(err)
