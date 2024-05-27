@@ -9,10 +9,7 @@ import (
 	"github.com/src-bin/substrate/awscfg"
 )
 
-type Assignment struct {
-	types.AccountAssignment
-	Region string
-}
+type AccountAssignment = types.AccountAssignment
 
 func ListAccountAssignments(
 	ctx context.Context,
@@ -20,7 +17,7 @@ func ListAccountAssignments(
 	instance *Instance,
 	permissionSet *PermissionSet,
 	accountId string,
-) (assignments []*Assignment, err error) {
+) (assignments []AccountAssignment, err error) {
 	client := mgmtCfg.Regional(instance.Region).SSOAdmin()
 	var nextToken *string
 	for {
@@ -29,17 +26,12 @@ func ListAccountAssignments(
 			AccountId:        aws.String(accountId),
 			InstanceArn:      instance.InstanceArn,
 			NextToken:        nextToken,
-			PermissionSetArn: aws.String(permissionSet.ARN),
+			PermissionSetArn: permissionSet.PermissionSetArn,
 		})
 		if err != nil {
 			return
 		}
-		for _, aa := range out.AccountAssignments {
-			assignments = append(assignments, &Assignment{
-				AccountAssignment: aa,
-				Region:            instance.Region,
-			})
-		}
+		assignments = append(assignments, out.AccountAssignments...)
 		if nextToken = out.NextToken; nextToken == nil {
 			break
 		}

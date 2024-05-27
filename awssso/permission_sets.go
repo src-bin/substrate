@@ -4,37 +4,47 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/service/ssoadmin"
+	"github.com/aws/aws-sdk-go-v2/service/ssoadmin/types"
 	"github.com/src-bin/substrate/awscfg"
 )
 
-type PermissionSet struct {
-	ARN, Region string
+type PermissionSet = types.PermissionSet
+
 }
 
 func ListPermissionSets(
 	ctx context.Context,
 	mgmtCfg *awscfg.Config,
 	instance *Instance,
-) (permissionSets []*PermissionSet, err error) {
+) ([]*PermissionSet, error) {
 	client := mgmtCfg.Regional(instance.Region).SSOAdmin()
-	var nextToken *string
+	var (
+		nextToken      *string
+		permissionSets []*PermissionSet
+	)
 	for {
-		var out *ssoadmin.ListPermissionSetsOutput
-		if out, err = client.ListPermissionSets(ctx, &ssoadmin.ListPermissionSetsInput{
+		out, err := client.ListPermissionSets(ctx, &ssoadmin.ListPermissionSetsInput{
 			InstanceArn: instance.InstanceArn,
 			NextToken:   nextToken,
-		}); err != nil {
-			return
+		})
+		if err != nil {
+			return nil, err
 		}
+
 		for _, permissionSetARN := range out.PermissionSets {
-			permissionSets = append(permissionSets, &PermissionSet{
-				ARN:    permissionSetARN,
-				Region: instance.Region,
+			out, err := client.DescribePermissionSet(ctx, &ssoadmin.DescribePermissionSetInput{
+				InstanceArn:      instance.InstanceArn,
+				PermissionSetArn: aws.String(permissionSetARN),
 			})
+			if err != nil {
+				return nil, err
+			}
+			permissionSets = append(permissionSets, out.PermissionSet)
 		}
+
 		if nextToken = out.NextToken; nextToken == nil {
 			break
 		}
 	}
-	return
+	return permissionSets, nil
 }

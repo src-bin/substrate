@@ -46,7 +46,12 @@ func TestListInstancesTest4(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				t.Log(aws.ToString(instance.InstanceArn), permissionSet.ARN, aws.ToString(account.Id), jsonutil.MustString(assignments))
+				t.Log(
+					aws.ToString(instance.InstanceArn),
+					aws.ToString(permissionSet.PermissionSetArn),
+					aws.ToString(account.Id),
+					jsonutil.MustString(assignments),
+				)
 			}
 		}
 	}

@@ -79,7 +79,13 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 	ui.Debug(permissionSets) // XXX
 	for _, permissionSet := range permissionSets {
 		for _, account := range accounts {
-			assignments, err := awssso.ListAccountAssignments(ctx, mgmtCfg, instance, permissionSet, aws.ToString(account.Id))
+			assignments, err := awssso.ListAccountAssignments(
+				ctx,
+				mgmtCfg,
+				instance,
+				permissionSet,
+				aws.ToString(account.Id),
+			)
 			ui.Must(err)
 			ui.Debug(assignments) // XXX
 		}
