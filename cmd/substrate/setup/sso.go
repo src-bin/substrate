@@ -9,7 +9,9 @@ import (
 	"github.com/src-bin/substrate/awsorgs"
 	"github.com/src-bin/substrate/awssso"
 	"github.com/src-bin/substrate/federation"
+	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/regions"
+	"github.com/src-bin/substrate/roles"
 	"github.com/src-bin/substrate/tagging"
 	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
@@ -73,6 +75,9 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 
 	accounts, err := mgmtCfg.ListAccounts(ctx)
 	ui.Must(err)
+
+	ui.Must2(awssso.EnsurePermissionSet(ctx, mgmtCfg, instance, roles.Administrator, policies.AdministratorAccess, nil))
+	ui.Must2(awssso.EnsurePermissionSet(ctx, mgmtCfg, instance, roles.Auditor, policies.ReadOnlyAccess, policies.DenySensitiveReads))
 
 	permissionSets, err := awssso.ListPermissionSets(ctx, mgmtCfg, instance)
 	ui.Must(err)

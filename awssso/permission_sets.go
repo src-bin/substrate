@@ -3,13 +3,75 @@ package awssso
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssoadmin"
 	"github.com/aws/aws-sdk-go-v2/service/ssoadmin/types"
 	"github.com/src-bin/substrate/awscfg"
+	"github.com/src-bin/substrate/awsutil"
+	"github.com/src-bin/substrate/policies"
+	"github.com/src-bin/substrate/tagging"
+	"github.com/src-bin/substrate/ui"
+	"github.com/src-bin/substrate/version"
 )
+
+const SessionDuration = "PT12H"
 
 type PermissionSet = types.PermissionSet
 
+func EnsurePermissionSet(
+	ctx context.Context,
+	mgmtCfg *awscfg.Config,
+	instance *Instance,
+	name, policyARN string,
+	policyDoc *policies.Document,
+) (*PermissionSet, error) {
+	client := mgmtCfg.Regional(instance.Region).SSOAdmin()
+	tags := []types.Tag{
+		{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
+		{Key: aws.String(tagging.SubstrateVersion), Value: aws.String(version.Version)},
+	}
+	var permissionSet *PermissionSet
+	if out, err := client.CreatePermissionSet(ctx, &ssoadmin.CreatePermissionSetInput{
+		InstanceArn:     instance.InstanceArn,
+		Name:            aws.String(name),
+		SessionDuration: aws.String(SessionDuration),
+		Tags:            tags,
+	}); err == nil {
+		permissionSet = out.PermissionSet
+	} else if awsutil.ErrorCodeIs(err, ConflictException) {
+		permissionSets, err := ListPermissionSets(ctx, mgmtCfg, instance)
+		if err != nil {
+			return nil, err
+		}
+		for _, ps := range permissionSets {
+			if aws.ToString(ps.Name) == name {
+				if _, err := client.UpdatePermissionSet(ctx, &ssoadmin.UpdatePermissionSetInput{
+					InstanceArn:      instance.InstanceArn,
+					PermissionSetArn: ps.PermissionSetArn,
+					SessionDuration:  aws.String(SessionDuration),
+				}); err != nil {
+					return nil, err
+				}
+				permissionSet = ps
+			}
+		}
+		if permissionSet == nil {
+			return nil, NotFound{"permission set", name}
+		}
+		if _, err := client.TagResource(ctx, &ssoadmin.TagResourceInput{
+			InstanceArn: instance.InstanceArn,
+			ResourceArn: permissionSet.PermissionSetArn,
+			Tags:        tags,
+		}); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, err
+	}
+	ui.Debug(permissionSet)
+	// TODO attach policyARN
+	// TODO attach non-nil policyDoc
+	return permissionSet, nil
 }
 
 func ListPermissionSets(
