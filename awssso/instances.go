@@ -12,8 +12,6 @@ import (
 	"github.com/src-bin/substrate/tagging"
 )
 
-const AccessDeniedException = "AccessDeniedException"
-
 type Instance struct {
 	types.InstanceMetadata
 	Region string
