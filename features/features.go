@@ -6,7 +6,6 @@ package features
 // comma-delimited value of the SUBSTRATE_FEATURES environment variable.
 const (
 	DelegatedOrganizationAdministration feature = "DelegatedOrganizationAdministration"
-	IdentityCenter                      feature = "IdentityCenter"
 	IgnoreMacOSKeychain                 feature = "IgnoreMacOSKeychain"
 	ProxyTelemetry                      feature = "ProxyTelemetry"
 	UpgradeButton                       feature = "UpgradeButton"

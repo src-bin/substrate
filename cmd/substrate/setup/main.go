@@ -833,9 +833,7 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 	dnsDomainName, idpName := intranet(ctx, mgmtCfg, substrateCfg)
 
 	// If we find an IAM Identity Center installation, take it under our wing.
-	if features.IdentityCenter.Enabled() {
-		sso(ctx, mgmtCfg)
-	}
+	sso(ctx, mgmtCfg)
 
 	// Render a "cheat sheet" of sorts that has all the account numbers, role
 	// names, and role ARNs that folks might need to get the job done.
