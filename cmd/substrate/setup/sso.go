@@ -44,13 +44,14 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 		ui.Printf("1. open the AWS Console in your management account <%s>", consoleSigninURL)
 		ui.Print(`2. click "Enable" and follow the prompts to setup IAM Identity Center (because there's no API to do so)`)
 		ui.Print("3. re-run `substrate setup`")
+		ui.Print("")
 		return
 	}
 	if len(instances) > 1 {
 		ui.Fatalf("found %d instances of IAM Identity Center; more than one is supposed to be impossible", len(instances))
 	}
 	instance := instances[0]
-	ui.Debug(instance) // XXX
+	//ui.Debug(instance)
 
 	// We've got an instance of Identity Center. Now let's figure out if we're
 	// managing it with Substrate or leaving it alone. If we can't figure it
@@ -72,9 +73,7 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 	} else if instance.Tags[tagging.Manager] != tagging.Substrate {
 		return
 	}
-
-	accounts, err := mgmtCfg.ListAccounts(ctx)
-	ui.Must(err)
+	ui.Spinf("managing permission sets in IAM Identity Center instance %s", instance.InstanceArn)
 
 	ui.Must2(awssso.EnsurePermissionSet(
 		ctx,
@@ -95,22 +94,24 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 		nil,
 	))
 
-	permissionSets, err := awssso.ListPermissionSets(ctx, mgmtCfg, instance)
-	ui.Must(err)
-	ui.Debug(permissionSets) // XXX
-	for _, permissionSet := range permissionSets {
-		for _, account := range accounts {
-			assignments, err := awssso.ListAccountAssignments(
-				ctx,
-				mgmtCfg,
-				instance,
-				permissionSet,
-				aws.ToString(account.Id),
-			)
-			ui.Must(err)
-			ui.Debug(assignments) // XXX
+	/*
+		accounts, err := mgmtCfg.ListAccounts(ctx)
+		ui.Must(err)
+		permissionSets, err := awssso.ListPermissionSets(ctx, mgmtCfg, instance)
+		ui.Must(err)
+		for _, permissionSet := range permissionSets {
+			for _, account := range accounts {
+				assignments, err := awssso.ListAccountAssignments(
+					ctx,
+					mgmtCfg,
+					instance,
+					permissionSet,
+					aws.ToString(account.Id),
+				)
+				ui.Must(err)
+			}
 		}
-	}
+	*/
 
 	substrateAccount, err := mgmtCfg.FindSubstrateAccount(ctx)
 	ui.Must(err)
@@ -121,4 +122,5 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 		"sso.amazonaws.com",
 	))
 
+	ui.Stop("ok")
 }
