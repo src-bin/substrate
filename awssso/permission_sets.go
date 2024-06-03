@@ -76,7 +76,7 @@ func EnsurePermissionSet(
 			InstanceArn:      instance.InstanceArn,
 			ManagedPolicyArn: aws.String(awsManagedPolicyARN),
 			PermissionSetArn: permissionSet.PermissionSetArn,
-		}); err != nil {
+		}); err != nil && !awsutil.ErrorCodeIs(err, ConflictException) {
 			return nil, err
 		}
 	}
@@ -91,7 +91,7 @@ func EnsurePermissionSet(
 				InstanceArn:      instance.InstanceArn,
 				PermissionSetArn: permissionSet.PermissionSetArn,
 			},
-		); err != nil {
+		); err != nil && !awsutil.ErrorCodeIs(err, ConflictException) {
 			return nil, err
 		}
 	}
