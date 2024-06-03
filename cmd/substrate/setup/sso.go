@@ -71,6 +71,7 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 			return
 		}
 	} else if instance.Tags[tagging.Manager] != tagging.Substrate {
+		ui.Printf("found IAM Identity Center instance %s but it's tagged Manager=NotSubstrate; not managing it", instance.InstanceArn)
 		return
 	}
 	ui.Spinf("managing permission sets in IAM Identity Center instance %s", instance.InstanceArn)
