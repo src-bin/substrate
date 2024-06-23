@@ -34,13 +34,13 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 		ui.Print("no AWS IAM Identity Center configuration found")
 		creds, err := mgmtCfg.Retrieve(ctx)
 		ui.Must(err)
-		ui.Print("if you want Substrate to manage AWS IAM Identity Center, follow these steps:")
 		consoleSigninURL, err := federation.ConsoleSigninURL(
 			creds,
 			fmt.Sprintf("https://%s.console.aws.amazon.com/singlesignon/home", regions.Default()), // destination
 			nil,
 		)
 		ui.Must(err)
+		ui.Print("if you want Substrate to manage AWS IAM Identity Center, follow these steps:")
 		ui.Printf("1. open the AWS Console in your management account <%s>", consoleSigninURL)
 		ui.Print(`2. click "Enable" and follow the prompts to setup IAM Identity Center (because there's no API to do so)`)
 		ui.Print("3. re-run `substrate setup`")
