@@ -74,7 +74,12 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 		ui.Printf("found IAM Identity Center instance %s but it's tagged Manager=NotSubstrate; not managing it", instance.InstanceArn)
 		return
 	}
-	ui.Spinf("managing permission sets in IAM Identity Center instance %s", instance.InstanceArn)
+	ui.Spinf("managing IAM Identity Center instance %s", instance.InstanceArn)
+
+	ui.Spinf("finding or creating Administrators and Auditors groups in identity store %s", instance.IdentityStoreId)
+	ui.Must2(awssso.EnsureGroup(ctx, mgmtCfg, instance, "Administrators"))
+	ui.Must2(awssso.EnsureGroup(ctx, mgmtCfg, instance, "Auditors"))
+	ui.Stop("ok")
 
 	ui.Must2(awssso.EnsurePermissionSet(
 		ctx,
