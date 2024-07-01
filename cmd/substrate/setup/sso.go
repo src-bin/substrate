@@ -77,11 +77,11 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 	ui.Spinf("managing IAM Identity Center instance %s", instance.InstanceArn)
 
 	ui.Spinf("finding or creating Administrators and Auditors groups in identity store %s", instance.IdentityStoreId)
-	ui.Must2(awssso.EnsureGroup(ctx, mgmtCfg, instance, "Administrators"))
-	ui.Must2(awssso.EnsureGroup(ctx, mgmtCfg, instance, "Auditors"))
+	administrators := ui.Must2(awssso.EnsureGroup(ctx, mgmtCfg, instance, "Administrators"))
+	auditors := ui.Must2(awssso.EnsureGroup(ctx, mgmtCfg, instance, "Auditors"))
 	ui.Stop("ok")
 
-	ui.Must2(awssso.EnsurePermissionSet(
+	administrator := ui.Must2(awssso.EnsurePermissionSet(
 		ctx,
 		mgmtCfg,
 		instance,
@@ -90,7 +90,7 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 		nil,
 		nil,
 	))
-	ui.Must2(awssso.EnsurePermissionSet(
+	auditor := ui.Must2(awssso.EnsurePermissionSet(
 		ctx,
 		mgmtCfg,
 		instance,
@@ -100,24 +100,14 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 		nil,
 	))
 
-	/*
-		accounts, err := mgmtCfg.ListAccounts(ctx)
-		ui.Must(err)
-		permissionSets, err := awssso.ListPermissionSets(ctx, mgmtCfg, instance)
-		ui.Must(err)
-		for _, permissionSet := range permissionSets {
-			for _, account := range accounts {
-				assignments, err := awssso.ListAccountAssignments(
-					ctx,
-					mgmtCfg,
-					instance,
-					permissionSet,
-					aws.ToString(account.Id),
-				)
-				ui.Must(err)
-			}
-		}
-	*/
+	ui.Spin("provisioning Administrator and Auditor permission sets into all AWS accounts")
+	for _, account := range ui.Must2(mgmtCfg.ListAccounts(ctx)) {
+		ui.Must(awssso.EnsureGroupAccountAssignment(ctx, mgmtCfg, instance, administrator, aws.ToString(account.Id), administrators.GroupId))
+		ui.Must(awssso.EnsureGroupAccountAssignment(ctx, mgmtCfg, instance, auditor, aws.ToString(account.Id), auditors.GroupId))
+	}
+	ui.Must(awssso.ProvisionPermissionSet(ctx, mgmtCfg, instance, administrator))
+	ui.Must(awssso.ProvisionPermissionSet(ctx, mgmtCfg, instance, auditor))
+	ui.Stop("ok")
 
 	substrateAccount, err := mgmtCfg.FindSubstrateAccount(ctx)
 	ui.Must(err)

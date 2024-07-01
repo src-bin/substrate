@@ -150,3 +150,18 @@ func ListPermissionSets(
 	}
 	return permissionSets, nil
 }
+
+func ProvisionPermissionSet(
+	ctx context.Context,
+	mgmtCfg *awscfg.Config,
+	instance *Instance,
+	permissionSet *PermissionSet,
+) error {
+	client := mgmtCfg.Regional(instance.Region).SSOAdmin()
+	_, err := client.ProvisionPermissionSet(ctx, &ssoadmin.ProvisionPermissionSetInput{
+		InstanceArn:      instance.InstanceArn,
+		PermissionSetArn: permissionSet.PermissionSetArn,
+		TargetType:       types.ProvisionTargetTypeAllProvisionedAccounts,
+	})
+	return err
+}
