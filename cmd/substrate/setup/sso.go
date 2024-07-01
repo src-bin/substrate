@@ -81,6 +81,7 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 	auditors := ui.Must2(awssso.EnsureGroup(ctx, mgmtCfg, instance, "Auditors"))
 	ui.Stop("ok")
 
+	ui.Spin("finding or creating Administrator and Auditor permission sets")
 	administrator := ui.Must2(awssso.EnsurePermissionSet(
 		ctx,
 		mgmtCfg,
@@ -99,6 +100,7 @@ func sso(ctx context.Context, mgmtCfg *awscfg.Config) {
 		[]string{policies.DenySensitiveReadsName},
 		nil,
 	))
+	ui.Stop("ok")
 
 	ui.Spin("provisioning Administrator and Auditor permission sets into all AWS accounts")
 	for _, account := range ui.Must2(mgmtCfg.ListAccounts(ctx)) {

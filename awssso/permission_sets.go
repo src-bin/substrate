@@ -10,7 +10,6 @@ import (
 	"github.com/src-bin/substrate/awsutil"
 	"github.com/src-bin/substrate/policies"
 	"github.com/src-bin/substrate/tagging"
-	"github.com/src-bin/substrate/ui"
 	"github.com/src-bin/substrate/version"
 )
 
@@ -26,7 +25,6 @@ func EnsurePermissionSet(
 	awsManagedPolicyARNs, customerManagedPolicyNames []string,
 	inlinePolicyDoc *policies.Document,
 ) (*PermissionSet, error) {
-	ui.Spinf("finding or creating an IAM Identity Center permission set for %s", name)
 	client := mgmtCfg.Regional(instance.Region).SSOAdmin()
 	tags := []types.Tag{
 		{Key: aws.String(tagging.Manager), Value: aws.String(tagging.Substrate)},
@@ -43,7 +41,7 @@ func EnsurePermissionSet(
 	} else if awsutil.ErrorCodeIs(err, ConflictException) {
 		permissionSets, err := ListPermissionSets(ctx, mgmtCfg, instance)
 		if err != nil {
-			return nil, ui.StopErr(err)
+			return nil, err
 		}
 		for _, ps := range permissionSets {
 			if aws.ToString(ps.Name) == name {
@@ -52,23 +50,23 @@ func EnsurePermissionSet(
 					PermissionSetArn: ps.PermissionSetArn,
 					SessionDuration:  aws.String(SessionDuration),
 				}); err != nil {
-					return nil, ui.StopErr(err)
+					return nil, err
 				}
 				permissionSet = ps
 			}
 		}
 		if permissionSet == nil {
-			return nil, ui.StopErr(NotFound{"permission set", name})
+			return nil, NotFound{"permission set", name}
 		}
 		if _, err := client.TagResource(ctx, &ssoadmin.TagResourceInput{
 			InstanceArn: instance.InstanceArn,
 			ResourceArn: permissionSet.PermissionSetArn,
 			Tags:        tags,
 		}); err != nil {
-			return nil, ui.StopErr(err)
+			return nil, err
 		}
 	} else {
-		return nil, ui.StopErr(err)
+		return nil, err
 	}
 	//ui.Debug(permissionSet)
 
@@ -78,7 +76,7 @@ func EnsurePermissionSet(
 			ManagedPolicyArn: aws.String(awsManagedPolicyARN),
 			PermissionSetArn: permissionSet.PermissionSetArn,
 		}); err != nil && !awsutil.ErrorCodeIs(err, ConflictException) {
-			return nil, ui.StopErr(err)
+			return nil, err
 		}
 	}
 
@@ -93,25 +91,25 @@ func EnsurePermissionSet(
 				PermissionSetArn: permissionSet.PermissionSetArn,
 			},
 		); err != nil && !awsutil.ErrorCodeIs(err, ConflictException) {
-			return nil, ui.StopErr(err)
+			return nil, err
 		}
 	}
 
 	if inlinePolicyDoc != nil {
 		inlinePolicy, err := inlinePolicyDoc.Marshal()
 		if err != nil {
-			return nil, ui.StopErr(err)
+			return nil, err
 		}
 		if _, err := client.PutInlinePolicyToPermissionSet(ctx, &ssoadmin.PutInlinePolicyToPermissionSetInput{
 			InlinePolicy:     aws.String(inlinePolicy),
 			InstanceArn:      instance.InstanceArn,
 			PermissionSetArn: permissionSet.PermissionSetArn,
 		}); err != nil {
-			return nil, ui.StopErr(err)
+			return nil, err
 		}
 	}
 
-	return permissionSet, ui.StopErr(nil)
+	return permissionSet, nil
 }
 
 func ListPermissionSets(
