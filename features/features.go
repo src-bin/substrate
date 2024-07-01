@@ -8,5 +8,6 @@ const (
 	DelegatedOrganizationAdministration feature = "DelegatedOrganizationAdministration"
 	IgnoreMacOSKeychain                 feature = "IgnoreMacOSKeychain"
 	ProxyTelemetry                      feature = "ProxyTelemetry"
+	Telemetry                           feature = "Telemetry"
 	UpgradeButton                       feature = "UpgradeButton"
 )

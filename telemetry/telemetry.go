@@ -195,6 +195,9 @@ func (e *Event) Wait(ctx context.Context) error {
 }
 
 func endpoint(ctx context.Context) string {
+	if !features.Telemetry.Enabled() {
+		return ""
+	}
 	if features.ProxyTelemetry.Enabled() && !contextutil.IsIntranet(ctx) { // feature enabled and outside the Intranet
 		if host, err := naming.IntranetDNSDomainName(); err == nil { // and knowing the Intranet's hostname
 			u := &url.URL{
