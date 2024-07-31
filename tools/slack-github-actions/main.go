@@ -55,7 +55,7 @@ func main() {
 		text = parseAndExecuteTemplate(
 			"Substrate {{.Version}} is out!\n"+
 				"\n"+
-				"Full release notes: https://docs.substrate.tools/substrate/releases#{{.Version}}\n"+
+				"Full release notes: https://docs.substrate.tools/releases.html#{{.Version}}\n"+
 				"\n"+
 				"Get it by running `substrate upgrade` or downloading the appropriate release tarball:\n"+
 				"{{range .Filenames -}}\n"+
