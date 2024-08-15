@@ -1,203 +1,26 @@
-                              Source & Binary
-                   Software License and Subscription Terms
+Copyright 2024 Source & Binary, LLC
 
-This Software License and Subscription Terms (the “Agreement”) is between
-Source & Binary, LLC, a California limited liability company (“Licensor”) and
-the party listed on the signature line below (“Licensee”) as of [DATE] (the
-“Effective Date”).
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
 
-1.  Definitions.
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
 
-1.1.  “Authorized User” means an employee of Licensee who Licensee permits to
-      access and use the Software or Documentation.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
 
-1.2.  “Documentation” means any user manuals or guides relating to the Software
-      that Licensor provides to Licensee either electronically or in hard
-      copy form.
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
 
-1.3.  “Software” means Licensor’s proprietary software called Substrate,
-      described on Exhibit A, and any Updates provided to current licensees of
-      the Software.
-
-1.4.  “Support” means support services provided by Licensor pursuant to an
-      annual subscription for the Software and Updates.
-
-1.5.  “Third Party Products” means any third-party products provided with or
-      incorporated into the Software, including any open-source software.
-
-1.6.  “Updates” means updates, bug fixes, patches, or other error corrections
-      to the Software that Licensor makes available to current licensees of
-      the Software.
-
-2.  License.
-
-2.1.  License Grant. Subject to and conditioned on Licensee’s payment of fees
-      and compliance with this Agreement payment, Licensor hereby grants
-      Licensee a worldwide, non-exclusive, non-sublicensable, and
-      non-transferable license to (i) use and otherwise take full lawful
-      advantage of the Software solely for Licensee’s internal business
-      purposes and (ii) use and make a reasonable number of copies of the
-      Documentation in connection with Licensee’s use of the Software
-      (collectively, “License”). Notwithstanding the foregoing, if Licensee is
-      acquired by another company, Licensee may transfer the License to the
-      purchasing company as part of the acquisition.
-
-2.2.  Use Restrictions. Licensee shall not use the Software or Documentation
-      for any purposes beyond the scope of the License. Licensee may modify the
-      source-code in the Software for Licensee’s internal business purposes,
-      but Licensee may not use the Software in any manner or for any purpose
-      that infringes Licensor's or any third party’s intellectual
-      property rights.
-
-3.  Licensee Responsibilities. Licensee is responsible and liable for all uses
-    of the Software and Documentation resulting from access provided by
-    Licensee. Licensee is responsible for all acts and omissions of Authorized
-    Users, and any act or omission by an Authorized User that would constitute
-    a breach of this Agreement if taken by Licensee.
-
-4.  Fees and Payment.
-
-4.1.  Fees. The annual fee for the License and subscription is $[fee] (“Fee”).
-      Unless otherwise agreed in writing by Licensor: (i) Licensee shall pay
-      the Fee in advance for each annual license term; and (ii) Licensee shall
-      make all payments via credit card or ACH in US dollars on or before the
-      agreed date. If Licensee opted for autorenewal, the annual license fee
-      will be automatically charged to Licensee’s payment method upon renewal.
-
-4.2.  Late Payment. If Licensee fails to make payment when due, Licensor may
-      charge interest at the rate of 1.5% per month. If Licensee fails to make
-      payment fifteen days after receiving written notice from Licensor, then
-      Licensor may prohibit Licensee’s access to the Software and Support.
-
-4.3.  Taxes. All Fees are exclusive of taxes and similar assessments. Licensee
-      is responsible for all sales, use, and excise taxes imposed on the
-      Software or Support, other than any taxes imposed on Licensor’s income.
-
-5.  Intellectual Property and Feedback.
-
-5.1. Ownership. Licensee acknowledges that, as between Licensor and Licensee,
-     Licensor owns all right in and to the Software and Documentation. With
-     respect to Third-Party Products, the applicable third-party licensors own
-     all right, title and interest, including all intellectual property rights,
-     in and to the Third-Party Products.
-
-5.2.  Feedback. If Licensee (or its employees or contractors) advises Licensor
-      of any recommended changes, comments or suggestions regarding the
-      Software or Documentation (“Feedback”), Licensor can use the Feedback
-      without any attribution or compensation to Licensee.
-
-5.3.  Publicity. Licensor may publicize the fact that Licensee uses the
-      Software and, subject to any reasonable restrictions imposed by Licensee,
-      utilize Licensee’s trade name(s) and trademark(s) in connection with
-      Licensor’s publicity.
-
-6.  Warranties and Disclaimer. Except as provided in this Agreement, the
-    Software, Documentation, and Support are provided “AS IS” and without other
-    warranty. Licensor makes no warranty that the Software, Documentation, or
-    Support will meet Licensee’s requirements, operate without interruption,
-    achieve any intended result, be compatible or work with any software,
-    system, or other service or be secure, accurate, complete, free of harmful
-    code, or error free. Licensor disclaims all warranties, express or implied,
-    including any warranties of fitness for a particular purpose,
-    merchantability, and non-infringement.
-
-7.  Limit on Liability. Licensor’s maximum liability in any action relating to
-    the subject of this Agreement is limited to the total fees under this
-    Agreement. Licensor is not liable for any claim for lost profits or
-    consequential damages, even if foreseeable and regardless of the form of
-    action. These limitations are subject to applicable law.
-
-8.  Indemnification. Licensee shall indemnify Licensor from and against any
-    Losses resulting from any Third-Party Claim based on Licensee’s, or any
-    Authorized User’s: (i) negligence or willful misconduct; (ii) use of the
-    Software or Documentation in a manner not authorized or contemplated by
-    this Agreement; (iii) use of the Software in combination with data,
-    software, hardware, equipment or technology not provided by Licensor or
-    authorized by Licensor in writing; (iv) modifications to the Software not
-    made by Licensor; or (v) use of any version other than the most current
-    version of the Software or Documentation delivered to Licensee. Licensee
-    may not settle any Third-Party Claim against Licensor unless the settlement
-    completely and forever releases Licensor from all liability with respect to
-    such Third-Party Claim or unless Licensor consents to the settlement.
-    Licensor will have the right, at its option, to defend itself against any
-    such Third-Party Claim or to participate in the defense thereof by counsel
-    of its own choice.
-
-9.  Term and Termination.
-
-9.1.  Term. The term of this Agreement begins on the Effective Date and has an
-      initial term of one year. If Licensee opted for autorenewal, this
-      Agreement will automatically renew for successive one-year terms. The
-      Parties may also agree in writing (email suffices) to annual renewals.
-
-9.2.  Termination. Either party may terminate this Agreement: (i) for its
-      convenience effective on written notice; or (b) effective on written
-      notice if the other party breaches this Agreement, and such breach: (A)
-      is incapable of cure; or (B) being capable of cure, remains uncured 15
-      days after the non-breaching Party provides the breaching Party with
-      written notice of such breach.
-
-9.3.  Effect of Termination. Upon termination the following will occur: (i)
-      Licensee will no longer have access to Updates or Support for the
-      Software (Licensee may, however, continue using the version of the
-      Software Licensee was using prior to termination). If Licensor terminates
-      this Agreement for its convenience, it will issue a prorated refund for
-      any prepaid period. No refunds will be issued in any other circumstance.
-
-10. Miscellaneous.
-
-10.1. Governing Law and Jurisdiction. California law governs this Agreement.
-      The state and federal courts of San Francisco County, California are the
-      exclusive venues for resolving any disputes under this Agreement and the
-      parties consent to the jurisdiction of those courts.
-
-10.2. Assignment. Licensee may not assign this Agreement without the prior
-      written consent of Licensor. Licensor’s consent will not unreasonably
-      withhold consent. If assigned, this Agreement shall be binding on and
-      inure to the benefit of parties and their respective successor and
-      permitted assigns.
-
-10.3. Export Regulation. The Software may be subject to US export control laws,
-      including the US Export Administration Act and its associated
-      regulations. Licensee shall not, directly or indirectly, export,
-      re-export, or release the Software to, or make the Software accessible
-      from, any jurisdiction or country to which export, re-export, or release
-      is prohibited. Licensee shall comply with all applicable federal laws,
-      regulations, and rules, and complete all required undertakings prior to
-      exporting, re-exporting, releasing, or otherwise making the Software
-      available outside the US.
-
-10.4. Consent to the Use of Data. Licensee consents to Licensor’s use of
-      information provided by Licensee in connection with Licensee’s use of the
-      Software and the Support. Licensor may use this information to improve
-      the Software and its other products and services, but will not disclose
-      this information in a form that identifies Licensee.
-
-10.5. This Agreement. This Agreement is the entire agreement of the parties
-      with respect to its subject. All prior and contemporaneous agreements are
-      superseded. This Agreement may only be amended by a writing signed by
-      both parties. This Agreement may be signed in counterparts. Each
-      counterpart constitutes an original and all together constitute a single
-      agreement. If any term of this Agreement is determined to be
-      unenforceable, the remainder of this Agreement will not be affected. This
-      Agreement was negotiated by sophisticated parties and will not be
-      construed in favor of or against either party.
-
-Agreed as of the Effective Date.
-
-         LICENSOR                          LICENSEE
-
-         Source & Binary, LLC              [CUSTOMER]
-
-         By:                               By:
-         Richard Crowley, Principal        [NAME], [TITLE]
-
-Exhibit A
-
-Substrate manages secure, reliable, and compliant cloud infrastructure in AWS.
-It creates strong boundaries between different parts of your software, both on
-the network and between AWS resources, to improve security by creating
-isolation and improve reliability by reducing the blast radius of changes.
-
-Substrate is distributed as a collection of compiled programs for various
-operating systems.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
