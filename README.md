@@ -5,8 +5,6 @@ Substrate is a command-line tool that helps teams build and operate secure, comp
 
 Full documentation is available at <https://docs.substrate.tools/>.
 
-Substrate is licensed under your Master Services Agreement with Source & Binary or under the [Substrate License](https://substrate.tools/license).
-
 Development
 -----------
 
