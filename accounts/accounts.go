@@ -90,13 +90,15 @@ func CheatSheet(ctx context.Context, cfg *awscfg.Config) error {
 		})
 	}
 
-	specialAccountsCells = append(specialAccountsCells, []string{
-		Network,
-		aws.ToString(networkAccount.Id),
-		roles.NetworkAdministrator,
-		roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator),
-		networkAccount.Tags[tagging.SubstrateVersion],
-	})
+	if networkAccount != nil {
+		specialAccountsCells = append(specialAccountsCells, []string{
+			Network,
+			aws.ToString(networkAccount.Id),
+			roles.NetworkAdministrator,
+			roles.ARN(aws.ToString(networkAccount.Id), roles.NetworkAdministrator),
+			networkAccount.Tags[tagging.SubstrateVersion],
+		})
+	}
 
 	if substrateAccount != nil {
 		specialAccountsCells = append(specialAccountsCells, []string{

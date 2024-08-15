@@ -95,16 +95,16 @@ func Main(ctx context.Context, cfg *awscfg.Config, _ *cobra.Command, _ []string,
 		if *number == aws.ToString(managementAccount.Id) {
 			prettyPrintJSON(managementAccount)
 			return
-		} else if *number == aws.ToString(auditAccount.Id) {
+		} else if auditAccount != nil && *number == aws.ToString(auditAccount.Id) {
 			prettyPrintJSON(auditAccount)
 			return
-		} else if *number == aws.ToString(networkAccount.Id) {
+		} else if networkAccount != nil && *number == aws.ToString(networkAccount.Id) {
 			prettyPrintJSON(networkAccount)
 			return
-		} else if *number == aws.ToString(deployAccount.Id) {
+		} else if deployAccount != nil && *number == aws.ToString(deployAccount.Id) {
 			prettyPrintJSON(deployAccount)
 			return
-		} else if *number == aws.ToString(substrateAccount.Id) {
+		} else if substrateAccount != nil && *number == aws.ToString(substrateAccount.Id) {
 			prettyPrintJSON(substrateAccount)
 			return
 		}
