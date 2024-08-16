@@ -6,7 +6,7 @@ Add more environments to create entirely disjoint data sets with all the support
 
 Add more qualities to create the opportunity to incrementally change load balancers, autoscaling groups, security groups, DNS zones, IAM roles, and other AWS resources that are typically difficult to incrementally change.
 
-See [domains, environments, and qualities](../ref/domains-environments-qualities.html) for more discussion of these fundamental Substrate concepts.
+See [domains, environments, and qualities](../ref/domains-environments-qualities.md) for more discussion of these fundamental Substrate concepts.
 
 To add an environment, a quality, or both, follow these steps:
 
@@ -18,4 +18,4 @@ To add an environment, a quality, or both, follow these steps:
 
 Be warned: If your additions cause sufficiently many NAT Gateways to be created, the tools will open support cases on your behalf to have service quotas raised. AWS is often not the most accommodating with these requests. If AWS gives you a hard time it is likely because they don't want to give you additional Elastic IPs. **Tell them you're trying to create VPCs to share to all your AWS accounts, each with three private subnets and zonal NAT Gateways, which is exactly how AWS wants you to design your networks.** These support cases can unfortunately take hours or even days to be resolved; they're usually fastest to respond if you request a chat or phone response. By the way, if `substrate setup` exits early, it may simply be re-run; it will find the existing request to increase your quota and continue waiting for it to be resolved.
 
-Once you've added an environment and/or quality, you'll need to use `substrate account create` to add each of your domains to the new environment/quality pair(s). See [adding a domain](adding-a-domain.html) for more on that step.
+Once you've added an environment and/or quality, you'll need to use `substrate account create` to add each of your domains to the new environment/quality pair(s). See [adding a domain](adding-a-domain.md) for more on that step.

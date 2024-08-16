@@ -4,7 +4,7 @@
 
 This is the final release of Substrate. Thank you for believing in our vision for how to use AWS. We hope it's served you well so far and trust it will continue to do so far into the future.
 
-If you want to start transitioning to AWS IAM Identity Center, follow the instructions inline in the output of `substrate setup` and see [AWS IAM Identity Center](runbooks/aws-iam-identity-center.html) for more details.
+If you want to start transitioning to AWS IAM Identity Center, follow the instructions inline in the output of `substrate setup` and see [AWS IAM Identity Center](runbooks/aws-iam-identity-center.md) for more details.
 
 Upgrade instructions:
 
@@ -111,15 +111,15 @@ Upgrade instructions:
 
 ## 2024.01 <a href="#2024.01" id="2024.01"></a>
 
-* Rename and reorganize Substrate commands into a clearer and more extensible hierarchy. Highlights include `substrate accounts` becoming `substrate account list` and `substrate create-account` being split into `substrate account create` and `substrate account update` but there are many more changes. See [Changes to Substrate commands in 2024.01](ref/command-changes-2024.01.html) for easy reference and bookmarking.
+* Rename and reorganize Substrate commands into a clearer and more extensible hierarchy. Highlights include `substrate accounts` becoming `substrate account list` and `substrate create-account` being split into `substrate account create` and `substrate account update` but there are many more changes. See [Changes to Substrate commands in 2024.01](ref/command-changes-2024.01.md) for easy reference and bookmarking.
 * Switch to the POSIX standard of using two dashes to prefix long option names, i.e. `-domain` becomes `--domain`, etc.
-* Change the incantation to install Substrate shell completion. Please see [Configuring Substrate shell completion](bootstrapping/shell-completion.html) and update your shell configuration.
+* Change the incantation to install Substrate shell completion. Please see [Configuring Substrate shell completion](bootstrapping/shell-completion.md) and update your shell configuration.
 * Support `-d` as short for `--domain` and `-e` as short for `--environment`. Everywhere the long option is supported, the short option is now supported, too.
 * Add a new `substrate terraform` subcommand that translates flags like `--domain www --environment staging --region us-west-2` into the appropriate working directory before passing all remaining arguments to `terraform` itself. For example, `substrate terraform --domain www --environment staging --region us-west-2 plan` is the same as `terraform -chdir=root-modules/www/staging/default/us-west-2 plan`. Bonus: Substrate's autocomplete works for `--domain`, `--environment`, `--region`, etc. and then gives way to Terraform's autocomplete for `init`, `plan`, `apply`, etc.
 * On macOS, `substrate credentials` will store access keys in the keychain so they may be shared between processes, even in different terminal windows without having to copy any environment variables or write to any files. Setting `SUBSTRATE_FEATURES=IgnoreMacOSKeychain` in the environment will turn off this new feature, should it cause you problems.
 * Directly manage VPC peering between the Substrate network (used by Instance Factory) and each of your environments as well as inter-region peering within each environment. Substrate will remove all the generated Terraform code in the `root-modules/network/peering` tree.
 * Automatically run `terraform providers lock` when modules are generated to prevent Terraform failures on lock file misses or mismatches when applying Terraform changes on different OS/architecture combinations.
-* Make Substrate's non-sensitive [telemetry](ref/telemetry.html) mandatory. Substrate will remove the `substrate.telemetry` file that formerly controlled this feature; you can remove it from version control.
+* Make Substrate's non-sensitive [telemetry](ref/telemetry.md) mandatory. Substrate will remove the `substrate.telemetry` file that formerly controlled this feature; you can remove it from version control.
 * Route telemetry straight to [https://src-bin.com](https://src-bin.com) to improve the performance of every Substrate command. This reverts a change from 2023.07 which began routing telemetry through the Intranet.
 * Add `--special audit` to the account selection flags for `substrate role create`. Creating custom roles in your audit account is now supported.
 * Print a warning when Substrate detects that the reason `substrate assume-role` failed is because you previously ran `eval $(substrate assume-role ...)` in the same shell.
@@ -148,7 +148,7 @@ Upgrade instructions:
 * Add `-console` to `substrate setup-debugger` to allow troubleshooting Substrate setup in the AWS Console as well as in a terminal.
 * Bug fix: Create the cross-account CloudWatch roles in all service accounts to prevent a crash that was possible in earlier versions.
 
-If you added your own internal tools to your Intranet, be sure to follow the updated documentation on [protecting internal tools](mgmt/protecting-internal-tools.html) before upgrading to avoid an outage to your internal tools. You can remove the old version after upgrading.
+If you added your own internal tools to your Intranet, be sure to follow the updated documentation on [protecting internal tools](mgmt/protecting-internal-tools.md) before upgrading to avoid an outage to your internal tools. You can remove the old version after upgrading.
 
 Upgrade Substrate by running `substrate upgrade` and following its prompts. If your copy of `substrate` is writeable, it will be upgraded in place. Then run `substrate setup` to upgrade your Intranet.
 
@@ -161,7 +161,7 @@ Upgrade Substrate by running `substrate upgrade` and following its prompts. If y
 
 The 2023.11 release contains a preview of the next generation of the Substrate-managed Intranet. It's powered by AWS API Gateway v2 which, among other advantages over v1, makes it much, much more straightfoward to wrap and proxy other arbitrary services while transparently and comprehensively authenticating and authorizing traffic using your identity provider. After you run `substrate setup`, the preview will be available on [https://preview.example.com](https://preview.example.com) (replacing "example.com" with your Intranet DNS domain name).
 
-If you've added any of your internal tools to your Intranet, you'll need to migrate them to the new style of integration before upgrading to Substrate 2023.12. See the forward-looking half of the documentation on [protecting internal tools](mgmt/protecting-internal-tools.html#protecting-internal-tools-in-substrate-2023.12-and-beyond) for the details.
+If you've added any of your internal tools to your Intranet, you'll need to migrate them to the new style of integration before upgrading to Substrate 2023.12. See the forward-looking half of the documentation on [protecting internal tools](mgmt/protecting-internal-tools.md#protecting-internal-tools-in-substrate-2023.12-and-beyond) for the details.
 
 Substrate 2023.12 will swap the new Intranet into place on your Intranet DNS domain name and remove both the old Intranet and the `preview` subdomain.
 
@@ -261,12 +261,12 @@ After upgrading Substrate, run `substrate create-admin-account -quality <quality
 * Save a click on subsequent Intranet logins when using a Google IdP and when multiple Google accounts are logged in by remembering the Google Workspace domain in a cookie.
 * Change `substrate create-role`'s canned access policy options from `-administrator` and `-read-only` to `-administrator-access` and `-read-only-access` to match the AWS-managed policy names and distinguish them from the similarly named `-admin` account-selection option.
 * When Substrate's run from a Fish shell, environment variables printed by `substrate credentials` and `substrate assume-role` will use Fish syntax.
-* Document the `install.sh` program that's been quietly distributed with Substrate for the past few months. See the documentation on [unattended installation](bootstrapping/installing.html) for more information.
+* Document the `install.sh` program that's been quietly distributed with Substrate for the past few months. See the documentation on [unattended installation](bootstrapping/installing.md) for more information.
 * Bug fix: Don't include `-admin` in the output of `substrate roles` just because `-humans` was included in the arguments to `substrate create-role`. The previous behavior potentially granted too many privileges in the admin account. Re-running `substrate create-role` with `-humans` and without `-admin` will correct the role's privileges in the admin account.
 * Bug fix: Don't attach policies specified by `-administrator-access`, `-read-only-access`, `-policy-arn`, or `-policy` options to admin accounts when `-humans` is given unless `-admin` is given, too. The previous behavior potentially granted too many privileges in the admin account. Re-running `substrate create-role` will correct the role's privileges in the admin account.
 * Bug fix: Accommodate a new error from S3 in which we cannot set ACLs on newly created buckets.
 
-Before upgrading Substrate, if you use Okta as your identity provider, add the `okta.users.read.self` scope to your Intranet application and the `AWS_RoleName` attribute to each of your users by [integrating your Okta identity provider](bootstrapping/integrating-your-identity-provider/okta.html) again. If you use a different identity provider, no action is necessary.
+Before upgrading Substrate, if you use Okta as your identity provider, add the `okta.users.read.self` scope to your Intranet application and the `AWS_RoleName` attribute to each of your users by [integrating your Okta identity provider](bootstrapping/integrating-your-identity-provider/okta.md) again. If you use a different identity provider, no action is necessary.
 
 Upgrade Substrate by running `substrate upgrade` and following its prompts. If your copy of `substrate` is writeable, this will be all you need to do to upgrade.
 
@@ -318,7 +318,7 @@ This month, Substrate's documentation and release notes are moving to [https://d
 
 Upgrade Substrate by running `substrate upgrade` and following its prompts. If your copy of `substrate` is writeable, this will be all you need to do to upgrade.
 
-After upgrading Substrate, you should run `sh <(substrate accounts -format shell -no-apply)`, review what Terraform plans to do, and then run `sh <(substrate accounts -auto-approve -format shell)` to apply the changes. Commit the new `substrate.enforce-.htmlsv2` and `substrate.manage-cloudtrail` files to version control.
+After upgrading Substrate, you should run `sh <(substrate accounts -format shell -no-apply)`, review what Terraform plans to do, and then run `sh <(substrate accounts -auto-approve -format shell)` to apply the changes. Commit the new `substrate.enforce-amdsv2` and `substrate.manage-cloudtrail` files to version control.
 
 ## 2023.01 <a href="#2023.01" id="2023.01"></a>
 
@@ -337,7 +337,7 @@ After upgrading Substrate:
 
 ## 2022.12 <a href="#2022.12" id="2022.12"></a>
 
-* Add support for Azure Active Directory identity providers. See [changing identity providers](runbooks/changing-identity-providers.html) and [integrating your Azure AD identity provider](bootstrapping/integrating-your-identity-provider/azure-ad.html) if you want to switch.
+* Add support for Azure Active Directory identity providers. See [changing identity providers](runbooks/changing-identity-providers.md) and [integrating your Azure AD identity provider](bootstrapping/integrating-your-identity-provider/azure-ad.md) if you want to switch.
 * Bug fix: Don't interpret the new default value for `-quality` as an erroneously user-supplied value with `-management` or `-special` in `substrate assume-role`.
 * Bug fix: Tolerate `substrate.qualities` being missing when trying to find a suitable default value for `-quality` options.
 * Bug fix: Change to `SUBSTRATE_ROOT`, if set, before trying to use `substrate.qualities` to find a suitable default value for `-quality` options.
@@ -366,7 +366,7 @@ After upgrading Substrate, you should run `sh <(substrate accounts -format shell
 * Allow the DeployAdministrator and NetworkAdministrator roles to assume themselves, explicitly allowing this after the new, stricter evaluation of IAM roles' trust policies (described above) takes full effect.
 * Add `modules/common/global` and `modules/common/regional` which will be instantiated in every new service account. See below for directions on opting existing service accounts into this new default behavior.
 * Add `modules/deploy/global` and `modules/deploy/regional` as blank slates so folks can add resources (e.g. AWS ECR repositories) to their deploy account in every region.
-* Change the schema of the output of `substrate credentials -format json` to be compatible with the AWS SDK's `credential_process` directive. Specifically, rename `AccessKeyID` to `AccessKeyId` and `Expires` to `Expiration`, as documented in [Sourcing credentials with an external process](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sourcing-external.html).
+* Change the schema of the output of `substrate credentials -format json` to be compatible with the AWS SDK's `credential_process` directive. Specifically, rename `AccessKeyID` to `AccessKeyId` and `Expires` to `Expiration`, as documented in [Sourcing credentials with an external process](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sourcing-external.md).
 * Add `substrate credentials -no-open` to give folks the opportunity to choose which browser window opens the Credential Factory authorization.
 * Memoize and parallelize listing accounts to improve performance.
 * Memoize OAuth OIDC signing keys in the Intranet to improve Intranet performance.
@@ -427,13 +427,13 @@ After upgrading Substrate, you at least need to run ` substrate create-admin-acc
 * Bug fix: Don't fail spuriously when trying to create an account that already exists when the organization is at its limit for accounts.
 * Bug fix: Prevent a rare crash when submitting telemetry to Source & Binary.
 
-Upgrade Substrate as in the [updated installation manual](bootstrapping/installing.html):
+Upgrade Substrate as in the [updated installation manual](bootstrapping/installing.md):
 
 > ```
 > tar xf substrate-version-commit-OS-ARCH.tar.gz -C ~/bin --strip-components 2 substrate-version-commit-OS-ARCH/bin/substrate
 > ```
 >
-> Each released _version_ and _commit_ is offered in four binary formats; choose the appropriate one for your system. _`OS`_ is one of “`darwin`” or “`linux`” and _`ARCH`_ is one of “`.html64`” or “`arm64`”.
+> Each released _version_ and _commit_ is offered in four binary formats; choose the appropriate one for your system. _`OS`_ is one of “`darwin`” or “`linux`” and _`ARCH`_ is one of “`amd64`” or “`arm64`”.
 >
 > You can install Substrate wherever you like. If `~/bin` doesn't suit you, just ensure the directory where you install it is on your `PATH`.
 
@@ -454,13 +454,13 @@ After upgrading Substrate, the best idea is to run `sh <(substrate accounts -for
 * Bug fix: Substrate shell completion never fully worked in Z shell but now it does.
 * Bug fix: Running Lambda function processes could corrupt themselves with environment variables for the CredentialFactory user, losing access to the Intranet role until the process ends.
 
-Upgrade Substrate as in the [updated installation manual](bootstrapping/installing.html):
+Upgrade Substrate as in the [updated installation manual](bootstrapping/installing.md):
 
 > ```
 > tar xf substrate-version-commit-OS-ARCH.tar.gz -C ~/bin --strip-components 2 substrate-version-commit-OS-ARCH/bin/substrate
 > ```
 >
-> Each released _version_ and _commit_ is offered in four binary formats; choose the appropriate one for your system. _`OS`_ is one of “`darwin`” or “`linux`” and _`ARCH`_ is one of “`.html64`” or “`arm64`”.
+> Each released _version_ and _commit_ is offered in four binary formats; choose the appropriate one for your system. _`OS`_ is one of “`darwin`” or “`linux`” and _`ARCH`_ is one of “`amd64`” or “`arm64`”.
 >
 > You can install Substrate wherever you like. If `~/bin` doesn't suit you, just ensure the directory where you install it is on your `PATH`.
 
@@ -496,7 +496,7 @@ If your shell supports process substitution, you can upgrade Terraform and then 
 
 ## 2022.05 <a href="#2022.05" id="2022.05"></a>
 
-* Allow customization of EC2 instances from the Instance Factory by using a launch template named `InstanceFactory-arm64` or `InstanceFactory-x86_64`, if the one matching the requested instance type is defined. See [customizing EC2 instances from the Instance Factory](mgmt/customizing-instance-factory.html) for details and an example.
+* Allow customization of EC2 instances from the Instance Factory by using a launch template named `InstanceFactory-arm64` or `InstanceFactory-x86_64`, if the one matching the requested instance type is defined. See [customizing EC2 instances from the Instance Factory](mgmt/customizing-instance-factory.md) for details and an example.
 * Add `cloudtrail:DeleteTrail` to the (short) list of APIs that are denied by the Substrate-managed service control policy on your management account.
 * Remove verion constraints from Terraform modules in the `modules/` tree, instead letting all the version constraints come from the root module.
 * Upgrade the Terraform AWS provider to at least 4.12.
@@ -515,25 +515,25 @@ After upgrading Substrate:
 
 * Enforce, via organization-wide Service Control Policy, that EC2 instances must be launched with access to IMDSv2 and not IMDSv1. The Instance Factory has been launching compatible instances since 2021.10. If for some reason you need to roll this step back, use your Intranet's Accounts page to open the AWS Console in your management account with the OrganizationAdministrator role, visit [https://console.aws.amazon.com/organizations/v2/home/policies/service-control-policy](https://console.aws.amazon.com/organizations/v2/home/policies/service-control-policy), and delete SubstrateServiceControlPolicy. When you've migrated whatever needed IMDSv1 to use IMDSv2, re-run `substrate bootstrap-management-account`.
 * Substrate now ships with a rudimentary autocomplete mechanism for Bash, Z shell, and other shells with compatibility for Bash completion.
-* Substrate can now be used to drive the `--profile` option to the standard AWS CLI. See [using AWS CLI profiles](access/aws-cli-profiles.html) for details.
+* Substrate can now be used to drive the `--profile` option to the standard AWS CLI. See [using AWS CLI profiles](access/aws-cli-profiles.md) for details.
 * Upgrade the AWS Terraform provider to version 4.9.0 or (slightly) newer.
 * Remove the dependency on the AWS CLI in the generated `modules/substrate` Terraform code.
 * Bug fix: Lessen the possibility of a `TooManyRequestsException` from AWS Organizations during Terraform runs.
 * Bug fix: Update the `SubstrateVersion` tag on your AWS accounts themselves when Substrate tries to create them and finds that they already exist.
-* Bug fix: This time Substrate _actually_ asks if it may post [telemetry](ref/telemetry.html) to Source & Binary as promised in the previous release.
+* Bug fix: This time Substrate _actually_ asks if it may post [telemetry](ref/telemetry.md) to Source & Binary as promised in the previous release.
 * Bug fix: Prevent a rare crash when trying to post tememetry early so commands can exit earlier.
 * Bug fix: Use Terraform resource references in `root-modules/deploy` to avoid a race during `substrate bootstrap-deploy-account`.
 * Bug fix: Properly support older instance types, especially t2, in the Instance Factory.
 
 After upgrading Substrate:
 
-1. [Configure Substrate shell completion](bootstrapping/shell-completion.html)
+1. [Configure Substrate shell completion](bootstrapping/shell-completion.md)
 2. `substrate bootstrap-management-account`
 3. ` substrate create-admin-account -quality`` `` `_`quality`_ for each of your admin accounts
 
 ## 2022.03 <a href="#2022.03" id="2022.03"></a>
 
-* Substrate now asks if it may post [telemetry](ref/telemetry.html) to Source & Binary. The data will be used to better understand how Substrate is being used and how it can be improved.
+* Substrate now asks if it may post [telemetry](ref/telemetry.md) to Source & Binary. The data will be used to better understand how Substrate is being used and how it can be improved.
 * Address deprecation warnings from the AWS Terraform provider by refactoring `root-modules/deploy`.
 * Bug fix: Correctly pass an AWS access key to Terraform even if that access key is from an IAM user. This situation is unlikely but can come up during bootstrapping in brownfield environments.
 * Bug fix: Display environments and qualities in the order they're defined in `substrate.environments` and `substrate.qualities` on the Intranet's Accounts page and in the output of `substrate accounts` and `substrate root-modules`.
@@ -552,9 +552,9 @@ After upgrading Substrate:
 
 You must upgrade to Terraform 1.1.6 in order to use Substrate 2022.02. Terraform 1.1.6 may be found here:
 
-* [https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_darwin\_.html64.zip](https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_darwin\_.html64.zip)
+* [https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_darwin\_amd64.zip](https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_darwin\_amd64.zip)
 * [https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_darwin\_arm64.zip](https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_darwin\_arm64.zip)
-* [https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_linux\_.html64.zip](https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_linux\_.html64.zip)
+* [https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_linux\_amd64.zip](https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_linux\_amd64.zip)
 * [https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_linux\_arm64.zip](https://releases.hashicorp.com/terraform/1.1.6/terraform\_1.1.6\_linux\_arm64.zip)
 
 After upgrading Substrate, do the following to land the Terraform upgrade and remove the `SubstrateVersion` tags:
@@ -568,7 +568,7 @@ After upgrading Substrate, do the following to land the Terraform upgrade and re
 
 * The `-role="..."` option to `substrate-assume-role` now defaults to OrganizationAdministrator, Auditor, DeployAdministrator, or NetworkAdministrator for the special accounts and Administrator for admin and service accounts (or Auditor pretty much across the board, if you begin in the Auditor role). This should save a great deal of typing.
 * Add a navigational header to the Intranet to help folks get around.
-* Allow the Auditor role in the audit account to use Amazon Athena to query the CloudTrail logs stored in S3 there. See [auditing your Substrate-managed AWS organization](compliance/auditing.html) for more details.
+* Allow the Auditor role in the audit account to use Amazon Athena to query the CloudTrail logs stored in S3 there. See [auditing your Substrate-managed AWS organization](compliance/auditing.md) for more details.
 * Bug fix: Substrate 2021.12 inadvertantly stopped accepting EC2 instance profile credentials on Instance Factory instances. (The instances are still assigned the correct role, Substrate programs just wouldn't use it.) Substrate programs once again use EC2 instance profile credentials when available.
 
 After upgrading Substrate:
@@ -694,7 +694,7 @@ After upgrading Substrate:
 * `substrate-whoami` output now also includes your IAM role ARN.
 * Prompt folks to `cd` or set `SUBSTRATE_ROOT` when they try to `eval $(substrate-credentials)` from outside the Substrate repository.
 * Allow all accounts in the organization, not just admin accounts, to read shared CloudWatch metrics.
-* Added experimental `modules/intranet/regional/proxy` that makes it easy to put SSO in front of internal websites and HTTP APIs. See [protecting internal websites](mgmt/protecting-internal-tools.html) for more information and an example.
+* Added experimental `modules/intranet/regional/proxy` that makes it easy to put SSO in front of internal websites and HTTP APIs. See [protecting internal websites](mgmt/protecting-internal-tools.md) for more information and an example.
 * Bug fix: Grant `s3:PutObjectAcl` so that it’s possible for all authorized principals to upload objects with the `bucket-owner-full-control` canned ACL.
 * Bug fix: Extract `substrate-intranet.zip` from the `substrate` binary during Terraform runs in `root-modules/admin/*/*` instead of only during `substrate-create-admin-account`. This makes it far less painful for mulitple teammates to work in the same Substrate repository and for CI/CD systems to apply Terraform changes.
 * Bug fix: Prevent a race between VPC sharing and tagging that caused `substrate-create-admin-account` and `substrate-create-account` to fail every time they were used to actually create an account.
@@ -741,7 +741,7 @@ After upgrading Substrate:
 * The Instance Factory now supports ARM instances (i.e. the a1, c6g, m6g, r6g, and t4g families).
 * Bug fix: Switch back to the original working directory in `substrate-assume-role` (which will have changed if invoked with `SUBSTRATE_ROOT` set) before forking and executing a child process.
 * Added `substrate-whoami` to make it easy to learn the domain, environment, and quality of the AWS account your current credentials operate on.
-* Added `-format=json` to `substrate-accounts` to make it easier to enumerate and act programatically on every AWS account in your organization. See [enumerating all your AWS accounts](access/enumerating-all-your-aws-accounts.html) for an example.
+* Added `-format=json` to `substrate-accounts` to make it easier to enumerate and act programatically on every AWS account in your organization. See [enumerating all your AWS accounts](access/enumerating-all-your-aws-accounts.md) for an example.
 
 After upgrading Substrate:
 
@@ -752,7 +752,7 @@ After upgrading Substrate:
 ## 2021.07 <a href="#2021.07" id="2021.07"></a>
 
 * The Intranet’s `/accounts` page now opens the AWS Console in new browser tabs as it probably always should have.
-* Substrate now only manages the version constraint on the `archive`, `aws`, and `external` providers rather than all of `versions.tf`. This opens the door to Substrate users adding (and version constraining) additional providers. See [additional Terraform providers](mgmt/additional-terraform-providers.html) for an example.
+* Substrate now only manages the version constraint on the `archive`, `aws`, and `external` providers rather than all of `versions.tf`. This opens the door to Substrate users adding (and version constraining) additional providers. See [additional Terraform providers](mgmt/additional-terraform-providers.md) for an example.
 * Upgrade to and pin Terraform 1.0.2 and the `aws` provider >= 3.49.0.
 *   Tag many more AWS resources with `Manager` and `SubstrateVersion` using the `default_tags` facility of the AWS provider. If you encounter the following error, remove `Manager` and `SubstrateVersion` (if present) from the indicated resources and re-run.\\
 
@@ -764,9 +764,9 @@ After upgrading Substrate:
 
 You must upgrade to Terraform 1.0.2 in order to use Substrate 2021.07. Terraform 1.0.2 may be found here:
 
-* [https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_darwin\_.html64.zip](https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_darwin\_.html64.zip)
+* [https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_darwin\_amd64.zip](https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_darwin\_amd64.zip)
 * [https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_darwin\_arm64.zip](https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_darwin\_arm64.zip)
-* [https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_linux\_.html64.zip](https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_linux\_.html64.zip)
+* [https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_linux\_amd64.zip](https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_linux\_amd64.zip)
 * [https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_linux\_arm64.zip](https://releases.hashicorp.com/terraform/1.0.2/terraform\_1.0.2\_linux\_arm64.zip)
 
 After upgrading Terraform and Substrate:
@@ -783,8 +783,8 @@ After upgrading Terraform and Substrate:
 
 You must upgrade to Terraform 0.15.5 in order to use Substrate 2021.06. Terraform 0.15.5 may be found here:
 
-* [https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_darwin\_.html64.zip](https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_darwin\_.html64.zip)
-* [https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_linux\_.html64.zip](https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_linux\_.html64.zip)
+* [https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_darwin\_amd64.zip](https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_darwin\_amd64.zip)
+* [https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_linux\_amd64.zip](https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_linux\_amd64.zip)
 * [https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_linux\_arm64.zip](https://releases.hashicorp.com/terraform/0.15.5/terraform\_0.15.5\_linux\_arm64.zip)
 
 After upgrading Terraform and Substrate:
@@ -826,15 +826,15 @@ After upgrading, run `substrate-create-admin-account -quality=<quality>` to add 
 
 You must upgrade to Terraform 0.14.7 in order to use Substrate 2021.03. Terraform 0.14.7 may be found here:
 
-* [https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_darwin\_.html64.zip](https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_darwin\_.html64.zip)
-* [https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_linux\_.html64.zip](https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_linux\_.html64.zip)
+* [https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_darwin\_amd64.zip](https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_darwin\_amd64.zip)
+* [https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_linux\_amd64.zip](https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_linux\_amd64.zip)
 * [https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_linux\_arm64.zip](https://releases.hashicorp.com/terraform/0.14.7/terraform\_0.14.7\_linux\_arm64.zip)
 
 After upgrading:
 
 1. `rm -f -r root-modules/network/*/peering` and remove these files from version control.
 2. `substrate-bootstrap-network-account` to peer all your VPCs that should be peered.
-3. `substrate-create-admin-account -quality="..."` to fix Instance Factory IAM roles, following the [Google SAML setup](bootstrapping/integrating-your-identity-provider/google.html) guide if Google is your IdP to also get 12-hour AWS Console sessions.
+3. `substrate-create-admin-account -quality="..."` to fix Instance Factory IAM roles, following the [Google SAML setup](bootstrapping/integrating-your-identity-provider/google.md) guide if Google is your IdP to also get 12-hour AWS Console sessions.
 
 ## 2021.02 <a href="#2021.02" id="2021.02"></a>
 
@@ -848,8 +848,8 @@ After upgrading:
 
 You must upgrade to Terraform 0.13.6 in order to use Substrate 2021.02. Terraform 0.13.6 may be found here:
 
-* [https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_darwin\_.html64.zip](https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_darwin\_.html64.zip)
-* [https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_linux\_.html64.zip](https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_linux\_.html64.zip)
+* [https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_darwin\_amd64.zip](https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_darwin\_amd64.zip)
+* [https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_linux\_amd64.zip](https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_linux\_amd64.zip)
 * [https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_linux\_arm64.zip](https://releases.hashicorp.com/terraform/0.13.6/terraform\_0.13.6\_linux\_arm64.zip)
 
 ## 2021.01 <a href="#2021.01" id="2021.01"></a>

@@ -91,7 +91,7 @@ The following index describes the contents and purpose of all the files the vari
   Tenant ID of your Azure Active Directory identity provider, if you're using Azure Active Directory. (Managed by `substrate setup`.)
 * **`substrate.default-region`**\
   The AWS region where CloudTrail logs and other global resources are located. (Managed by `substrate setup`.)
-* **`substrate.enforce-.htmlsv2`**\
+* **`substrate.enforce-imdsv2`**\
   "yes" or "no" to indicate whether the Substrate-managed Service Control Policy will enforce the use of v2 of the EC2 Instance Metadata Service (IMDSv2) as a security posture improvement. (Managed by `substrate setup`.)
 * **`substrate.environments`**\
   Logically ordered list of all your environments. (Managed by `substrate setup`.)

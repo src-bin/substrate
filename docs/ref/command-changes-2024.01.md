@@ -2,7 +2,7 @@
 
 | Syntax in 2023.12 and earlier | Syntax in 2024.01 and later | Notes |
 |-------------------------------|-----------------------------|-------|
-| `substrate --shell-completion` | Bash and Z shell: `. <(substrate shell-completion)`<br>Fish: `. $(substrate shell-completion \| psub)` | Please see [Configuring Substrate shell completion](bootstrapping/shell-completion.html) and update your shell configuration. |
+| `substrate --shell-completion` | Bash and Z shell: `. <(substrate shell-completion)`<br>Fish: `. $(substrate shell-completion \| psub)` | Please see [Configuring Substrate shell completion](bootstrapping/shell-completion.md) and update your shell configuration. |
 | `substrate accounts` | `substrate account list` | |
 | `substrate create-account` | `substrate account adopt`<br>`substrate account create`<br>`substrate account update` | The three forms of `substrate create-account` have been split into their own commands for clarity. `substrate account create` will create and configure the account but exit with an error if the account already exists. `substrate account adopt` will bring an existing account under Substrate's management. `substrate account update` ensures an existing Substrate-managed account is properly configured and then runs Terraform as `substrate create-account` used to do. |
 | `substrate roles` | `substrate role list` | |

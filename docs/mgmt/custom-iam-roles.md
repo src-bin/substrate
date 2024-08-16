@@ -4,7 +4,7 @@ Once you've isolated your various environments and services in their own AWS acc
 
 If Administrator is too privileged and Auditor is too restricted, you need to create custom IAM roles. Substrate manages IAM roles for cross-account access better than anything else around.
 
-Note, too, that IAM roles created by `substrate role create` are meticulously tagged and tracked to enable [enumerating all your custom AWS IAM roles](../access/enumerating-all-your-aws-iam-roles.html), complete with the high-level account selections that control where each role exists, the parameters of each one's assume-role policy, and the policies that are attached to allow access to AWS APIs.
+Note, too, that IAM roles created by `substrate role create` are meticulously tagged and tracked to enable [enumerating all your custom AWS IAM roles](../access/enumerating-all-your-aws-iam-roles.md), complete with the high-level account selections that control where each role exists, the parameters of each one's assume-role policy, and the policies that are attached to allow access to AWS APIs.
 
 ## Assigning a custom IAM role to humans in your identity provider
 

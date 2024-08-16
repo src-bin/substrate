@@ -2,7 +2,7 @@
 
 Substrate uses an OAuth OIDC identity provider to broker all your human access to AWS. Substrate supports [Azure Active Directory](https://azure.microsoft.com/en-us/products/active-directory/), [Google Workspace](https://workspace.google.com/) and [Okta](https://www.okta.com/). You almost certainly have one already. It pays dividends to standardize on an identity provider early and configure every bit of SaaS your company uses to rely on it.
 
-Feel free to try them all. Whichever you choose, take comfort in knowing your decision isn't permanent. [Changing identity providers](../../runbooks/changing-identity-providers.html) documents how to move from one to another.
+Feel free to try them all. Whichever you choose, take comfort in knowing your decision isn't permanent. [Changing identity providers](../../runbooks/changing-identity-providers.md) documents how to move from one to another.
 
 In the next section, whichever identity provider you choose, you'll be continuing your initial run of `substrate setup` (or running it again, which is always safe to do). The documentation will help you respond to its prompts.
 
@@ -10,6 +10,6 @@ One of those prompts concerns purchasing or transferring a DNS domain name or de
 
 Jump straight to the documentation for your identity provider of choice:
 
-* [Azure Active Directory](azure-ad.html)
-* [Google Workspace](google.html)
-* [Okta](okta.html)
+* [Azure Active Directory](azure-ad.md)
+* [Google Workspace](google.md)
+* [Okta](okta.md)

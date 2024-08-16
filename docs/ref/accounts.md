@@ -20,6 +20,6 @@ There are four accounts that Substrate colloquially refers to as the â€œspecialâ
 
 There are additionally **admin** accounts (of which there can be more than one), which host Intranet services like the Credential and Instance Factories, all protected by your identity provider.
 
-Finally, there are service accounts where you host your software (be it software you've written yourself or your use of an AWS-managed service). Each of these accounts is tagged with a [domain, environment, and quality](domains-environments-qualities.html).
+Finally, there are service accounts where you host your software (be it software you've written yourself or your use of an AWS-managed service). Each of these accounts is tagged with a [domain, environment, and quality](domains-environments-qualities.md).
 
 This constellation of AWS accounts works together to increase the reliability and security of your product and reduce the blast radius of changes to any part of it.

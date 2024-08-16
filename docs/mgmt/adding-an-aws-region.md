@@ -2,7 +2,7 @@
 
 Substrate is designed to accommodate multi-region infrastructures from day one and is ready at a moment's notice if you start with one region but decide suddenly to add more.
 
-As a prerequisite to adding a new region, it's critical that you follow the advice on [global and regional Terraform modules](../ref/global-and-regional-terraform-modules.html) so that additional regional modules don't introduce conflicts during your Terraform runs.
+As a prerequisite to adding a new region, it's critical that you follow the advice on [global and regional Terraform modules](../ref/global-and-regional-terraform-modules.md) so that additional regional modules don't introduce conflicts during your Terraform runs.
 
 Regions are added by `substrate setup`. To add a new one (or two), simply respond as follows to its prompts:
 

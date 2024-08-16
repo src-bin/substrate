@@ -43,7 +43,7 @@ This program creates your AWS organization and the member accounts Substrate use
 
 This program will also prepare to run Terraform in any account in your organization and indeed use that capability to configure your networks.
 
-To do so, it will ask for the names of your environments. Environments typically have names like “development” and “production” — they identify a set of data and all the infrastructure that may access it. (An advanced feature, qualities, are names given to independent copies of your infrastructure _within an environment_ that make it possible to incrementally change AWS resources. `substrate setup` doesn't get into these at first and instead defines a single quality called “default”. See [domains, environments, and qualities](../ref/domains-environments-qualities.html) to learn more.)
+To do so, it will ask for the names of your environments. Environments typically have names like “development” and “production” — they identify a set of data and all the infrastructure that may access it. (An advanced feature, qualities, are names given to independent copies of your infrastructure _within an environment_ that make it possible to incrementally change AWS resources. `substrate setup` doesn't get into these at first and instead defines a single quality called “default”. See [domains, environments, and qualities](../ref/domains-environments-qualities.md) to learn more.)
 
 It also asks which AWS regions you want to use. Your answers inform how it lays out your networks to strike a balance between security, reliability, ergonomics, and cost. If you're unsure, starting with one region is fine.
 

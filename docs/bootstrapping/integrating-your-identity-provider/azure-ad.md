@@ -45,7 +45,7 @@ These steps must be completed by an Azure administrator with the Application Adm
    7. Click **Add assignment**
    8. Select “AWS” in the _Attribute set_ column
    9. Select “RoleName” in the _Attribute name_ column
-   10. Enter the name (not the ARN) of the IAM role they should assume in your Substrate account (“Administrator” for yourself as you're getting started; if for others it's not “Administrator” or “Auditor”, ensure you've followed [adding non-Administrator roles for humans](../../mgmt/custom-iam-roles.html) first)
+   10. Enter the name (not the ARN) of the IAM role they should assume in your Substrate account (“Administrator” for yourself as you're getting started; if for others it's not “Administrator” or “Auditor”, ensure you've followed [adding non-Administrator roles for humans](../../mgmt/custom-iam-roles.md) first)
    11. Click **Save**
 3. Visit [https://portal.azure.com/#view/Microsoft\_AAD\_IAM/StartboardApplicationsMenuBlade/\~/AppAppsPreview/menuId\~/null](https://portal.azure.com/#view/Microsoft\_AAD\_IAM/StartboardApplicationsMenuBlade/\~/AppAppsPreview/menuId\~/null) in that same browser (or visit the Azure portal, click **Azure Active Directory**, and click **Enterprise applications**)
 4. Click the name of the application you created above
@@ -56,4 +56,4 @@ These steps must be completed by an Azure administrator with the Application Adm
 9. Click **Select**
 10. Click **Assign**
 
-With your identity provider integrated, jump to [finishing up in your management account](../finishing.html).
+With your identity provider integrated, jump to [finishing up in your management account](../finishing.md).

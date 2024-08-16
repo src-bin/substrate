@@ -52,7 +52,7 @@ These steps must be completed by a Google Super Admin. Be mindful, too, of which
 2. For every user authorized to use AWS:
    1. Click the user's name
    2. Click **User information**
-   3. In the _AWS_ section, click **Add RoleName** and enter the name (not the ARN) of the IAM role they should assume in your Substrate account (“Administrator” for yourself as you're getting started; if for others it's not “Administrator” or “Auditor”, ensure you've followed [adding non-Administrator roles for humans](../../mgmt/custom-iam-roles.html) first)
+   3. In the _AWS_ section, click **Add RoleName** and enter the name (not the ARN) of the IAM role they should assume in your Substrate account (“Administrator” for yourself as you're getting started; if for others it's not “Administrator” or “Auditor”, ensure you've followed [adding non-Administrator roles for humans](../../mgmt/custom-iam-roles.md) first)
    4. Click **SAVE**
 
-With your identity provider integrated, jump to [finishing up in your management account](../finishing.html).
+With your identity provider integrated, jump to [finishing up in your management account](../finishing.md).

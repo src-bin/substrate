@@ -1,10 +1,10 @@
 # Getting started (after someone else has bootstrapped Substrate)
 
-This guide is meant to help folks get started using Substrate at a company that has already bootstrapped Substrate. If you're the first person at your company to pick up Substrate, you'll want to start by [bootstrapping your AWS organization](../bootstrapping/overview.html). If you're joining a party already in progress, read on.
+This guide is meant to help folks get started using Substrate at a company that has already bootstrapped Substrate. If you're the first person at your company to pick up Substrate, you'll want to start by [bootstrapping your AWS organization](../bootstrapping/overview.md). If you're joining a party already in progress, read on.
 
 ## Installing Substrate and Terraform
 
-Get a Substrate download URL from your coworkers. Take care to select the appropriate operating system and CPU architecture. Substrate releases for MacOS (“`darwin`”) and Linux on 64-bit x86 (“`.html64`”) and ARM (“`arm64`”).
+Get a Substrate download URL from your coworkers. Take care to select the appropriate operating system and CPU architecture. Substrate releases for MacOS (“`darwin`”) and Linux on 64-bit x86 (“`amd64`”) and ARM (“`arm64`”).
 
 1. Download, either by clicking the appropriate link on your Intranet's Substrate page or directly: `curl -O https://src-bin.com/substrate-<version>-<OS>-<ARCH>.tar.gz`
 2. Extract: `tar xf substrate-<version>-<OS>-<ARCH>.tar.gz`
@@ -40,4 +40,4 @@ Once you have your AWS credentials, you can always run `substrate whoami` to ori
 
 ## Jump into the daily Substrate workflow
 
-Now that you've installed Substrate and Terraform, cloned your Substrate repository, and proven that you can use your identity provider to get AWS credentials, you're ready to jump into the [daily workflow](daily-workflow.html) that Substrate encourages.
+Now that you've installed Substrate and Terraform, cloned your Substrate repository, and proven that you can use your identity provider to get AWS credentials, you're ready to jump into the [daily workflow](daily-workflow.md) that Substrate encourages.

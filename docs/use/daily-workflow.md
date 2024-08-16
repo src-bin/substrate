@@ -6,7 +6,7 @@ As such, Substrate introduces some extra tools to your daily workflow, mostly co
 
 ## Prerequisites
 
-You should either be the person who bootstrapped Substrate at your company or have followed the [getting started](getting-started.html) guide already. It's a great idea to make sure `SUBSTRATE_ROOT` is set in your environment to the fully-qualified pathname where you've cloned your Substrate repository.
+You should either be the person who bootstrapped Substrate at your company or have followed the [getting started](getting-started.md) guide already. It's a great idea to make sure `SUBSTRATE_ROOT` is set in your environment to the fully-qualified pathname where you've cloned your Substrate repository.
 
 ## Get AWS credentials from your Credential Factory
 
@@ -26,7 +26,7 @@ You can run a one-off command in one of those accounts (and of course the one-of
 substrate assume-role --domain <domain> --environment <environment> aws ec2 describe-instances
 ```
 
-([Domains, environments, and qualities](../ref/domains-environments-qualities.html) are how Substrate organizes AWS accounts.)
+([Domains, environments, and qualities](../ref/domains-environments-qualities.md) are how Substrate organizes AWS accounts.)
 
 Or you can move your whole terminal session into another account:
 
@@ -46,7 +46,7 @@ In all of these situations, the account boundary serves as a critical isolating 
 
 In a Substrate-managed AWS organization you'll create and update accounts and IAM roles (always confident that Substrate will find them if they already exist).
 
-When you create (or update) an account, Substrate will ensure the account and its basic IAM roles are in good working order and then run the various Terraform root modules associated with the account (one for global resources and another for each region; see [global and regional Terraform modules](../ref/global-and-regional-terraform-modules.html) for more).
+When you create (or update) an account, Substrate will ensure the account and its basic IAM roles are in good working order and then run the various Terraform root modules associated with the account (one for global resources and another for each region; see [global and regional Terraform modules](../ref/global-and-regional-terraform-modules.md) for more).
 
 Try it for yourself, using the domain and environment from a service account you find listed in `substrate.accounts.txt`:
 
@@ -66,11 +66,11 @@ Substrate manages an all-powerful Administrator role and a limited read-only Aud
 substrate role create --role <RoleName> [account selection flags] [assume-role policy flags] [policy attachment flags]
 ```
 
-There are a lot of options, though, so consult the documentation on [adding custom IAM roles for humans or services](../mgmt/custom-iam-roles.html) to get the complete picture.
+There are a lot of options, though, so consult the documentation on [adding custom IAM roles for humans or services](../mgmt/custom-iam-roles.md) to get the complete picture.
 
 ## Plan and apply Terraform changes
 
-Substrate gives you production-ready Terraform infrastructure for all your AWS accounts with a module structure that enhances the isolation provided by your many AWS accounts and locked, remote state files. It strives to make [writing Terraform code](../mgmt/writing-terraform-code.html) a straightforward exercise free of yak-shaving.
+Substrate gives you production-ready Terraform infrastructure for all your AWS accounts with a module structure that enhances the isolation provided by your many AWS accounts and locked, remote state files. It strives to make [writing Terraform code](../mgmt/writing-terraform-code.md) a straightforward exercise free of yak-shaving.
 
 And while `substrate account update` does in fact plan and/or apply Terraform changes in all an account's root modules in a predictable order, iterating on your works-in-progress deserve a faster feedback loop:
 

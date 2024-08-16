@@ -39,7 +39,7 @@
    1. Click the user's name
    2. Click **Profile**
    3. Click **Edit**
-   4. In the _AWS\_RoleName_ input, enter the name (not the ARN) of the IAM role they should assume in your Substrate account (“Administrator” for yourself as you're getting started; if for others it's not “Administrator” or “Auditor”, ensure you've followed [adding non-Administrator roles for humans](../../mgmt/custom-iam-roles.html) first)
+   4. In the _AWS\_RoleName_ input, enter the name (not the ARN) of the IAM role they should assume in your Substrate account (“Administrator” for yourself as you're getting started; if for others it's not “Administrator” or “Auditor”, ensure you've followed [adding non-Administrator roles for humans](../../mgmt/custom-iam-roles.md) first)
    5. Click **Save**
 
-With your identity provider integrated, jump to [finishing up in your management account](../finishing.html).
+With your identity provider integrated, jump to [finishing up in your management account](../finishing.md).

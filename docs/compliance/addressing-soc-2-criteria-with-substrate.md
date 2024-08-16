@@ -81,4 +81,4 @@ So long as you define your infrastructure using `module.substrate.private_subnet
 
 Control to consider: Infrastructure is provisioned across three availability zones.
 
-Provide evidence of this control functioning by showing your Terraform code, actual resources (ECS or EKS clusters, autoscaling groups, database clusters, etc.) in the AWS Console, and the [documentation for `module.substrate.private_subnet_ids` and `module.substrate.public_subnet_ids`](../mgmt/writing-terraform-code.html).
+Provide evidence of this control functioning by showing your Terraform code, actual resources (ECS or EKS clusters, autoscaling groups, database clusters, etc.) in the AWS Console, and the [documentation for `module.substrate.private_subnet_ids` and `module.substrate.public_subnet_ids`](../mgmt/writing-terraform-code.md).

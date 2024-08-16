@@ -6,9 +6,9 @@ Most steps in the getting started guide only need to be performed once. This ste
 
 ### Manual installation
 
-* <https://src-bin.com/substrate-2024.07-darwin-.html64.tar.gz>
+* <https://src-bin.com/substrate-2024.07-darwin-amd64.tar.gz>
 * <https://src-bin.com/substrate-2024.07-darwin-arm64.tar.gz>
-* <https://src-bin.com/substrate-2024.07-linux-.html64.tar.gz>
+* <https://src-bin.com/substrate-2024.07-linux-amd64.tar.gz>
 * <https://src-bin.com/substrate-2024.07-linux-arm64.tar.gz>
 
 Download the tarball for your platform. Then extract it by running a command like this from your downloads directory:
@@ -25,7 +25,7 @@ To simply install Substrate in `~/bin` in a single command, run a command like t
 tar xf substrate-<version>-<OS>-<ARCH>.tar.gz -C ~/bin --strip-components 2 substrate-<version>-<OS>-<ARCH>/bin/substrate
 ```
 
-Each released _version_ and _commit_ is offered in four binary formats; choose the appropriate one for your system. _`<OS>`_ is one of “`darwin`” or “`linux`” and _`<ARCH>`_ is one of “`.html64`” or “`arm64`”.
+Each released _version_ and _commit_ is offered in four binary formats; choose the appropriate one for your system. _`<OS>`_ is one of “`darwin`” or “`linux`” and _`<ARCH>`_ is one of “`amd64`” or “`arm64`”.
 
 You can install Substrate wherever you like. If `~/bin` doesn't suit you, just ensure the directory where you install it is on your `PATH`.
 

@@ -6,4 +6,4 @@ This diagram depects a service using all the reliability primitives Substrate ex
 
 We can change the code running on this service's EC2 instances one server at a time just by having multiple EC2 instances. Thanks to Substrate, we can do a whole lot more: We can change the autoscaling group and launch template, the security groups, the VPCs, subnets and routing tables, and the load balancer one quality and region at a time. And we can change the service's IAM role one quality at a time.
 
-This architecture could exist within the [diagram of a Substrate-managed AWS organization](diagram-substrate-managed-aws-organization.html).
+This architecture could exist within the [diagram of a Substrate-managed AWS organization](diagram-substrate-managed-aws-organization.md).

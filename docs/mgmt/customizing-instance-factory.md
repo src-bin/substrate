@@ -87,7 +87,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-${each.key == "x86_64" ? ".html64" : each.key}-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-${each.key == "x86_64" ? "amd64" : each.key}-server-*"]
   }
   filter {
     name   = "virtualization-type"

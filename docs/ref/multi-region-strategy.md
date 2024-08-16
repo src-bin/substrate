@@ -1,8 +1,8 @@
 # Multi-region strategy
 
-Substrate is multi-region through and through. It keeps a strict separation between [global and regional Terraform modules](global-and-regional-terraform-modules.html), manages CIDR prefixes and peers VPCs, and helps you implement changes region-by-region. (It's worth noting explicitly, too, that all of this works just fine when using only one region.)
+Substrate is multi-region through and through. It keeps a strict separation between [global and regional Terraform modules](global-and-regional-terraform-modules.md), manages CIDR prefixes and peers VPCs, and helps you implement changes region-by-region. (It's worth noting explicitly, too, that all of this works just fine when using only one region.)
 
-`substrate setup` allows you to select which regions you're using (see [adding](../mgmt/adding-an-aws-region.html) and [removing](../mgmt/removing-an-aws-region.html) documentation). But which should you choose?
+`substrate setup` allows you to select which regions you're using (see [adding](../mgmt/adding-an-aws-region.md) and [removing](../mgmt/removing-an-aws-region.md) documentation). But which should you choose?
 
 First things first: You should not simply select every region. For one thing, it won't work due to the hard limits on VPC peering. (Peering multiple domains, each with multiple qualities across every AWS region is possible using Transit Gateway but that is expensive, less reliable, and not currently supported by Substrate.) For another, it will make applying Terraform changes terribly slow. Finally, if you're using NAT Gateways, the costs will pile up to the tune of at least $100 per environment per region per month.
 
