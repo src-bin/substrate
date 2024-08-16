@@ -5,6 +5,8 @@ Substrate is a command-line tool that helps teams build and operate secure, comp
 
 Full documentation is available at <https://docs.substrate.tools/>.
 
+As of 2024-08-14, the canonical version of Substrate comes from <https://github.com/substrate-maintainers/substrate>. Source & Binary, the company that initially developed Substrate, is winding down operations as of this date.
+
 Development
 -----------
 
