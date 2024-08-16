@@ -1,0 +1,7 @@
+# Multi-tenancy
+
+Most SaaS products embrace multi-tenancy as a necessary design point to enable freemium pricing. In a Substrate-managed AWS organization, the most natural way to express this is by having a production environment where all your customer-facing infrastructure is provisioned. As you grow and reliability becomes more important and also harder to preserve, additional qualities within that production environment can help you improve.
+
+Some SaaS products aren't bound by a freemium pricing model and, specifically, may not need to account for a customer changing the level of isolation for which they're paying throughout their lifetime. Those Substrate users should at least consider creating an environment for each of their customers to totally isolate those customers from one another. It's possible to have many thousands of acounts in an AWS organization but, beware, Substrate is going to want to create NAT Gateways for each one of these unless the `substrate.nat-gateways` file contains “no\n”.
+
+A less extreme variation on this idea of using AWS accounts to isolate customers from each other is to create many qualities and host a subset of your customers in each one, with a routing layer that's aware of the quality in which each customer's data is stored. This is a cellular architecture, in effect, implemented using Substrate's existing primitives for creating isolation and reducing the blast radius of changes.
